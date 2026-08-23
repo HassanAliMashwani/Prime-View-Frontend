@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-bg-dark: #10251e;
+  --color-surface-dark: #1c342b;
+  --color-brand: #137547;
+  --color-surface-light: #f4f0e7;
+  --color-muted: #d9d2c5;
+  --color-text-dark: #171816;
+  --color-accent-gold: #b29a68;
+
+  --ease-paper: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  background-color: var(--color-bg-dark);
+  color: var(--color-surface-light);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Phase 2 Custom Utilities */
+.font-display {
+  font-family: var(--font-serif), Playfair Display, Georgia, serif;
+}
+
+.font-sans {
+  font-family: var(--font-sans), Plus Jakarta Sans, sans-serif;
+}
+
+.border-brass {
+  border-color: rgba(178, 154, 104, 0.3);
+}
+
+/* Editorial utilities — Pass 2 Story Chapter */
+.kicker {
+  font-family: var(--font-sans), Plus Jakarta Sans, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--color-accent-gold);
+}
+
+.pull-quote {
+  font-family: var(--font-serif), Playfair Display, Georgia, serif;
+  font-style: italic;
+  font-size: 1.375rem;
+  line-height: 1.6;
+  color: var(--color-text-dark);
+  border-left: 2px solid var(--color-accent-gold);
+  padding-left: 1.5rem;
+  margin: 2rem 0;
+}
+
+/* Stat Chip Presets */
+.stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(217, 210, 197, 0.6);
+  color: var(--color-text-dark);
+  box-shadow: 0 2px 8px rgba(16, 37, 30, 0.04);
+}
+
+.stat-chip-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background-color: rgba(28, 52, 43, 0.7);
+  border: 1px solid rgba(19, 117, 71, 0.3);
+  color: #a7f3d0;
+  backdrop-filter: blur(8px);
+}
+
+/* Accessibility: prefers-reduced-motion fallback */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
