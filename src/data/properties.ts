@@ -12,6 +12,14 @@ export interface PlotPlan {
 
 export const propertyPlans: PlotPlan[] = [
   {
+    id: "com-4marla",
+    category: "Commercial",
+    size: "4 Marla Commercial",
+    installmentPeriod: "Flexible Installment Schedule",
+    features: ["Main GT Road Access", "High Footfall Commercial Hub", "Ample Parking"],
+    imagePath: "/assets/plans/artboard-284x-100.jpg",
+  },
+  {
     id: "res-5marla",
     category: "Residential",
     size: "5 Marla",
@@ -42,13 +50,5 @@ export const propertyPlans: PlotPlan[] = [
     installmentPeriod: "3.5 Years Flexible Plan",
     features: ["Executive Block", "Scenic Panoramic Surroundings", "Spacious Street Frontage"],
     imagePath: "/assets/plans/artboard-22x-100.webp",
-  },
-  {
-    id: "com-4marla",
-    category: "Commercial",
-    size: "4 Marla Commercial",
-    installmentPeriod: "Flexible Installment Schedule",
-    features: ["Main GT Road Access", "High Footfall Commercial Hub", "Ample Parking"],
-    imagePath: "/assets/plans/artboard-284x-100.jpg",
   },
 ];

@@ -2,7 +2,6 @@ import React from "react";
 import { pagesData } from "@/data/pages";
 import { siteConfig } from "@/data/site";
 import { MapPin, Navigation } from "lucide-react";
-import { LuxuryCard } from "@/components/ui/LuxuryCard";
 
 export const metadata = {
   title: pagesData.map.title,
@@ -11,29 +10,31 @@ export const metadata = {
 
 export default function LocationMapPage() {
   return (
-    <div className="bg-warm-ivory text-charcoal min-h-screen py-16">
+    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16">
       <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
         {/* Header Title Banner */}
         <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="kicker block">GEO LOCATION &amp; ACCESS</span>
+          <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
+            GEO LOCATION &amp; ACCESS
+          </span>
           <h1 className="font-display text-4xl sm:text-5xl text-charcoal tracking-tight">
             Location Map
           </h1>
-          <p className="font-sans text-sm sm:text-base text-charcoal/75 max-w-xl mx-auto leading-relaxed">
+          <p className="font-sans text-sm sm:text-base text-muted-gray-text max-w-xl mx-auto leading-relaxed">
             Direct Access from Hazara Expressway &amp; GT Road, Abbottabad
           </p>
         </div>
 
-        {/* Location Map Luxury Container */}
-        <LuxuryCard theme="light" interactive={false} className="p-6 sm:p-8 space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone/30 pb-5">
-            <div className="flex items-center space-x-3 text-verified-green">
+        {/* Location Map Container */}
+        <div className="bg-soft-white rounded-2xl border border-card-border p-6 sm:p-8 space-y-6 shadow-xs">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-card-border pb-5">
+            <div className="flex items-center space-x-3 text-accent-green">
               <MapPin className="w-6 h-6 shrink-0" />
               <div>
                 <h2 className="font-display text-xl font-semibold text-charcoal">
                   Prime View Abbottabad Location Pin
                 </h2>
-                <p className="font-sans text-xs text-charcoal/70 mt-0.5">
+                <p className="font-sans text-xs text-muted-gray-text mt-0.5">
                   Takia Sheikhan / Rajoya, Hazara Division, Khyber Pakhtunkhwa
                 </p>
               </div>
@@ -43,7 +44,7 @@ export default function LocationMapPage() {
               href="https://maps.google.com/?q=34.0538,73.1534"
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-verified-green hover:bg-[#0e5735] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verified-green"
+              className="bg-accent-green hover:bg-[#23533e] text-pure-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors duration-150 shadow-xs flex items-center gap-1.5 uppercase tracking-wider"
             >
               <Navigation className="w-3.5 h-3.5" />
               <span>Get Directions</span>
@@ -51,7 +52,7 @@ export default function LocationMapPage() {
           </div>
 
           {/* Embedded Interactive Google Map */}
-          <div className="relative w-full h-[550px] rounded-xl overflow-hidden border border-stone/40 shadow-inner">
+          <div className="relative w-full h-[550px] rounded-xl overflow-hidden border border-card-border shadow-inner">
             <iframe
               title="Prime View Housing Society Location Map"
               src="https://maps.google.com/maps?q=34.0538,73.1534&z=13&output=embed"
@@ -65,24 +66,17 @@ export default function LocationMapPage() {
             />
           </div>
 
-          {/* Quick Location Summary Box */}
-          <div className="bg-emerald-50/60 p-5 rounded-xl border border-emerald-100/80 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs font-sans text-charcoal/80">
-            <div>
-              <span className="font-bold text-charcoal block mb-0.5">Site Location</span>
-              <span>Rajoya / Takia Sheikhan, Abbottabad</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-muted-gray-text pt-2">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-charcoal">Hazara Expressway:</span>
+              <span>15 Minutes drive</span>
             </div>
-            <div>
-              <span className="font-bold text-charcoal block mb-0.5">Accessibility</span>
-              <span>15 Mins from Hazara Expressway Interchange</span>
-            </div>
-            <div>
-              <span className="font-bold text-charcoal block mb-0.5">Helpline</span>
-              <a href="tel:0333-01-111-12" className="text-verified-green font-bold hover:underline">
-                0333-01-111-12
-              </a>
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-charcoal">Islamabad Marketing Office:</span>
+              <span>{siteConfig.address}</span>
             </div>
           </div>
-        </LuxuryCard>
+        </div>
       </div>
     </div>
   );

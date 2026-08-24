@@ -14,23 +14,25 @@ export default function OwnersPage() {
   );
 
   return (
-    <div className="bg-deep-forest text-warm-ivory min-h-screen py-16">
+    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12">
         {/* Header Title Banner */}
         <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="kicker block">MANAGING COMMITTEE</span>
-          <h1 className="font-display text-4xl sm:text-5xl text-white tracking-tight">
+          <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
+            MANAGING COMMITTEE
+          </span>
+          <h1 className="font-display text-4xl sm:text-5xl text-charcoal tracking-tight">
             Managing Committee &amp; Owners
           </h1>
-          <p className="font-sans text-sm sm:text-base text-warm-ivory/80 max-w-xl mx-auto leading-relaxed">
+          <p className="font-sans text-sm sm:text-base text-muted-gray-text max-w-xl mx-auto leading-relaxed">
             Prime View Co-Operative Housing Society Ltd Hazara Division Executive Management
           </p>
         </div>
 
-        {/* Members Grid with LuxuryCard styling */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        {/* Members Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {ownersList.map((member) => (
-            <TeamMemberCard key={member.id} {...member} theme="dark" />
+            <TeamMemberCard key={member.id} {...member} theme="light" />
           ))}
         </div>
       </div>

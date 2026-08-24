@@ -1,32 +1,27 @@
-"use client";
-
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { StaggerContainer, StaggerItem } from "@/components/motion/StaggerContainer";
-import { LuxuryCard } from "@/components/ui/LuxuryCard";
 import { ArrowRight } from "lucide-react";
 
 export const AboutSection: React.FC = () => {
   return (
-    <section className="relative bg-warm-ivory text-charcoal py-16 sm:py-24 overflow-hidden">
-      {/* Blended House Image on Right — Fades to Left */}
+    <section className="relative bg-warm-beige text-charcoal py-16 sm:py-24 overflow-hidden border-b border-card-border/60">
+      {/* Blended House Image on Right */}
       <div className="absolute right-0 top-0 bottom-0 w-full lg:w-7/12 h-full z-0 pointer-events-none">
         <Image
           src="/assets/gallery/luxury-house-about.jpg"
           alt="Modern luxury house villa surrounded by lush nature"
           fill
-          priority
-          className="object-cover object-center lg:object-right"
+          className="object-cover object-center lg:object-right opacity-90"
           sizes="(max-width: 1024px) 100vw, 60vw"
         />
 
-        {/* Gradient Mask: Solid warm-ivory on left, transitioning to clear image on right */}
+        {/* Gradient Mask: Solid warm-beige on left, transitioning to clear image on right */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(to right, #F4F0E7 0%, #F4F0E7 12%, rgba(244,240,231,0.95) 30%, rgba(244,240,231,0.6) 55%, rgba(244,240,231,0.15) 80%, transparent 100%)",
+              "linear-gradient(to right, #EFE7DA 0%, #EFE7DA 15%, rgba(239,231,218,0.95) 35%, rgba(239,231,218,0.6) 60%, rgba(239,231,218,0.2) 85%, transparent 100%)",
           }}
         />
 
@@ -35,62 +30,48 @@ export const AboutSection: React.FC = () => {
           className="absolute inset-0 lg:hidden"
           style={{
             background:
-              "linear-gradient(to bottom, #F4F0E7 0%, rgba(244,240,231,0.85) 45%, rgba(244,240,231,0.3) 100%)",
+              "linear-gradient(to bottom, #EFE7DA 0%, rgba(239,231,218,0.9) 45%, rgba(239,231,218,0.4) 100%)",
           }}
         />
       </div>
 
       {/* Content Container on Left */}
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
-        <div className="max-w-xl lg:max-w-2xl space-y-5">
-          <StaggerContainer>
-            {/* Kicker */}
-            <StaggerItem>
-              <span className="kicker block mb-1">ABOUT</span>
-            </StaggerItem>
+        <div className="max-w-xl lg:max-w-2xl space-y-6">
+          {/* Kicker */}
+          <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
+            ABOUT PRIME VIEW
+          </span>
 
-            {/* Headline */}
-            <StaggerItem yOffset={16}>
-              <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal leading-[1.15] tracking-tight">
-                A Modern Living Experience Surrounded by Nature
-              </h2>
-            </StaggerItem>
+          {/* Headline */}
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal leading-[1.15] tracking-tight">
+            A Modern Living Experience Surrounded by Nature
+          </h2>
 
-            {/* Concise summary copy */}
-            <StaggerItem yOffset={12}>
-              <p className="text-charcoal/85 font-sans text-sm sm:text-base leading-relaxed pt-1">
-                At Prime View, natural mountain surroundings meet top-notch
-                infrastructure and modern amenities in Abbottabad, supported by
-                convenient installment plans designed to secure your dream home.
-              </p>
-            </StaggerItem>
+          {/* Summary Copy */}
+          <p className="text-muted-gray-text font-sans text-sm sm:text-base leading-relaxed">
+            At Prime View, natural mountain surroundings meet top-notch
+            infrastructure and modern amenities in Abbottabad, supported by
+            convenient installment plans designed to secure your dream home.
+          </p>
 
-            {/* Pull quote card */}
-            <StaggerItem yOffset={12}>
-              <LuxuryCard
-                theme="light"
-                interactive={false}
-                className="p-4 my-2 border-l-4 border-l-muted-brass border-t-0 border-r-0 border-b-0 rounded-r-xl rounded-l-none bg-white/80 backdrop-blur-xs shadow-xs"
-              >
-                <blockquote className="font-display italic text-base sm:text-lg text-charcoal/90 leading-snug">
-                  &ldquo;Some places are built. Others are felt.&rdquo;
-                </blockquote>
-              </LuxuryCard>
-            </StaggerItem>
+          {/* Bespoke Editorial Pull Quote (No generic card box) */}
+          <div className="border-l-3 border-accent-green pl-5 py-2 my-4">
+            <blockquote className="font-display italic text-lg sm:text-xl text-charcoal leading-snug">
+              &ldquo;Some places are built. Others are felt.&rdquo;
+            </blockquote>
+          </div>
 
-            {/* CTA action */}
-            <StaggerItem>
-              <div className="pt-2">
-                <Link
-                  href="/about"
-                  className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-warm-ivory font-sans text-xs sm:text-sm font-semibold px-6 py-3 rounded-full shadow-md transition-all duration-200 hover:shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-charcoal"
-                >
-                  <span>Read More About Us</span>
-                  <ArrowRight className="w-4 h-4 text-emerald-400" />
-                </Link>
-              </div>
-            </StaggerItem>
-          </StaggerContainer>
+          {/* CTA Action */}
+          <div className="pt-2">
+            <Link
+              href="/about"
+              className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-pure-white font-sans text-xs sm:text-sm font-semibold px-6 py-3 rounded-xl shadow-xs transition-colors duration-200"
+            >
+              <span>Read More About Us</span>
+              <ArrowRight className="w-4 h-4 text-emerald-400" />
+            </Link>
+          </div>
         </div>
       </div>
     </section>
