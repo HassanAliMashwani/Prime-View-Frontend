@@ -41,8 +41,8 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Beneficial owner & Director",
     email: "vp@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/assets/team/secre.jpg",
-    photoDiscovered: true,
+    photoPath: null,
+    photoDiscovered: false,
   },
   {
     id: "mc-4",
@@ -51,7 +51,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Planning & operation",
     email: "info@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/assets/team/secre.jpg",
+    photoPath: "/assets/team/secre.png",
     photoDiscovered: true,
   },
   {
