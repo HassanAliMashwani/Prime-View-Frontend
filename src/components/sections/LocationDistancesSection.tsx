@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { MapPin, Route, Car, Building2, Train, Compass, Home } from "lucide-react";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 // Coordinates are percentages (x = left, y = top)
 const locations = [
@@ -37,18 +38,18 @@ export const LocationDistancesSection: React.FC = () => {
   };
 
   return (
-    <section className="pt-8 sm:pt-12 pb-4 sm:pb-8 bg-white relative overflow-hidden border-t border-gray-100">
+    <section className="pt-8 sm:pt-12 pb-4 sm:pb-8 bg-soft-white relative overflow-hidden border-t border-stone">
       
       {/* Header Area */}
       <div className="max-w-[1200px] mx-auto px-6 sm:px-8 mb-8 sm:mb-10 text-center relative z-20">
-        <motion.h2
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <ScrollReveal
+          variant="blur-word"
           className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-charcoal tracking-tight"
         >
-          Prime Location At
-        </motion.h2>
+  Where Convenience Meets Home        </ScrollReveal>
+        <p className="mt-4 font-sans text-sm sm:text-base text-charcoal/60 max-w-2xl mx-auto">
+          Just minutes away from the Motorway, Railway Station, and major city hubs.
+        </p>
       </div>
 
       {/* Map Diagram Area - Reduced Height */}
@@ -80,7 +81,7 @@ export const LocationDistancesSection: React.FC = () => {
               <motion.path
                 key={loc.id}
                 d={generateCurvedPath(loc.x, loc.y)}
-                stroke="#2E6A4F"
+                stroke="#137547"
                 strokeWidth="4"
                 strokeDasharray="8 8"
                 fill="none"
@@ -139,7 +140,7 @@ export const LocationDistancesSection: React.FC = () => {
             style={{ left: `${loc.x}%`, top: `${loc.y}%` }}
           >
             {/* Map Pin Head (Exactly centered at loc.x, loc.y) */}
-            <div className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-accent-green text-white flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 group-hover:bg-deep-forest transition-all duration-300">
+            <div className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-verified-green text-white flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 group-hover:bg-deep-forest transition-all duration-300">
               <loc.icon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             
@@ -148,7 +149,7 @@ export const LocationDistancesSection: React.FC = () => {
               <h4 className="font-sans text-xs sm:text-sm font-bold text-charcoal text-center leading-tight mb-1">
                 {loc.title}
               </h4>
-              <span className="bg-black/5 px-2 py-0.5 rounded font-mono text-[10px] sm:text-xs font-bold text-accent-green">
+              <span className="bg-black/5 px-2 py-0.5 rounded font-mono text-[10px] sm:text-xs font-bold text-verified-green">
                 {loc.distance}
               </span>
             </div>

@@ -3,13 +3,14 @@ import Image from "next/image";
 import { ContactForm } from "@/components/ui/ContactForm";
 import { siteConfig } from "@/data/site";
 import { MapPin, Phone, Mail } from "lucide-react";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const ContactSection: React.FC = () => {
   return (
-    <section className="bg-soft-white text-charcoal border-b border-card-border/60 relative overflow-hidden flex flex-col lg:flex-row">
-      
+    <section className="bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-stone-100 via-stone-300 to-stone-500 text-charcoal relative overflow-hidden flex flex-col lg:flex-row border-t border-stone">
+
       {/* Left Visual Column - Stretches from left edge to middle */}
-      <div className="w-full lg:w-[45%] xl:w-[45%] relative h-[300px] sm:h-[400px] lg:h-auto lg:min-h-[500px] lg:rounded-r-[2.5rem] overflow-hidden shadow-2xl border-r border-card-border">
+      <div className="w-full lg:w-[45%] xl:w-[45%] relative h-[300px] sm:h-[400px] lg:h-auto lg:min-h-[500px] lg:rounded-r-[2.5rem] overflow-hidden shadow-2xl border-r border-stone">
         <Image
           src="/new assests/about page logos/contactus pic.jpg"
           alt="Prime View Contact Us"
@@ -17,12 +18,12 @@ export const ContactSection: React.FC = () => {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/20 to-black/80" />
-        
+
         <div className="absolute inset-0 p-8 lg:p-12 xl:p-16 z-10 flex flex-col justify-center">
           <div className="mb-10 lg:mb-12">
-            <h2 className="font-display text-3xl lg:text-5xl text-white drop-shadow-md">
+            <ScrollReveal variant="blur-word" className="font-display text-3xl lg:text-5xl text-white drop-shadow-md">
               Get In Touch
-            </h2>
+            </ScrollReveal>
             <p className="font-sans text-sm lg:text-base text-white/90 drop-shadow-md mt-3 max-w-xs leading-relaxed">
               We're here to help you secure your dream property.
             </p>
@@ -69,7 +70,7 @@ export const ContactSection: React.FC = () => {
           <ContactForm />
         </div>
       </div>
-      
+
     </section>
   );
 };
