@@ -62,7 +62,7 @@ const amenityChapters: AmenityChapter[] = [
     category: "TOWN PLANNING",
     title: "Modern Infrastructure",
     oneLiner: "Built for smooth movement and long-term reliability.",
-    heroImage: "/assets/amenities/modern-infrastructure-hero.jpg",
+    heroImage: "/new assests/about page logos/drone pic.jpg",
     cards: [
       {
         title: "Wide Carpeted Roads",
@@ -226,28 +226,25 @@ export const AmenitiesSection: React.FC = () => {
                       <button
                         key={chap.id}
                         onClick={() => scrollToChapter(idx)}
-                        className={`w-full text-left px-4 py-3 rounded-xl border text-xs sm:text-sm font-sans transition-all duration-200 flex items-center justify-between group ${
-                          isActive
+                        className={`w-full text-left px-4 py-3 rounded-xl border text-xs sm:text-sm font-sans transition-all duration-200 flex items-center justify-between group ${isActive
                             ? "bg-charcoal text-white font-bold border-2 border-black shadow-[0_6px_24px_rgba(0,0,0,0.15)]"
                             : "bg-black/5 border border-black/10 text-charcoal/80 hover:bg-black/10 hover:text-charcoal font-medium shadow-xs"
-                        }`}
+                          }`}
                       >
                         <div className="flex items-center gap-3">
                           <span
-                            className={`font-mono text-xs font-bold ${
-                              isActive ? "text-emerald-400" : "text-charcoal/50"
-                            }`}
+                            className={`font-mono text-xs font-bold ${isActive ? "text-emerald-400" : "text-charcoal/50"
+                              }`}
                           >
                             {chap.stepNumber}
                           </span>
                           <span className="tracking-wide">{chap.title}</span>
                         </div>
                         <div
-                          className={`w-2.5 h-2.5 rounded-full transition-all ${
-                            isActive
+                          className={`w-2.5 h-2.5 rounded-full transition-all ${isActive
                               ? "bg-emerald-500 ring-4 ring-emerald-500/20"
                               : "bg-black/10 group-hover:bg-black/20"
-                          }`}
+                            }`}
                         />
                       </button>
                     );
@@ -286,9 +283,8 @@ export const AmenitiesSection: React.FC = () => {
 
                 {/* Visual Photo Cards (Clean photography without overlay icons) */}
                 <div
-                  className={`grid grid-cols-1 ${
-                    chapter.cards.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"
-                  } gap-4`}
+                  className={`grid grid-cols-1 ${chapter.cards.length === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2"
+                    } gap-4`}
                 >
                   {chapter.cards.map((card, cardIdx) => (
                     <motion.div
@@ -305,11 +301,10 @@ export const AmenitiesSection: React.FC = () => {
                       >
                         {/* Card Image Thumbnail */}
                         <div
-                          className={`relative w-full ${
-                            chapter.cards.length === 2
+                          className={`relative w-full ${chapter.cards.length === 2
                               ? "aspect-[16/8.5] max-h-[180px]"
                               : "aspect-[16/9.5] max-h-[165px]"
-                          } bg-gray-100 overflow-hidden`}
+                            } bg-gray-100 overflow-hidden`}
                         >
                           <Image
                             src={card.image}

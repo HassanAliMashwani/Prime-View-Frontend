@@ -96,3 +96,48 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+@keyframes scroll-up {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+@keyframes scroll-down {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0); }
+}
+
+.animate-marquee-up {
+  animation: scroll-up 40s linear infinite;
+}
+
+.animate-marquee-down {
+  animation: scroll-down 40s linear infinite;
+}
+
+@keyframes scroll-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@keyframes scroll-right {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+
+.animate-marquee-left {
+  animation: scroll-left 40s linear infinite;
+}
+
+.animate-marquee-right {
+  animation: scroll-right 40s linear infinite;
+}
+
+/* Hide Next.js Development Indicator Badges ("Static route" pill / build toast) */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-route-announcer],
+div:has(> [data-nextjs-toast]),
+div:has(> svg + span:contains("Static route")) {
+  display: none !important;
+}

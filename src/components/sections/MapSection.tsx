@@ -7,7 +7,7 @@ import { siteConfig } from "@/data/site";
 import { MapPin, Navigation, Layers, Compass, Globe, Map as MapIcon } from "lucide-react";
 
 export const MapSection: React.FC = () => {
-  const [mapView, setMapView] = useState<"satellite" | "roadmap" | "masterplan">("satellite");
+  // View switcher removed by user request
 
   return (
     <section className="py-16 sm:py-24 bg-[#F4F1EA] text-charcoal border-b border-card-border/60 relative overflow-hidden">
@@ -71,94 +71,19 @@ export const MapSection: React.FC = () => {
           {/* Right Column: Interactive Map with Switcher */}
           <div className="lg:col-span-7">
             <div className="bg-pure-white p-4 sm:p-5 rounded-2xl border border-card-border shadow-xs overflow-hidden">
-              {/* Header & View Switcher */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 text-xs">
-                <div className="flex items-center gap-2 text-accent-green font-semibold uppercase tracking-wider">
-                  <Compass className="w-4 h-4" />
-                  <span>Prime View Abbottabad Site Pin</span>
-                </div>
-
-                {/* View Mode Toggle Buttons */}
-                <div className="flex items-center gap-1.5 bg-soft-white p-1 rounded-xl border border-card-border">
-                  <button
-                    onClick={() => setMapView("satellite")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors duration-150 ${
-                      mapView === "satellite"
-                        ? "bg-accent-green text-pure-white shadow-xs"
-                        : "text-muted-gray-text hover:text-charcoal"
-                    }`}
-                  >
-                    <Globe className="w-3 h-3" />
-                    <span>Satellite</span>
-                  </button>
-
-                  <button
-                    onClick={() => setMapView("roadmap")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors duration-150 ${
-                      mapView === "roadmap"
-                        ? "bg-accent-green text-pure-white shadow-xs"
-                        : "text-muted-gray-text hover:text-charcoal"
-                    }`}
-                  >
-                    <MapIcon className="w-3 h-3" />
-                    <span>Roadmap</span>
-                  </button>
-
-                  <button
-                    onClick={() => setMapView("masterplan")}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors duration-150 ${
-                      mapView === "masterplan"
-                        ? "bg-accent-green text-pure-white shadow-xs"
-                        : "text-muted-gray-text hover:text-charcoal"
-                    }`}
-                  >
-                    <Layers className="w-3 h-3" />
-                    <span>Masterplan</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Dynamic Map Display Container */}
+              {/* Map Display Container */}
               <div className="relative w-full h-[360px] sm:h-[420px] rounded-xl overflow-hidden border border-card-border bg-[#EFE7DA]/40">
-                {mapView === "satellite" && (
-                  <iframe
-                    title="Prime View Abbottabad Satellite Location Map"
-                    src="https://maps.google.com/maps?q=34.0538,73.1534&t=k&z=13&output=embed"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="w-full h-full"
-                  />
-                )}
-
-                {mapView === "roadmap" && (
-                  <iframe
-                    title="Prime View Abbottabad Roadmap Location Map"
-                    src="https://maps.google.com/maps?q=34.0538,73.1534&z=13&output=embed"
-                    width="100%"
-                    height="100%"
-                    style={{ border: 0 }}
-                    allowFullScreen
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                    className="w-full h-full"
-                  />
-                )}
-
-                {mapView === "masterplan" && (
-                  <div className="relative w-full h-full p-2 flex items-center justify-center bg-pure-white">
-                    <Image
-                      src="/assets/masterplan/prime-view-abbottabad-final-master-plan-11-08-2026.webp"
-                      alt="Prime View Final Master Plan"
-                      fill
-                      className="object-contain p-2"
-                      sizes="(max-width: 1024px) 100vw, 55vw"
-                    />
-                  </div>
-                )}
+                <iframe
+                  title="Prime View Abbottabad Satellite Location Map"
+                  src="https://maps.google.com/maps?q=34.0538,73.1534&t=k&z=13&output=embed"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full"
+                />
               </div>
             </div>
           </div>
