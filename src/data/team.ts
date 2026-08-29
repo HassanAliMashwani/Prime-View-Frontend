@@ -41,7 +41,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Beneficial owner & Director",
     email: "vp@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/assets/team/Sports-Player-Card-V1-1-150x150.jpg",
+    photoPath: "/assets/team/Sports-Player-Card-V1-1",
     photoDiscovered: true,
   },
   {
