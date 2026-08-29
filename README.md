@@ -2,21 +2,20 @@
 
 Modern web platform for **Prime View Co-Operative Housing Society Ltd Hazara Division**, located in Abbottabad, Khyber Pakhtunkhwa.
 
-Built with **Next.js 15 (App Router)**, **TypeScript**, **Tailwind CSS**, and **Framer Motion**.
+Built with **Next.js 15 (App Router)**, **TypeScript**, and **Tailwind CSS**.
 
 ---
 
 ## 🌟 Key Features
 
-- **Luxury Design System**: Editorial forest & warm ivory color palette with typography inspired by high-end architectural publications.
+- **Rev. 3 Luxury Visual System**: Clean white/soft-white dominant canvas (65–75%), warm beige support surfaces (20–30%), and controlled accent green (5–10%).
+- **Glassmorphic Navigation**: Fixed frosted-glass navbar with `@supports not (backdrop-filter: blur(1px))` solid fallback.
+- **Distinct About Page**: 12-column high-contrast typographic layout with a 3-layered diagonal geometric visual composition (`Block A`, `Block B`, `Block C`).
 - **Interactive Location & Master Plan**:
   - Embedded Google Maps Satellite & Roadmap toggles.
   - Ultra-high-resolution Master Plan viewer and direct PDF downloads.
-- **Dynamic Plot & Payment Plans**: Clear breakdowns for 5 Marla, 10 Marla, 1 Kanal, and Commercial categories with installment calculators.
-- **Legal & Administrative Transparency**:
-  - Managing Committee, owners, and leadership profiles.
-  - Dedicated pages for society member notices and legal advisory disclosures.
-- **Optimized Performance**: Next.js App Router static page pre-rendering with optimized WebP media delivery.
+- **Dynamic Plot & Payment Plans**: Clear breakdowns for 5 Marla, 10 Marla, 1 Kanal, and Commercial categories.
+- **Static-First Performance**: Zero animation libraries, native CSS transitions (`≤250ms`), full WCAG AA contrast compliance, and pre-rendered Next.js routes.
 
 ---
 
@@ -26,7 +25,7 @@ Built with **Next.js 15 (App Router)**, **TypeScript**, **Tailwind CSS**, and **
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Icons**: [Lucide React](https://lucide.dev/)
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **Architecture**: Static-First UI with pure CSS transitions
 
 ---
 

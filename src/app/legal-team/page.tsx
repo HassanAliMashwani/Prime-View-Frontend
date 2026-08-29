@@ -1,7 +1,7 @@
 import React from "react";
 import { pagesData } from "@/data/pages";
 import { executiveTeamProfiles } from "@/data/team";
-import { TeamMemberCard } from "@/components/ui/TeamMemberCard";
+import { TeamBentoGrid } from "@/components/sections/TeamBentoGrid";
 
 export const metadata = {
   title: pagesData["legal-team"].title,
@@ -14,25 +14,23 @@ export default function LegalTeamPage() {
   );
 
   return (
-    <div className="bg-deep-forest text-warm-ivory min-h-screen py-16">
-      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12">
+    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16 overflow-hidden">
+      <div className="w-full space-y-12">
         {/* Header Title Banner */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="kicker block">LEGAL ADVISORY</span>
-          <h1 className="font-display text-4xl sm:text-5xl text-white tracking-tight">
+        <div className="text-center space-y-3 max-w-3xl mx-auto px-6 sm:px-8">
+          <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
+            LEGAL ADVISORS
+          </span>
+          <h1 className="font-display text-4xl sm:text-5xl text-charcoal tracking-tight">
             Legal Team
           </h1>
-          <p className="font-sans text-sm sm:text-base text-warm-ivory/80 max-w-xl mx-auto leading-relaxed">
-            Legal Advisory Panel &amp; Co-Operative Regulatory Compliance Directors
+          <p className="font-sans text-sm sm:text-base text-muted-gray-text max-w-xl mx-auto leading-relaxed">
+            Legal counsel and advisors for Prime View Co-Operative Housing Society Ltd
           </p>
         </div>
 
-        {/* Members Grid with LuxuryCard styling */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 max-w-3xl mx-auto">
-          {legalList.map((member) => (
-            <TeamMemberCard key={member.id} {...member} theme="dark" />
-          ))}
-        </div>
+        {/* Bento Grid */}
+        <TeamBentoGrid members={legalList} />
       </div>
     </div>
   );

@@ -9,24 +9,29 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Core Phase 2 Brand Extended Palette
-        "deep-forest": "#10251E", // --color-bg-dark
-        pine: "#1C342B",        // --color-surface-dark
-        "verified-green": "#137547", // --color-brand (Real verified green)
-        "warm-ivory": "#F4F0E7",  // --color-surface-light
-        stone: "#D9D2C5",       // --color-muted
-        charcoal: "#171816",    // --color-text-dark
-        "muted-brass": "#B29A68", // --color-accent-gold
+        // Phase 2 Rev. 3 Brand Color System
+        "pure-white": "#FFFFFF",
+        "soft-white": "#FAF9F7",
+        "warm-beige": "#EFE7DA",
+        "deep-beige": "#E2D6C3",
+        charcoal: "#1B1B1B",
+        "muted-gray-text": "#5F5A52",
+        "accent-green": "#2E6A4F",
+        "soft-green": "#5E8F78",
+        "green-tint-bg": "#EEF5F1",
+        "card-border": "#E8E1D5",
+        "secondary-border": "#D8CCB8",
+        "secondary-hover-bg": "#F5EFE6",
+
+        // Retained tokens
+        "verified-green": "#137547", // Historical brand green reference
+        "deep-forest": "#10251E",   // Reserved strictly for single Footer contrast zone
+        pine: "#1C342B",
       },
       fontFamily: {
         display: ["var(--font-serif)", "Playfair Display", "Georgia", "serif"],
         sans: ["var(--font-sans)", "Plus Jakarta Sans", "Manrope", "sans-serif"],
         heading: ["var(--font-heading)", "Plus Jakarta Sans", "sans-serif"],
-      },
-      transitionTimingFunction: {
-        paper: "cubic-bezier(0.22, 1, 0.36, 1)",
-        editorial: "cubic-bezier(0.16, 1, 0.3, 1)",
-        smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
       },
       aspectRatio: {
         "3/4": "3 / 4",

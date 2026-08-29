@@ -1,50 +1,43 @@
-"use client";
-
 import React from "react";
 import Link from "next/link";
 import { executiveTeamProfiles } from "@/data/team";
-import { TeamMemberCard } from "@/components/ui/TeamMemberCard";
-import { SectionReveal } from "@/components/motion/SectionReveal";
-import { StaggerContainer, StaggerItem } from "@/components/motion/StaggerContainer";
+import { TeamMarquee } from "@/components/sections/TeamMarquee";
 import { ArrowRight } from "lucide-react";
 
 export const TeamSection: React.FC = () => {
+  const allMembers = executiveTeamProfiles.filter(m => m.category === "Managing Committee");
+
   return (
-    <section className="py-24 sm:py-32 bg-deep-forest text-warm-ivory border-t border-emerald-900/30 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-14 relative z-10">
+    <section className="py-20 sm:py-28 bg-pure-white text-charcoal border-b border-card-border/60 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12 relative z-10">
         {/* Section Header */}
-        <SectionReveal className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="kicker block">LEADERSHIP &amp; MANAGEMENT</span>
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-white tracking-tight">
+        <div className="text-center max-w-3xl mx-auto space-y-3">
+          <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
+            LEADERSHIP &amp; MANAGEMENT
+          </span>
+          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal tracking-tight">
             Our Management &amp; Partners
           </h2>
-          <p className="font-sans text-sm sm:text-base text-warm-ivory/75 leading-relaxed">
+          <p className="font-sans text-sm sm:text-base text-muted-gray-text leading-relaxed">
             Dedicated leadership guiding Prime View Co-Operative Housing Society Ltd Hazara Division.
           </p>
-        </SectionReveal>
+        </div>
 
-        {/* Member Cards Grid */}
-        <StaggerContainer
-          staggerDelay={0.08}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-        >
-          {executiveTeamProfiles.slice(0, 4).map((member) => (
-            <StaggerItem key={member.id}>
-              <TeamMemberCard {...member} theme="dark" />
-            </StaggerItem>
-          ))}
-        </StaggerContainer>
+        {/* Members Marquee Carousel */}
+        <div className="w-full">
+          <TeamMarquee members={allMembers} speed={3000} />
+        </div>
 
         {/* Action Button */}
-        <SectionReveal delay={0.2} className="text-center pt-2">
+        <div className="text-center pt-4">
           <Link
             href="/owners"
-            className="inline-flex items-center gap-2 bg-verified-green hover:bg-emerald-600 text-white font-sans font-semibold text-xs sm:text-sm px-7 py-3.5 rounded-full transition-all duration-200 shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-verified-green"
+            className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-pure-white font-sans font-semibold text-xs sm:text-sm px-7 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
             <span>View All Managing Committee &amp; Partners</span>
-            <ArrowRight className="w-4 h-4" />
+            <ArrowRight className="w-4 h-4 text-emerald-400" />
           </Link>
-        </SectionReveal>
+        </div>
       </div>
     </section>
   );

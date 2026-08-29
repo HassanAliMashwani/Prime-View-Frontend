@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sansFont.variable} ${serifFont.variable} scroll-smooth`}>
-      <body className="font-sans antialiased bg-deep-forest text-warm-ivory min-h-screen flex flex-col justify-between selection:bg-verified-green selection:text-white">
+      <body className="font-sans antialiased bg-pure-white text-charcoal min-h-screen flex flex-col justify-between selection:bg-accent-green selection:text-white">
         <Header />
         <main className="flex-grow">{children}</main>
         <Footer />
@@ -43,7 +43,7 @@ export default function RootLayout({
           href={`https://wa.me/${siteConfig.whatsapp}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="fixed bottom-6 left-6 z-50 flex items-center justify-center w-14 h-14 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-full shadow-[0_6px_24px_rgba(37,211,102,0.45)] hover:shadow-[0_8px_30px_rgba(37,211,102,0.65)] transition-all duration-300 ease-out hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
+          className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-full shadow-[0_6px_24px_rgba(37,211,102,0.45)] hover:shadow-[0_8px_30px_rgba(37,211,102,0.65)] transition-all duration-300 ease-out hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#25D366]"
           aria-label="Chat on WhatsApp"
         >
           <svg

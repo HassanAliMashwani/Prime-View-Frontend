@@ -3,138 +3,215 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { siteConfig } from "@/data/site";
-import { mainNavigation } from "@/data/navigation";
-import { ChevronDown, Menu, X } from "lucide-react";
+import { mainNavigation, NavItem } from "@/data/navigation";
+import { ArrowUpRight, ChevronDown, Menu, X } from "lucide-react";
+import { MagneticWrapper } from "@/components/ui/MagneticWrapper";
+import { motion } from "framer-motion";
 
 export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const pathname = usePathname();
+
+  const isLinkActive = (item: NavItem) => {
+    if (item.href === "/" && pathname === "/") return true;
+    if (item.href !== "/" && pathname.startsWith(item.href)) return true;
+    if (item.children?.some((child) => pathname.startsWith(child.href))) return true;
+    return false;
+  };
 
   return (
-    <header className="sticky top-0 z-50 bg-[#1f362b] text-white border-b border-[#137547] shadow-md">
+    <header className="absolute top-3 left-0 right-0 z-50 w-full pt-4 sm:pt-6 pb-2 pl-2 sm:pl-4 lg:pl-6 pr-4 sm:pr-6 lg:pr-10 bg-transparent pointer-events-none transition-none">
+      {/* 3-Pill Floating Container with High-Contrast Smoky Glass on Any Background */}
+      <div className="w-full mx-auto flex items-center justify-between relative h-[50px]">
 
-      {/* Main Navbar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo with Crest */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="relative w-12 h-12">
+        {/* ========================================================================= */}
+        {/* 1. LEFT PILL: Brand Logo (Extreme Left Corner) */}
+        {/* ========================================================================= */}
+        <div className="flex items-center h-[50px] shrink-0">
+          <Link
+            href="/"
+            className="pointer-events-auto flex items-center group shrink-0 transition-all duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+            aria-label="Prime View Home"
+          >
+            <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 lg:w-60 lg:h-60 -ml-2 sm:-ml-4 translate-y-[10px] transition-transform duration-180 group-hover:scale-105">
               <Image
                 src={siteConfig.logoPath}
-                alt={siteConfig.name}
+                alt="Prime View Emblem"
                 fill
-                className="object-contain"
+                className="object-contain object-left"
                 priority
               />
             </div>
-            <div>
-              <span className="text-xl font-bold font-heading text-white block leading-tight tracking-wider">
-                PRIME VIEW
-              </span>
-              <span className="text-[10px] text-emerald-300 uppercase tracking-widest block">
-                Abbottabad
-              </span>
-            </div>
           </Link>
+        </div>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center space-x-6">
-            {mainNavigation.map((item) => (
-              <div key={item.title} className="relative group">
-                {item.children ? (
-                  <div className="flex items-center cursor-pointer text-sm font-medium text-white hover:text-emerald-300 py-2">
-                    <span>{item.title}</span>
-                    <ChevronDown className="w-4 h-4 ml-1 text-emerald-400" />
+        {/* ========================================================================= */}
+        {/* 2. CENTER PILL: Pages Nav Links in Frosted Glass Pill (Sticky on Scroll) */}
+        {/* ========================================================================= */}
+        <nav
+          aria-label="Main Navigation"
+          className="pointer-events-auto hidden md:flex fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 items-center h-[50px] px-3 lg:px-4 rounded-full bg-white/75 backdrop-blur-md border border-white/50 shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-[60]"
+        >
+          <ul className="flex items-center gap-1 lg:gap-2 text-[13.5px] lg:text-[14.5px] font-medium tracking-normal text-charcoal whitespace-nowrap">
+            {mainNavigation.map((item) => {
+              const active = isLinkActive(item);
+
+              if (item.children) {
+                return (
+                  <li
+                    key={item.title}
+                    className="relative group py-1.5 px-3 rounded-full cursor-pointer"
+                    onMouseEnter={() => setActiveDropdown(item.title)}
+                    onMouseLeave={() => setActiveDropdown(null)}
+                  >
+                    {active && (
+                      <motion.div
+                        layoutId="nav-pill"
+                        className="absolute inset-0 bg-white rounded-full shadow-sm"
+                        transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <div
+                      className={`relative z-10 flex items-center gap-1 transition-all duration-180 ${active ? "text-black" : "text-charcoal/70 hover:text-black"
+                        }`}
+                    >
+                      <span className="whitespace-nowrap">{item.title}</span>
+                      <ChevronDown className="w-3 h-3 opacity-70 group-hover:opacity-100 group-hover:rotate-180 transition-transform duration-180" />
+                    </div>
 
                     {/* Submenu Dropdown */}
-                    <div className="absolute left-0 top-full hidden group-hover:block w-64 bg-white text-gray-900 border border-gray-200 shadow-xl rounded-md py-2 z-50">
+                    <div
+                      className={`absolute left-1/2 -translate-x-1/2 top-full pt-2 w-64 z-50 transition-all duration-180 ${activeDropdown === item.title
+                        ? "opacity-100 visible translate-y-0"
+                        : "opacity-0 invisible -translate-y-2 pointer-events-none"
+                        }`}
+                    >
+                      <div className="rounded-2xl bg-white/90 backdrop-blur-xl border border-white/50 shadow-xl py-2">
+                        {item.children.map((sub) => {
+                          const isSubActive = pathname === sub.href;
+                          return (
+                            <Link
+                              key={sub.title}
+                              href={sub.href}
+                              className={`block px-4 py-2 text-xs transition-colors duration-150 ${isSubActive
+                                ? "bg-black/5 text-black font-semibold"
+                                : "text-charcoal/80 hover:bg-black/5 hover:text-black"
+                                }`}
+                            >
+                              {isSubActive && <span className="mr-1.5 text-emerald-600">•</span>}
+                              {sub.title}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </li>
+                );
+              }
+
+              return (
+                <li key={item.title} className="relative px-4 py-1.5 rounded-full">
+                  {active && (
+                    <motion.div
+                      layoutId="nav-pill"
+                      className="absolute inset-0 bg-white rounded-full shadow-[0_2px_10px_rgba(0,0,0,0.05)] border border-black/[0.03]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                  <Link
+                    href={item.href}
+                    className={`relative z-10 inline-flex items-center transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black rounded-md whitespace-nowrap ${active ? "text-black font-semibold" : "text-charcoal/70 hover:text-black"
+                      }`}
+                  >
+                    <span>{item.title}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        {/* ========================================================================= */}
+        {/* 3. RIGHT PILL: “Book Now ↗” Peach Pill */}
+        {/* ========================================================================= */}
+        <div className="flex items-center gap-2.5 shrink-0 h-[50px]">
+          <MagneticWrapper className="pointer-events-auto">
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center gap-1.5 h-[50px] px-6 sm:px-7 rounded-full bg-[#F2BB84] hover:bg-[#EAAA6D] text-[#1E1E1C] text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(242,187,132,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F2BB84] animate-pulse"
+              aria-label="Book Now"
+            >
+              <span>Book Now</span>
+              <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+            </Link>
+          </MagneticWrapper>
+
+          {/* Mobile Menu Smoky Pill Toggle (< 768px) */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="pointer-events-auto md:hidden flex items-center justify-center w-[50px] h-[50px] rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm text-charcoal hover:bg-white/90 transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black"
+            aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* 4. MOBILE MENU DRAWER */}
+      {/* ========================================================================= */}
+      {mobileMenuOpen && (
+        <div className="pointer-events-auto max-w-[1240px] mx-auto mt-2 md:hidden bg-white/90 backdrop-blur-xl border border-white/50 rounded-3xl p-5 space-y-3 shadow-2xl">
+          <nav aria-label="Mobile Navigation" className="space-y-1">
+            {mainNavigation.map((item) => {
+              const active = isLinkActive(item);
+
+              if (item.children) {
+                return (
+                  <div key={item.title} className="py-2 border-b border-black/10">
+                    <div className="text-xs font-semibold uppercase tracking-wider text-[#d08535] mb-1.5 px-2">
+                      {item.title}
+                    </div>
+                    <div className="pl-3 border-l-2 border-black/15 space-y-1">
                       {item.children.map((sub) => (
                         <Link
                           key={sub.title}
                           href={sub.href}
-                          className="block px-4 py-2.5 text-xs font-medium border-b border-gray-100 last:border-0 hover:bg-[#137547] hover:text-white transition"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className={`block py-1.5 px-2 text-xs rounded-lg transition-colors ${pathname === sub.href
+                            ? "bg-black/5 text-black font-semibold"
+                            : "text-charcoal/70 hover:bg-black/5"
+                            }`}
                         >
+                          {pathname === sub.href && "• "}
                           {sub.title}
                         </Link>
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className="text-sm font-medium text-white hover:text-emerald-300 py-2 transition"
-                  >
-                    {item.title}
-                  </Link>
-                )}
-              </div>
-            ))}
-          </nav>
+                );
+              }
 
-          {/* Call to Action Button */}
-          <div className="hidden lg:flex items-center space-x-3">
-            <Link
-              href="/contact"
-              className="bg-verified-green hover:bg-[#0e5735] text-white text-xs font-bold px-6 py-2.5 rounded-lg transition-all duration-200 shadow-[0_4px_16px_rgba(19,117,71,0.5)] border border-emerald-400/40 hover:scale-105 uppercase tracking-wider"
-            >
-              Book Now
-            </Link>
-          </div>
-
-          {/* Mobile Menu Toggle */}
-          <div className="md:hidden flex items-center">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="text-white p-2 focus:outline-none"
-              aria-label="Toggle Navigation"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu Drawer */}
-      {mobileMenuOpen && (
-        <div className="md:hidden bg-[#1f362b] border-t border-emerald-800 px-4 pt-2 pb-6 space-y-3">
-          {mainNavigation.map((item) => (
-            <div key={item.title}>
-              {item.children ? (
-                <div>
-                  <div className="font-semibold text-emerald-300 py-1 text-sm">{item.title}</div>
-                  <div className="pl-4 space-y-1 mt-1 border-l-2 border-[#137547]">
-                    {item.children.map((sub) => (
-                      <Link
-                        key={sub.title}
-                        href={sub.href}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="block py-1 text-xs text-gray-200 hover:text-emerald-400"
-                      >
-                        {sub.title}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : (
+              return (
                 <Link
+                  key={item.title}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className="block py-1 text-sm font-medium text-white hover:text-emerald-400"
+                  className={`block py-2 px-3 text-xs sm:text-sm rounded-xl transition-colors ${active
+                    ? "bg-black/5 text-black font-semibold"
+                    : "text-charcoal/70 hover:bg-black/5"
+                    }`}
                 >
+                  {active && "• "}
                   {item.title}
                 </Link>
-              )}
-            </div>
-          ))}
-          <div className="pt-2">
-            <Link
-              href="/contact"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-center bg-verified-green hover:bg-[#0e5735] text-white py-3 rounded-lg text-sm font-bold uppercase tracking-wider shadow-md"
-            >
-              Book Now
-            </Link>
-          </div>
+              );
+            })}
+          </nav>
         </div>
       )}
     </header>

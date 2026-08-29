@@ -1,128 +1,137 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { siteConfig } from "@/data/site";
 import { footerNavigation } from "@/data/navigation";
-import { MapPin, Phone, Mail, ArrowUpRight } from "lucide-react";
+import { Instagram, Linkedin, Facebook } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-deep-forest text-warm-ivory pt-16 pb-12 border-t border-emerald-900/40 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-12 mb-14">
-          {/* Col 1: Brand & Tagline — lg:col-span-4 */}
-          <div className="lg:col-span-4 space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="relative w-12 h-12">
-                <Image
-                  src={siteConfig.logoPath}
-                  alt={siteConfig.name}
-                  fill
-                  className="object-contain"
-                />
-              </div>
-              <div>
-                <span className="font-display text-xl font-bold tracking-wider text-white block">
-                  PRIME VIEW
-                </span>
-                <span className="font-sans text-[10px] text-emerald-400 uppercase tracking-widest block">
-                  Abbottabad
-                </span>
-              </div>
-            </div>
+    <footer className="bg-[#F4F1EA] py-8 px-4 sm:px-6 lg:px-8 relative">
 
-            <p className="font-sans text-xs text-warm-ivory/80 leading-relaxed max-w-sm">
-              {siteConfig.fullName}
-            </p>
-            <p className="font-display italic text-xs text-emerald-300/90 pt-1">
-              &ldquo;Close to Heaven&rdquo;
-            </p>
-          </div>
-
-          {/* Col 2: Quick Links — lg:col-span-2 */}
-          <div className="lg:col-span-2 space-y-3">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-300/90 border-b border-emerald-500/20 pb-2">
-              Quick Links
-            </h3>
-            <ul className="space-y-2 font-sans text-xs">
-              {footerNavigation.quickLinks.map((item) => (
-                <li key={item.title}>
-                  <Link
-                    href={item.href}
-                    className="text-warm-ivory/70 hover:text-white hover:underline transition-colors duration-200"
-                  >
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 3: Maps & Info — lg:col-span-3 */}
-          <div className="lg:col-span-3 space-y-3">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-300/90 border-b border-emerald-500/20 pb-2">
-              Maps &amp; Info
-            </h3>
-            <ul className="space-y-2 font-sans text-xs">
-              {footerNavigation.mapsAndPlans.map((item) => (
-                <li key={item.title}>
-                  <Link
-                    href={item.href}
-                    className="text-warm-ivory/70 hover:text-white hover:underline transition-colors duration-200"
-                  >
-                    {item.title}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Col 4: Contact Info — lg:col-span-3 */}
-          <div className="lg:col-span-3 space-y-3">
-            <h3 className="font-sans text-xs font-semibold uppercase tracking-wider text-emerald-300/90 border-b border-emerald-500/20 pb-2">
-              Booking Office
-            </h3>
-            <ul className="space-y-3 font-sans text-xs text-warm-ivory/75">
-              <li className="flex items-start gap-2.5">
-                <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span className="leading-relaxed">{siteConfig.address}</span>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                <a
-                  href={`tel:${siteConfig.phone}`}
-                  className="hover:text-white hover:underline"
-                >
-                  {siteConfig.phone}
-                </a>
-              </li>
-              <li className="flex items-center gap-2.5">
-                <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-                <a
-                  href={`mailto:${siteConfig.email}`}
-                  className="hover:text-white hover:underline truncate"
-                >
-                  {siteConfig.email}
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom copyright & attribution */}
-        <div className="border-t border-emerald-500/15 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-sans text-warm-ivory/50">
-          <p>© {new Date().getFullYear()} {siteConfig.fullName}. All Rights Reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link href="/about" className="hover:text-warm-ivory transition-colors">
-              About Society
-            </Link>
-            <span>•</span>
-            <Link href="/contact" className="hover:text-warm-ivory transition-colors">
-              Contact &amp; Map
+      {/* ========================================================================= */}
+      {/* 1. OVERLAPPING CTA CARD */}
+      {/* ========================================================================= */}
+      <div className="max-w-[850px] mx-auto bg-deep-forest rounded-[2rem] p-6 sm:p-8 text-center relative z-10 -mb-12 shadow-2xl overflow-hidden">
+        <div className="relative z-10 max-w-2xl mx-auto space-y-4">
+          <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-pure-white">
+            Secure Your Plot in Prime View Today
+          </h2>
+          <p className="font-sans text-[13px] sm:text-sm font-medium text-pure-white/90 leading-relaxed">
+            Discover serene nature, modern infrastructure, and secure your future investment — all in one seamless community.
+          </p>
+          <div className="pt-1">
+            <Link
+              href="/contact"
+              className="inline-flex items-center justify-center bg-[#F2BB84] text-[#1E1E1C] font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl hover:bg-[#EAAA6D] transition-colors shadow-sm animate-pulse"
+            >
+              Book Now
             </Link>
           </div>
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 2. MAIN FOOTER WHITE CARD */}
+      {/* ========================================================================= */}
+      <div className="max-w-[1050px] mx-auto bg-white rounded-[2rem] pt-20 pb-8 px-6 sm:px-8 lg:px-10 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative z-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-4">
+
+          {/* Brand & Socials (Col 1: Span 4) */}
+          <div className="lg:col-span-4 flex flex-col items-start pr-4">
+            <div className="flex items-center gap-1 -ml-4 -mt-4">
+              <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+                <Image
+                  src={siteConfig.logoPath}
+                  alt={siteConfig.name}
+                  fill
+                  className="object-contain object-left"
+                />
+              </div>
+              <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-pine -ml-2">
+                Prime View
+              </span>
+            </div>
+
+            <div className="flex items-center gap-4 mt-2">
+              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-black text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="X (formerly Twitter)">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+              </a>
+              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#E1306C] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="Instagram">
+                <Instagram className="w-4 h-4" />
+              </a>
+              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#0077B5] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="LinkedIn">
+                <Linkedin className="w-4 h-4 fill-current" />
+              </a>
+              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1877F2] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="Facebook">
+                <Facebook className="w-4 h-4 fill-current" />
+              </a>
+            </div>
+          </div>
+
+          {/* Product / Quick Links (Col 2: Span 3) */}
+          <div className="lg:col-span-3 lg:ml-8">
+            <h4 className="font-display text-[15px] font-bold text-pine mb-3">Product</h4>
+            <ul className="space-y-2.5">
+              {footerNavigation.quickLinks.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    href={item.href}
+                    className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources / Maps & Info (Col 3: Span 3) */}
+          <div className="lg:col-span-3">
+            <h4 className="font-display text-[15px] font-bold text-pine mb-3">Resources</h4>
+            <ul className="space-y-2.5">
+              {footerNavigation.mapsAndPlans.map((item) => (
+                <li key={item.title}>
+                  <Link
+                    href={item.href}
+                    className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors"
+                  >
+                    {item.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Legal (Col 4: Span 2) */}
+          <div className="lg:col-span-2">
+            <h4 className="font-display text-[15px] font-bold text-pine mb-3">Legal</h4>
+            <ul className="space-y-2.5">
+              <li>
+                <Link href="#" className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors">
+                  Privacy Policy / GDPR
+                </Link>
+              </li>
+              <li>
+                <Link href="#" className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors">
+                  Cookie Policy
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
     </footer>
   );
 };

@@ -28,7 +28,7 @@ export const pagesData: Record<string, PageMeta> = {
     title: "Contact - Prime View Co-Operative Housing Society Ltd Hazara Division",
     description: "Contact Prime View Marketing & Booking Office in Islamabad and Abbottabad.",
     h1: "Contact & Booking Office",
-    h2: "Get in Touch With Our Authorized Sales Representatives",
+   
   },
   "our-team": {
     title: "Our Team - Prime View Co-Operative Housing Society Ltd Hazara Division",
