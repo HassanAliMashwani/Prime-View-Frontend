@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 export const ContactForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -17,17 +18,23 @@ export const ContactForm: React.FC = () => {
   };
 
   return (
-    <div className="bg-pure-white p-6 sm:p-8 rounded-2xl border border-card-border shadow-xs">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="bg-pure-white p-6 sm:p-8 rounded-2xl border border-stone/60 shadow-[0_0_60px_-15px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300"
+    >
       <h3 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal mb-2">
         Send an Inquiry
       </h3>
-      <p className="font-sans text-xs sm:text-sm text-muted-gray-text mb-6">
+      <p className="font-sans text-xs sm:text-sm text-charcoal/60 mb-6">
         Fill out the form below to reach out to the Prime View team directly.
       </p>
 
       {submitted ? (
-        <div className="bg-green-tint-bg border border-accent-green/30 text-charcoal p-5 rounded-xl text-sm font-medium flex items-center gap-3">
-          <CheckCircle2 className="w-5 h-5 text-accent-green shrink-0" />
+        <div className="bg-soft-white border border-verified-green/30 text-charcoal p-5 rounded-xl text-sm font-medium flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-verified-green shrink-0" />
           <span>Thank you! We respond to all inquiries promptly within 2 hours.</span>
         </div>
       ) : (
@@ -49,7 +56,7 @@ export const ContactForm: React.FC = () => {
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="Full Name"
-              className="w-full px-4 py-3 text-sm bg-soft-white border border-card-border rounded-xl text-charcoal placeholder-muted-gray-text/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent-green focus:border-accent-green"
+              className="w-full px-4 py-3 text-sm bg-soft-white border border-stone rounded-xl text-charcoal placeholder-charcoal/60/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-verified-green focus:border-verified-green"
             />
           </div>
 
@@ -70,7 +77,7 @@ export const ContactForm: React.FC = () => {
                 setFormData({ ...formData, number: e.target.value })
               }
               placeholder="+92 3XX XXXXXXX"
-              className="w-full px-4 py-3 text-sm bg-soft-white border border-card-border rounded-xl text-charcoal placeholder-muted-gray-text/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent-green focus:border-accent-green"
+              className="w-full px-4 py-3 text-sm bg-soft-white border border-stone rounded-xl text-charcoal placeholder-charcoal/60/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-verified-green focus:border-verified-green"
             />
           </div>
 
@@ -91,19 +98,19 @@ export const ContactForm: React.FC = () => {
                 setFormData({ ...formData, message: e.target.value })
               }
               placeholder="Specify plot size (5, 7, 10 Marla, 1 Kanal) or questions..."
-              className="w-full px-4 py-3 text-sm bg-soft-white border border-card-border rounded-xl text-charcoal placeholder-muted-gray-text/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent-green focus:border-accent-green"
+              className="w-full px-4 py-3 text-sm bg-soft-white border border-stone rounded-xl text-charcoal placeholder-charcoal/60/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-verified-green focus:border-verified-green"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center gap-2 bg-accent-green hover:bg-[#23533e] text-pure-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-xs transition-colors duration-150"
+            className="w-full inline-flex items-center justify-center gap-2 bg-verified-green hover:bg-[#137547] text-pure-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-xs transition-colors duration-150"
           >
             <span>Submit Booking Inquiry</span>
             <Send className="w-3.5 h-3.5" />
           </button>
         </form>
       )}
-    </div>
+    </motion.div>
   );
 };

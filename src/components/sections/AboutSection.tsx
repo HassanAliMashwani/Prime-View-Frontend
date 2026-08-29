@@ -2,10 +2,11 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const AboutSection: React.FC = () => {
   return (
-    <section className="relative bg-warm-beige text-charcoal py-16 sm:py-24 overflow-hidden border-b border-card-border/60">
+    <section className="relative bg-warm-beige text-charcoal py-16 sm:py-24 overflow-hidden border-b border-stone/60">
       {/* Blended House Image on Right */}
       <div className="absolute right-0 top-0 bottom-0 w-full lg:w-7/12 h-full z-0 pointer-events-none">
         <Image
@@ -39,24 +40,26 @@ export const AboutSection: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         <div className="max-w-xl lg:max-w-2xl space-y-6">
           {/* Kicker */}
-          <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
-            ABOUT PRIME VIEW
-          </span>
+          <ScrollReveal variant="bounce">
+            <span className="kicker block text-xs font-semibold tracking-widest text-verified-green uppercase">
+              ABOUT PRIME VIEW
+            </span>
+          </ScrollReveal>
 
           {/* Headline */}
-          <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal leading-[1.15] tracking-tight">
+          <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal leading-[1.15] tracking-tight">
             A Modern Living Experience Surrounded by Nature
-          </h2>
+          </ScrollReveal>
 
           {/* Summary Copy */}
-          <p className="text-muted-gray-text font-sans text-sm sm:text-base leading-relaxed">
+          <p className="text-charcoal/60 font-sans text-sm sm:text-base leading-relaxed">
             At Prime View, natural mountain surroundings meet top-notch
             infrastructure and modern amenities in Abbottabad, supported by
             convenient installment plans designed to secure your dream home.
           </p>
 
           {/* Bespoke Editorial Pull Quote (No generic card box) */}
-          <div className="border-l-3 border-accent-green pl-5 py-2 my-4">
+          <div className="border-l-3 border-verified-green pl-5 py-2 my-4">
             <blockquote className="font-display italic text-lg sm:text-xl text-charcoal leading-snug">
               &ldquo;Some places are built. Others are felt.&rdquo;
             </blockquote>
@@ -65,10 +68,10 @@ export const AboutSection: React.FC = () => {
           {/* CTA Action */}
           <div className="pt-2">
             <Link
-              href="/about"
+              href="/contact"
               className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-pure-white font-sans text-xs sm:text-sm font-semibold px-6 py-3 rounded-xl shadow-xs transition-colors duration-200"
             >
-              <span>Read More About Us</span>
+              <span>Contact Us Today</span>
               <ArrowRight className="w-4 h-4 text-emerald-400" />
             </Link>
           </div>
