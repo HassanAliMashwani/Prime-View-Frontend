@@ -13,8 +13,8 @@ import { Check, Calendar, ArrowUpRight, Star } from "lucide-react";
 const ACCENTS: Record<string, { orb: string; badge: string; border: string; glow: string; featured?: boolean }> = {
   "com-4marla": {
     orb: "radial-gradient(circle at 60% 30%, rgba(242,187,132,0.55) 0%, rgba(234,170,109,0.15) 55%, transparent 80%)",
-    badge: "bg-[#F2BB84]/20 text-[#b07a3a] border-[#F2BB84]/40",
-    border: "border-[#F2BB84]/60",
+    badge: "bg-[#B29A68]/20 text-[#B29A68] border-[#B29A68]/40",
+    border: "border-[#B29A68]/60",
     glow: "shadow-[0_0_60px_rgba(242,187,132,0.25)]",
     featured: true,
   },
@@ -59,7 +59,7 @@ function PlanCard({ plan, index }: { plan: (typeof propertyPlans)[0]; index: num
         ${accent.border} ${accent.glow}
         p-7 transition-all duration-500 ease-out
         hover:-translate-y-2 hover:scale-[1.018]
-        ${accent.featured ? "ring-2 ring-[#F2BB84]/60" : ""}
+        ${accent.featured ? "ring-2 ring-[#B29A68]/60" : ""}
         overflow-hidden`}
     >
       {/* Animated background orb */}
@@ -70,8 +70,8 @@ function PlanCard({ plan, index }: { plan: (typeof propertyPlans)[0]; index: num
       {/* "Best Investment" badge for featured */}
       {accent.featured && (
         <div className="absolute -top-px left-1/2 -translate-x-1/2 z-20">
-          <div className="flex items-center gap-1.5 bg-[#1E1E1C] text-[#F2BB84] text-[11px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-b-xl shadow-lg">
-            <Star className="w-3 h-3 fill-[#F2BB84]" />
+          <div className="flex items-center gap-1.5 bg-[#1B1B1B] text-[#B29A68] text-[11px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-b-xl shadow-lg">
+            <Star className="w-3 h-3 fill-[#B29A68]" />
             Best Investment
           </div>
         </div>
@@ -120,7 +120,7 @@ function PlanCard({ plan, index }: { plan: (typeof propertyPlans)[0]; index: num
             py-3.5 rounded-2xl text-sm font-semibold tracking-wide
             transition-all duration-300
             ${accent.featured
-              ? "bg-[#1E1E1C] text-[#F2BB84] hover:bg-black shadow-lg hover:shadow-xl hover:shadow-black/20"
+              ? "bg-[#1B1B1B] text-[#B29A68] hover:bg-black shadow-lg hover:shadow-xl hover:shadow-black/20"
               : "bg-black/5 hover:bg-charcoal text-charcoal hover:text-white border border-charcoal/10 hover:border-transparent"
             }
           `}
@@ -155,7 +155,7 @@ export default function OurPlansPage() {
       <div className="min-h-screen bg-white text-charcoal">
 
         {/* ── HERO HEADER ─────────────────────────────── */}
-        <div className="relative bg-[#F4F1EA] pt-32 sm:pt-36 pb-6 px-6 sm:px-8 lg:px-12 text-center overflow-hidden border-b border-black/[0.06]">
+        <div className="relative bg-[#FAF9F7] pt-32 sm:pt-36 pb-6 px-6 sm:px-8 lg:px-12 text-center overflow-hidden border-b border-black/[0.06]">
 
           {/* Ambient particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
@@ -175,7 +175,7 @@ export default function OurPlansPage() {
           </div>
 
           {/* Large ambient circle */}
-          <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[#F2BB84]/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[#B29A68]/10 blur-3xl pointer-events-none" />
 
           <div className="relative z-10 max-w-3xl mx-auto">
             
@@ -205,7 +205,7 @@ export default function OurPlansPage() {
         {/* ── CARDS GRID ──────────────────────────────── */}
         <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pb-8 pt-8">
           {/* Ambient blobs */}
-          <div className="absolute top-1/4 left-0 w-72 h-72 bg-[#F2BB84]/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute top-1/4 left-0 w-72 h-72 bg-[#B29A68]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-1/4 right-0 w-72 h-72 bg-violet-300/10 rounded-full blur-3xl pointer-events-none" />
 
           <div className="relative z-10 -mx-6">

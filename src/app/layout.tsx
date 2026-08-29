@@ -33,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${sansFont.variable} ${serifFont.variable} scroll-smooth`}>
-      <body className="font-sans antialiased bg-pure-white text-charcoal min-h-screen flex flex-col justify-between selection:bg-accent-green selection:text-white">
+      <body className="font-sans antialiased bg-pure-white text-charcoal min-h-screen flex flex-col justify-between selection:bg-verified-green selection:text-white">
         <Header />
         <main className="flex-grow">{children}</main>
         <Footer />

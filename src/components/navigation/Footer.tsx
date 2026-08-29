@@ -9,7 +9,7 @@ import { Instagram, Linkedin, Facebook } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#F4F1EA] py-8 px-4 sm:px-6 lg:px-8 relative">
+    <footer className="bg-[#FAF9F7] py-8 px-4 sm:px-6 lg:px-8 relative">
 
       {/* ========================================================================= */}
       {/* 1. OVERLAPPING CTA CARD */}
@@ -25,7 +25,7 @@ export const Footer: React.FC = () => {
           <div className="pt-1">
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center bg-[#F2BB84] text-[#1E1E1C] font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl hover:bg-[#EAAA6D] transition-colors shadow-sm animate-pulse"
+              className="inline-flex items-center justify-center bg-[#B29A68] text-[#1B1B1B] font-bold text-xs sm:text-sm px-5 py-2.5 rounded-xl hover:bg-[#B29A68] transition-colors shadow-sm animate-pulse"
             >
               Book Now
             </Link>
@@ -81,7 +81,7 @@ export const Footer: React.FC = () => {
                 <li key={item.title}>
                   <Link
                     href={item.href}
-                    className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors"
+                    className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors"
                   >
                     {item.title}
                   </Link>
@@ -98,7 +98,7 @@ export const Footer: React.FC = () => {
                 <li key={item.title}>
                   <Link
                     href={item.href}
-                    className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors"
+                    className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors"
                   >
                     {item.title}
                   </Link>
@@ -112,17 +112,17 @@ export const Footer: React.FC = () => {
             <h4 className="font-display text-[15px] font-bold text-pine mb-3">Legal</h4>
             <ul className="space-y-2.5">
               <li>
-                <Link href="#" className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors">
+                <Link href="#" className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="#" className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors">
+                <Link href="#" className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors">
                   Privacy Policy / GDPR
                 </Link>
               </li>
               <li>
-                <Link href="#" className="font-sans text-[13px] text-muted-gray-text hover:text-accent-green font-medium transition-colors">
+                <Link href="#" className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors">
                   Cookie Policy
                 </Link>
               </li>
