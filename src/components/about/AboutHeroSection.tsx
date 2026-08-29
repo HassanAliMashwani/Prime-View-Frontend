@@ -182,22 +182,28 @@ export const AboutHeroSection: React.FC = () => {
             >
               <div className="relative h-[360px] sm:h-[440px] rounded-3xl overflow-hidden shadow-xl border border-[#E8E1D5]">
                 <Image
-                  src="/assets/gallery/site-best-pic.jpg"
-                  alt="Prime View society site panorama"
+                  src="/new assests/about page logos/drone pic.jpg"
+                  alt="Prime View society drone view"
                   fill
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                 />
                 {/* Overlay label */}
-                <div className="absolute bottom-5 left-5 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/60 shadow-sm">
-                  <span className="text-xs font-bold text-charcoal tracking-wider uppercase">Prime View — Masterplan Site</span>
-                </div>
+               
+               
+               
+                
               </div>
 
               {/* Floating accent card */}
-              <div className="absolute -bottom-6 -right-4 sm:-right-8 bg-[#F4F1EA] border border-[#E8E1D5] rounded-2xl shadow-lg px-5 py-4 w-44 text-center z-10">
-                <span className="block font-display text-3xl font-bold text-charcoal">3.5</span>
-                <span className="text-xs text-charcoal/60 font-medium">Years Easy Installment Plan</span>
+              <div className="absolute -bottom-6 -right-4 sm:-right-8 w-32 sm:w-44 z-10">
+                <Image
+                  src="/new assests/about page logos/noc-11.jpg.png"
+                  alt="NOC Certified"
+                  width={200}
+                  height={200}
+                  className="w-full h-auto object-contain drop-shadow-xl"
+                />
               </div>
             </motion.div>
 

@@ -1,10 +1,12 @@
 import React from "react";
 import Link from "next/link";
 import { executiveTeamProfiles } from "@/data/team";
-import { TeamMemberCard } from "@/components/ui/TeamMemberCard";
+import { TeamMarquee } from "@/components/sections/TeamMarquee";
 import { ArrowRight } from "lucide-react";
 
 export const TeamSection: React.FC = () => {
+  const allMembers = executiveTeamProfiles.filter(m => m.category === "Managing Committee");
+
   return (
     <section className="py-20 sm:py-28 bg-pure-white text-charcoal border-b border-card-border/60 relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12 relative z-10">
@@ -21,18 +23,16 @@ export const TeamSection: React.FC = () => {
           </p>
         </div>
 
-        {/* Member Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {executiveTeamProfiles.slice(0, 4).map((member) => (
-            <TeamMemberCard key={member.id} {...member} theme="light" />
-          ))}
+        {/* Members Marquee Carousel */}
+        <div className="w-full">
+          <TeamMarquee members={allMembers} speed={3000} />
         </div>
 
         {/* Action Button */}
         <div className="text-center pt-4">
           <Link
             href="/owners"
-            className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-pure-white font-sans font-semibold text-xs sm:text-sm px-7 py-3.5 rounded-xl shadow-xs transition-colors duration-150"
+            className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-pure-white font-sans font-semibold text-xs sm:text-sm px-7 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
           >
             <span>View All Managing Committee &amp; Partners</span>
             <ArrowRight className="w-4 h-4 text-emerald-400" />
