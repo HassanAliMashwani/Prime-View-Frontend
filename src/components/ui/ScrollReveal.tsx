@@ -69,7 +69,7 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
   // --- BLUR WORD ---
   if (variant === "blur-word") {
     const text = typeof children === "string" ? children : "";
-    const words = text.split(" ");
+    const words = text.trim().split(/\s+/);
     
     return (
       <div ref={ref} className={className}>

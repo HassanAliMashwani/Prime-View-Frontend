@@ -137,6 +137,8 @@ function PlanCard({ plan, index }: { plan: (typeof propertyPlans)[0]; index: num
 /* ─────────────────────────────────────────────
    Page
 ───────────────────────────────────────────── */
+import { HeroBackground } from "@/components/ui/HeroBackground";
+
 export default function OurPlansPage() {
   return (
     <>
@@ -146,36 +148,13 @@ export default function OurPlansPage() {
           33%       { transform: translate(8px,-12px) scale(1.04); opacity: 1; }
           66%       { transform: translate(-6px,8px) scale(.97); opacity: .85; }
         }
-        @keyframes particle-drift {
-          0%,100% { transform: translateY(0) rotate(0deg); opacity: .5; }
-          50%     { transform: translateY(-30px) rotate(180deg); opacity: .15; }
-        }
       `}</style>
 
       <div className="min-h-screen bg-white text-charcoal">
 
         {/* ── HERO HEADER ─────────────────────────────── */}
-        <div className="relative bg-[#FAF9F7] pt-32 sm:pt-36 pb-6 px-6 sm:px-8 lg:px-12 text-center overflow-hidden border-b border-black/[0.06]">
-
-          {/* Ambient particles */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
-            {[...Array(12)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute rounded-full bg-charcoal/[0.03]"
-                style={{
-                  width: `${20 + (i * 13) % 60}px`,
-                  height: `${20 + (i * 13) % 60}px`,
-                  left: `${(i * 8.3) % 100}%`,
-                  top: `${(i * 12.7) % 100}%`,
-                  animation: `particle-drift ${8 + (i % 5) * 2}s ${i * 0.7}s linear infinite`,
-                }}
-              />
-            ))}
-          </div>
-
-          {/* Large ambient circle */}
-          <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-[#B29A68]/10 blur-3xl pointer-events-none" />
+        <div className="relative bg-[#FAF9F7] pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center overflow-hidden border-b border-black/[0.06]">
+          <HeroBackground />
 
           <div className="relative z-10 max-w-3xl mx-auto">
             

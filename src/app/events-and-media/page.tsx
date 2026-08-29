@@ -1,5 +1,7 @@
 import { EventsMediaTabs } from "@/components/events/EventsMediaTabs";
 
+import { HeroBackground } from "@/components/ui/HeroBackground";
+
 export const metadata = {
   title: "Events & Media - Prime View",
   description: "Explore the latest events, galleries, and media highlights from Prime View Co-Operative Housing Society Ltd.",
@@ -29,11 +31,10 @@ export default function EventsAndMediaPage() {
     <div className="bg-pure-white text-charcoal min-h-screen">
       
       {/* Light Header Banner */}
-      <div className="bg-[#FAF9F7] text-charcoal pt-32 sm:pt-36 pb-12 px-6 sm:px-8 lg:px-12 text-center border-b border-stone relative overflow-hidden w-full">
+      <div className="bg-[#FAF9F7] text-charcoal pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
+        <HeroBackground />
         <div className="max-w-3xl mx-auto space-y-3 relative z-10">
-          <span className="kicker block text-xs font-semibold tracking-widest text-verified-green uppercase">
-            COMMUNITY HIGHLIGHTS
-          </span>
+          
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-charcoal tracking-tight">
             Events &amp; Media
           </h1>

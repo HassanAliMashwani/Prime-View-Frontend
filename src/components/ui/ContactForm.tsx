@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Send, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 export const ContactForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -17,7 +18,13 @@ export const ContactForm: React.FC = () => {
   };
 
   return (
-    <div className="bg-pure-white p-6 sm:p-8 rounded-2xl border border-stone/60 shadow-[0_0_60px_-15px_rgba(0,0,0,0.15)]">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-100px" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="bg-pure-white p-6 sm:p-8 rounded-2xl border border-stone/60 shadow-[0_0_60px_-15px_rgba(0,0,0,0.15)] hover:shadow-[0_20px_50px_-10px_rgba(0,0,0,0.12)] hover:-translate-y-1 transition-all duration-300"
+    >
       <h3 className="font-display text-2xl sm:text-3xl font-semibold text-charcoal mb-2">
         Send an Inquiry
       </h3>
@@ -104,6 +111,6 @@ export const ContactForm: React.FC = () => {
           </button>
         </form>
       )}
-    </div>
+    </motion.div>
   );
 };

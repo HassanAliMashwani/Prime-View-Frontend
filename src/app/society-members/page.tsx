@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { membershipCriteriaList } from "@/data/team";
 import { Search, CheckCircle2 } from "lucide-react";
 
+import { HeroBackground } from "@/components/ui/HeroBackground";
+
 export default function SocietyMembersPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -12,13 +14,11 @@ export default function SocietyMembersPage() {
   );
 
   return (
-    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16">
-      <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
-        {/* Page Header */}
-        <div className="text-center space-y-3">
-          <span className="kicker block text-xs font-semibold tracking-widest text-verified-green uppercase">
-            BYLAWS &amp; ELIGIBILITY
-          </span>
+    <div className="bg-pure-white text-charcoal min-h-screen">
+      {/* Light Header Banner */}
+      <div className="bg-[#FAF9F7] text-charcoal pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
+        <HeroBackground />
+        <div className="max-w-3xl mx-auto space-y-3 relative z-10">
           <h1 className="font-display text-4xl sm:text-5xl text-charcoal tracking-tight">
             Society Members
           </h1>
@@ -26,6 +26,9 @@ export default function SocietyMembersPage() {
             Eligibility Rules, Society Bylaws &amp; Member File Verification
           </p>
         </div>
+      </div>
+
+      <div className="py-16 max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
 
         {/* Main Content Container */}
         <div className="bg-soft-white rounded-2xl border border-stone p-6 sm:p-8 space-y-6 shadow-xs">

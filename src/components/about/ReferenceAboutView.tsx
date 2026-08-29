@@ -167,7 +167,7 @@ export function ReferenceAboutView() {
           {/* ── 5. BOTTOM-RIGHT GAP: SOCIAL PROOF / REVIEW WIDGET ── */}
           <div className="absolute bottom-0 right-14 w-[calc(35%-56px)] min-h-[105px] z-10">
             {/* Masked Background Layer */}
-            <div 
+            <div
               className="absolute inset-0 bg-[#1E1E1E] rounded-[24px] shadow-md border border-white/10"
               style={{ WebkitMaskImage: 'radial-gradient(circle at 100% 50%, transparent 64px, black 65px)' }}
             />
@@ -227,10 +227,10 @@ export function ReferenceAboutView() {
             {/* Right Overlapping NOC Image Badge (Stamp Effect inside cutout) */}
             <div className="absolute -right-14 top-1/2 -translate-y-1/2 z-20 transform rotate-[-8deg] hover:scale-105 transition-transform cursor-pointer drop-shadow-2xl flex items-center justify-center">
               <div className="relative w-28 h-28">
-                <Image 
-                  src="/new assests/about page logos/noc-11.jpg.png" 
-                  alt="NOC Approved Badge" 
-                  fill 
+                <Image
+                  src="/new assests/about page logos/noc-11.jpg.png"
+                  alt="NOC Approved Badge"
+                  fill
                   className="object-contain"
                 />
               </div>

@@ -9,17 +9,17 @@ import { Instagram, Linkedin, Facebook } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-[#FAF9F7] py-8 px-4 sm:px-6 lg:px-8 relative">
+    <footer className="bg-[#FDFCFB] py-8 px-4 sm:px-6 lg:px-8 relative">
 
       {/* ========================================================================= */}
       {/* 1. OVERLAPPING CTA CARD */}
       {/* ========================================================================= */}
-      <div className="max-w-[850px] mx-auto bg-deep-forest rounded-[2rem] p-6 sm:p-8 text-center relative z-10 -mb-12 shadow-2xl overflow-hidden">
+      <div className="max-w-[850px] mx-auto bg-gradient-to-b from-gray-200 to-gray-300 border border-gray-300 rounded-[2rem] p-6 sm:p-8 text-center relative z-10 -mb-12 shadow-[0_8px_30px_rgba(0,0,0,0.12),inset_0_0_40px_rgba(0,0,0,0.05)] overflow-hidden">
         <div className="relative z-10 max-w-2xl mx-auto space-y-4">
-          <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-pure-white">
+          <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-charcoal">
             Secure Your Plot in Prime View Today
           </h2>
-          <p className="font-sans text-[13px] sm:text-sm font-medium text-pure-white/90 leading-relaxed">
+          <p className="font-sans text-[13px] sm:text-sm font-medium text-charcoal/70 leading-relaxed">
             Discover serene nature, modern infrastructure, and secure your future investment — all in one seamless community.
           </p>
           <div className="pt-1">
@@ -36,7 +36,7 @@ export const Footer: React.FC = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN FOOTER WHITE CARD */}
       {/* ========================================================================= */}
-      <div className="max-w-[1050px] mx-auto bg-white rounded-[2rem] pt-20 pb-8 px-6 sm:px-8 lg:px-10 shadow-[0_8px_30px_rgba(0,0,0,0.04)] relative z-0">
+      <div className="max-w-[1050px] mx-auto bg-gradient-to-b from-white to-gray-200 border border-gray-200 rounded-[2rem] pt-20 pb-8 px-6 sm:px-8 lg:px-10 shadow-lg relative z-0">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-4">
 
           {/* Brand & Socials (Col 1: Span 4) */}
@@ -56,7 +56,7 @@ export const Footer: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4 mt-2">
-              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-black text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="X (formerly Twitter)">
+              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1DA1F2] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="X (formerly Twitter)">
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                 </svg>

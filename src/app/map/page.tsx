@@ -3,6 +3,8 @@ import { pagesData } from "@/data/pages";
 import { siteConfig } from "@/data/site";
 import { MapPin, Navigation } from "lucide-react";
 
+import { HeroBackground } from "@/components/ui/HeroBackground";
+
 export const metadata = {
   title: pagesData.map.title,
   description: pagesData.map.description,
@@ -10,13 +12,11 @@ export const metadata = {
 
 export default function LocationMapPage() {
   return (
-    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16">
-      <div className="max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
-        {/* Header Title Banner */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
-          <span className="kicker block text-xs font-semibold tracking-widest text-verified-green uppercase">
-            GEO LOCATION &amp; ACCESS
-          </span>
+    <div className="bg-pure-white text-charcoal min-h-screen">
+      {/* Light Header Banner */}
+      <div className="bg-[#FAF9F7] text-charcoal pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
+        <HeroBackground />
+        <div className="max-w-3xl mx-auto space-y-3 relative z-10">
           <h1 className="font-display text-4xl sm:text-5xl text-charcoal tracking-tight">
             Location Map
           </h1>
@@ -24,6 +24,9 @@ export default function LocationMapPage() {
             Direct Access from Hazara Expressway &amp; GT Road, Abbottabad
           </p>
         </div>
+      </div>
+
+      <div className="py-16 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
 
         {/* Location Map Container */}
         <div className="bg-soft-white rounded-2xl border border-stone p-6 sm:p-8 space-y-6 shadow-xs">
@@ -55,7 +58,7 @@ export default function LocationMapPage() {
           <div className="relative w-full h-[550px] rounded-xl overflow-hidden border border-stone shadow-inner">
             <iframe
               title="Prime View Housing Society Location Map"
-              src="https://maps.google.com/maps?q=34.0538,73.1534&z=13&output=embed"
+              src="https://maps.google.com/maps?q=34.0538,73.1534&z=13&t=k&output=embed"
               width="100%"
               height="100%"
               style={{ border: 0 }}

@@ -85,7 +85,7 @@ export function PlotCarousel() {
               onClick={() => setActiveIndex(index)}
             >
               <div 
-                className={`relative w-full h-[520px] bg-white rounded-[2rem] border border-gray-200 transition-all duration-500
+                className={`relative w-full h-[460px] bg-white rounded-[2rem] border border-gray-200 transition-all duration-500
                 ${isActive ? 'shadow-[0_20px_50px_rgba(0,0,0,0.08)] border-gray-200/50' : 'hover:border-gray-300'}
               `}
               >
@@ -143,24 +143,6 @@ export function PlotCarousel() {
             </div>
           );
         })}
-      </div>
-      
-      {/* Controls */}
-      <div className="flex gap-4 mt-2">
-        <button 
-          onClick={handlePrev}
-          className="p-3 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
-          aria-label="Previous card"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <button 
-          onClick={handleNext}
-          className="p-3 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-200"
-          aria-label="Next card"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
       </div>
     </div>
   );
