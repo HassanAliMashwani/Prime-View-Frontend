@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { propertyPlans } from "@/data/properties";
+import { PlotCarousel } from "@/components/ui/PlotCarousel";
 import { Check, Calendar, ArrowUpRight, Star } from "lucide-react";
 
 /* ─────────────────────────────────────────────
@@ -154,7 +155,7 @@ export default function OurPlansPage() {
       <div className="min-h-screen bg-white text-charcoal">
 
         {/* ── HERO HEADER ─────────────────────────────── */}
-        <div className="relative bg-[#F4F1EA] pt-32 sm:pt-36 pb-14 px-6 sm:px-8 lg:px-12 text-center overflow-hidden border-b border-black/[0.06]">
+        <div className="relative bg-[#F4F1EA] pt-32 sm:pt-36 pb-6 px-6 sm:px-8 lg:px-12 text-center overflow-hidden border-b border-black/[0.06]">
 
           {/* Ambient particles */}
           <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
@@ -202,33 +203,16 @@ export default function OurPlansPage() {
 
 
         {/* ── CARDS GRID ──────────────────────────────── */}
-        <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-20">
+        <div className="relative max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pb-8 pt-8">
           {/* Ambient blobs */}
           <div className="absolute top-1/4 left-0 w-72 h-72 bg-[#F2BB84]/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-1/4 right-0 w-72 h-72 bg-violet-300/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7 relative z-10">
-            {propertyPlans.map((plan, i) => (
-              <PlanCard key={plan.id} plan={plan} index={i} />
-            ))}
+          <div className="relative z-10 -mx-6">
+            <PlotCarousel />
           </div>
 
-          {/* Bottom CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
-            className="mt-16 text-center"
-          >
-            <p className="text-sm text-charcoal/50 mb-4">Not sure which plot fits you?</p>
-            <Link
-              href="/contact"
-              className="inline-flex items-center gap-2 bg-[#1E1E1C] hover:bg-black text-white text-sm font-semibold px-8 py-4 rounded-2xl transition-all duration-200 hover:-translate-y-0.5 shadow-lg hover:shadow-xl"
-            >
-              Talk to a Sales Advisor
-              <ArrowUpRight className="w-4 h-4" />
-            </Link>
-          </motion.div>
+
         </div>
       </div>
     </>

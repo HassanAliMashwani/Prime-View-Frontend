@@ -23,35 +23,37 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="absolute top-0 left-0 right-0 z-50 w-full pt-5 sm:pt-6 pb-2 px-4 sm:px-8 bg-transparent pointer-events-none transition-none">
+    <header className="absolute top-3 left-0 right-0 z-50 w-full pt-4 sm:pt-6 pb-2 pl-2 sm:pl-4 lg:pl-6 pr-4 sm:pr-6 lg:pr-10 bg-transparent pointer-events-none transition-none">
       {/* 3-Pill Floating Container with High-Contrast Smoky Glass on Any Background */}
-      <div className="max-w-[1240px] mx-auto flex items-center justify-between gap-3 relative">
-        
-        {/* ========================================================================= */}
-        {/* 1. LEFT PILL: Brand Logo */}
-        {/* ========================================================================= */}
-        <Link
-          href="/"
-          className="pointer-events-auto flex items-center group shrink-0 mix-blend-difference transition-all duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
-          aria-label="Prime View Home"
-        >
-          <div className="relative w-24 h-24 sm:w-28 sm:h-28 transition-transform duration-180 group-hover:scale-105">
-            <Image
-              src={siteConfig.logoPath}
-              alt="Prime View Emblem"
-              fill
-              className="object-contain filter brightness-0 invert"
-              priority
-            />
-          </div>
-        </Link>
+      <div className="w-full mx-auto flex items-center justify-between relative h-[50px]">
 
         {/* ========================================================================= */}
-        {/* 2. CENTER PILL: Pages Nav Links in Frosted Glass Pill */}
+        {/* 1. LEFT PILL: Brand Logo (Extreme Left Corner) */}
+        {/* ========================================================================= */}
+        <div className="flex items-center h-[50px] shrink-0">
+          <Link
+            href="/"
+            className="pointer-events-auto flex items-center group shrink-0 transition-all duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
+            aria-label="Prime View Home"
+          >
+            <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 lg:w-60 lg:h-60 -ml-2 sm:-ml-4 translate-y-[10px] transition-transform duration-180 group-hover:scale-105">
+              <Image
+                src={siteConfig.logoPath}
+                alt="Prime View Emblem"
+                fill
+                className="object-contain object-left"
+                priority
+              />
+            </div>
+          </Link>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 2. CENTER PILL: Pages Nav Links in Frosted Glass Pill (Sticky on Scroll) */}
         {/* ========================================================================= */}
         <nav
           aria-label="Main Navigation"
-          className="pointer-events-auto hidden md:flex fixed top-5 sm:top-6 left-1/2 -translate-x-1/2 items-center h-[50px] px-3 lg:px-4 rounded-full bg-white/60 backdrop-blur-md border border-white/40 shadow-[0_4px_20px_rgba(0,0,0,0.06)] z-[60]"
+          className="pointer-events-auto hidden md:flex fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 items-center h-[50px] px-3 lg:px-4 rounded-full bg-white/75 backdrop-blur-md border border-white/50 shadow-[0_4px_20px_rgba(0,0,0,0.08)] z-[60]"
         >
           <ul className="flex items-center gap-1 lg:gap-2 text-[13.5px] lg:text-[14.5px] font-medium tracking-normal text-charcoal whitespace-nowrap">
             {mainNavigation.map((item) => {
@@ -73,9 +75,8 @@ export const Header: React.FC = () => {
                       />
                     )}
                     <div
-                      className={`relative z-10 flex items-center gap-1 transition-all duration-180 ${
-                        active ? "text-black" : "text-charcoal/70 hover:text-black"
-                      }`}
+                      className={`relative z-10 flex items-center gap-1 transition-all duration-180 ${active ? "text-black" : "text-charcoal/70 hover:text-black"
+                        }`}
                     >
                       <span className="whitespace-nowrap">{item.title}</span>
                       <ChevronDown className="w-3 h-3 opacity-70 group-hover:opacity-100 group-hover:rotate-180 transition-transform duration-180" />
@@ -83,11 +84,10 @@ export const Header: React.FC = () => {
 
                     {/* Submenu Dropdown */}
                     <div
-                      className={`absolute left-1/2 -translate-x-1/2 top-full pt-2 w-64 z-50 transition-all duration-180 ${
-                        activeDropdown === item.title
-                          ? "opacity-100 visible translate-y-0"
-                          : "opacity-0 invisible -translate-y-2 pointer-events-none"
-                      }`}
+                      className={`absolute left-1/2 -translate-x-1/2 top-full pt-2 w-64 z-50 transition-all duration-180 ${activeDropdown === item.title
+                        ? "opacity-100 visible translate-y-0"
+                        : "opacity-0 invisible -translate-y-2 pointer-events-none"
+                        }`}
                     >
                       <div className="rounded-2xl bg-white/90 backdrop-blur-xl border border-white/50 shadow-xl py-2">
                         {item.children.map((sub) => {
@@ -96,11 +96,10 @@ export const Header: React.FC = () => {
                             <Link
                               key={sub.title}
                               href={sub.href}
-                              className={`block px-4 py-2 text-xs transition-colors duration-150 ${
-                                isSubActive
-                                  ? "bg-black/5 text-black font-semibold"
-                                  : "text-charcoal/80 hover:bg-black/5 hover:text-black"
-                              }`}
+                              className={`block px-4 py-2 text-xs transition-colors duration-150 ${isSubActive
+                                ? "bg-black/5 text-black font-semibold"
+                                : "text-charcoal/80 hover:bg-black/5 hover:text-black"
+                                }`}
                             >
                               {isSubActive && <span className="mr-1.5 text-emerald-600">•</span>}
                               {sub.title}
@@ -124,9 +123,8 @@ export const Header: React.FC = () => {
                   )}
                   <Link
                     href={item.href}
-                    className={`relative z-10 inline-flex items-center transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black rounded-md whitespace-nowrap ${
-                      active ? "text-black font-semibold" : "text-charcoal/70 hover:text-black"
-                    }`}
+                    className={`relative z-10 inline-flex items-center transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black rounded-md whitespace-nowrap ${active ? "text-black font-semibold" : "text-charcoal/70 hover:text-black"
+                      }`}
                   >
                     <span>{item.title}</span>
                   </Link>
@@ -139,11 +137,11 @@ export const Header: React.FC = () => {
         {/* ========================================================================= */}
         {/* 3. RIGHT PILL: “Book Now ↗” Peach Pill */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0 h-[50px]">
           <MagneticWrapper className="pointer-events-auto">
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center gap-1.5 h-[46px] px-6 rounded-full bg-[#F2BB84] hover:bg-[#EAAA6D] text-[#1E1E1C] text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(242,187,132,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F2BB84] animate-pulse"
+              className="inline-flex items-center justify-center gap-1.5 h-[50px] px-6 sm:px-7 rounded-full bg-[#F2BB84] hover:bg-[#EAAA6D] text-[#1E1E1C] text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(242,187,132,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F2BB84] animate-pulse"
               aria-label="Book Now"
             >
               <span>Book Now</span>
@@ -154,7 +152,7 @@ export const Header: React.FC = () => {
           {/* Mobile Menu Smoky Pill Toggle (< 768px) */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="pointer-events-auto md:hidden flex items-center justify-center w-[46px] h-[46px] rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm text-charcoal hover:bg-white/90 transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black"
+            className="pointer-events-auto md:hidden flex items-center justify-center w-[50px] h-[50px] rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm text-charcoal hover:bg-white/90 transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -184,11 +182,10 @@ export const Header: React.FC = () => {
                           key={sub.title}
                           href={sub.href}
                           onClick={() => setMobileMenuOpen(false)}
-                          className={`block py-1.5 px-2 text-xs rounded-lg transition-colors ${
-                            pathname === sub.href
-                              ? "bg-black/5 text-black font-semibold"
-                              : "text-charcoal/70 hover:bg-black/5"
-                          }`}
+                          className={`block py-1.5 px-2 text-xs rounded-lg transition-colors ${pathname === sub.href
+                            ? "bg-black/5 text-black font-semibold"
+                            : "text-charcoal/70 hover:bg-black/5"
+                            }`}
                         >
                           {pathname === sub.href && "• "}
                           {sub.title}
@@ -204,11 +201,10 @@ export const Header: React.FC = () => {
                   key={item.title}
                   href={item.href}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 px-3 text-xs sm:text-sm rounded-xl transition-colors ${
-                    active
-                      ? "bg-black/5 text-black font-semibold"
-                      : "text-charcoal/70 hover:bg-black/5"
-                  }`}
+                  className={`block py-2 px-3 text-xs sm:text-sm rounded-xl transition-colors ${active
+                    ? "bg-black/5 text-black font-semibold"
+                    : "text-charcoal/70 hover:bg-black/5"
+                    }`}
                 >
                   {active && "• "}
                   {item.title}

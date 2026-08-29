@@ -1,7 +1,7 @@
 import React from "react";
 import { pagesData } from "@/data/pages";
 import { executiveTeamProfiles } from "@/data/team";
-import { TeamMemberCard } from "@/components/ui/TeamMemberCard";
+import { TeamBentoGrid } from "@/components/sections/TeamBentoGrid";
 
 export const metadata = {
   title: pagesData["marketing-sales-partner"].title,
@@ -14,10 +14,10 @@ export default function MarketingPartnerPage() {
   );
 
   return (
-    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16">
-      <div className="max-w-5xl mx-auto px-6 sm:px-8 lg:px-12 space-y-12">
+    <div className="bg-pure-white text-charcoal min-h-screen pt-28 sm:pt-32 pb-16 overflow-hidden">
+      <div className="w-full space-y-12">
         {/* Header Title Banner */}
-        <div className="text-center space-y-3 max-w-3xl mx-auto">
+        <div className="text-center space-y-3 max-w-3xl mx-auto px-6 sm:px-8">
           <span className="kicker block text-xs font-semibold tracking-widest text-accent-green uppercase">
             OFFICIAL PARTNER
           </span>
@@ -29,12 +29,8 @@ export default function MarketingPartnerPage() {
           </p>
         </div>
 
-        {/* Members Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 lg:gap-8 max-w-3xl mx-auto">
-          {marketingList.map((member) => (
-            <TeamMemberCard key={member.id} {...member} theme="light" />
-          ))}
-        </div>
+        {/* Bento Grid */}
+        <TeamBentoGrid members={marketingList} />
       </div>
     </div>
   );

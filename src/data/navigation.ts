@@ -6,9 +6,8 @@ export interface NavItem {
 
 export const mainNavigation: NavItem[] = [
   { title: "Home", href: "/" },
-  { title: "About", href: "/about" },
   { title: "Plans", href: "/our-plans" },
-  { title: "Events & Media", href: "/gallery-prime-view" },
+  { title: "Events & Media", href: "/events-and-media" },
   {
     title: "Team",
     href: "/owners",
@@ -33,9 +32,8 @@ export const mainNavigation: NavItem[] = [
 export const footerNavigation = {
   quickLinks: [
     { title: "Home", href: "/" },
-    { title: "About", href: "/about" },
     { title: "Plans", href: "/our-plans" },
-    { title: "Events & Media", href: "/gallery-prime-view" },
+    { title: "Events & Media", href: "/events-and-media" },
     { title: "Team", href: "/owners" },
     { title: "Contact", href: "/contact" },
   ],
