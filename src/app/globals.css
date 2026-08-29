@@ -132,12 +132,4 @@ body {
 .animate-marquee-right {
   animation: scroll-right 40s linear infinite;
 }
-
-/* Hide Next.js Development Indicator Badges ("Static route" pill / build toast) */
-nextjs-portal,
-[data-nextjs-toast],
-[data-nextjs-route-announcer],
-div:has(> [data-nextjs-toast]),
-div:has(> svg + span:contains("Static route")) {
-  display: none !important;
-}
+
