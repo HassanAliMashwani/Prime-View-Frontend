@@ -35,3 +35,17 @@ yarn-error.log*
 
 # raw source dumps / legacy backups
 _source-export/
+
+# docs
+docs/
+
+# IDE & Editor folders
+.vscode/
+.idea/
+
+# AI / Tooling
+.qodo/
+
+# Scratch & Temporary files
+scratch_*.js
+scratch/

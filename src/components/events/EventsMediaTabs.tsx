@@ -115,7 +115,7 @@ export const EventsMediaTabs: React.FC<EventsMediaTabsProps> = ({ mediaVideos })
                         </div>
                         <video
                           src={selectedVideo?.src === video.src ? undefined : video.src}
-                          preload="metadata"
+                          preload="auto"
                           playsInline
                           muted
                           loop

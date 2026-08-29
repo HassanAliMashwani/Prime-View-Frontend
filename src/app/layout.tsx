@@ -4,6 +4,7 @@ import "./globals.css";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
 import { siteConfig } from "@/data/site";
+import { GlobalVideoPreloader } from "@/components/ui/GlobalVideoPreloader";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -37,6 +38,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-grow">{children}</main>
         <Footer />
+        <GlobalVideoPreloader />
 
         {/* Global Authentic WhatsApp FAB — visible on every page */}
         <a
