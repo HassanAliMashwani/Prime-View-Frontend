@@ -52,21 +52,21 @@ export const AboutSection: React.FC = () => {
           </ScrollReveal>
 
           {/* Summary Copy */}
-          <p className="text-charcoal/60 font-sans text-sm sm:text-base leading-relaxed">
+          <p className="text-charcoal/60 font-sans text-sm sm:text-base leading-relaxed stagger-reveal stagger-delay-1">
             At Prime View, natural mountain surroundings meet top-notch
             infrastructure and modern amenities in Abbottabad, supported by
             convenient installment plans designed to secure your dream home.
           </p>
 
           {/* Bespoke Editorial Pull Quote (No generic card box) */}
-          <div className="border-l-3 border-verified-green pl-5 py-2 my-4">
+          <div className="border-l-3 border-verified-green pl-5 py-2 my-4 stagger-reveal stagger-delay-2">
             <blockquote className="font-display italic text-lg sm:text-xl text-charcoal leading-snug">
               &ldquo;Some places are built. Others are felt.&rdquo;
             </blockquote>
           </div>
 
           {/* CTA Action */}
-          <div className="pt-2">
+          <div className="pt-2 stagger-reveal stagger-delay-3">
             <Link
               href="/contact"
               className="inline-flex items-center gap-2 bg-charcoal hover:bg-black text-pure-white font-sans text-xs sm:text-sm font-semibold px-6 py-3 rounded-xl shadow-xs transition-colors duration-200"

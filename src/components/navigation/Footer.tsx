@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { siteConfig } from "@/data/site";
 import { footerNavigation } from "@/data/navigation";
-import { Instagram, Linkedin, Facebook } from "lucide-react";
+import { Instagram, Linkedin, Facebook, Phone, Mail } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
@@ -14,12 +14,13 @@ export const Footer: React.FC = () => {
       {/* ========================================================================= */}
       {/* 1. OVERLAPPING CTA CARD */}
       {/* ========================================================================= */}
-      <div className="max-w-[850px] mx-auto bg-gradient-to-b from-gray-200 to-gray-300 border border-gray-300 rounded-[2rem] p-6 sm:p-8 text-center relative z-10 -mb-12 shadow-[0_8px_30px_rgba(0,0,0,0.12),inset_0_0_40px_rgba(0,0,0,0.05)] overflow-hidden">
+      <div className="max-w-[850px] mx-auto bg-gradient-to-b from-[#FDFBF7] to-[#F4EFE6] border border-[#E8DCC2] rounded-[2rem] p-6 sm:p-8 text-center relative z-10 -mb-12 shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden">
         <div className="relative z-10 max-w-2xl mx-auto space-y-4">
           <h2 className="font-display text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-charcoal">
             Secure Your Plot in Prime View Today
           </h2>
           <p className="font-sans text-[13px] sm:text-sm font-medium text-charcoal/70 leading-relaxed">
+            <span className="font-bold text-pine block mb-1">{siteConfig.tagline}</span>
             Discover serene nature, modern infrastructure, and secure your future investment — all in one seamless community.
           </p>
           <div className="pt-1">
@@ -36,8 +37,19 @@ export const Footer: React.FC = () => {
       {/* ========================================================================= */}
       {/* 2. MAIN FOOTER WHITE CARD */}
       {/* ========================================================================= */}
-      <div className="max-w-[1050px] mx-auto bg-gradient-to-b from-white to-gray-200 border border-gray-200 rounded-[2rem] pt-20 pb-8 px-6 sm:px-8 lg:px-10 shadow-lg relative z-0">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-4">
+      <div className="max-w-[1050px] mx-auto bg-white border border-gray-200 rounded-[2rem] pt-20 pb-8 px-6 sm:px-8 lg:px-10 shadow-lg relative z-0 overflow-hidden">
+        {/* Footer Card Background */}
+        <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+          <Image
+            src="/new assests/about page logos/footer.jpg"
+            alt="Footer card background"
+            fill
+            quality={80}
+            className="object-cover object-bottom scale-110"
+          />
+        </div>
+
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-4">
 
           {/* Brand & Socials (Col 1: Span 4) */}
           <div className="lg:col-span-4 flex flex-col items-start pr-4">
@@ -55,33 +67,43 @@ export const Footer: React.FC = () => {
               </span>
             </div>
 
+            {/* Contact Details */}
+            <div className="space-y-2 mt-2 mb-4">
+              <a href={`https://wa.me/${siteConfig.whatsapp}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-charcoal/80 hover:text-verified-green transition-colors text-[13px] font-sans font-bold">
+                <Phone className="w-4 h-4" />
+                <span>WhatsApp: {siteConfig.phone}</span>
+              </a>
+              <a href={`mailto:${siteConfig.email}`} className="flex items-center gap-2 text-charcoal/80 hover:text-verified-green transition-colors text-[13px] font-sans font-bold">
+                <Mail className="w-4 h-4" />
+                <span>{siteConfig.email}</span>
+              </a>
+            </div>
+
             <div className="flex items-center gap-4 mt-2">
-              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1DA1F2] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="X (formerly Twitter)">
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                </svg>
+              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="X (formerly Twitter)">
+                <Image src="/new assests/logos/x-formerly-twitter.svg" alt="X" width={16} height={16} className="w-4 h-4 object-contain invert" />
               </a>
-              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#E1306C] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="Instagram">
-                <Instagram className="w-4 h-4" />
+              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="Instagram">
+                <Image src="/new assests/logos/instagram.svg" alt="Instagram" width={16} height={16} className="w-4 h-4 object-contain" />
               </a>
-              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#0077B5] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="LinkedIn">
-                <Linkedin className="w-4 h-4 fill-current" />
+              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="YouTube">
+                <Image src="/new assests/logos/youtube.svg" alt="YouTube" width={16} height={16} className="w-4 h-4 object-contain" />
               </a>
-              <a href="#" className="flex items-center justify-center w-9 h-9 rounded-full bg-[#1877F2] text-white hover:opacity-80 transition-opacity shadow-sm" aria-label="Facebook">
-                <Facebook className="w-4 h-4 fill-current" />
+              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="Facebook">
+                <Image src="/new assests/logos/facebook.svg" alt="Facebook" width={16} height={16} className="w-4 h-4 object-contain" />
               </a>
             </div>
           </div>
 
           {/* Product / Quick Links (Col 2: Span 3) */}
           <div className="lg:col-span-3 lg:ml-8">
-            <h4 className="font-display text-[15px] font-bold text-pine mb-3">Product</h4>
+            <h4 className="font-display text-[15px] font-bold text-pine mb-3 underline underline-offset-4 decoration-2 decoration-pine/30">Product</h4>
             <ul className="space-y-2.5">
               {footerNavigation.quickLinks.map((item) => (
                 <li key={item.title}>
                   <Link
                     href={item.href}
-                    className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors"
+                    className="font-sans text-[13px] text-charcoal/80 hover:text-verified-green font-bold transition-colors"
                   >
                     {item.title}
                   </Link>
@@ -92,13 +114,13 @@ export const Footer: React.FC = () => {
 
           {/* Resources / Maps & Info (Col 3: Span 3) */}
           <div className="lg:col-span-3">
-            <h4 className="font-display text-[15px] font-bold text-pine mb-3">Resources</h4>
+            <h4 className="font-display text-[15px] font-bold text-pine mb-3 underline underline-offset-4 decoration-2 decoration-pine/30">Resources</h4>
             <ul className="space-y-2.5">
               {footerNavigation.mapsAndPlans.map((item) => (
                 <li key={item.title}>
                   <Link
                     href={item.href}
-                    className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors"
+                    className="font-sans text-[13px] text-charcoal/80 hover:text-verified-green font-bold transition-colors"
                   >
                     {item.title}
                   </Link>
@@ -109,20 +131,20 @@ export const Footer: React.FC = () => {
 
           {/* Legal (Col 4: Span 2) */}
           <div className="lg:col-span-2">
-            <h4 className="font-display text-[15px] font-bold text-pine mb-3">Legal</h4>
+            <h4 className="font-display text-[15px] font-bold text-pine mb-3 underline underline-offset-4 decoration-2 decoration-pine/30">Legal</h4>
             <ul className="space-y-2.5">
               <li>
-                <Link href="#" className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors">
+                <Link href="#" className="font-sans text-[13px] text-charcoal/80 hover:text-verified-green font-bold transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="#" className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors">
+                <Link href="#" className="font-sans text-[13px] text-charcoal/80 hover:text-verified-green font-bold transition-colors">
                   Privacy Policy / GDPR
                 </Link>
               </li>
               <li>
-                <Link href="#" className="font-sans text-[13px] text-charcoal/60 hover:text-verified-green font-medium transition-colors">
+                <Link href="#" className="font-sans text-[13px] text-charcoal/80 hover:text-verified-green font-bold transition-colors">
                   Cookie Policy
                 </Link>
               </li>

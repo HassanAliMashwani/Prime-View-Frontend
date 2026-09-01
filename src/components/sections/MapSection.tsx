@@ -12,6 +12,24 @@ export const MapSection: React.FC = () => {
 
   return (
     <section className="py-16 sm:py-24 bg-soft-white text-charcoal border-b border-stone/60 relative overflow-hidden">
+      {/* ══════════════════════════════════════════════════════════════
+          AMBIENT HORIZON RIDGE
+      ══════════════════════════════════════════════════════════════ */}
+      <div
+        className="absolute bottom-0 left-0 w-full h-[250px] z-0 pointer-events-none opacity-15"
+        style={{
+          maskImage: 'linear-gradient(to bottom, transparent, black 80%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 80%, transparent 100%)'
+        }}
+      >
+        <Image
+          src="/images/decorative/ridge-line.jpg"
+          alt="Horizon Ambience"
+          fill
+          className="object-cover object-bottom"
+        />
+      </div>
+
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           {/* Left Column: Context & Office Info */}

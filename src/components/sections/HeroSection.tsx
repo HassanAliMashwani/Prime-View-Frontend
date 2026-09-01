@@ -30,7 +30,7 @@ export const HeroSection: React.FC = () => {
 
       {/* Hero Content — Asymmetrical Editorial Layout */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-16 sm:pt-24 flex flex-col">
-        
+
         {/* Primary Headline */}
         <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-5xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.0] tracking-tight text-left sm:ml-8 lg:ml-20">
           Close to Heaven

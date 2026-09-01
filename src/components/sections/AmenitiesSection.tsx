@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Building2,
   Compass,
+  School,
+  Dumbbell,
 } from "lucide-react";
 import { LuxuryCard } from "@/components/ui/LuxuryCard";
 
@@ -27,6 +29,7 @@ interface AmenityChapter {
   title: string;
   oneLiner: string;
   heroImage: string;
+  heroImageClassName?: string;
   cards: AmenityVisualCard[];
 }
 
@@ -37,7 +40,7 @@ const amenityChapters: AmenityChapter[] = [
     category: "ESSENTIAL LIVING",
     title: "Uninterrupted Utilities",
     oneLiner: "Power, gas, and clean water — always available.",
-    heroImage: "/assets/gallery/luxury-house-about.jpg",
+    heroImage: "/new assests/new pic/1.jpeg",
     cards: [
       {
         title: "24/7 Power Grid",
@@ -51,7 +54,7 @@ const amenityChapters: AmenityChapter[] = [
       },
       {
         title: "Filtered Potable Water",
-        image: "/assets/amenities/clean-water.jpg",
+        image: "/assets/amenities/water_station_pakistani.jpg",
         icon: Droplets,
       },
     ],
@@ -62,7 +65,8 @@ const amenityChapters: AmenityChapter[] = [
     category: "TOWN PLANNING",
     title: "Modern Infrastructure",
     oneLiner: "Built for smooth movement and long-term reliability.",
-    heroImage: "/new assests/about page logos/drone pic.jpg",
+    heroImage: "/new assests/new pic/2.jpg",
+    heroImageClassName: "object-cover object-center",
     cards: [
       {
         title: "Wide Carpeted Roads",
@@ -74,6 +78,11 @@ const amenityChapters: AmenityChapter[] = [
         image: "/assets/amenities/underground-sewerage.jpg",
         icon: Pipette,
       },
+      {
+        title: "International Schools",
+        image: "/assets/amenities/school_building_students.jpg",
+        icon: School,
+      },
     ],
   },
   {
@@ -82,7 +91,7 @@ const amenityChapters: AmenityChapter[] = [
     category: "LIFESTYLE & SECURITY",
     title: "Community Peace",
     oneLiner: "Safe, spiritual, and family-centered living.",
-    heroImage: "/assets/gallery/site-best-pic.jpg",
+    heroImage: "/new assests/new pic/3.jpeg",
     cards: [
       {
         title: "Jamia Grand Mosque",
@@ -93,6 +102,11 @@ const amenityChapters: AmenityChapter[] = [
         title: "24/7 Gated Security",
         image: "/assets/amenities/gated-security.jpg",
         icon: ShieldCheck,
+      },
+      {
+        title: "Sports Facilities",
+        image: "/assets/amenities/sports_arena_multiple.jpg",
+        icon: Dumbbell,
       },
     ],
   },
@@ -227,8 +241,8 @@ export const AmenitiesSection: React.FC = () => {
                         key={chap.id}
                         onClick={() => scrollToChapter(idx)}
                         className={`w-full text-left px-4 py-3 rounded-xl border text-xs sm:text-sm font-sans transition-all duration-200 flex items-center justify-between group ${isActive
-                            ? "bg-charcoal text-white font-bold border-2 border-black shadow-[0_6px_24px_rgba(0,0,0,0.15)]"
-                            : "bg-black/5 border border-black/10 text-charcoal/80 hover:bg-black/10 hover:text-charcoal font-medium shadow-xs"
+                          ? "bg-charcoal text-white font-bold border-2 border-black shadow-[0_6px_24px_rgba(0,0,0,0.15)]"
+                          : "bg-black/5 border border-black/10 text-charcoal/80 hover:bg-black/10 hover:text-charcoal font-medium shadow-xs"
                           }`}
                       >
                         <div className="flex items-center gap-3">
@@ -242,8 +256,8 @@ export const AmenitiesSection: React.FC = () => {
                         </div>
                         <div
                           className={`w-2.5 h-2.5 rounded-full transition-all ${isActive
-                              ? "bg-emerald-500 ring-4 ring-emerald-500/20"
-                              : "bg-black/10 group-hover:bg-black/20"
+                            ? "bg-emerald-500 ring-4 ring-emerald-500/20"
+                            : "bg-black/10 group-hover:bg-black/20"
                             }`}
                         />
                       </button>
@@ -276,7 +290,8 @@ export const AmenitiesSection: React.FC = () => {
                     src={chapter.heroImage}
                     alt={chapter.title}
                     fill
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+                    className={`transition-transform duration-700 ease-out group-hover:scale-105 ${chapter.heroImageClassName || "object-cover"
+                      }`}
                     sizes="(max-width: 1024px) 100vw, 60vw"
                   />
                 </div>
@@ -302,8 +317,8 @@ export const AmenitiesSection: React.FC = () => {
                         {/* Card Image Thumbnail */}
                         <div
                           className={`relative w-full ${chapter.cards.length === 2
-                              ? "aspect-[16/8.5] max-h-[180px]"
-                              : "aspect-[16/9.5] max-h-[165px]"
+                            ? "aspect-[16/8.5] max-h-[180px]"
+                            : "aspect-[16/9.5] max-h-[165px]"
                             } bg-gray-100 overflow-hidden`}
                         >
                           <Image
@@ -316,8 +331,12 @@ export const AmenitiesSection: React.FC = () => {
                         </div>
 
                         {/* Crisp Title Footer */}
-                        <div className="p-3.5 flex items-center text-center justify-center">
-                          <h4 className="font-display text-sm sm:text-base text-charcoal font-semibold tracking-tight group-hover:text-emerald-600 transition-colors duration-200">
+                        <div className="p-4 flex flex-col items-center text-center justify-center relative mt-4">
+                          {/* Floating Icon Badge */}
+                          <div className="absolute -top-9 w-12 h-12 rounded-2xl bg-[#F0F5F2] border border-[#2E6A4F]/20 flex items-center justify-center shadow-md shadow-[#2E6A4F]/5 pop-in-element">
+                            <card.icon className="w-6 h-6 text-[#2E6A4F]" strokeWidth={1.5} />
+                          </div>
+                          <h4 className="font-display text-sm sm:text-base text-charcoal font-semibold tracking-tight group-hover:text-[#2E6A4F] transition-colors duration-200 mt-2">
                             {card.title}
                           </h4>
                         </div>

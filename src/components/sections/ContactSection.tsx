@@ -8,6 +8,19 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 export const ContactSection: React.FC = () => {
   return (
     <section className="bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-stone-100 via-stone-300 to-stone-500 text-charcoal relative overflow-hidden flex flex-col lg:flex-row border-t border-stone">
+      {/* ══════════════════════════════════════════════════════════════
+          AMBIENT FOLIAGE BACKGROUND
+      ══════════════════════════════════════════════════════════════ */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute -bottom-40 left-1/4 w-[600px] h-[600px] opacity-[0.08] blur-3xl">
+          <Image
+            src="/images/decorative/foliage-bokeh.jpg"
+            alt="Foliage Ambience"
+            fill
+            className="object-cover rounded-full"
+          />
+        </div>
+      </div>
 
       {/* Left Visual Column - Stretches from left edge to middle */}
       <div className="w-full lg:w-[45%] xl:w-[45%] relative h-[300px] sm:h-[400px] lg:h-auto lg:min-h-[500px] lg:rounded-r-[2.5rem] overflow-hidden shadow-2xl border-r border-stone">

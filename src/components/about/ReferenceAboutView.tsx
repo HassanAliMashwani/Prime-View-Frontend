@@ -33,11 +33,29 @@ export function ReferenceAboutView() {
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   return (
-    <div className="bg-[#F7F4EE] text-charcoal py-16 sm:py-24 px-3 sm:px-6 md:px-8 lg:px-10 flex flex-col items-center justify-center font-sans antialiased">
+    <div className="relative overflow-hidden bg-[#F7F4EE] text-charcoal py-16 sm:py-24 px-3 sm:px-6 md:px-8 lg:px-10 flex flex-col items-center justify-center font-sans antialiased">
+      {/* ══════════════════════════════════════════════════════════════
+          AMBIENT VALLEY BACKGROUND
+      ══════════════════════════════════════════════════════════════ */}
+      <div
+        className="absolute inset-0 z-0 pointer-events-none opacity-[0.07]"
+        style={{
+          maskImage: 'radial-gradient(circle at center, black 0%, transparent 80%)',
+          WebkitMaskImage: 'radial-gradient(circle at center, black 0%, transparent 80%)'
+        }}
+      >
+        <Image
+          src="/images/decorative/valley-wide.jpg"
+          alt="Valley Ambience"
+          fill
+          className="object-cover object-center"
+        />
+      </div>
+
       {/* ══════════════════════════════════════════════════════════════
           OUTER CONTAINER / MAIN BOARD FRAME (Border removed)
       ══════════════════════════════════════════════════════════════ */}
-      <div className="w-full max-w-[1360px] flex flex-col gap-6 sm:gap-7 transition-all">
+      <div className="relative z-10 w-full max-w-[1360px] flex flex-col gap-6 sm:gap-7 transition-all">
 
         {/* ══════════════════════════════════════════════════════════════
             DESKTOP CONTOURED BENTO CANVAS & SLOTS (lg+)
@@ -60,7 +78,7 @@ export function ReferenceAboutView() {
             >
               <div className="relative w-full h-full">
                 <Image
-                  src="/assets/gallery/luxury-house-about.jpg"
+                  src="/assets/gallery/greenery_villa_cinematic.jpg"
                   alt="Prime View Luxury Mountain Villa"
                   fill
                   priority
@@ -260,7 +278,7 @@ export function ReferenceAboutView() {
           {/* Central Media Canvas */}
           <div className="relative w-full rounded-3xl overflow-hidden bg-[#1E1E1E] min-h-[300px] shadow-md border border-[#E2D6C3]">
             <Image
-              src="/assets/gallery/luxury-house-about.jpg"
+              src="/assets/gallery/greenery_villa_cinematic.jpg"
               alt="Prime View Villa"
               fill
               className="object-cover opacity-85"

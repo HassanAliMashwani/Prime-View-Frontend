@@ -10,9 +10,9 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 const locations = [
   { id: "bypass", title: "Bypass", distance: "200 Meter", icon: Route, x: 62, y: 38 },
   { id: "gt-road", title: "GT Road", distance: "2 KM", icon: Car, x: 75, y: 75 },
-  { id: "havelian-city", title: "Havelian City", distance: "4 KM", icon: Building2, x: 82, y: 25 },
-  { id: "railway", title: "Railway Station", distance: "4 KM", icon: Train, x: 25, y: 75 },
-  { id: "motorway", title: "Motorway Interchange", distance: "7 KM", icon: Compass, x: 22, y: 25 },
+  { id: "havelian-city", title: "Havelian City", distance: "3 KM", icon: Building2, x: 82, y: 25 },
+  { id: "railway", title: "Railway Station", distance: "3 KM", icon: Train, x: 25, y: 75 },
+  { id: "motorway", title: "Motorway Interchange", distance: "5 KM", icon: Compass, x: 22, y: 25 },
 ];
 
 export const LocationDistancesSection: React.FC = () => {
@@ -26,11 +26,11 @@ export const LocationDistancesSection: React.FC = () => {
   const generateCurvedPath = (endX: number, endY: number) => {
     const startX = 50;
     const startY = 50;
-    
+
     // Smooth bezier curve control points
     const cp1x = startX + (endX - startX) * 0.4;
     const cp1y = startY;
-    
+
     const cp2x = startX + (endX - startX) * 0.6;
     const cp2y = endY;
 
@@ -39,14 +39,14 @@ export const LocationDistancesSection: React.FC = () => {
 
   return (
     <section className="pt-8 sm:pt-12 pb-4 sm:pb-8 bg-soft-white relative overflow-hidden border-t border-stone">
-      
+
       {/* Header Area */}
       <div className="max-w-[1200px] mx-auto px-6 sm:px-8 mb-8 sm:mb-10 text-center relative z-20">
         <ScrollReveal
           variant="blur-word"
           className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-charcoal tracking-tight"
         >
-  Where Convenience Meets Home        </ScrollReveal>
+          Where Convenience Meets Home        </ScrollReveal>
         <p className="mt-4 font-sans text-sm sm:text-base text-charcoal/60 max-w-2xl mx-auto">
           Just minutes away from the Motorway, Railway Station, and major city hubs.
         </p>
@@ -54,7 +54,7 @@ export const LocationDistancesSection: React.FC = () => {
 
       {/* Map Diagram Area - Reduced Height */}
       <div className="relative w-full max-w-[1300px] mx-auto h-[500px] sm:h-[600px] bg-[#F8FAFC] rounded-3xl sm:rounded-[2.5rem] overflow-hidden border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
-        
+
         {/* Abstract City Map Background */}
         <div className="absolute inset-0 pointer-events-none">
           <Image
@@ -72,7 +72,7 @@ export const LocationDistancesSection: React.FC = () => {
 
         {/* SVG Curved Connecting Lines */}
         {mounted && (
-          <svg 
+          <svg
             className="absolute inset-0 w-full h-full pointer-events-none z-0"
             viewBox="0 0 100 100"
             preserveAspectRatio="none"
@@ -112,7 +112,7 @@ export const LocationDistancesSection: React.FC = () => {
               <Home className="w-6 h-6 sm:w-10 sm:h-10 fill-current" />
             </motion.div>
           </div>
-          
+
           {/* Label Card (Hanging below the center) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -143,7 +143,7 @@ export const LocationDistancesSection: React.FC = () => {
             <div className="absolute -translate-x-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-verified-green text-white flex items-center justify-center shadow-lg border-2 border-white group-hover:scale-110 group-hover:bg-deep-forest transition-all duration-300">
               <loc.icon className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            
+
             {/* Information Card (Hanging below the pin) */}
             <div className="absolute left-1/2 -translate-x-1/2 mt-6 sm:mt-8 bg-white/95 backdrop-blur-md shadow-xl rounded-xl p-2 sm:p-3 border border-gray-100 flex flex-col items-center min-w-[120px] sm:min-w-[140px] group-hover:-translate-y-1 transition-transform duration-300 w-max">
               <h4 className="font-sans text-xs sm:text-sm font-bold text-charcoal text-center leading-tight mb-1">

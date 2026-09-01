@@ -8,7 +8,7 @@ import { MasonryGrid } from "@/components/gallery/MasonryGrid";
 export const GallerySection: React.FC = () => {
   return (
     <section className="bg-pure-white text-charcoal border-b border-stone/60 relative overflow-hidden">
-      
+
       {/* Light Header Banner */}
       <div className="bg-[#FAF9F7] text-charcoal pt-32 sm:pt-36 pb-10 px-6 sm:px-8 lg:px-12 text-center border-b border-stone relative overflow-hidden w-full">
         <div className="max-w-3xl mx-auto space-y-3 relative z-10">
