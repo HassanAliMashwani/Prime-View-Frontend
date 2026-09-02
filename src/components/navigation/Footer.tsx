@@ -80,16 +80,16 @@ export const Footer: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-4 mt-2">
-              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="X (formerly Twitter)">
+              <a href="https://x.com/PrimeViewHousingHazara" target="_blank" rel="noopener noreferrer" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="X (formerly Twitter)">
                 <Image src="/new assests/logos/x-formerly-twitter.svg" alt="X" width={16} height={16} className="w-4 h-4 object-contain invert" />
               </a>
-              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="Instagram">
+              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="Instagram">
                 <Image src="/new assests/logos/instagram.svg" alt="Instagram" width={16} height={16} className="w-4 h-4 object-contain" />
               </a>
-              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="YouTube">
+              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="YouTube">
                 <Image src="/new assests/logos/youtube.svg" alt="YouTube" width={16} height={16} className="w-4 h-4 object-contain" />
               </a>
-              <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full shadow-sm border border-gray-100/50" aria-label="Facebook">
+              <a href="https://facebook.com/PrimeviewAbbottabad" target="_blank" rel="noopener noreferrer" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="Facebook">
                 <Image src="/new assests/logos/facebook.svg" alt="Facebook" width={16} height={16} className="w-4 h-4 object-contain" />
               </a>
             </div>

@@ -169,7 +169,7 @@ export const AmenitiesSection: React.FC = () => {
           <div className="lg:col-span-4 relative h-full">
             <div className="lg:sticky lg:top-32 z-20 space-y-6 self-start pb-10">
               {/* Main Section Kicker — Bold */}
-              <span className="kicker block text-charcoal/50 font-black text-xs sm:text-sm tracking-widest uppercase font-sans">
+              <span className="kicker block text-verified-green font-black text-xs sm:text-sm tracking-widest uppercase font-sans">
                 MODERN FACILITIES
               </span>
 

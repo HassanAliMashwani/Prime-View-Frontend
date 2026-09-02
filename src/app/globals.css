@@ -162,7 +162,6 @@ body {
 
 .social-hover-btn:hover {
   transform: scale(1.15) translateY(-4px);
-  background-color: #faf9f7;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 

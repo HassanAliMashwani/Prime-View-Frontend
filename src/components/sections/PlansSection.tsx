@@ -120,11 +120,22 @@ export const PlansSection: React.FC = () => {
           ))}
         </div>
 
+        {/* Section Seam Photography Strip */}
+        <div className="w-full max-w-7xl mx-auto h-24 my-16 relative overflow-hidden flex items-center justify-center">
+          <div className="absolute inset-0 bg-gradient-to-b from-soft-white via-transparent to-soft-white z-10" />
+          <Image src="/new assests/new pic/1.jpeg" alt="Valley transition" fill className="object-cover object-center opacity-15 blur-[2px] pointer-events-none" />
+        </div>
+
         {/* Terms & Conditions Block */}
-        <div className="mt-20 max-w-4xl mx-auto">
-          <div className="relative bg-white rounded-2xl border border-stone shadow-sm overflow-hidden">
+        <div className="mt-8 max-w-4xl mx-auto relative">
+          <div className="relative bg-white/95 backdrop-blur-md rounded-2xl border border-stone shadow-sm overflow-hidden">
+            {/* Ambient Forest Backdrop */}
+            <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+              <Image src="/new assests/about page logos/footer.jpg" alt="Forest backdrop" fill className="object-cover object-bottom scale-110 blur-[2px]" />
+            </div>
+
             {/* Top Indicator */}
-            <div className="bg-verified-green/10 border-b border-verified-green/20 px-6 py-3 flex items-center gap-3">
+            <div className="relative z-10 bg-verified-green/10 border-b border-verified-green/20 px-6 py-3 flex items-center gap-3">
               <div className="w-8 h-8 rounded-full bg-verified-green/20 flex items-center justify-center shrink-0">
                 <Info className="w-4 h-4 text-verified-green" />
               </div>
@@ -139,10 +150,10 @@ export const PlansSection: React.FC = () => {
             </div>
 
             {/* Terms List */}
-            <div className="p-6 sm:p-8 space-y-6">
+            <div className="relative z-10 p-6 sm:p-8 space-y-6">
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-soft-white border border-stone flex items-center justify-center shrink-0 text-charcoal mt-0.5">
-                  <Percent className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl bg-[#F0F5F2] border border-[#2E6A4F]/20 flex items-center justify-center shadow-md shadow-[#2E6A4F]/5 shrink-0 mt-0.5">
+                  <Percent className="w-6 h-6 text-[#2E6A4F]" />
                 </div>
                 <div>
                   <h5 className="font-display text-lg text-charcoal font-semibold mb-1">
@@ -155,8 +166,8 @@ export const PlansSection: React.FC = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-soft-white border border-stone flex items-center justify-center shrink-0 text-charcoal mt-0.5">
-                  <MapPin className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl bg-[#F0F5F2] border border-[#2E6A4F]/20 flex items-center justify-center shadow-md shadow-[#2E6A4F]/5 shrink-0 mt-0.5">
+                  <MapPin className="w-6 h-6 text-[#2E6A4F]" />
                 </div>
                 <div>
                   <h5 className="font-display text-lg text-charcoal font-semibold mb-1">
@@ -169,8 +180,8 @@ export const PlansSection: React.FC = () => {
               </div>
 
               <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-xl bg-soft-white border border-stone flex items-center justify-center shrink-0 text-charcoal mt-0.5">
-                  <CalendarClock className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-2xl bg-[#F0F5F2] border border-[#2E6A4F]/20 flex items-center justify-center shadow-md shadow-[#2E6A4F]/5 shrink-0 mt-0.5">
+                  <CalendarClock className="w-6 h-6 text-[#2E6A4F]" />
                 </div>
                 <div>
                   <h5 className="font-display text-lg text-charcoal font-semibold mb-1">

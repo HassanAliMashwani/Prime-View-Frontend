@@ -18,7 +18,7 @@ const plots = [
     halfYearly: "90,000",
     halfYearlyTotal: "720,000",
     possession: "200,000",
-    image: "/assets/gallery/luxury-house-about.jpg" 
+    image: "/new assests/new pic/1.jpeg" 
   },
   { 
     size: "7.5 Marla", 
@@ -31,7 +31,7 @@ const plots = [
     halfYearly: "130,000",
     halfYearlyTotal: "1,040,000",
     possession: "295,000",
-    image: "/assets/gallery/prime-site-view.jpg" 
+    image: "/new assests/new pic/2.jpg" 
   },
   { 
     size: "10 Marla", 
@@ -44,7 +44,7 @@ const plots = [
     halfYearly: "175,000",
     halfYearlyTotal: "1,400,000",
     possession: "400,000",
-    image: "/assets/gallery/site-best-pic.jpg" 
+    image: "/new assests/new pic/3.jpeg" 
   },
   { 
     size: "13 Marla", 
@@ -57,7 +57,7 @@ const plots = [
     halfYearly: "230,000",
     halfYearlyTotal: "1,840,000",
     possession: "620,000",
-    image: "/assets/gallery/luxurious-villa-with-modern-architectural-design.jpg" 
+    image: "/new assests/new pic/1.jpeg" 
   },
   { 
     size: "01 Kanal", 
@@ -70,7 +70,7 @@ const plots = [
     halfYearly: "360,000",
     halfYearlyTotal: "2,880,000",
     possession: "800,000",
-    image: "/assets/gallery/site-picture.jpg" 
+    image: "/new assests/new pic/2.jpg" 
   },
 ];
 
