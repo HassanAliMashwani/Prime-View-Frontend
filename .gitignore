@@ -49,3 +49,8 @@ docs/
 # Scratch & Temporary files
 scratch_*.js
 scratch/
+website_screenshots/
+
+# Large binaries & non-code assets
+*.pdf
+public/new assests/booklets/

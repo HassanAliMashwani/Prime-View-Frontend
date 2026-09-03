@@ -141,7 +141,7 @@ export const Header: React.FC = () => {
           <MagneticWrapper className="pointer-events-auto">
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center gap-1.5 h-[50px] px-6 sm:px-7 rounded-full bg-[#F2BB84] hover:bg-[#EAAA6D] text-[#1E1E1C] text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(242,187,132,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#F2BB84] animate-pulse"
+              className="inline-flex items-center justify-center gap-1.5 h-[50px] px-6 sm:px-7 rounded-full bg-[#43612B] hover:bg-[#365222] text-white text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(67,97,43,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#43612B] animate-pulse"
               aria-label="Book Now"
             >
               <span>Book Now</span>

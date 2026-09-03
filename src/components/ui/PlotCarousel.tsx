@@ -1,137 +1,148 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
 import Image from "next/image";
+import Link from "next/link";
+import { ChevronLeft, ChevronRight, FileText, CalendarDays, Clock, ArrowUpRight } from "lucide-react";
+
+// Warm ivory palette
+const GREEN = "#43612B";
+const TEXT  = "#151914";
+const MUTED = "#6B7462";
 
 const plots = [
-  { 
-    size: "05 Marla", 
+  {
+    size: "05 Marla",
     tag: "Residential",
     dimensions: "25 x 50",
     totalPrice: "2,500,000",
     downPayment: "625,000",
     monthly: "24,500",
-    monthlyTotal: "955,500",
+    monthlyCount: 39,
     halfYearly: "90,000",
-    halfYearlyTotal: "720,000",
-    possession: "200,000",
-    image: "/new assests/new pic/1.jpeg" 
+    halfYearlyCount: 8,
+    image: "/new assests/our plan assests/card 1.png",
   },
-  { 
-    size: "7.5 Marla", 
+  {
+    size: "7.5 Marla",
     tag: "Residential",
-    dimensions: "30 x 60",
+    dimensions: "30 x 40",
     totalPrice: "3,600,000",
     downPayment: "900,000",
     monthly: "35,000",
-    monthlyTotal: "1,365,000",
+    monthlyCount: 39,
     halfYearly: "130,000",
-    halfYearlyTotal: "1,040,000",
-    possession: "295,000",
-    image: "/new assests/new pic/2.jpg" 
+    halfYearlyCount: 8,
+    image: "/new assests/our plan assests/card 2.png",
   },
-  { 
-    size: "10 Marla", 
+  {
+    size: "10 Marla",
     tag: "Residential",
     dimensions: "35 x 70",
     totalPrice: "4,900,000",
     downPayment: "1,225,000",
     monthly: "48,000",
-    monthlyTotal: "1,872,000",
+    monthlyCount: 39,
     halfYearly: "175,000",
-    halfYearlyTotal: "1,400,000",
-    possession: "400,000",
-    image: "/new assests/new pic/3.jpeg" 
+    halfYearlyCount: 8,
+    image: "/new assests/our plan assests/card 3.png",
   },
-  { 
-    size: "13 Marla", 
+  {
+    size: "13 Marla",
     tag: "Residential",
     dimensions: "40 x 80",
     totalPrice: "6,400,000",
     downPayment: "1,600,000",
     monthly: "60,000",
-    monthlyTotal: "2,340,000",
+    monthlyCount: 39,
     halfYearly: "230,000",
-    halfYearlyTotal: "1,840,000",
-    possession: "620,000",
-    image: "/new assests/new pic/1.jpeg" 
+    halfYearlyCount: 8,
+    image: "/new assests/our plan assests/card 4.png",
   },
-  { 
-    size: "01 Kanal", 
+  {
+    size: "01 Kanal",
     tag: "Residential",
     dimensions: "50 x 100",
     totalPrice: "10,000,000",
     downPayment: "2,500,000",
     monthly: "98,000",
-    monthlyTotal: "3,822,000",
+    monthlyCount: 39,
     halfYearly: "360,000",
-    halfYearlyTotal: "2,880,000",
-    possession: "800,000",
-    image: "/new assests/new pic/2.jpg" 
+    halfYearlyCount: 8,
+    image: "/new assests/our plan assests/card 5.png",
   },
 ];
 
 export function PlotCarousel() {
-  const [activeIndex, setActiveIndex] = useState(2); // Center 10 Marla by default
-  const [isMobile, setIsMobile] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(1);
+  const [isHovered, setIsHovered]     = useState(false);
+  const [gap, setGap]                 = useState(380);
+  const [cardWidth, setCardWidth]     = useState(360);
+  const [isMobile, setIsMobile]       = useState(false);
 
+  // Responsive card sizing and track gap calculation
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w < 640) {
+        setIsMobile(true);
+        setCardWidth(Math.min(w - 48, 330));
+        setGap(w);
+      } else if (w < 1024) {
+        setIsMobile(false);
+        setCardWidth(320);
+        setGap(345);
+      } else {
+        setIsMobile(false);
+        setCardWidth(360);
+        setGap(385);
+      }
+    };
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Auto-play effect
+  // Auto-play timer (advances forward every 4.5s)
   useEffect(() => {
     if (isHovered) return;
-
     const interval = setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % plots.length);
-    }, 4000);
-
+    }, 4500);
     return () => clearInterval(interval);
   }, [isHovered]);
 
-  const handleNext = () => {
-    setActiveIndex((prev) => (prev + 1) % plots.length);
-  };
+  const handleNext = () => setActiveIndex((prev) => (prev + 1) % plots.length);
+  const handlePrev = () => setActiveIndex((prev) => (prev - 1 + plots.length) % plots.length);
 
-  const handlePrev = () => {
-    setActiveIndex((prev) => (prev - 1 + plots.length) % plots.length);
-  };
-
+  // True physical card offset styles — all 5 cards exist in the DOM and glide horizontally
   const getPositionStyles = (index: number) => {
     let offset = index - activeIndex;
-    // Adjust for circularity
     if (offset < -2) offset += plots.length;
     if (offset > 2) offset -= plots.length;
 
-    const gap = isMobile ? 320 : 340; // Slightly wider gap for new content
     const isActive = offset === 0;
     const isVisible = Math.abs(offset) <= (isMobile ? 0 : 1);
-    const scale = isActive && !isMobile ? 1.05 : (isMobile ? 1 : 0.95);
+    const scale = isActive ? 1 : 0.96;
+    const translateY = isActive && !isMobile ? "-52%" : "-50%";
 
     return {
-      transform: `translate(-50%, -50%) translateX(${offset * gap}px) scale(${scale})`,
+      transform: `translate(-50%, ${translateY}) translateX(${offset * gap}px) scale(${scale})`,
       opacity: isVisible ? 1 : 0,
       zIndex: isActive ? 20 : 10 - Math.abs(offset),
-      pointerEvents: (isActive || (!isMobile && Math.abs(offset) === 1)) ? "auto" as const : "none" as const,
+      pointerEvents: (isActive || (!isMobile && Math.abs(offset) === 1)) ? ("auto" as const) : ("none" as const),
+      transition: "transform 500ms cubic-bezier(0.25, 1, 0.5, 1), opacity 400ms ease, box-shadow 500ms ease",
     };
   };
 
   return (
     <div
-      className="w-full overflow-hidden flex flex-col items-center pb-12"
+      className="w-full flex flex-col items-center"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Carousel Container */}
-      <div className="relative w-full max-w-6xl h-[640px] mx-auto">
+      {/* 5-Card Physical Swapping Stage */}
+      <div className="relative w-full max-w-6xl h-[640px] sm:h-[670px] mx-auto overflow-hidden">
         {plots.map((plot, index) => {
           let offset = index - activeIndex;
           if (offset < -2) offset += plots.length;
@@ -140,89 +151,173 @@ export function PlotCarousel() {
 
           return (
             <div
-              key={index}
-              className="absolute top-1/2 left-1/2 transition-all duration-500 ease-in-out w-[320px] cursor-pointer"
-              style={getPositionStyles(index)}
+              key={plot.size}
+              className="absolute top-1/2 left-1/2 cursor-pointer"
+              style={{
+                width: `${cardWidth}px`,
+                ...getPositionStyles(index),
+              }}
               onClick={() => setActiveIndex(index)}
             >
               <div
-                className={`relative w-full h-[520px] rounded-[2rem] border transition-all duration-500
-                ${isActive ? 'shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-white/40' : 'border-white/10 hover:border-white/30'}
-              `}
+                className={`
+                  relative rounded-[18px] overflow-hidden transition-all duration-300
+                  ${isActive
+                    ? "shadow-[0_8px_32px_rgba(0,0,0,0.14)] ring-1 ring-black/[0.08]"
+                    : "shadow-[0_2px_14px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.06] hover:shadow-[0_4px_20px_rgba(0,0,0,0.12)]"
+                  }
+                `}
+                style={{ background: "#FAF9F7" }}
               >
-                {/* Full Background Image */}
-                <div className="absolute inset-0 z-0 overflow-hidden rounded-[2rem]">
+                {/* Tag + Dimensions overlay */}
+                <div className="absolute top-3.5 left-3.5 right-3.5 z-10 flex items-center justify-between">
+                  <span
+                    className="text-white text-[11px] font-semibold px-3 py-1 rounded-[6px]"
+                    style={{ background: GREEN }}
+                  >
+                    {plot.tag}
+                  </span>
+                  <span
+                    className="text-[11px] font-semibold px-3 py-1 rounded-full border"
+                    style={{ background: "#FAF9F7", color: TEXT, borderColor: "rgba(0,0,0,0.12)" }}
+                  >
+                    {plot.dimensions}
+                  </span>
+                </div>
+
+                {/* Card Image */}
+                <div className="relative w-full overflow-hidden" style={{ height: "260px" }}>
                   <Image
                     src={plot.image}
-                    alt={plot.size}
+                    alt={`Prime View ${plot.size} plot`}
                     fill
-                    className="object-cover"
+                    className="object-cover object-center"
+                    sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  {/* Heavy dark gradient to make white text readable */}
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/80 to-black/95" />
                 </div>
 
-                {/* Floating Badge */}
-                <div
-                  className={`absolute -top-4 left-1/2 -translate-x-1/2 bg-[#B29A68] text-white px-5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap shadow-lg transition-opacity duration-500 z-20
-                  ${isActive ? 'opacity-100' : 'opacity-0'}`}
-                >
-                  Recommended
-                </div>
+                {/* Card Body */}
+                <div className="px-5 pt-4 pb-5">
+                  {/* Size Title */}
+                  <h3
+                    className="font-display text-[2.1rem] font-bold leading-none mb-3 tracking-tight"
+                    style={{ color: TEXT }}
+                  >
+                    {plot.size}
+                  </h3>
 
-                {/* Card Content Wrapper */}
-                <div className="relative w-full h-full flex flex-col z-10 text-white p-6">
-                  {/* Content */}
-                  <div className="flex items-end justify-between mb-2">
-                    <h3 className="text-[1.1rem] font-medium tracking-tight opacity-90">{plot.tag}</h3>
-                    <span className="text-sm font-medium opacity-70 bg-white/10 px-2 py-0.5 rounded-md">{plot.dimensions}</span>
+                  {/* Total Price */}
+                  <div className="mb-4">
+                    <p
+                      className="text-[10px] font-semibold uppercase tracking-[0.13em] mb-0.5"
+                      style={{ color: MUTED }}
+                    >
+                      Total Price
+                    </p>
+                    <p
+                      className="text-[1.55rem] font-bold leading-tight"
+                      style={{ color: TEXT }}
+                    >
+                      Rs {plot.totalPrice}
+                    </p>
                   </div>
-                  
-                  <div className="flex items-baseline gap-2 mb-4">
-                    <span className="text-3xl font-bold tracking-tight">{plot.size}</span>
-                  </div>
 
-                  <hr className="border-white/20 mb-4" />
-
-                  <div className="mb-5">
-                    <p className="text-[10px] text-white/60 uppercase tracking-wider mb-1">Total Price</p>
-                    <p className="text-3xl font-bold text-[#B29A68]">Rs {plot.totalPrice}</p>
-                  </div>
-
-                  <ul className="space-y-3 flex-1 text-sm">
-                    <li className="flex justify-between items-center border-b border-white/10 pb-2">
-                      <span className="text-white/70">Down Payment (25%)</span>
-                      <span className="font-semibold text-white">Rs {plot.downPayment}</span>
-                    </li>
-                    <li className="flex flex-col border-b border-white/10 pb-2">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-white/70">Monthly Installment (x39)</span>
-                        <span className="font-semibold text-white">Rs {plot.monthly}</span>
+                  {/* Payment Details with Dividers */}
+                  <div className="space-y-0 text-[13px]">
+                    {[
+                      { icon: <FileText className="w-4 h-4" />,     label: "Down Payment (25%)",                     value: plot.downPayment },
+                      { icon: <CalendarDays className="w-4 h-4" />,  label: `Monthly Installment (x${plot.monthlyCount})`, value: plot.monthly    },
+                      { icon: <Clock className="w-4 h-4" />,         label: `Half Yearly (x${plot.halfYearlyCount})`,     value: plot.halfYearly  },
+                    ].map((row, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between py-2.5"
+                        style={{ borderTop: "1px solid rgba(0,0,0,0.07)" }}
+                      >
+                        <span className="flex items-center gap-2 font-normal" style={{ color: MUTED }}>
+                          <span style={{ color: "#8E9A80" }} className="shrink-0">{row.icon}</span>
+                          {row.label}
+                        </span>
+                        <span className="font-bold whitespace-nowrap ml-3" style={{ color: TEXT }}>
+                          Rs {row.value}
+                        </span>
                       </div>
-                    </li>
-                    <li className="flex flex-col border-b border-white/10 pb-2">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-white/70">Half Yearly (x8)</span>
-                        <span className="font-semibold text-white">Rs {plot.halfYearly}</span>
-                      </div>
-                    </li>
-                    <li className="flex justify-between items-center">
-                      <span className="text-white/70">On Possession</span>
-                      <span className="font-semibold text-white">Rs {plot.possession}</span>
-                    </li>
-                  </ul>
+                    ))}
+                  </div>
 
+                  {/* Contact Us Button with High Contrast */}
                   <Link
                     href="/contact"
-                    className="w-full mt-6 py-3.5 px-4 bg-white/10 hover:bg-[#B29A68] hover:text-white hover:border-[#B29A68] backdrop-blur-md border border-white/20 text-white font-semibold rounded-full transition-all duration-300 text-sm text-center block shadow-lg"
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full mt-4 py-2.5 sm:py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-1.5 transition-all duration-200 shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] active:scale-[0.98] group/btn"
+                    style={{ background: GREEN }}
+                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2F441E"; }}
+                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = GREEN; }}
                   >
-                    Book Now
+                    <span>Contact Us</span>
+                    <ArrowUpRight className="w-4 h-4 stroke-[2.5] transition-transform duration-200 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
                   </Link>
                 </div>
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Navigation Controls */}
+      <div className="flex items-center justify-center gap-4 pb-4 mt-2">
+        <button
+          type="button"
+          onClick={handlePrev}
+          aria-label="Previous plot plan"
+          className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 active:scale-90 cursor-pointer border"
+          style={{ background: "#FAF9F7", color: GREEN, borderColor: `${GREEN}33` }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = GREEN;
+            (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "#FAF9F7";
+            (e.currentTarget as HTMLButtonElement).style.color = GREEN;
+          }}
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+
+        {/* Dot Indicators for all 5 Cards */}
+        <div className="flex items-center gap-1.5">
+          {plots.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIndex(i)}
+              aria-label={`Plot ${i + 1}`}
+              className="rounded-full transition-all duration-300 cursor-pointer"
+              style={{
+                width:      i === activeIndex ? "24px" : "8px",
+                height:     "8px",
+                background: i === activeIndex ? GREEN : `${GREEN}40`,
+              }}
+            />
+          ))}
+        </div>
+
+        <button
+          type="button"
+          onClick={handleNext}
+          aria-label="Next plot plan"
+          className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 active:scale-90 cursor-pointer border"
+          style={{ background: "#FAF9F7", color: GREEN, borderColor: `${GREEN}33` }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = GREEN;
+            (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.background = "#FAF9F7";
+            (e.currentTarget as HTMLButtonElement).style.color = GREEN;
+          }}
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
     </div>
   );
