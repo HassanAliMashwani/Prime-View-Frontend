@@ -31,12 +31,12 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-5xl max-h-[95vh] flex flex-col bg-[#F7F4EE] rounded-[2rem] shadow-2xl border border-white/20 cursor-default overflow-hidden"
+        className="relative w-full max-w-5xl max-h-[95vh] flex flex-col bg-[#FAF9F7] rounded-[2rem] shadow-2xl border border-black/[0.08] cursor-default overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-10 h-10 rounded-full bg-white hover:bg-black/5 text-charcoal flex items-center justify-center transition-colors cursor-pointer shadow-sm border border-black/5"
+          className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 w-10 h-10 rounded-full bg-white hover:bg-black/5 text-[#151914] flex items-center justify-center transition-colors cursor-pointer shadow-xs border border-black/5"
           aria-label="Close Event Modal"
         >
           <X className="w-5 h-5" />
@@ -49,17 +49,17 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
             
             {/* Header Info */}
             <div className="max-w-3xl pr-12">
-              <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-charcoal mb-4 tracking-tight">
+              <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-[#151914] mb-4 tracking-tight">
                 {event.title}
               </h2>
-              <p className="font-sans text-base sm:text-lg text-charcoal/70 leading-relaxed">
+              <p className="font-sans text-base sm:text-lg text-[#6B7462] leading-relaxed">
                 {event.fullDescription}
               </p>
             </div>
 
             {/* Media Gallery */}
-            <div className="pt-2 border-t border-black/5">
-              <h3 className="font-display text-2xl font-bold text-charcoal mb-4">Event Gallery</h3>
+            <div className="pt-2 border-t border-black/[0.06]">
+              <h3 className="font-display text-2xl font-bold text-[#151914] mb-4">Event Gallery</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Video First */}
                 {event.videoPreview && (

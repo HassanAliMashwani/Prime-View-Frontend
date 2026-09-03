@@ -7,7 +7,7 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const ContactSection: React.FC = () => {
   return (
-    <section className="bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-stone-100 via-stone-300 to-stone-500 text-charcoal relative overflow-hidden flex flex-col lg:flex-row border-t border-stone">
+    <section className="bg-[#F8F7F5] text-[#151914] relative overflow-hidden flex flex-col lg:flex-row border-t border-black/[0.06]">
       {/* ══════════════════════════════════════════════════════════════
           AMBIENT FOLIAGE BACKGROUND
       ══════════════════════════════════════════════════════════════ */}
@@ -23,7 +23,7 @@ export const ContactSection: React.FC = () => {
       </div>
 
       {/* Left Visual Column - Stretches from left edge to middle */}
-      <div className="w-full lg:w-[45%] xl:w-[45%] relative h-[300px] sm:h-[400px] lg:h-auto lg:min-h-[500px] lg:rounded-r-[2.5rem] overflow-hidden shadow-2xl border-r border-stone">
+      <div className="w-full lg:w-[45%] xl:w-[45%] relative h-[300px] sm:h-[400px] lg:h-auto lg:min-h-[500px] lg:rounded-r-[2.5rem] overflow-hidden shadow-2xl border-r border-black/[0.08]">
         <Image
           src="/images/decorative/lush_green_valley.jpg"
           alt="Lush Green Valley - Prime View"

@@ -20,13 +20,13 @@ export const Footer: React.FC = () => {
           style={{ background: '#EFEEEA', border: '1px solid rgba(0,0,0,0.06)' }}
         >
           {/* Faded landscape background */}
-          <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
+          <div className="absolute inset-0 z-0 opacity-40 pointer-events-none overflow-hidden">
             <Image
-              src="/new assests/our plan assests/footer pic.jpeg"
-              alt="Footer landscape background"
+              src="/new assests/footer/Prime footer Image.jpg"
+              alt="Prime View Footer Pine Forest"
               fill
-              quality={80}
-              className="object-cover object-bottom scale-110"
+              quality={85}
+              className="object-cover object-center"
             />
           </div>
 

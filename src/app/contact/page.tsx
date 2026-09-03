@@ -10,16 +10,16 @@ export const metadata = {
 
 export default function ContactPage() {
   return (
-    <div className="bg-pure-white min-h-screen text-charcoal">
+    <div className="bg-[#F8F7F5] min-h-screen text-[#151914]">
       {/* Light Header Banner */}
-      <div className="bg-[#FAF9F7] text-charcoal pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
+      <div className="bg-[#FAF9F7] pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
         <HeroBackground />
         <div className="max-w-3xl mx-auto space-y-3 relative z-10">
           
-          <h1 className="font-display text-4xl sm:text-6xl text-charcoal tracking-tight">
+          <h1 className="font-display text-4xl sm:text-6xl text-[#151914] tracking-tight font-bold">
             {pagesData.contact.h1}
           </h1>
-          <p className="font-sans text-base text-charcoal/60 mt-2 max-w-xl mx-auto leading-relaxed">
+          <p className="font-sans text-base text-[#6B7462] mt-2 max-w-xl mx-auto leading-relaxed">
             {pagesData.contact.h2}
           </p>
         </div>

@@ -71,6 +71,18 @@ const plots = [
     halfYearlyCount: 8,
     image: "/new assests/our plan assests/card 5.png",
   },
+  {
+    size: "02 Kanal",
+    tag: "Residential",
+    dimensions: "75 x 120",
+    totalPrice: "30,000,000",
+    downPayment: "7,500,000",
+    monthly: "294,000",
+    monthlyCount: 39,
+    halfYearly: "1,080,000",
+    halfYearlyCount: 8,
+    image: "/new assests/our plan assests/card 6.png",
+  },
 ];
 
 export function PlotCarousel() {
@@ -115,11 +127,10 @@ export function PlotCarousel() {
   const handleNext = () => setActiveIndex((prev) => (prev + 1) % plots.length);
   const handlePrev = () => setActiveIndex((prev) => (prev - 1 + plots.length) % plots.length);
 
-  // True physical card offset styles — all 5 cards exist in the DOM and glide horizontally
+  // True physical card offset styles — all cards exist in the DOM and glide horizontally
   const getPositionStyles = (index: number) => {
-    let offset = index - activeIndex;
-    if (offset < -2) offset += plots.length;
-    if (offset > 2) offset -= plots.length;
+    let offset = (index - activeIndex + plots.length) % plots.length;
+    if (offset > plots.length / 2) offset -= plots.length;
 
     const isActive = offset === 0;
     const isVisible = Math.abs(offset) <= (isMobile ? 0 : 1);
@@ -169,19 +180,13 @@ export function PlotCarousel() {
                 `}
                 style={{ background: "#FAF9F7" }}
               >
-                {/* Tag + Dimensions overlay */}
-                <div className="absolute top-3.5 left-3.5 right-3.5 z-10 flex items-center justify-between">
+                {/* Tag overlay */}
+                <div className="absolute top-3.5 left-3.5 z-10">
                   <span
                     className="text-white text-[11px] font-semibold px-3 py-1 rounded-[6px]"
                     style={{ background: GREEN }}
                   >
                     {plot.tag}
-                  </span>
-                  <span
-                    className="text-[11px] font-semibold px-3 py-1 rounded-full border"
-                    style={{ background: "#FAF9F7", color: TEXT, borderColor: "rgba(0,0,0,0.12)" }}
-                  >
-                    {plot.dimensions}
                   </span>
                 </div>
 
@@ -198,13 +203,21 @@ export function PlotCarousel() {
 
                 {/* Card Body */}
                 <div className="px-5 pt-4 pb-5">
-                  {/* Size Title */}
-                  <h3
-                    className="font-display text-[2.1rem] font-bold leading-none mb-3 tracking-tight"
-                    style={{ color: TEXT }}
-                  >
-                    {plot.size}
-                  </h3>
+                  {/* Size Title & Bold Dimensions */}
+                  <div className="flex items-baseline justify-between mb-3">
+                    <h3
+                      className="font-display text-[2.1rem] font-bold leading-none tracking-tight"
+                      style={{ color: TEXT }}
+                    >
+                      {plot.size}
+                    </h3>
+                    <span
+                      className="font-sans text-base sm:text-lg font-bold tracking-wide"
+                      style={{ color: TEXT }}
+                    >
+                      {plot.dimensions}
+                    </span>
+                  </div>
 
                   {/* Total Price */}
                   <div className="mb-4">

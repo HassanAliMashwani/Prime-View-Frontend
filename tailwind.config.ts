@@ -9,19 +9,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Phase 2 Rev. 3 Brand Color System
+        // Phase 2 Rev. 3 Brand Color System — Our Plans Palette
         "pure-white": "#FFFFFF",
-        "soft-white": "#FAF9F7",
+        "soft-white": "#F8F7F5",
+        "card-ivory": "#FAF9F7",
+        "card-inner": "#FAF9F5",
         "warm-beige": "#EFE7DA",
         "deep-beige": "#E2D6C3",
-        "charcoal": "#1B1B1B",
+        "charcoal": "#151914",
+        "muted-charcoal": "#6B7462",
+        "body-charcoal": "#4A5347",
         "stone": "#D9D2C5",
         "muted-brass": "#B29A68",
         
         "deep-forest": "#10251E",
+        "dark-evergreen": "#1B4324",
         "pine": "#1C342B",
-        "verified-green": "#137547",
+        "forest-green": "#43612B",
+        "verified-green": "#43612B",
         "soft-green": "#5E8F78",
+        "alpine-sage": "#A8BBA2",
+        "sage-tint": "#EAF0E7",
       },
       fontFamily: {
         display: ["var(--font-serif)", "Playfair Display", "Georgia", "serif"],

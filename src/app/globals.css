@@ -4,16 +4,20 @@
 
 :root {
   --color-pure-white: #ffffff;
-  --color-soft-white: #faf9f7;
+  --color-soft-white: #f8f7f5;
+  --color-card-ivory: #faf9f7;
+  --color-card-inner: #faf9f5;
   --color-warm-beige: #efe7da;
   --color-deep-beige: #e2d6c3;
-  --color-charcoal: #1b1b1b;
-  --color-muted-gray: #5f5a52;
-  --color-accent-green: #2e6a4f;
-  --color-soft-green: #5e8f78;
-  --color-green-tint: #eef5f1;
-  --color-card-border: #e8e1d5;
-  --color-secondary-border: #d8ccb8;
+  --color-charcoal: #151914;
+  --color-muted-gray: #6b7462;
+  --color-body-gray: #4a5347;
+  --color-accent-green: #43612b;
+  --color-dark-evergreen: #1b4324;
+  --color-soft-green: #a8bba2;
+  --color-green-tint: #eaf0e7;
+  --color-card-border: rgba(0, 0, 0, 0.06);
+  --color-secondary-border: rgba(0, 0, 0, 0.08);
   --color-secondary-hover: #f5efe6;
 
   --color-bg-dark: #10251e;
@@ -21,7 +25,7 @@
 }
 
 body {
-  background-color: var(--color-pure-white);
+  background-color: var(--color-soft-white);
   color: var(--color-charcoal);
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;

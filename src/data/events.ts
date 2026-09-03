@@ -65,6 +65,7 @@ export const eventsData: EventData[] = [
       "/new assests/new pic/Aerial_view_of_town_center_202608142359.jpeg",
       "/assets/gallery/abbotabad-club.jpg",
       "/assets/gallery/prime-site-view.jpg",
+      "/assets/gallery/greenery_villa_cinematic.jpg"
     ],
     fullDescription: "Take to the skies with our latest drone footage. See the strategic location of Prime View nestled in the Abbottabad hills, showcasing the seamless connectivity to major highways while retaining a peaceful, secluded atmosphere.",
   }

@@ -10,14 +10,35 @@ export interface TeamMemberProfile {
   facebookUrl?: string;
   twitterUrl?: string;
   instagramUrl?: string;
+  bio?: string;
+  bioBullets?: string[];
 }
 
 export const executiveTeamProfiles: TeamMemberProfile[] = [
   // 1. Managing Committee & Owners (/owners)
+  // Row 1: Liaqat Khan Jadoon, Dr. Roman Gul, Ahmed Nawaz Khan Jadoon
+  {
+    id: "mc-2",
+    name: "Liaqat Khan Jadoon",
+    title: "President",
+    role: "Beneficial owner & Director",
+    email: "president@primeview.pk",
+    category: "Managing Committee",
+    photoPath: "/new assests/team/team new/president.jpg",
+    photoDiscovered: true,
+    bio: "Liaqat Khan Jadoon serves as President of Prime View Co-Operative Housing Society Ltd. With a distinguished background in specialized operations, advanced tactical instruction, and engineering discipline, he provides strategic direction and steadfast governance to ensure Prime View remains a symbol of integrity and excellence.",
+    bioBullets: [
+      "Sky diver International",
+      "Deep Sea Diver International",
+      "Master in technique with all Kinds of small arms safeties",
+      "Nuclear Biological Damage Control fire fighter :- Special operations Submarines Chief Engineer",
+      "Jump master with all Kinds of Sky diving",
+    ],
+  },
   {
     id: "mc-5",
     name: "Dr. Roman Gul",
-    title: "Secretary",
+    title: "General Secretary",
     role: "Beneficial owner & Director",
     email: "secretary@primeview.pk",
     category: "Managing Committee",
@@ -34,6 +55,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     photoPath: "/new assests/team/team new/vice-president.jpg",
     photoDiscovered: true,
   },
+  // Row 2: Chaudhary Mohsin Azad, Qazi Safeer Hashmi Qureshi
   {
     id: "mc-1",
     name: "Chaudhary Mohsin Azad",
@@ -42,16 +64,6 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     email: "Chairman@primeview.pk",
     category: "Managing Committee",
     photoPath: "/new assests/team/team new/chairman.jpg",
-    photoDiscovered: true,
-  },
-  {
-    id: "mc-2",
-    name: "Liaqat Khan",
-    title: "President",
-    role: "Beneficial owner & Director",
-    email: "president@primeview.pk",
-    category: "Managing Committee",
-    photoPath: "/new assests/team/team new/president.jpg",
     photoDiscovered: true,
   },
   {
