@@ -1,9 +1,7 @@
 import React from "react";
+import Image from "next/image";
 import { pagesData } from "@/data/pages";
-import { siteConfig } from "@/data/site";
-import { MapPin, Navigation } from "lucide-react";
-
-import { HeroBackground } from "@/components/ui/HeroBackground";
+import { LocationMapCard } from "@/components/map/LocationMapCard";
 
 export const metadata = {
   title: pagesData.map.title,
@@ -13,74 +11,42 @@ export const metadata = {
 export default function LocationMapPage() {
   return (
     <div className="bg-[#F8F7F5] text-[#151914] min-h-screen">
-      {/* Light Header Banner */}
-      <div className="bg-[#FAF9F7] pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
-        <HeroBackground />
-        <div className="max-w-3xl mx-auto space-y-3 relative z-10">
-          <h1 className="font-display text-4xl sm:text-5xl text-[#151914] tracking-tight font-bold">
+      {/* ── HERO HEADER ── */}
+      <div className="relative pt-24 sm:pt-32 pb-16 sm:pb-24 lg:pb-28 px-6 sm:px-8 lg:px-12 text-center overflow-hidden w-full">
+        {/* Hero Background — Mountain Valley Landscape */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/new assests/our plan assests/hero background.jpeg?v=2"
+            alt="Prime View Location Map Hero Background"
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+          {/* Gradient: dark at top for text, fades to cream at bottom */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 45%, rgba(248,247,245,0.7) 80%, #F8F7F5 100%)',
+            }}
+          />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto space-y-3 sm:space-y-4">
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight font-bold leading-[1.05] uppercase drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)]">
             Location Map
           </h1>
-          <p className="font-sans text-sm sm:text-base text-[#6B7462] max-w-xl mx-auto leading-relaxed">
+          <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-xl mx-auto leading-relaxed">
             Direct Access from Hazara Expressway &amp; GT Road, Abbottabad
           </p>
         </div>
       </div>
 
-      <div className="py-16 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
-
-        {/* Location Map Container */}
-        <div className="bg-[#FAF9F7] rounded-2xl border border-black/[0.08] p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-black/[0.06] pb-5">
-            <div className="flex items-center space-x-3 text-[#43612B]">
-              <MapPin className="w-6 h-6 shrink-0" />
-              <div>
-                <h2 className="font-display text-xl font-bold text-[#151914]">
-                  Prime View Abbottabad Location Pin
-                </h2>
-                <p className="font-sans text-xs text-[#6B7462] mt-0.5">
-                  Takia Sheikhan / Rajoya, Hazara Division, Khyber Pakhtunkhwa
-                </p>
-              </div>
-            </div>
-
-            <a
-              href="https://maps.google.com/?q=34.0538,73.1534"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-[#43612B] hover:bg-[#324920] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all duration-150 shadow-[0_4px_14px_rgba(67,97,43,0.35)] flex items-center gap-1.5 uppercase tracking-wider"
-            >
-              <Navigation className="w-3.5 h-3.5" />
-              <span>Get Directions</span>
-            </a>
-          </div>
-
-          {/* Embedded Interactive Google Map */}
-          <div className="relative w-full h-[550px] rounded-xl overflow-hidden border border-black/[0.08] shadow-inner">
-            <iframe
-              title="Prime View Housing Society Location Map"
-              src="https://maps.google.com/maps?q=34.0538,73.1534&z=13&t=k&output=embed"
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="w-full h-full"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-[#6B7462] pt-2">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-[#151914]">Hazara Expressway:</span>
-              <span>15 Minutes drive</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="font-semibold text-[#151914]">Islamabad Marketing Office:</span>
-              <span>{siteConfig.address}</span>
-            </div>
-          </div>
-        </div>
+      <div className="pb-20 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10 -mt-6 sm:-mt-10">
+        <LocationMapCard />
       </div>
     </div>
   );
 }
+

@@ -18,16 +18,36 @@ export default function MasterplanPage() {
 
   return (
     <div className="bg-[#F8F7F5] text-[#151914] min-h-screen">
-      {/* Light Header Banner */}
-      <div className="bg-[#FAF9F7] pt-24 sm:pt-28 pb-8 px-6 sm:px-8 lg:px-12 text-center border-b border-black/[0.06] relative overflow-hidden w-full">
-        <HeroBackground />
-        <div className="max-w-3xl mx-auto space-y-3 relative z-10">
-          <h1 className="font-display text-4xl sm:text-5xl text-[#151914] tracking-tight font-bold">
+      {/* ── HERO HEADER (SAME AS OUR PLANS PAGE) ── */}
+      <div className="relative pt-28 sm:pt-36 pb-28 sm:pb-36 lg:pb-40 px-6 sm:px-8 lg:px-12 text-center overflow-hidden w-full">
+        {/* Hero Background — Mountain Valley Landscape */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/new assests/our plan assests/hero background.jpeg?v=2"
+            alt="Prime View Master Plan Hero Background"
+            fill
+            priority
+            className="object-cover object-center"
+            sizes="100vw"
+          />
+          {/* Gradient: dark at top for text, fades to cream at bottom */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.15) 45%, rgba(248,247,245,0.7) 80%, #F8F7F5 100%)',
+            }}
+          />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto space-y-4">
+          <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight font-bold leading-[1.05] uppercase drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)]">
             Master Plan
           </h1>
-          <p className="font-sans text-sm sm:text-base text-[#6B7462] max-w-xl mx-auto leading-relaxed mb-4">
+          <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-2xl mx-auto leading-relaxed">
             Prime View Co-Operative Housing Society Ltd Hazara Division Approved Final Master Plan &amp; Block Layout
           </p>
+
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <a
               href={masterplanWebp}
@@ -41,7 +61,7 @@ export default function MasterplanPage() {
             <a
               href={masterplanPdf}
               download
-              className="bg-white hover:bg-black/5 text-[#151914] text-xs font-bold px-6 py-3 rounded-xl transition-colors duration-150 border border-black/10 flex items-center gap-2 uppercase tracking-wider shadow-xs"
+              className="bg-white/90 hover:bg-white text-[#151914] text-xs font-bold px-6 py-3 rounded-xl transition-colors duration-150 border border-white/50 backdrop-blur-md flex items-center gap-2 uppercase tracking-wider shadow-sm"
             >
               <Download className="w-4 h-4" />
               Download PDF
@@ -50,7 +70,7 @@ export default function MasterplanPage() {
         </div>
       </div>
 
-      <div className="py-16 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10">
+      <div className="pb-16 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10 relative z-10 -mt-10 sm:-mt-16">
         {/* Master Plan Display Box */}
         <div className="relative w-full overflow-hidden rounded-3xl border border-black/[0.08] bg-[#FAF9F7] shadow-lg p-2 sm:p-4">
           <div className="relative w-full h-full bg-white rounded-2xl overflow-hidden border border-black/[0.06] flex items-center justify-center">

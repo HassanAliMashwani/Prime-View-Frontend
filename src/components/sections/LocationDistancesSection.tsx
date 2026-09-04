@@ -53,7 +53,7 @@ export const LocationDistancesSection: React.FC = () => {
       </div>
 
       {/* Map Diagram Area - Reduced Height */}
-      <div className="relative w-full max-w-[1300px] mx-auto h-[500px] sm:h-[600px] bg-[#F8FAFC] rounded-3xl sm:rounded-[2.5rem] overflow-hidden border border-gray-200 shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      <div className="relative w-full max-w-[1300px] mx-auto h-[500px] sm:h-[600px] bg-[#FAF9F7] rounded-3xl sm:rounded-[2.5rem] overflow-hidden border border-black/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
 
         {/* Abstract City Map Background */}
         <div className="absolute inset-0 pointer-events-none">

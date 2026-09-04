@@ -181,7 +181,21 @@ export const Footer: React.FC = () => {
                   </Link>
                 </li>
               </ul>
+
+              {/* Project of Roman Builders */}
+              <div className="mt-7 sm:mt-8 pt-1">
+                <p
+                  className="font-sans text-[13px] sm:text-sm font-extrabold whitespace-nowrap tracking-tight"
+                  style={{ color: '#70c729ff' }}
+                >
+                  Project of Roman Builders
+                </p>
+              </div>
+
+
             </div>
+
+
 
           </div>
         </div>

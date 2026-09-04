@@ -38,7 +38,7 @@ export const HeroSection: React.FC = () => {
 
         {/* Secondary Headline (Offset) */}
         <div className="w-full flex justify-end mt-8 sm:mt-16">
-          <ScrollReveal variant="bounce" delay={0.8} className="font-sans text-lg sm:text-xl text-pure-white/90 max-w-sm text-right mr-4 sm:mr-16 lg:mr-32 border-r-2 border-muted-brass pr-6 leading-relaxed">
+          <ScrollReveal variant="bounce" delay={0.8} className="font-sans text-lg sm:text-xl text-pure-white/90 max-w-sm text-right mr-4 sm:mr-16 lg:mr-32 border-r-2 border-[#43612B] pr-6 leading-relaxed">
             Get Your Dream House Today in Abbottabad
           </ScrollReveal>
         </div>
@@ -50,7 +50,7 @@ export const HeroSection: React.FC = () => {
           <MagneticWrapper className="w-full sm:w-auto">
             <Link
               href="/contact"
-              className="w-full sm:w-auto inline-flex items-center justify-center bg-[#B29A68] hover:bg-[#B29A68] text-[#1B1B1B] font-sans text-sm font-bold px-8 py-4 rounded-xl tracking-wider uppercase shadow-md transition-colors duration-200 animate-pulse"
+              className="w-full sm:w-auto inline-flex items-center justify-center bg-[#43612B] hover:bg-[#324920] text-white font-sans text-sm font-bold px-8 py-4 rounded-xl tracking-wider uppercase shadow-[0_4px_20px_rgba(67,97,43,0.4)] transition-colors duration-200 animate-pulse"
             >
               Book Now
             </Link>
