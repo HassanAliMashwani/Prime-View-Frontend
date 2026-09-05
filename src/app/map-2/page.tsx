@@ -14,7 +14,7 @@ export default function MasterplanPage() {
   const masterplanWebp =
     "/assets/masterplan/prime-view-abbottabad-final-master-plan-11-08-2026.webp";
   const masterplanPdf =
-    "/assets/masterplan/prime-view-abbottabad-final-master-plan-11-08-2026.pdf";
+    "/assets/masterplan/prime-view-abbottabad-final-master-plan.pdf";
 
   return (
     <div className="bg-[#F8F7F5] text-[#151914] min-h-screen">

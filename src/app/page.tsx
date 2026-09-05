@@ -5,7 +5,6 @@ import { LocationDistancesSection } from "@/components/sections/LocationDistance
 import { MapSection } from "@/components/sections/MapSection";
 import { ContactSection } from "@/components/sections/ContactSection";
 
-
 export default function HomePage() {
   return (
     <div>

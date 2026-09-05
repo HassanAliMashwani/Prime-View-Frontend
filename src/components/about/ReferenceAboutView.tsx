@@ -212,7 +212,7 @@ export function ReferenceAboutView() {
                   <div className="flex items-center -space-x-1.5">
                     <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
                       <Image
-                        src="/assets/team/huzaifa-150x150.jpg"
+                        src="/new assests/team/team new/Huzaifa Zahid.jpg"
                         alt="Allottee"
                         fill
                         className="object-cover"
@@ -220,7 +220,7 @@ export function ReferenceAboutView() {
                     </div>
                     <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
                       <Image
-                        src="/assets/team/kamran-150x150.jpg"
+                        src="/new assests/team/team new/Malik kamaran munir.jpg"
                         alt="Allottee"
                         fill
                         className="object-cover"
@@ -228,7 +228,7 @@ export function ReferenceAboutView() {
                     </div>
                     <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
                       <Image
-                        src="/assets/team/secre-150x150.jpg"
+                        src="/new assests/team/team new/secretary.jpg"
                         alt="Allottee"
                         fill
                         className="object-cover"
@@ -393,7 +393,7 @@ export function ReferenceAboutView() {
             </button>
             <div className="relative aspect-video w-full bg-black">
               <video
-                src="/assets/video.mp4"
+                src="/new assests/Vedios/low qual vedio drone shoot.mp4"
                 controls
                 autoPlay
                 className="w-full h-full object-cover"

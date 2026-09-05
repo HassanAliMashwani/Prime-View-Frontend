@@ -22,7 +22,7 @@ export const propertyPlans: PlotPlan[] = [
     monthlyInstallment: "24,500",
     installmentPeriod: "39 Months",
     features: ["Target Possession 1-3 Years", "24/7 Utilities Access", "Gated Security Zone"],
-    imagePath: "/assets/plans/artboard-22x-100.webp",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
   {
     id: "res-7-5marla",
@@ -34,7 +34,7 @@ export const propertyPlans: PlotPlan[] = [
     monthlyInstallment: "35,000",
     installmentPeriod: "39 Months",
     features: ["Mountain View Location", "Target Possession 1-3 Years", "Underground Electricity"],
-    imagePath: "/assets/plans/artboard-22x-100.webp",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
   {
     id: "res-10marla",
@@ -46,7 +46,7 @@ export const propertyPlans: PlotPlan[] = [
     monthlyInstallment: "48,000",
     installmentPeriod: "39 Months",
     features: ["Near Grand Mosque & Park", "Target Possession 1-3 Years", "24/7 Security Patrol"],
-    imagePath: "/assets/plans/artboard-22x-100.webp",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
   {
     id: "res-13marla",
@@ -58,7 +58,7 @@ export const propertyPlans: PlotPlan[] = [
     monthlyInstallment: "60,000",
     installmentPeriod: "39 Months",
     features: ["Scenic Panoramic Surroundings", "Target Possession 1-3 Years", "Spacious Street Frontage"],
-    imagePath: "/assets/plans/artboard-22x-100.webp",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
   {
     id: "res-1kanal",
@@ -70,7 +70,7 @@ export const propertyPlans: PlotPlan[] = [
     monthlyInstallment: "98,000",
     installmentPeriod: "39 Months",
     features: ["Executive Block", "Target Possession 1-3 Years", "Premium Views"],
-    imagePath: "/assets/plans/artboard-22x-100.webp",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
   {
     id: "farm-2kanal",
@@ -80,7 +80,7 @@ export const propertyPlans: PlotPlan[] = [
     downPayment: "9,000,000",
     installmentPeriod: "Available in Elite Block",
     features: ["Exclusive Lifestyle", "Large Private Retreat", "Prime Nature Views"],
-    imagePath: "/assets/plans/artboard-22x-100.webp",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
   {
     id: "com-111sqyds",
@@ -89,6 +89,6 @@ export const propertyPlans: PlotPlan[] = [
     totalPrice: "7,000,000",
     installmentPeriod: "Commercial Block",
     features: ["Main Commercial Road", "Neighbourhood Retail", "High Footfall Hub"],
-    imagePath: "/assets/plans/artboard-284x-100.jpg",
+    imagePath: "/assets/hero/artboard-22x-100.webp",
   },
 ];
