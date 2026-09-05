@@ -3,24 +3,41 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, FileText, CalendarDays, Clock, ArrowUpRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, CalendarDays, Clock, ArrowUpRight, KeyRound } from "lucide-react";
 
 // Warm ivory palette
 const GREEN = "#43612B";
 const TEXT  = "#151914";
 const MUTED = "#6B7462";
 
-const plots = [
+interface PlotItem {
+  size: string;
+  tag: string;
+  dimensions: string;
+  totalPrice: string;
+  downPayment: string;
+  downPaymentPercent: string;
+  monthly: string;
+  monthlyCount: number;
+  halfYearly: string;
+  halfYearlyCount: number;
+  possession?: string;
+  image: string;
+}
+
+const plots: PlotItem[] = [
   {
     size: "05 Marla",
     tag: "Residential",
     dimensions: "25 x 50",
     totalPrice: "2,500,000",
     downPayment: "625,000",
+    downPaymentPercent: "25%",
     monthly: "24,500",
     monthlyCount: 39,
     halfYearly: "90,000",
     halfYearlyCount: 8,
+    possession: "200,000",
     image: "/new assests/our plan assests/card 1.png",
   },
   {
@@ -29,10 +46,12 @@ const plots = [
     dimensions: "30 x 40",
     totalPrice: "3,600,000",
     downPayment: "900,000",
+    downPaymentPercent: "25%",
     monthly: "35,000",
     monthlyCount: 39,
     halfYearly: "130,000",
     halfYearlyCount: 8,
+    possession: "295,000",
     image: "/new assests/our plan assests/card 2.png",
   },
   {
@@ -41,10 +60,12 @@ const plots = [
     dimensions: "35 x 70",
     totalPrice: "4,900,000",
     downPayment: "1,225,000",
+    downPaymentPercent: "25%",
     monthly: "48,000",
     monthlyCount: 39,
     halfYearly: "175,000",
     halfYearlyCount: 8,
+    possession: "400,000",
     image: "/new assests/our plan assests/card 3.png",
   },
   {
@@ -53,10 +74,12 @@ const plots = [
     dimensions: "40 x 80",
     totalPrice: "6,400,000",
     downPayment: "1,600,000",
+    downPaymentPercent: "25%",
     monthly: "60,000",
     monthlyCount: 39,
     halfYearly: "230,000",
     halfYearlyCount: 8,
+    possession: "620,000",
     image: "/new assests/our plan assests/card 4.png",
   },
   {
@@ -65,10 +88,12 @@ const plots = [
     dimensions: "50 x 100",
     totalPrice: "10,000,000",
     downPayment: "2,500,000",
+    downPaymentPercent: "25%",
     monthly: "98,000",
     monthlyCount: 39,
     halfYearly: "360,000",
     halfYearlyCount: 8,
+    possession: "800,000",
     image: "/new assests/our plan assests/card 5.png",
   },
   {
@@ -76,7 +101,8 @@ const plots = [
     tag: "Residential",
     dimensions: "75 x 120",
     totalPrice: "30,000,000",
-    downPayment: "7,500,000",
+    downPayment: "9,000,000",
+    downPaymentPercent: "30%",
     monthly: "294,000",
     monthlyCount: 39,
     halfYearly: "1,080,000",
@@ -153,7 +179,7 @@ export function PlotCarousel() {
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* 5-Card Physical Swapping Stage */}
-      <div className="relative w-full max-w-6xl h-[640px] sm:h-[670px] mx-auto overflow-hidden">
+      <div className="relative w-full max-w-6xl h-[670px] sm:h-[700px] mx-auto overflow-hidden">
         {plots.map((plot, index) => {
           let offset = index - activeIndex;
           if (offset < -2) offset += plots.length;
@@ -238,13 +264,14 @@ export function PlotCarousel() {
                   {/* Payment Details with Dividers */}
                   <div className="space-y-0 text-[13px]">
                     {[
-                      { icon: <FileText className="w-4 h-4" />,     label: "Down Payment (25%)",                     value: plot.downPayment },
-                      { icon: <CalendarDays className="w-4 h-4" />,  label: `Monthly Installment (x${plot.monthlyCount})`, value: plot.monthly    },
-                      { icon: <Clock className="w-4 h-4" />,         label: `Half Yearly (x${plot.halfYearlyCount})`,     value: plot.halfYearly  },
+                      { icon: <FileText className="w-4 h-4" />,     label: `Down Payment (${plot.downPaymentPercent || "25%"})`, value: plot.downPayment },
+                      { icon: <CalendarDays className="w-4 h-4" />,  label: `Monthly Installment (x${plot.monthlyCount})`,        value: plot.monthly    },
+                      { icon: <Clock className="w-4 h-4" />,         label: `Half Yearly (x${plot.halfYearlyCount})`,            value: plot.halfYearly  },
+                      ...(plot.possession ? [{ icon: <KeyRound className="w-4 h-4" />, label: "At the Time of Possession", value: plot.possession }] : []),
                     ].map((row, i) => (
                       <div
                         key={i}
-                        className="flex items-center justify-between py-2.5"
+                        className="flex items-center justify-between py-2 sm:py-2.5"
                         style={{ borderTop: "1px solid rgba(0,0,0,0.07)" }}
                       >
                         <span className="flex items-center gap-2 font-normal" style={{ color: MUTED }}>
