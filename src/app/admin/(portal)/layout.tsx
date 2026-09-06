@@ -29,8 +29,8 @@ export default function AdminPortalLayout({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#091510] flex items-center justify-center text-[#A3C692]">
-        <div className="animate-pulse font-serif text-lg tracking-wide">
+      <div className="min-h-screen bg-[#F8FAF9] flex items-center justify-center text-[#10251E]">
+        <div className="animate-pulse font-serif text-lg tracking-wide text-[#10251E] font-semibold">
           Authenticating Administrator Session...
         </div>
       </div>
@@ -53,11 +53,11 @@ export default function AdminPortalLayout({
   }
 
   return (
-    <div className="min-h-screen flex bg-[#0A1812] text-[#FAF9F7]">
+    <div className="min-h-screen flex bg-[#F8FAF9] text-slate-900">
       <AdminSidebar session={session} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AdminHeader session={session} title={pageTitle} subtitle={pageSubtitle} />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#0B1A14]">
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#F4F7F5]">
           {children}
         </main>
       </div>

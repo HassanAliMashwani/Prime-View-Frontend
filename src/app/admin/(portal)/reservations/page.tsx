@@ -80,7 +80,7 @@ export default function ReservationsPage() {
 
   if (loading || !session) {
     return (
-      <div className="py-12 text-center text-[#8FAF7E] animate-pulse">
+      <div className="py-12 text-center text-emerald-800 animate-pulse font-medium">
         Loading Reservations Ledger...
       </div>
     );
@@ -93,51 +93,51 @@ export default function ReservationsPage() {
   const duplicateConflicts = activeReservations.filter((r) => r.hasDuplicateConflict);
 
   return (
-    <div className="space-y-6">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-[#11271E] to-[#173428] border border-[#244F3C] rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* Header Banner - Executive Forest Green */}
+      <div className="bg-gradient-to-r from-[#10251E] to-[#183B2B] border border-[#23503B] rounded-2xl p-6 sm:p-7 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[#D4AF37] flex items-center gap-1.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-1.5">
               <BookmarkCheck className="w-3.5 h-3.5" />
               Sort Reservation Ledger
             </span>
           </div>
-          <h2 className="text-2xl font-bold font-serif text-white">
+          <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
             Token Allocations & Dispute Management
           </h2>
-          <p className="text-xs text-[#A0B8AD] mt-1">
+          <p className="text-xs text-emerald-100/80 mt-1 max-w-2xl">
             Track token deposits, resolve duplicate counter claims, and commit verified reservations into official bookings.
           </p>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center gap-2 bg-[#091510] p-1.5 rounded-xl border border-[#224436]">
+        <div className="flex items-center gap-1.5 bg-white/10 p-1.5 rounded-2xl border border-white/20">
           <button
             onClick={() => setActiveTab('active')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'active'
-                ? 'bg-[#1D4031] text-[#D4AF37] shadow-sm'
-                : 'text-[#8FAF7E] hover:text-white'
+                ? 'bg-[#D4AF37] text-[#10251E] shadow-sm'
+                : 'text-emerald-100 hover:text-white'
             }`}
           >
             <span>Active Reservations</span>
-            <span className="bg-[#0B1A14] text-[#A3C692] px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
+            <span className="bg-[#10251E] text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
               {activeReservations.length}
             </span>
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-[#1D4031] text-[#D4AF37] shadow-sm'
-                : 'text-[#8FAF7E] hover:text-white'
+                ? 'bg-[#D4AF37] text-[#10251E] shadow-sm'
+                : 'text-emerald-100 hover:text-white'
             }`}
           >
             <History className="w-3.5 h-3.5" />
             <span>Resolved History</span>
-            <span className="bg-[#0B1A14] text-[#A3C692] px-2 py-0.5 rounded-full text-[10px] font-mono">
+            <span className="bg-[#10251E] text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
               {historyReservations.length}
             </span>
           </button>
@@ -146,16 +146,16 @@ export default function ReservationsPage() {
 
       {/* Duplicate Race Condition Warning Banner */}
       {duplicateConflicts.length > 0 && activeTab === 'active' && (
-        <div className="bg-amber-950/40 border-2 border-amber-500/80 rounded-2xl p-5 shadow-2xl flex items-start gap-4 animate-in fade-in">
-          <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+        <div className="bg-amber-50 border-2 border-amber-400 rounded-2xl p-5 shadow-sm flex items-start gap-4 animate-in fade-in">
+          <div className="p-2.5 rounded-xl bg-amber-100 text-amber-700">
             <AlertTriangle className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-serif font-bold text-sm text-amber-300">
+            <h4 className="font-serif font-bold text-sm text-amber-950">
               Active Duplicate Reservation Race Condition ({duplicateConflicts.length} Conflicting Claims)
             </h4>
-            <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
-              Multiple administrators have submitted token deposits on the same plot (e.g. <strong className="text-white">Plot R-08</strong> in Royal Block has 2 active claims: Hamid Raza and Zubair Qureshi).
+            <p className="text-xs text-amber-900/90 mt-1 leading-relaxed">
+              Multiple administrators have submitted token deposits on the same plot (e.g. <strong className="text-amber-950 font-bold">Plot R-08</strong> in Royal Block has 2 active claims: Hamid Raza and Zubair Qureshi).
               Select a preferred reservation to commit the official booking; doing so will automatically supersede conflicting deposits into the resolved history ledger.
             </p>
           </div>
@@ -163,15 +163,15 @@ export default function ReservationsPage() {
       )}
 
       {/* Search and Filters */}
-      <div className="bg-[#0F221A] border border-[#1F4433] rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shadow-md">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shadow-sm">
         <div className="relative flex-1">
-          <Search className="w-4 h-4 text-[#6D917F] absolute left-3 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by customer name, phone, plot number, or admin..."
-            className="w-full pl-9 pr-3 py-2 bg-[#091510] border border-[#224436] rounded-xl text-xs text-white placeholder-[#527264] focus:outline-none focus:border-[#D4AF37]"
+            className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600"
           />
         </div>
 
@@ -179,7 +179,7 @@ export default function ReservationsPage() {
         <select
           value={blockFilter}
           onChange={(e) => setBlockFilter(e.target.value)}
-          className="px-3 py-2 bg-[#091510] border border-[#224436] rounded-xl text-xs text-white font-mono"
+          className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white"
         >
           <option value="all">All Accessible Blocks</option>
           {session.role === 'super_admin' ? (
@@ -203,82 +203,84 @@ export default function ReservationsPage() {
         </select>
       </div>
 
-      {/* Reservations Table / Cards */}
-      <div className="bg-[#0F221A] border border-[#1F4433] rounded-2xl shadow-xl overflow-hidden">
+      {/* Reservations Table / Cards - Crisp White List */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
         {displayedReservations.length === 0 ? (
-          <div className="p-12 text-center text-[#8FAF7E]">
-            <Building2 className="w-10 h-10 mx-auto text-[#2D5A46] mb-3" />
-            <div className="font-serif text-base text-white">No Reservations Found</div>
-            <p className="text-xs text-[#6D917F] mt-1">
+          <div className="p-12 text-center text-slate-500">
+            <Building2 className="w-10 h-10 mx-auto text-slate-300 mb-3" />
+            <div className="font-serif text-base text-slate-800 font-bold">No Reservations Found</div>
+            <p className="text-xs text-slate-500 mt-1">
               No reservation records match the current filter or search criteria.
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-[#1B3A2C]">
+          <div className="divide-y divide-slate-100">
             {displayedReservations.map((r) => {
               const isConflict = r.hasDuplicateConflict;
               return (
                 <div
                   key={r.id}
                   className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
-                    isConflict ? 'bg-amber-950/20 hover:bg-amber-950/30' : 'hover:bg-[#132A20]'
+                    isConflict
+                      ? 'bg-amber-50/50 hover:bg-amber-50/80 border-l-4 border-l-amber-500'
+                      : 'hover:bg-slate-50/80'
                   }`}
                 >
                   {/* Left Specs */}
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-sm text-white bg-[#0A1711] border border-[#224436] px-2.5 py-0.5 rounded-md">
+                      <span className="font-mono font-bold text-sm text-slate-900 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
                         {r.plotNumber}
                       </span>
-                      <span className="text-xs uppercase font-mono text-[#A3C692]">
+                      <span className="text-xs uppercase font-mono font-bold text-emerald-800">
                         {r.blockId} Block
                       </span>
                       {isConflict && (
-                        <span className="text-[10px] bg-red-950 text-red-200 border border-red-700 px-2 py-0.5 rounded-full font-bold">
+                        <span className="text-[10px] bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full font-bold">
                           Race Claim ({r.conflictCount} Claims)
                         </span>
                       )}
                       <span
                         className={`text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded-full ${
                           r.status === 'active'
-                            ? 'bg-amber-900/60 text-amber-300'
+                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
                             : r.status === 'confirmed'
-                            ? 'bg-emerald-900/60 text-emerald-300'
-                            : 'bg-slate-800 text-slate-400'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                            : 'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}
                       >
                         {r.status}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#FAF9F7]">
-                      <span className="font-semibold text-[#D4AF37]">{r.customerName}</span>
-                      <span className="text-[#8FAF7E]">{r.customerPhone}</span>
-                      <span className="text-[#6D917F]">{r.customerEmail}</span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-800">
+                      <span className="font-bold text-[#10251E] text-sm">{r.customerName}</span>
+                      <span className="text-slate-600 font-medium">{r.customerPhone}</span>
+                      <span className="text-slate-400 font-medium">{r.customerEmail}</span>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-x-4 text-[11px] text-[#8FAF7E]">
+                    <div className="flex flex-wrap items-center gap-x-4 text-[11px] text-slate-500">
                       <span>
                         Token Deposit:{' '}
-                        <strong className="text-white font-mono">
+                        <strong className="text-slate-900 font-mono font-bold">
                           PKR {r.tokenFee.toLocaleString()}
                         </strong>
                       </span>
                       <span>•</span>
                       <span>
                         Valid Until:{' '}
-                        <strong className="text-white font-mono">
+                        <strong className="text-slate-900 font-mono">
                           {new Date(r.validUntil).toLocaleDateString()}
                         </strong>
                       </span>
                       <span>•</span>
-                      <span>Reserved By: {r.reservedByAdminName}</span>
+                      <span>Reserved By: <strong>{r.reservedByAdminName}</strong></span>
                     </div>
 
                     {/* Note / Dispute Context */}
                     {r.resolutionNote && (
-                      <div className="text-[11px] text-amber-200/90 bg-[#091510] border border-[#224436] p-2 rounded-lg inline-block">
-                        <strong className="text-[#8FAF7E]">Dispute/Status Note:</strong>{' '}
+                      <div className="text-[11px] text-amber-900 bg-amber-50/70 border border-amber-200 p-2 rounded-xl inline-block mt-1">
+                        <strong className="text-amber-800">Dispute/Status Note:</strong>{' '}
                         {r.resolutionNote}
                       </div>
                     )}
@@ -288,20 +290,20 @@ export default function ReservationsPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => handleOpenEditNote(r)}
-                      className="p-2 bg-[#173629] hover:bg-[#234F3D] text-[#A3C692] hover:text-white rounded-lg border border-[#2C5743] transition-colors flex items-center gap-1.5 text-xs"
+                      className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-slate-900 rounded-xl border border-slate-200 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
                       title="Edit dispute / resolution note"
                     >
-                      <Edit3 className="w-3.5 h-3.5" />
+                      <Edit3 className="w-3.5 h-3.5 text-slate-500" />
                       <span>Note</span>
                     </button>
 
                     {r.status === 'active' && (
                       <Link
                         href={`/admin/master-plan/${r.blockId}`}
-                        className="px-3.5 py-2 bg-[#D4AF37] hover:bg-[#E5C14E] text-[#0A1510] font-bold text-xs rounded-lg shadow-md transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Manage In Grid</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-3.5 h-3.5 text-[#D4AF37]" />
                       </Link>
                     )}
                   </div>
@@ -312,18 +314,18 @@ export default function ReservationsPage() {
         )}
       </div>
 
-      {/* Edit Note Modal */}
+      {/* Edit Note Modal - Crisp Light Styling */}
       {editingRes && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0E2018] border border-[#224A37] rounded-2xl w-full max-w-md shadow-2xl p-6">
-            <div className="flex items-center justify-between pb-3 border-b border-[#1E3A2F] mb-4">
-              <h3 className="font-serif font-bold text-base text-white flex items-center gap-2">
-                <Edit3 className="w-4 h-4 text-[#D4AF37]" />
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
+                <Edit3 className="w-4 h-4 text-emerald-700" />
                 <span>Update Dispute / Resolution Note</span>
               </h3>
               <button
                 onClick={() => setEditingRes(null)}
-                className="text-[#8FAF7E] hover:text-white"
+                className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -331,14 +333,14 @@ export default function ReservationsPage() {
 
             <form onSubmit={handleSaveNote} className="space-y-4 text-xs">
               <div>
-                <span className="text-[#8FAF7E]">Target Plot:</span>{' '}
-                <strong className="text-white font-mono">
+                <span className="text-slate-500 font-medium">Target Plot:</span>{' '}
+                <strong className="text-slate-900 font-mono font-bold">
                   {editingRes.plotNumber} ({editingRes.blockId} Block)
                 </strong>
               </div>
 
               <div>
-                <label className="block text-[#B2CEB8] mb-1 font-medium">
+                <label className="block text-slate-700 mb-1 font-semibold">
                   Dispute Context & Resolution Justification
                 </label>
                 <textarea
@@ -347,22 +349,22 @@ export default function ReservationsPage() {
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   placeholder="Detail priority justification, counter deposit verification, or executive clearance..."
-                  className="w-full px-3 py-2 bg-[#091510] border border-[#224436] rounded-lg text-white resize-none"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 resize-none focus:bg-white focus:border-[#10251E]"
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingRes(null)}
-                  className="px-4 py-2 text-xs font-semibold text-[#8FAF7E] hover:text-white"
+                  className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingNote}
-                  className="px-4 py-2 bg-[#D4AF37] hover:bg-[#E5C14E] text-[#0A1510] font-bold text-xs rounded-lg shadow-md transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
                 >
                   {savingNote ? 'Saving...' : 'Save Resolution Note'}
                 </button>

@@ -12,7 +12,7 @@ export default function AdminRootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#091510] text-[#FAF9F7] font-sans antialiased selection:bg-[#D4AF37] selection:text-[#091510]">
+    <div className="min-h-screen bg-[#F8FAF9] text-[#111827] font-sans antialiased selection:bg-[#D4AF37] selection:text-[#10251E]">
       {children}
     </div>
   );
