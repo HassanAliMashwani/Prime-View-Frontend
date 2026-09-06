@@ -2,8 +2,9 @@
 
 import React, { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { membershipCriteriaList } from "@/data/team";
-import { Search, CheckCircle2 } from "lucide-react";
+import { Search, CheckCircle2, LogIn } from "lucide-react";
 
 export default function SocietyMembersPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +44,15 @@ export default function SocietyMembersPage() {
           <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-2xl mx-auto leading-relaxed">
             Eligibility Rules, Society Bylaws &amp; Member File Verification
           </p>
+          <div className="pt-2">
+            <Link
+              href="/society-members/login"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-[#43612B] hover:bg-[#344d21] text-white font-semibold text-xs sm:text-sm tracking-wide shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all hover:scale-105 border border-white/20"
+            >
+              <LogIn className="w-4 h-4" />
+              <span>Member Portal Login</span>
+            </Link>
+          </div>
         </div>
       </div>
 

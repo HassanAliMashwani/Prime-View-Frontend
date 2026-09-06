@@ -15,6 +15,11 @@ export const Header: React.FC = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const pathname = usePathname();
 
+  // Hide marketing header on member portal and admin views
+  if (pathname.startsWith('/society-members/') || pathname.startsWith('/admin')) {
+    return null;
+  }
+
   const isLinkActive = (item: NavItem) => {
     if (item.href === "/" && pathname === "/") return true;
     if (item.href !== "/" && pathname.startsWith(item.href)) return true;

@@ -3,11 +3,18 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { siteConfig } from "@/data/site";
 import { footerNavigation } from "@/data/navigation";
 import { Phone, Mail } from "lucide-react";
 
 export const Footer: React.FC = () => {
+  const pathname = usePathname();
+
+  // Hide marketing footer on member portal and admin views
+  if (pathname.startsWith('/society-members/') || pathname.startsWith('/admin')) {
+    return null;
+  }
   return (
     <footer className="relative">
 

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.1",
     "clsx": "^2.1.1",
     "framer-motion": "^13.1.1",
     "gsap": "^3.12.5",
@@ -17,7 +18,10 @@
     "next": "^15.5.24",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "tailwind-merge": "^3.0.1"
+    "react-hook-form": "^7.87.0",
+    "tailwind-merge": "^3.0.1",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@types/node": "^22.13.4",
