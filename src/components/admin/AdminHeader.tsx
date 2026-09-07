@@ -118,78 +118,76 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           <span className="text-[11px]">{lastSyncMsg}</span>
         </div>
 
-        {/* Quick Role Switcher for Concurrency Testing (Dev Only) */}
-        {process.env.NODE_ENV !== 'production' && (
-          <div className="relative">
-            <button
-              onClick={() => setShowRoleMenu(!showRoleMenu)}
-              disabled={switching}
-              className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-800 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors shadow-sm cursor-pointer"
-            >
-              <Users className="w-3.5 h-3.5 text-emerald-700" />
-              <span className="hidden sm:inline text-slate-600">
-                Switch Role:{' '}
-                <strong className="text-[#10251E] font-bold">
-                  {session?.role === 'super_admin' ? 'Super Admin' : session?.username}
-                </strong>
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
+        {/* Quick Role Switcher */}
+        <div className="relative">
+          <button
+            onClick={() => setShowRoleMenu(!showRoleMenu)}
+            disabled={switching}
+            className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-300 text-slate-800 px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors shadow-sm cursor-pointer"
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-700" />
+            <span className="hidden sm:inline text-slate-600">
+              Switch Role:{' '}
+              <strong className="text-[#10251E] font-bold">
+                {session?.role === 'super_admin' ? 'Super Admin' : session?.username}
+              </strong>
+            </span>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+          </button>
 
-            {showRoleMenu && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 z-50 text-xs">
-                <div className="px-3.5 py-2 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-                  Simulate Concurrency (Switch Admin)
-                </div>
-
-                <button
-                  onClick={() => handleQuickSwitch('admin')}
-                  className={`w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/70 flex items-center justify-between transition-colors ${
-                    session?.username === 'admin' ? 'bg-emerald-50 text-emerald-950 font-semibold' : 'text-slate-700'
-                  }`}
-                >
-                  <div>
-                    <div className="font-bold text-[#10251E]">Super Administrator (admin)</div>
-                    <div className="text-[11px] text-slate-500">Full access • All 8 Blocks</div>
-                  </div>
-                  {session?.username === 'admin' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleQuickSwitch('marketing')}
-                  className={`w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/70 flex items-center justify-between transition-colors ${
-                    session?.username === 'marketing' ? 'bg-emerald-50 text-emerald-950 font-semibold' : 'text-slate-700'
-                  }`}
-                >
-                  <div>
-                    <div className="font-bold text-[#10251E]">Marketing Sub-Admin (marketing)</div>
-                    <div className="text-[11px] text-slate-500">Scope: Abbott + Royal Blocks</div>
-                  </div>
-                  {session?.username === 'marketing' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  )}
-                </button>
-
-                <button
-                  onClick={() => handleQuickSwitch('police')}
-                  className={`w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/70 flex items-center justify-between transition-colors ${
-                    session?.username === 'police' ? 'bg-emerald-50 text-emerald-950 font-semibold' : 'text-slate-700'
-                  }`}
-                >
-                  <div>
-                    <div className="font-bold text-[#10251E]">Police Sub-Admin (police)</div>
-                    <div className="text-[11px] text-slate-500">Scope: Overseas + Elite + Chalet</div>
-                  </div>
-                  {session?.username === 'police' && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                  )}
-                </button>
+          {showRoleMenu && (
+            <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-2xl py-2 z-50 text-xs">
+              <div className="px-3.5 py-2 border-b border-slate-100 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                Switch Admin Role
               </div>
-            )}
-          </div>
-        )}
+
+              <button
+                onClick={() => handleQuickSwitch('admin')}
+                className={`w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/70 flex items-center justify-between transition-colors cursor-pointer ${
+                  session?.username === 'admin' ? 'bg-emerald-50 text-emerald-950 font-semibold' : 'text-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="font-bold text-[#10251E]">Super Administrator (admin)</div>
+                  <div className="text-[11px] text-slate-500">Full access • All 8 Blocks</div>
+                </div>
+                {session?.username === 'admin' && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                )}
+              </button>
+
+              <button
+                onClick={() => handleQuickSwitch('marketing')}
+                className={`w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/70 flex items-center justify-between transition-colors cursor-pointer ${
+                  session?.username === 'marketing' ? 'bg-emerald-50 text-emerald-950 font-semibold' : 'text-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="font-bold text-[#10251E]">Marketing Sub-Admin (marketing)</div>
+                  <div className="text-[11px] text-slate-500">Scope: Abbott + Royal Blocks</div>
+                </div>
+                {session?.username === 'marketing' && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                )}
+              </button>
+
+              <button
+                onClick={() => handleQuickSwitch('police')}
+                className={`w-full text-left px-3.5 py-2.5 hover:bg-emerald-50/70 flex items-center justify-between transition-colors cursor-pointer ${
+                  session?.username === 'police' ? 'bg-emerald-50 text-emerald-950 font-semibold' : 'text-slate-700'
+                }`}
+              >
+                <div>
+                  <div className="font-bold text-[#10251E]">Police Sub-Admin (police)</div>
+                  <div className="text-[11px] text-slate-500">Scope: Overseas + Elite + Chalet</div>
+                </div>
+                {session?.username === 'police' && (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                )}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   );

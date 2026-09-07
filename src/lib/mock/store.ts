@@ -102,7 +102,14 @@ class MockStore {
         if (state.bookings && state.bookings.length > 0) this.bookings = state.bookings;
         if (state.payments && state.payments.length > 0) this.payments = state.payments;
         if (state.customers && state.customers.length > 0) this.customers = state.customers;
-        if (state.adminUsers && state.adminUsers.length > 0) this.adminUsers = state.adminUsers;
+        if (state.adminUsers && state.adminUsers.length > 0) {
+          const missingDefaults = initialAdminUsers.filter(
+            (initUser) => !state.adminUsers.some((u: AdminUser) => u.username.toLowerCase() === initUser.username.toLowerCase())
+          );
+          this.adminUsers = [...state.adminUsers, ...missingDefaults];
+        } else {
+          this.adminUsers = [...initialAdminUsers];
+        }
         if (state.contentBlocks && state.contentBlocks.length > 0) {
           const hasLegacy = state.contentBlocks.some((b: ContentBlock) => b.id === 'plan-res-1' || b.id === 'event-ballot-2026');
           const hasCurrentPlans = state.contentBlocks.some((b: ContentBlock) => b.id === 'plan-05-marla');
