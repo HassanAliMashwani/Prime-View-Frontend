@@ -17,6 +17,8 @@ export interface SyncEvent {
     | 'CONTENT_LOCKED'
     | 'CONTENT_UNLOCKED'
     | 'CONTENT_SAVED'
+    | 'CONTENT_CREATED'
+    | 'CONTENT_DELETED'
     | 'CUSTOMER_CREATED';
   timestamp: string;
   [key: string]: unknown;
@@ -101,7 +103,19 @@ class MockStore {
         if (state.payments && state.payments.length > 0) this.payments = state.payments;
         if (state.customers && state.customers.length > 0) this.customers = state.customers;
         if (state.adminUsers && state.adminUsers.length > 0) this.adminUsers = state.adminUsers;
-        if (state.contentBlocks && state.contentBlocks.length > 0) this.contentBlocks = state.contentBlocks;
+        if (state.contentBlocks && state.contentBlocks.length > 0) {
+          const hasLegacy = state.contentBlocks.some((b: ContentBlock) => b.id === 'plan-res-1' || b.id === 'event-ballot-2026');
+          const hasCurrentPlans = state.contentBlocks.some((b: ContentBlock) => b.id === 'plan-05-marla');
+          if (hasLegacy || !hasCurrentPlans) {
+            this.contentBlocks = [...initialContentBlocks];
+            this.saveToStorage();
+          } else {
+            this.contentBlocks = state.contentBlocks;
+          }
+        } else {
+          this.contentBlocks = [...initialContentBlocks];
+          this.saveToStorage();
+        }
         if (state.auditLog) this.auditLog = state.auditLog;
       } else {
         this.saveToStorage();

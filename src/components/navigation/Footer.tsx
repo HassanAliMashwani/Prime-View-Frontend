@@ -187,6 +187,16 @@ export const Footer: React.FC = () => {
                     Cookie Policy
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/admin/login"
+                    className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70 flex items-center gap-1.5"
+                    style={{ color: '#43612B' }}
+                  >
+                    <span>Admin Portal</span>
+                    <span className="text-[11px]">↗</span>
+                  </Link>
+                </li>
               </ul>
 
               {/* Project of Roman Builders */}
