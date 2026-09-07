@@ -219,3 +219,104 @@ export async function saveContentBlock(
 
   return { ok: true, block };
 }
+
+/**
+ * Create a new content block (plan or event) in the CMS.
+ */
+export async function createContentBlock(
+  session: AdminSession,
+  data: {
+    section: ContentSection;
+    title: string;
+    subtitle?: string;
+    category?: string;
+    content: string;
+    metadata?: Record<string, unknown>;
+  }
+): Promise<{ ok: boolean; block?: ContentBlock; error?: string }> {
+  mockStore.loadFromStorage();
+
+  if (!session.permissions.can_edit_content && session.role !== 'super_admin') {
+    return { ok: false, error: 'FORBIDDEN' };
+  }
+
+  const id = `${data.section === 'plans' ? 'plan' : 'event'}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+  const newBlock: ContentBlock = {
+    id,
+    section: data.section,
+    title: data.title.trim(),
+    subtitle: data.subtitle?.trim() || '',
+    category: data.category?.trim() || (data.section === 'plans' ? 'residential' : 'ceremony'),
+    content: data.content.trim(),
+    metadata: data.metadata || {},
+    lastModifiedBy: session.fullName,
+    lastModifiedAt: new Date().toISOString(),
+  };
+
+  mockStore.contentBlocks.unshift(newBlock);
+  mockStore.saveToStorage();
+
+  mockStore.broadcast({
+    type: 'CONTENT_CREATED',
+    timestamp: new Date().toISOString(),
+    contentBlockId: id,
+    createdBy: session.fullName,
+  });
+
+  mockStore.addAuditEntry({
+    actorId: session.adminId,
+    actorName: session.fullName,
+    actorRole: session.role,
+    action: 'CONTENT_CREATED',
+    entityType: 'content',
+    entityId: id,
+    details: `Created new ${data.section} content block: "${newBlock.title}"`,
+    newValue: JSON.stringify(newBlock),
+  });
+
+  return { ok: true, block: newBlock };
+}
+
+/**
+ * Delete a content block from the CMS.
+ */
+export async function deleteContentBlock(
+  session: AdminSession,
+  blockId: string
+): Promise<{ ok: boolean; error?: string }> {
+  mockStore.loadFromStorage();
+
+  if (!session.permissions.can_edit_content && session.role !== 'super_admin') {
+    return { ok: false, error: 'FORBIDDEN' };
+  }
+
+  const idx = mockStore.contentBlocks.findIndex((b) => b.id === blockId);
+  if (idx === -1) {
+    return { ok: false, error: 'CONTENT_BLOCK_NOT_FOUND' };
+  }
+
+  const removed = mockStore.contentBlocks[idx];
+  mockStore.contentBlocks.splice(idx, 1);
+  mockStore.clearContentLockTimeout(blockId);
+  mockStore.saveToStorage();
+
+  mockStore.broadcast({
+    type: 'CONTENT_DELETED',
+    timestamp: new Date().toISOString(),
+    contentBlockId: blockId,
+    deletedBy: session.fullName,
+  });
+
+  mockStore.addAuditEntry({
+    actorId: session.adminId,
+    actorName: session.fullName,
+    actorRole: session.role,
+    action: 'CONTENT_DELETED',
+    entityType: 'content',
+    entityId: blockId,
+    details: `Deleted ${removed.section} content block: "${removed.title}"`,
+  });
+
+  return { ok: true };
+}
+
