@@ -16,7 +16,9 @@ import {
   X, 
   Phone, 
   Mail, 
-  User
+  User,
+  Sparkles,
+  RotateCcw
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
@@ -26,8 +28,28 @@ import {
   reservePlot, 
   bookPlot 
 } from '@/lib/dal/adminPlots';
+import { cancelReservation } from '@/lib/dal/reservations';
 import { Block, Plot, AdminSession, Reservation } from '@/lib/mock/types';
 import { mockStore } from '@/lib/mock/store';
+
+const CATEGORY_COLORS: Record<string, string> = {
+  residential: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  commercial: 'bg-blue-100 text-blue-800 border-blue-300',
+  farm_house: 'bg-orange-100 text-orange-800 border-orange-300',
+  amenity: 'bg-purple-100 text-purple-800 border-purple-300',
+};
+
+const AMENITY_COLORS: Record<string, string> = {
+  Hospital: 'bg-rose-50 text-rose-800 border-rose-200',
+  'Community Mosque': 'bg-emerald-50 text-emerald-800 border-emerald-200',
+  School: 'bg-blue-50 text-blue-800 border-blue-200',
+  Park: 'bg-green-50 text-green-800 border-green-200',
+  'Filtration Plant': 'bg-cyan-50 text-cyan-800 border-cyan-200',
+  'Community Centre': 'bg-purple-50 text-purple-800 border-purple-200',
+  'Play Ground': 'bg-amber-50 text-amber-800 border-amber-200',
+  'Grid Station': 'bg-amber-100 text-amber-900 border-amber-300',
+  'Grave Yard': 'bg-slate-100 text-slate-800 border-slate-300',
+};
 
 export default function BlockPlotsPage() {
   const params = useParams();
@@ -108,6 +130,37 @@ export default function BlockPlotsPage() {
     }
   }, [loadPlots]);
 
+  // Real-time multi-window sync (Exception 5.5)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleSync = () => {
+      mockStore.loadFromStorage();
+      const s = getActiveAdminSession();
+      if (s) {
+        loadPlots(s);
+      }
+    };
+
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      channel = new BroadcastChannel('prime-view-sync');
+      channel.onmessage = handleSync;
+    }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pv_mock_store') {
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [loadPlots]);
+
   // Open Plot Action Drawer
   const handleSelectPlot = (plot: Plot) => {
     setSelectedPlot(plot);
@@ -165,6 +218,46 @@ export default function BlockPlotsPage() {
     }
   };
 
+  // Release / Cancel an Active Reservation
+  const handleReleaseReservation = async (res: Reservation) => {
+    if (!session || !selectedPlot) return;
+    if (
+      !confirm(
+        `Are you sure you want to release the reservation for ${res.customerName} on Plot ${selectedPlot.plotNumber}?\n\nThis will revoke the active token reservation and release the plot back to society inventory.`
+      )
+    ) {
+      return;
+    }
+    setActionLoading(true);
+    setActionError(null);
+
+    try {
+      const result = await cancelReservation(
+        session,
+        res.id,
+        'Released by admin via Master Plan'
+      );
+      if (result.ok) {
+        await loadPlots(session);
+        mockStore.loadFromStorage();
+        const updated = mockStore.plots.find((p) => p.id === selectedPlot.id);
+        if (updated) {
+          setSelectedPlot(updated);
+          const activeRes = mockStore.reservations.filter(
+            (r) => r.plotId === updated.id && r.status === 'active'
+          );
+          setPlotReservations(activeRes);
+        }
+      } else {
+        setActionError(result.error || 'Failed to release reservation.');
+      }
+    } catch {
+      setActionError('An unexpected error occurred while releasing the reservation.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   // Open Booking Modal (Acquire Soft Lock Layer 1)
   const openBook = async (prefillReservation?: Reservation) => {
     if (!session || !selectedPlot) return;
@@ -181,6 +274,10 @@ export default function BlockPlotsPage() {
       );
       setActionLoading(false);
       return;
+    }
+
+    if (lockRes.plot) {
+      setSelectedPlot(lockRes.plot);
     }
 
     if (prefillReservation) {
@@ -213,7 +310,7 @@ export default function BlockPlotsPage() {
 
   // Cancel Booking (Release Soft Lock)
   const closeBookModal = async () => {
-    if (session && selectedPlot && selectedPlot.lockedBy === session.adminId) {
+    if (session && selectedPlot) {
       await releaseLock(session, selectedPlot.id);
     }
     setIsBookModalOpen(false);
@@ -242,6 +339,7 @@ export default function BlockPlotsPage() {
         reservationId: bookForm.reservationId,
       });
 
+      console.log('HANDLE BOOK SUBMIT: res =', res);
       if (res.ok) {
         setIsBookModalOpen(false);
         setSelectedPlot(null);
@@ -264,7 +362,7 @@ export default function BlockPlotsPage() {
 
   if (outOfScope) {
     return (
-      <div className="py-16 text-center max-w-lg mx-auto bg-white border border-rose-300 rounded-2xl p-8 shadow-xl">
+      <div className="py-16 text-center max-w-lg mx-auto bg-white border border-rose-300 rounded-3xl p-8 shadow-xl">
         <ShieldAlert className="w-12 h-12 text-rose-600 mx-auto mb-4" />
         <h2 className="text-xl font-bold font-serif text-slate-900 mb-2">
           Administrative Access Denied
@@ -274,9 +372,9 @@ export default function BlockPlotsPage() {
         </p>
         <Link
           href="/admin/master-plan"
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#10251E] hover:bg-[#18392C] text-white text-xs font-bold rounded-xl transition-colors shadow-sm"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
         >
-          <ArrowLeft className="w-4 h-4 text-[#D4AF37]" />
+          <ArrowLeft className="w-4 h-4 text-amber-200" />
           <span>Return to Master Plan Overview</span>
         </Link>
       </div>
@@ -302,11 +400,11 @@ export default function BlockPlotsPage() {
               <span>Master Plan</span>
             </Link>
             <span className="text-slate-300">/</span>
-            <span className="text-slate-800">{block.name}</span>
+            <span className="text-slate-800 font-bold">{block.name}</span>
           </div>
           <h2 className="text-2xl font-bold font-serif text-slate-900 flex items-center gap-3">
             <span>{block.name}</span>
-            <span className="text-xs font-sans font-mono bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-0.5 rounded-full font-bold">
+            <span className="text-xs font-sans font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-0.5 rounded-full font-bold">
               {plots.length} Visible Plots
             </span>
           </h2>
@@ -318,7 +416,9 @@ export default function BlockPlotsPage() {
           {block.amenities.map((a) => (
             <span
               key={a}
-              className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] px-2.5 py-1 rounded-lg font-semibold shadow-xs"
+              className={`border text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs ${
+                AMENITY_COLORS[a] || 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}
             >
               ★ {a}
             </span>
@@ -327,7 +427,7 @@ export default function BlockPlotsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 shadow-sm">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 shadow-xs">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -342,40 +442,55 @@ export default function BlockPlotsPage() {
 
         {/* Status Filter */}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['all', 'available', 'reserved', 'booked'] as const).map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
-                statusFilter === st
-                  ? 'bg-[#10251E] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {st}
-            </button>
-          ))}
+          {(['all', 'available', 'reserved', 'booked'] as const).map((st) => {
+            let activeColor = 'bg-slate-800 text-white shadow-xs';
+            if (st === 'available') activeColor = 'bg-emerald-600 text-white shadow-xs';
+            else if (st === 'reserved') activeColor = 'bg-amber-500 text-amber-950 shadow-xs';
+            else if (st === 'booked') activeColor = 'bg-blue-600 text-white shadow-xs';
+
+            return (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                  statusFilter === st
+                    ? activeColor
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {st}
+              </button>
+            );
+          })}
         </div>
 
         {/* Category Filter */}
         <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['all', 'residential', 'commercial', 'farm_house', 'amenity'] as const).map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setCategoryFilter(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all cursor-pointer ${
-                categoryFilter === cat
-                  ? 'bg-[#10251E] text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              {cat.replace('_', ' ')}
-            </button>
-          ))}
+          {(['all', 'residential', 'commercial', 'farm_house', 'amenity'] as const).map((cat) => {
+            let activeColor = 'bg-slate-800 text-white shadow-xs';
+            if (cat === 'residential') activeColor = 'bg-emerald-600 text-white shadow-xs';
+            else if (cat === 'commercial') activeColor = 'bg-blue-600 text-white shadow-xs';
+            else if (cat === 'farm_house') activeColor = 'bg-orange-500 text-white shadow-xs';
+            else if (cat === 'amenity') activeColor = 'bg-purple-600 text-white shadow-xs';
+
+            return (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                  categoryFilter === cat
+                    ? activeColor
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                {cat.replace('_', ' ')}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Plot Grid - Crisp High-Contrast Tiles */}
+      {/* Plot Grid - Distinct Vibrant Statuses */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
         {plots.map((plot) => {
           const isLocked = Boolean(plot.lockedBy);
@@ -384,50 +499,63 @@ export default function BlockPlotsPage() {
           const isBooked = plot.status === 'booked';
           const isAvailable = plot.status === 'available' && !isAmenity;
 
-          let cardBg = 'bg-white border-slate-200';
-          let badgeColor = 'bg-slate-100 text-slate-700';
+          let cardStyle = 'bg-white border-2 border-slate-200 text-slate-800';
+          let statusBadge = 'bg-slate-100 text-slate-700 border-slate-200';
 
           if (isLocked) {
-            cardBg = 'bg-rose-50/90 border-rose-300 shadow-sm animate-pulse';
-            badgeColor = 'bg-rose-600 text-white font-bold';
+            cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs animate-pulse';
+            statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
           } else if (isAmenity) {
-            cardBg = 'bg-indigo-50/70 border-indigo-200 hover:border-indigo-400';
-            badgeColor = 'bg-indigo-100 text-indigo-800 font-bold';
+            cardStyle = 'bg-slate-100/90 border-2 border-slate-300 text-slate-800 hover:bg-slate-200/90 hover:border-slate-400';
+            statusBadge = 'bg-slate-700 text-white border-slate-800 font-bold';
           } else if (isReserved) {
-            cardBg = 'bg-amber-50/70 border-amber-300 hover:border-amber-400';
-            badgeColor = 'bg-amber-100 text-amber-800 font-bold';
+            cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 hover:bg-amber-100/90 hover:border-amber-500';
+            statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';
           } else if (isBooked) {
-            cardBg = 'bg-slate-100/90 border-slate-300 opacity-80';
-            badgeColor = 'bg-slate-200 text-slate-700';
+            cardStyle = 'bg-rose-50/90 border-2 border-rose-400 text-rose-950 hover:bg-rose-100/80';
+            statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
           } else if (isAvailable) {
-            cardBg = 'bg-emerald-50/70 border-emerald-300 hover:border-emerald-500 hover:bg-emerald-50';
-            badgeColor = 'bg-emerald-100 text-emerald-800 font-bold';
+            cardStyle = 'bg-emerald-50/90 border-2 border-emerald-400 text-emerald-950 hover:bg-emerald-100/90 hover:border-emerald-500';
+            statusBadge = 'bg-emerald-600 text-white border-emerald-700 font-bold';
           }
+
+          const catBadge = CATEGORY_COLORS[plot.category] || 'bg-slate-100 text-slate-700';
 
           return (
             <button
               key={plot.id}
               onClick={() => handleSelectPlot(plot)}
-              className={`p-3.5 rounded-2xl border text-left transition-all hover:scale-[1.02] cursor-pointer relative group flex flex-col justify-between min-h-[115px] shadow-xs hover:shadow-md ${cardBg}`}
+              className={`p-3.5 rounded-2xl text-left transition-all hover:scale-[1.02] cursor-pointer relative group flex flex-col justify-between min-h-[120px] shadow-xs hover:shadow-md ${cardStyle}`}
             >
               <div>
                 <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className="font-mono font-bold text-sm text-slate-900">
+                  <span className="font-mono font-bold text-sm">
                     {plot.plotNumber}
                   </span>
-                  <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-md ${badgeColor}`}>
-                    {isLocked ? 'Locked' : isAmenity ? 'Amenity' : plot.status}
+                  <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-md border ${statusBadge}`}>
+                    {isLocked
+                      ? `Being booked by ${plot.lockedByName?.includes('Marketing') ? 'Marketing' : plot.lockedByName?.split(' ')[0] || 'Admin'}`
+                      : isAmenity
+                      ? 'Amenity'
+                      : plot.status}
                   </span>
                 </div>
 
-                <div className="text-[11px] text-slate-600 truncate font-medium">
+                <div className="text-[11px] font-semibold truncate mt-0.5">
                   {isAmenity ? plot.amenityName : plot.size}
+                </div>
+
+                {/* Category Pill */}
+                <div className="mt-1">
+                  <span className={`text-[8px] uppercase font-mono font-bold px-1.5 py-0.2 rounded border ${catBadge}`}>
+                    {plot.category.replace('_', ' ')}
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-2 pt-1.5 border-t border-slate-200/60 flex items-center justify-between text-[10px]">
-                <span className="font-mono font-bold text-slate-800">
-                  {isAmenity ? 'Public Facility' : `PKR ${(plot.price / 100000).toFixed(1)}M`}
+              <div className="mt-2 pt-1.5 border-t border-black/5 flex items-center justify-between text-[10px]">
+                <span className="font-mono font-bold">
+                  {isAmenity ? 'Public Amenity' : `PKR ${(plot.price / 100000).toFixed(1)}M`}
                 </span>
                 {isLocked ? (
                   <span className="text-rose-700 font-mono text-[9px] font-bold flex items-center gap-0.5">
@@ -457,7 +585,7 @@ export default function BlockPlotsPage() {
                     Sector: {block.name}
                   </span>
                   <span className="text-slate-300">•</span>
-                  <span className="text-xs font-mono uppercase font-semibold text-slate-500">
+                  <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded border ${CATEGORY_COLORS[selectedPlot.category]}`}>
                     {selectedPlot.category.replace('_', ' ')}
                   </span>
                 </div>
@@ -508,11 +636,11 @@ export default function BlockPlotsPage() {
                   )}
                 </div>
               ) : selectedPlot.category === 'amenity' ? (
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-xl text-indigo-950">
-                  <div className="font-bold text-sm text-indigo-900">
+                <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-950">
+                  <div className="font-bold text-sm text-purple-900">
                     Non-Sellable Society Amenity: {selectedPlot.amenityName}
                   </div>
-                  <p className="text-[11px] mt-1 text-indigo-800">
+                  <p className="text-[11px] mt-1 text-purple-800">
                     This property is reserved for public utility and cannot be booked or reserved.
                   </p>
                 </div>
@@ -526,7 +654,7 @@ export default function BlockPlotsPage() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Official Price</span>
-                  <div className="text-sm font-bold text-[#10251E] font-mono">
+                  <div className="text-sm font-bold text-emerald-800 font-mono">
                     {selectedPlot.price > 0 ? `PKR ${selectedPlot.price.toLocaleString()}` : 'Society Amenity'}
                   </div>
                 </div>
@@ -560,30 +688,47 @@ export default function BlockPlotsPage() {
                   {plotReservations.map((res, idx) => (
                     <div
                       key={res.id}
-                      className="bg-amber-50/70 border border-amber-200 p-3.5 rounded-xl flex items-center justify-between"
+                      className="bg-amber-50/80 border border-amber-200/90 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-2xs transition-all hover:bg-amber-50"
                     >
-                      <div>
-                        <div className="font-bold text-slate-900 text-xs">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-slate-900 text-xs truncate">
                           {idx + 1}. {res.customerName}
                         </div>
                         <div className="text-[11px] text-slate-600 font-mono mt-0.5">
-                          Token: <strong>PKR {res.tokenFee.toLocaleString()}</strong> • {res.customerPhone}
+                          Token: <strong className="text-slate-900 font-bold">PKR {res.tokenFee.toLocaleString()}</strong> • {res.customerPhone}
                         </div>
                         {res.resolutionNote && (
-                          <div className="text-[10px] text-amber-900 italic mt-1 bg-white/70 px-2 py-0.5 rounded border border-amber-200">
+                          <div className="text-[10px] text-amber-900/90 italic mt-1.5 bg-white/90 px-2.5 py-1 rounded-lg border border-amber-200 leading-snug break-words">
                             Note: {res.resolutionNote}
                           </div>
                         )}
                       </div>
 
-                      {/* Convert to booking */}
-                      <button
-                        onClick={() => openBook(res)}
-                        disabled={actionLoading}
-                        className="px-3 py-1.5 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-[11px] rounded-lg transition-colors cursor-pointer shadow-xs"
-                      >
-                        Confirm Booking
-                      </button>
+                      {/* Convert / Release Actions */}
+                      <div className="shrink-0 flex items-center gap-2">
+                        {session?.permissions.can_reserve && (
+                          <button
+                            type="button"
+                            onClick={() => handleReleaseReservation(res)}
+                            disabled={actionLoading}
+                            className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 hover:border-rose-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50"
+                            title="Release reservation back to Available inventory"
+                          >
+                            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Release</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => openBook(res)}
+                          disabled={actionLoading}
+                          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap min-w-[135px] disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-200" />
+                          <span>Confirm Booking</span>
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -594,19 +739,23 @@ export default function BlockPlotsPage() {
                 {selectedPlot.category !== 'amenity' && selectedPlot.status !== 'booked' && (
                   <>
                     <button
+                      type="button"
                       onClick={openReserve}
                       disabled={actionLoading}
-                      className="flex-1 py-2.5 px-3 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs whitespace-nowrap"
                     >
-                      Reserve Plot (Token Deposit)
+                      <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Reserve Plot (Token)</span>
                     </button>
 
                     <button
+                      type="button"
                       onClick={() => openBook()}
                       disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId)}
-                      className="flex-1 py-2.5 px-3 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap"
                     >
-                      Acquire Lock & Book Now
+                      <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
+                      <span>Lock & Book Now</span>
                     </button>
                   </>
                 )}
@@ -616,13 +765,13 @@ export default function BlockPlotsPage() {
         </div>
       )}
 
-      {/* Reserve Plot Modal - Crisp Light Styling */}
+      {/* Reserve Plot Modal */}
       {isReserveModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
-                <BookmarkCheck className="w-4 h-4 text-emerald-700" />
+                <BookmarkCheck className="w-4 h-4 text-amber-600" />
                 <span>Reserve Plot {selectedPlot.plotNumber}</span>
               </h3>
               <button
@@ -642,7 +791,7 @@ export default function BlockPlotsPage() {
                   value={reserveForm.customerName}
                   onChange={(e) => setReserveForm({ ...reserveForm, customerName: e.target.value })}
                   placeholder="e.g. Khurram Shehzad"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:border-[#10251E]"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white"
                 />
               </div>
 
@@ -655,7 +804,7 @@ export default function BlockPlotsPage() {
                     value={reserveForm.customerPhone}
                     onChange={(e) => setReserveForm({ ...reserveForm, customerPhone: e.target.value })}
                     placeholder="0300-1234567"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:border-[#10251E]"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white"
                   />
                 </div>
                 <div>
@@ -666,7 +815,7 @@ export default function BlockPlotsPage() {
                     value={reserveForm.customerEmail}
                     onChange={(e) => setReserveForm({ ...reserveForm, customerEmail: e.target.value })}
                     placeholder="customer@example.com"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:border-[#10251E]"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white"
                   />
                 </div>
               </div>
@@ -674,7 +823,7 @@ export default function BlockPlotsPage() {
               {/* Admin-Adjustable Token Fee */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-emerald-800 mb-1 font-bold">
+                  <label className="block text-amber-800 mb-1 font-bold">
                     Token Fee (PKR) • Editable
                   </label>
                   <input
@@ -684,7 +833,7 @@ export default function BlockPlotsPage() {
                     required
                     value={reserveForm.tokenFee}
                     onChange={(e) => setReserveForm({ ...reserveForm, tokenFee: Number(e.target.value) })}
-                    className="w-full px-3 py-2 bg-emerald-50/80 border border-emerald-300 rounded-xl text-emerald-950 font-mono font-bold focus:bg-white"
+                    className="w-full px-3 py-2 bg-amber-50/80 border border-amber-300 rounded-xl text-amber-950 font-mono font-bold focus:bg-white"
                   />
                 </div>
                 <div>
@@ -723,7 +872,7 @@ export default function BlockPlotsPage() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
                   {actionLoading ? 'Filing...' : 'Confirm Reservation'}
                 </button>
@@ -733,7 +882,7 @@ export default function BlockPlotsPage() {
         </div>
       )}
 
-      {/* Book Plot Modal - Crisp Light Styling */}
+      {/* Book Plot Modal */}
       {isBookModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl p-6">
@@ -874,7 +1023,7 @@ export default function BlockPlotsPage() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-5 py-2.5 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer"
                 >
                   {actionLoading ? 'Committing...' : 'Commit Final Booking'}
                 </button>

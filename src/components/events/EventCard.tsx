@@ -1,6 +1,6 @@
 import React from "react";
 import Image from "next/image";
-import { Play, Calendar, ArrowRight } from "lucide-react";
+import { Play, Calendar, MapPin, ArrowRight } from "lucide-react";
 import { EventData } from "@/data/events";
 
 interface EventCardProps {
@@ -15,8 +15,8 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
   return (
     <div
       onClick={onClick}
-      className={`group w-full rounded-[24px] bg-white overflow-hidden cursor-pointer transition-all duration-300 shadow-[0_4px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.10)] hover:-translate-y-1 border border-black/[0.08] hover:border-[#43612B]/35 flex ${
-        isHorizontal ? "flex-col sm:flex-row" : "flex-col"
+      className={`group w-full rounded-[28px] bg-white overflow-hidden cursor-pointer transition-all duration-300 shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_40px_rgba(0,0,0,0.12)] hover:-translate-y-1 border border-black/[0.08] hover:border-[#43612B]/40 flex ${
+        isHorizontal ? "flex-col md:flex-row" : "flex-col"
       } justify-between h-full relative`}
     >
       {/* Decorative Green Glow on Hover */}
@@ -26,19 +26,20 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
       <div
         className={`relative overflow-hidden shrink-0 z-10 ${
           isHorizontal
-            ? "w-full sm:w-[48%] h-52 sm:h-auto min-h-[220px]"
-            : "w-full h-48 sm:h-52"
+            ? "w-full md:w-[48%] h-64 md:h-auto min-h-[260px] md:min-h-[320px]"
+            : "w-full h-56 sm:h-64"
         }`}
       >
         <Image
           src={event.coverImage}
           alt={`${event.title} Cover`}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
           sizes="(max-width: 768px) 100vw, 50vw"
+          priority
         />
         {/* Subtle Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60 group-hover:opacity-40 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-300" />
 
         {/* Play button overlay if the event has a video */}
         {event.videoPreview && (
@@ -51,42 +52,65 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
       </div>
 
       {/* Details Area — flex-col justify-between flex-1 ensures uniform stretch */}
-      <div className="p-6 flex flex-col justify-between flex-1 z-10">
+      <div className="p-6 sm:p-8 flex flex-col justify-between flex-1 z-10">
 
         <div className="flex flex-col">
+          {/* Date & Venue Badges */}
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {event.date && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF0E7] text-[#43612B] text-xs font-bold uppercase tracking-wider border border-[#43612B]/20">
+                <Calendar className="w-3.5 h-3.5" />
+                {event.date}
+              </span>
+            )}
+            {event.venue && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/5 text-[#556050] text-xs font-medium border border-black/[0.06]">
+                <MapPin className="w-3.5 h-3.5 text-[#43612B]" />
+                {event.venue.split(",")[0]}
+              </span>
+            )}
+          </div>
+
           <h3
-            className={`font-display font-bold text-[#151914] mb-2 leading-tight transition-colors duration-200 group-hover:text-[#43612B] ${
-              isHorizontal ? "text-xl lg:text-2xl" : "text-lg sm:text-xl"
+            className={`font-display font-bold text-[#151914] mb-1.5 leading-tight transition-colors duration-200 group-hover:text-[#43612B] ${
+              isHorizontal ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"
             }`}
           >
             {event.title}
           </h3>
-          <p className="font-sans text-sm text-[#6B7462] leading-relaxed line-clamp-3 mb-4">
-            {event.fullDescription}
+
+          {event.subtitle && (
+            <p className="font-sans text-xs sm:text-sm font-semibold text-[#43612B] tracking-wide mb-3 uppercase">
+              {event.subtitle}
+            </p>
+          )}
+
+          <p className="font-sans text-sm sm:text-[15px] text-[#5A6354] leading-relaxed line-clamp-3 mb-4">
+            {event.summary || event.fullDescription}
           </p>
         </div>
 
         <div className="flex flex-col mt-auto pt-2">
           {/* Mini Gallery Preview (For Horizontal Cards) */}
           {isHorizontal && event.gallery.length > 0 && (
-            <div className="flex items-center gap-2 mb-4">
-              {event.gallery.slice(0, 3).map((img, idx) => (
+            <div className="flex items-center gap-2.5 mb-4">
+              {event.gallery.slice(0, 4).map((img, idx) => (
                 <div
                   key={idx}
-                  className="relative w-12 h-8 sm:w-14 sm:h-10 rounded-md overflow-hidden border border-black/5 shadow-xs group/thumb shrink-0"
+                  className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0"
                 >
                   <Image
                     src={img}
                     alt="Gallery Preview"
                     fill
                     className="object-cover group-hover/thumb:scale-110 transition-transform duration-300"
-                    sizes="56px"
+                    sizes="64px"
                   />
                 </div>
               ))}
-              {event.gallery.length > 3 && (
-                <div className="w-12 h-8 sm:w-14 sm:h-10 rounded-md bg-[#FAF9F5] border border-black/[0.08] flex items-center justify-center text-[#6B7462] text-[10px] font-bold shrink-0">
-                  +{event.gallery.length - 3}
+              {event.gallery.length > 4 && (
+                <div className="w-14 h-10 sm:w-16 sm:h-11 rounded-lg bg-[#FAF9F5] border border-black/[0.08] flex items-center justify-center text-[#43612B] text-xs font-bold shrink-0">
+                  +{event.gallery.length - 4}
                 </div>
               )}
             </div>
@@ -94,7 +118,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
 
           <div className="flex items-center">
             <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#151914] transition-colors group-hover:text-[#43612B]">
-              View Event
+              View Event &amp; Gallery
               <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-1 stroke-[2.5]" />
             </span>
           </div>

@@ -1,3 +1,8 @@
+export interface BioSection {
+  heading: string;
+  bullets: string[];
+}
+
 export interface TeamMemberProfile {
   id: string;
   name: string;
@@ -12,6 +17,7 @@ export interface TeamMemberProfile {
   instagramUrl?: string;
   bio?: string;
   bioBullets?: string[];
+  bioSections?: BioSection[];
 }
 
 export const executiveTeamProfiles: TeamMemberProfile[] = [
@@ -39,32 +45,88 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     id: "mc-5",
     name: "Dr. Roman Gul",
     title: "General Secretary",
-    role: "Beneficial owner & Director",
+    role: "Medical Professional / Businessman",
     email: "secretary@primeview.pk",
     category: "Managing Committee",
     photoPath: "/new assests/team/team new/secretary.jpg",
     photoDiscovered: true,
+    bio: "Dr. Roman Gul is an accomplished Medical Professional and Businessman. Serving as the General Secretary of Prime View Cooperative Housing Society Abbottabad, he brings strong organizational governance across institutional healthcare and property development.",
+    bioBullets: [
+      "Medical Professional",
+      "Managing Director — Holistic Health Curative",
+      "Secretary — Prime View Cooperative Housing Society Abbottabad",
+      "CEO — Roman Builders & Developers (Pvt.) Ltd.",
+    ],
   },
   {
     id: "mc-3",
     name: "Ahmed Nawaz Khan Jadoon",
     title: "Vice President",
-    role: "Beneficial owner & Director",
+    role: "Businessman | Educationist | Media Professional | Political Leader",
     email: "vp@primeview.pk",
     category: "Managing Committee",
     photoPath: "/new assests/team/team new/vice-president.jpg",
     photoDiscovered: true,
+    bio: "Ahmed Nawaz Khan Jadoon is a prominent Businessman, Educationist, Media Professional, and Political Leader serving as Vice President of Prime View Cooperative Housing Society, Abbottabad.",
+    bioSections: [
+      {
+        heading: "Business & Professional Profile",
+        bullets: [
+          "Vice President — Prime View Cooperative Housing Society, Abbottabad",
+          "CEO — Yaqoot International (Pvt.) Limited",
+          "CEO — Dost Publications",
+          "Publisher & Editor-in-Chief — Daily Hazara News Group of Newspapers",
+          "Managing Director — City Public School Systems",
+        ],
+      },
+      {
+        heading: "Political Profile",
+        bullets: [
+          "Central General Secretary — Qaumi Watan Party (QWP)",
+          "Former Candidate — MPA, PK-42",
+        ],
+      },
+    ],
+    bioBullets: [
+      "Vice President — Prime View Cooperative Housing Society, Abbottabad",
+      "CEO — Yaqoot International (Pvt.) Limited",
+      "CEO — Dost Publications",
+      "Publisher & Editor-in-Chief — Daily Hazara News Group of Newspapers",
+      "Managing Director — City Public School Systems",
+      "Central General Secretary — Qaumi Watan Party (QWP)",
+      "Former Candidate — MPA, PK-42",
+    ],
   },
   // Row 2: Chaudhary Mohsin Azad, Qazi Safeer Hashmi Qureshi
   {
     id: "mc-1",
     name: "Chaudhary Mohsin Azad",
     title: "Chairman",
-    role: "Beneficial owner & Director",
+    role: "CEO Nexus Builders | Group Director J7",
     email: "Chairman@primeview.pk",
     category: "Managing Committee",
     photoPath: "/new assests/team/team new/chairman.jpg",
     photoDiscovered: true,
+    bio: "Chaudhary Mohsin Azad serves as Chairman of Prime View Co-Operative Housing Society Ltd. With over 26 years of distinguished leadership in the construction and real estate industry, he has successfully delivered multiple landmark residential and commercial projects across Pakistan.",
+    bioSections: [
+      {
+        heading: "Executive Leadership & Business Profile",
+        bullets: [
+          "Chairman — Prime View Cooperative Housing Society Ltd.",
+          "CEO — Nexus Builders",
+          "Built several residential and commercial projects with 26 years of experience in this field",
+          "Group Director — J7 Group",
+          "Chairman — Perfect Concrete Solutions",
+        ],
+      },
+    ],
+    bioBullets: [
+      "Chairman — Prime View Cooperative Housing Society Ltd.",
+      "CEO — Nexus Builders",
+      "Built several residential and commercial projects with 26 years of experience in this field",
+      "Group Director — J7 Group",
+      "Chairman — Perfect Concrete Solutions",
+    ],
   },
   {
     id: "mc-4",

@@ -130,7 +130,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           data.type === 'PAYMENT_RECORD_UPDATED' ||
           data.type === 'PLOT_STATUS_CHANGED' ||
           data.type === 'BOOKING_CREATED' ||
-          data.type === 'PROFILE_UPDATED'
+          data.type === 'PROFILE_UPDATED' ||
+          data.type === 'PLOT_BOOKED' ||
+          data.type === 'CUSTOMER_CREATED'
         ) {
           get().fetchDashboardData();
           get().fetchPayments();

@@ -17,8 +17,12 @@ export const EventsGrid: React.FC = () => {
           let colSpanClass = "col-span-1";
           let layoutType: "horizontal" | "vertical" = "vertical";
 
-          // Make the first and fourth items span 2 columns and use a horizontal layout
-          if (index === 0 || index === 3) {
+          // If only 1 event exists, center it nicely across columns as a featured card
+          if (eventsData.length === 1) {
+            colSpanClass = "col-span-1 md:col-span-2 lg:col-span-3 max-w-4xl mx-auto w-full";
+            layoutType = "horizontal";
+          } else if (index === 0 || index === 3) {
+            // Bento layout when multiple events exist
             colSpanClass = "md:col-span-2 lg:col-span-2";
             layoutType = "horizontal";
           }

@@ -50,10 +50,22 @@ export default function AdminPortalLayout({
   } else if (pathname.includes('/admin/reservations')) {
     pageTitle = 'Sort Reservations';
     pageSubtitle = 'Token Priority & Disputes';
+  } else if (pathname.includes('/admin/sub-admins')) {
+    pageTitle = 'Sub-Administrators';
+    pageSubtitle = 'Access Delegation & Sector Scopes';
+  } else if (pathname.includes('/admin/customers')) {
+    pageTitle = 'Customer Bookings';
+    pageSubtitle = 'Paper Application Form & Accounts';
+  } else if (pathname.includes('/admin/content')) {
+    pageTitle = 'Content CMS';
+    pageSubtitle = 'Plans & Society Events';
+  } else if (pathname.includes('/admin/audit-log')) {
+    pageTitle = 'Audit Trail';
+    pageSubtitle = 'Activity Logs & Modification Diffs';
   }
 
   return (
-    <div className="min-h-screen flex bg-[#F8FAF9] text-slate-900">
+    <div className="h-screen flex overflow-hidden bg-[#F8FAF9] text-slate-900">
       <AdminSidebar session={session} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <AdminHeader session={session} title={pageTitle} subtitle={pageSubtitle} />

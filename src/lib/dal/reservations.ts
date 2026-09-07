@@ -1,6 +1,7 @@
 import { mockStore } from '../mock/store';
-import { AdminSession, Reservation, ReservationStatus } from '../mock/types';
+import { AdminSession, Reservation, ReservationStatus, Booking } from '../mock/types';
 import { canAccessBlock } from './adminAuth';
+import { bookPlot } from './adminPlots';
 
 export interface ReservationWithConflict extends Reservation {
   hasDuplicateConflict: boolean;
@@ -23,6 +24,8 @@ export async function getReservations(
   reservations: ReservationWithConflict[];
   error?: string;
 }> {
+  mockStore.loadFromStorage();
+
   // 1. Filter by block accessibility (Exception 5.4)
   let accessible = mockStore.reservations.filter((r) =>
     canAccessBlock(session, r.blockId)
@@ -78,6 +81,7 @@ export async function updateReservationNote(
   reservationId: string,
   note: string
 ): Promise<{ ok: boolean; reservation?: Reservation; error?: string }> {
+  mockStore.loadFromStorage();
   const reservation = mockStore.reservations.find((r) => r.id === reservationId);
   if (!reservation) return { ok: false, error: 'RESERVATION_NOT_FOUND' };
 
@@ -114,6 +118,7 @@ export async function cancelReservation(
   reservationId: string,
   reason?: string
 ): Promise<{ ok: boolean; reservation?: Reservation; error?: string }> {
+  mockStore.loadFromStorage();
   const reservation = mockStore.reservations.find((r) => r.id === reservationId);
   if (!reservation) return { ok: false, error: 'RESERVATION_NOT_FOUND' };
 
@@ -136,12 +141,6 @@ export async function cancelReservation(
     plot.status = 'available';
   }
 
-  mockStore.broadcast({
-    type: 'RESERVATION_UPDATED',
-    timestamp: new Date().toISOString(),
-    reservationId,
-  });
-
   mockStore.addAuditEntry({
     actorId: session.adminId,
     actorName: session.fullName,
@@ -149,8 +148,61 @@ export async function cancelReservation(
     action: 'RESERVATION_CANCELLED',
     entityType: 'reservation',
     entityId: reservationId,
-    details: `Reservation cancelled for plot ${reservation.plotNumber}`,
+    details: `Reservation cancelled for plot ${reservation.plotNumber}${reason ? ` (${reason})` : ''}`,
+  });
+
+  mockStore.broadcast({
+    type: 'RESERVATION_UPDATED',
+    timestamp: new Date().toISOString(),
+    reservationId,
+    plotId: reservation.plotId,
   });
 
   return { ok: true, reservation };
 }
+
+/**
+ * Confirm an active reservation into an official plot booking.
+ * Automatically supersedes any competing active reservations on the same plot and records audit logs.
+ */
+export async function confirmReservation(
+  session: AdminSession,
+  reservationId: string,
+  paymentType: 'one_time' | 'installment' = 'one_time'
+): Promise<{ ok: boolean; booking?: Booking; error?: string }> {
+  mockStore.loadFromStorage();
+  const reservation = mockStore.reservations.find((r) => r.id === reservationId);
+  if (!reservation) return { ok: false, error: 'RESERVATION_NOT_FOUND' };
+
+  if (!canAccessBlock(session, reservation.blockId)) {
+    return { ok: false, error: 'OUT_OF_SCOPE' };
+  }
+
+  const res = await bookPlot(session, {
+    plotId: reservation.plotId,
+    reservationId: reservation.id,
+    paymentType,
+    customer: {
+      fullName: reservation.customerName,
+      phone: reservation.customerPhone,
+      email: reservation.customerEmail,
+    },
+  });
+
+  if (!res.ok) {
+    return { ok: false, error: res.error };
+  }
+
+  mockStore.addAuditEntry({
+    actorId: session.adminId,
+    actorName: session.fullName,
+    actorRole: session.role,
+    action: 'RESERVATION_CONFIRMED',
+    entityType: 'reservation',
+    entityId: reservation.id,
+    details: `Confirmed reservation ${reservation.id} for ${reservation.customerName} on plot ${reservation.plotNumber} into booking ${res.booking?.id}`,
+  });
+
+  return { ok: true, booking: res.booking };
+}
+

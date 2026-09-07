@@ -133,49 +133,51 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Switcher */}
-          <div className="mt-8 pt-5 border-t border-slate-100">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 text-center">
-              Quick Switch Demo Roles
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => handleQuickFill('admin', 'password123')}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs"
-              >
-                <div>
-                  <span className="font-bold text-[#10251E]">Super Administrator</span>
-                  <div className="text-[11px] text-slate-500">admin • Society-wide (All 8 Blocks)</div>
-                </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              </button>
+          {/* Quick Demo Switcher - Dev Only */}
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="mt-8 pt-5 border-t border-slate-100">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 text-center">
+                Quick Switch Demo Roles
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('admin', 'password123')}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs"
+                >
+                  <div>
+                    <span className="font-bold text-[#10251E]">Super Administrator</span>
+                    <div className="text-[11px] text-slate-500">admin • Society-wide (All 8 Blocks)</div>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleQuickFill('marketing', 'password123')}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs"
-              >
-                <div>
-                  <span className="font-bold text-[#10251E]">Marketing Sub-Admin</span>
-                  <div className="text-[11px] text-slate-500">marketing • Abbott + Royal Blocks</div>
-                </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('marketing', 'password123')}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs"
+                >
+                  <div>
+                    <span className="font-bold text-[#10251E]">Marketing Sub-Admin</span>
+                    <div className="text-[11px] text-slate-500">marketing • Abbott + Royal Blocks</div>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleQuickFill('police', 'password123')}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs"
-              >
-                <div>
-                  <span className="font-bold text-[#10251E]">Police Sub-Admin</span>
-                  <div className="text-[11px] text-slate-500">police • Overseas + Elite + Chalet</div>
-                </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickFill('police', 'password123')}
+                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs"
+                >
+                  <div>
+                    <span className="font-bold text-[#10251E]">Police Sub-Admin</span>
+                    <div className="text-[11px] text-slate-500">police • Overseas + Elite + Chalet</div>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -100,12 +100,14 @@ export async function adminLogin(username: string, password: string): Promise<Ad
 
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+      // Strictly write to current tab's isolated sessionStorage.
+      // Do NOT write to localStorage or shared cookies to guarantee
+      // cross-tab / cross-window isolation for concurrent multi-admin workflows.
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
     } catch {
       // Storage unavailable fallback
     }
   }
-  setCookie(COOKIE_KEY, JSON.stringify(session), 86400);
 
   // 6. Audit Log
   mockStore.addAuditEntry({
@@ -140,6 +142,7 @@ export async function adminLogout(): Promise<{ ok: boolean }> {
 
   if (typeof window !== 'undefined') {
     try {
+      sessionStorage.removeItem(SESSION_STORAGE_KEY);
       localStorage.removeItem(SESSION_STORAGE_KEY);
     } catch {
       // Storage fallback
@@ -167,14 +170,11 @@ export function getActiveAdminSession(): AdminSession | null {
 
   if (typeof window !== 'undefined') {
     try {
-      sessionData = localStorage.getItem(SESSION_STORAGE_KEY);
+      // Tab-isolated session storage only — guarantees zero cross-tab session contamination
+      sessionData = sessionStorage.getItem(SESSION_STORAGE_KEY);
     } catch {
       sessionData = null;
     }
-  }
-
-  if (!sessionData) {
-    sessionData = getCookie(COOKIE_KEY);
   }
 
   if (!sessionData) return null;

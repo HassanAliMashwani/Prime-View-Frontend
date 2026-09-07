@@ -32,6 +32,7 @@ export async function getPaymentSchedule(
   plotId?: string
 ): Promise<{ ok: boolean; data: PlotPaymentSchedule[]; error?: string }> {
   try {
+    mockStore.loadFromStorage();
     const session = requireMemberSession();
 
     // Get bookings belonging to this member
@@ -106,6 +107,7 @@ export async function getPaymentHistory(
   filterPlotId?: string
 ): Promise<{ ok: boolean; data: PaymentTransaction[]; error?: string }> {
   try {
+    mockStore.loadFromStorage();
     const session = requireMemberSession();
     let userBookings = mockStore.bookings.filter((b) => b.customerId === session.customerId);
 
