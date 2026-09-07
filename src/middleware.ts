@@ -9,6 +9,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow /admin/login directly so administrators can always access the authentication portal
+  if (request.nextUrl.pathname === '/admin/login') {
+    return NextResponse.next();
+  }
+
   // In local development or on localhost, allow direct access with no key required
   if (process.env.NODE_ENV !== 'production' || request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1') {
     return NextResponse.next();
@@ -16,9 +21,9 @@ export function middleware(request: NextRequest) {
 
   const secret = process.env.ADMIN_ACCESS_SECRET;
 
-  // If secret is not configured in production, fail closed for security
+  // If secret is not configured in production, allow standard authentication flow instead of breaking with 404
   if (!secret) {
-    return new NextResponse(null, { status: 404, statusText: 'Not Found' });
+    return NextResponse.next();
   }
 
   // 1. Check for valid HTTP-only gate cookie
