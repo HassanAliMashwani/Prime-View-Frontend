@@ -14,6 +14,11 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Automatically redirect /admin or /admin/ to /admin/login
+  if (request.nextUrl.pathname === '/admin' || request.nextUrl.pathname === '/admin/') {
+    return NextResponse.redirect(new URL('/admin/login', request.url));
+  }
+
   // In local development or on localhost, allow direct access with no key required
   if (process.env.NODE_ENV !== 'production' || request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1') {
     return NextResponse.next();
