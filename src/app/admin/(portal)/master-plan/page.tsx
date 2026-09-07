@@ -9,11 +9,15 @@ import {
   ArrowRight, 
   CheckCircle2, 
   Clock, 
-  Sparkles
+  Sparkles,
+  Map as MapIcon,
+  LayoutGrid,
+  AlertTriangle
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
 import { AdminSession } from '@/lib/mock/types';
+import InteractiveOverviewMap from '@/components/admin/master-plan/InteractiveOverviewMap';
 
 const AMENITY_COLORS: Record<string, string> = {
   Hospital: 'bg-rose-50 text-rose-800 border-rose-200',
@@ -90,6 +94,7 @@ export default function MasterPlanPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [blocks, setBlocks] = useState<BlockSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'map' | 'cards'>('map');
 
   const loadBlocks = useCallback(async (s: AdminSession) => {
     try {
@@ -143,10 +148,8 @@ export default function MasterPlanPage() {
       <div className="bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 border-2 border-indigo-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-800 bg-indigo-100 border border-indigo-300 px-2.5 py-0.5 rounded-full flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              Master Plan Level 1 • Society Sectors
-            </span>
+            
+            
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-slate-900">
             {isSuper
@@ -158,14 +161,45 @@ export default function MasterPlanPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-mono bg-white border border-slate-200 px-4 py-2.5 rounded-xl text-slate-700 shadow-2xs">
-          <ShieldCheck className="w-4 h-4 text-indigo-600" />
-          <span>Scope: <strong className="text-slate-900">{isSuper ? 'Society-Wide' : session.assignedBlocks.join(', ').toUpperCase()}</strong></span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2.5">
+          {/* View Mode Toggle Pill */}
+          <div className="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-2xl shadow-2xs">
+            <button
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'map'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <MapIcon className="w-3.5 h-3.5" />
+              <span>Traced Map</span>
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-indigo-600 text-white shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Cards ({blocks.length})</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs font-mono bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-slate-700 shadow-2xs">
+            <ShieldCheck className="w-4 h-4 text-indigo-600" />
+            <span>Scope: <strong className="text-slate-900">{isSuper ? 'Society-Wide' : session.assignedBlocks.join(', ').toUpperCase()}</strong></span>
+          </div>
         </div>
       </div>
 
-      {/* Block Cards Grid - Each with Signature Sector Theme */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Level 1 View: Interactive Traced Overview Map vs Summary Cards */}
+      {viewMode === 'map' ? (
+        <InteractiveOverviewMap session={session} blocks={blocks} />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {blocks.map((block) => {
           const availPct = block.totalCount > 0 ? (block.availableCount / block.totalCount) * 100 : 0;
           const resPct = block.totalCount > 0 ? (block.reservedCount / block.totalCount) * 100 : 0;
@@ -221,6 +255,17 @@ export default function MasterPlanPage() {
                   </div>
                 </div>
 
+                {/* Disputed Plots Warning Indicator if any plots in conflict */}
+                {block.disputedCount && block.disputedCount > 0 ? (
+                  <div className="mb-4 px-3 py-1.5 rounded-xl bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-950 flex items-center justify-between text-xs font-bold shadow-2xs">
+                    <span className="flex items-center gap-1.5">
+                      <AlertTriangle className="w-3.5 h-3.5 text-fuchsia-600 shrink-0" />
+                      <span>{block.disputedCount} Disputed Plot{block.disputedCount > 1 ? 's' : ''}</span>
+                    </span>
+                    <span className="text-[10px] uppercase font-mono tracking-wider bg-fuchsia-200/90 text-fuchsia-950 px-1.5 py-0.5 rounded-md font-bold">Action Req</span>
+                  </div>
+                ) : null}
+
                 {/* Progress Distribution Bar */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 mb-1.5 font-medium">
@@ -240,7 +285,7 @@ export default function MasterPlanPage() {
                     />
                     <div
                       style={{ width: `${bookPct}%` }}
-                      className="bg-purple-500 hover:opacity-90 transition-all"
+                      className="bg-red-500 hover:opacity-90 transition-all"
                       title={`Booked: ${block.bookedCount}`}
                     />
                   </div>
@@ -262,10 +307,10 @@ export default function MasterPlanPage() {
                       <span>Res</span>
                     </div>
                   </div>
-                  <div className="bg-purple-50/70 border border-purple-200 p-2 rounded-xl">
-                    <div className="text-purple-800 font-bold text-xs">{block.bookedCount}</div>
-                    <div className="text-purple-700 font-medium mt-0.5 flex items-center justify-center gap-0.5">
-                      <Building2 className="w-2.5 h-2.5 text-purple-600" />
+                  <div className="bg-red-50/70 border border-red-200 p-2 rounded-xl">
+                    <div className="text-red-800 font-bold text-xs">{block.bookedCount}</div>
+                    <div className="text-red-700 font-medium mt-0.5 flex items-center justify-center gap-0.5">
+                      <Building2 className="w-2.5 h-2.5 text-red-600" />
                       <span>Book</span>
                     </div>
                   </div>
@@ -287,7 +332,8 @@ export default function MasterPlanPage() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

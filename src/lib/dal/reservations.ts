@@ -1,11 +1,12 @@
 import { mockStore } from '../mock/store';
-import { AdminSession, Reservation, ReservationStatus, Booking } from '../mock/types';
+import { AdminSession, Reservation, ReservationStatus, Booking, Plot } from '../mock/types';
 import { canAccessBlock } from './adminAuth';
 import { bookPlot } from './adminPlots';
 
 export interface ReservationWithConflict extends Reservation {
   hasDuplicateConflict: boolean;
   conflictCount: number;
+  plot?: Plot;
 }
 
 /**
@@ -60,13 +61,16 @@ export async function getReservations(
     );
   }
 
-  // 4. Attach conflict indicators
+  // 4. Attach conflict indicators & live plot details
+  const plotMap = new Map(mockStore.plots.map((p) => [p.id, p]));
   const results: ReservationWithConflict[] = accessible.map((r) => {
     const conflictCount = r.status === 'active' ? activePlotCounts.get(r.plotId) || 0 : 0;
+    const plot = plotMap.get(r.plotId);
     return {
       ...r,
       hasDuplicateConflict: conflictCount > 1,
       conflictCount,
+      plot,
     };
   });
 
@@ -111,9 +115,10 @@ export async function updateReservationNote(
 }
 
 /**
- * Cancel or expire an active reservation
+ * Release / cancel an active reservation back to society inventory.
+ * Enforces ownership: only the original reserving admin or Super Admin can release an active reservation.
  */
-export async function cancelReservation(
+export async function releaseReservation(
   session: AdminSession,
   reservationId: string,
   reason?: string
@@ -126,7 +131,18 @@ export async function cancelReservation(
     return { ok: false, error: 'OUT_OF_SCOPE' };
   }
 
-  reservation.status = 'expired';
+  // Ownership check: only original reserving admin or Super Admin override can release
+  const isOwner = reservation.reservedByAdminId === session.adminId;
+  const isSuperAdmin = session.role === 'super_admin';
+
+  if (!isOwner && !isSuperAdmin) {
+    return { ok: false, error: 'NOT_RESERVATION_OWNER' };
+  }
+
+  reservation.status = 'cancelled';
+  reservation.cancelledAt = new Date().toISOString();
+  reservation.cancelledByAdminId = session.adminId;
+
   if (reason) {
     reservation.resolutionNote = (reservation.resolutionNote ? reservation.resolutionNote + ' | ' : '') + reason;
   }
@@ -141,14 +157,19 @@ export async function cancelReservation(
     plot.status = 'available';
   }
 
+  const isOverride = !isOwner && isSuperAdmin;
+  const auditDetails = isOverride
+    ? `Super Admin ${session.fullName} overrode and released reservation ${reservation.id} (originally reserved by ${reservation.reservedByAdminName}) on plot ${reservation.plotNumber}.${reason ? ` (${reason})` : ''}`
+    : `Admin ${session.fullName} released reservation ${reservation.id} on plot ${reservation.plotNumber}.${reason ? ` (${reason})` : ''}`;
+
   mockStore.addAuditEntry({
     actorId: session.adminId,
     actorName: session.fullName,
     actorRole: session.role,
-    action: 'RESERVATION_CANCELLED',
+    action: 'RESERVATION_RELEASED',
     entityType: 'reservation',
     entityId: reservationId,
-    details: `Reservation cancelled for plot ${reservation.plotNumber}${reason ? ` (${reason})` : ''}`,
+    details: auditDetails,
   });
 
   mockStore.broadcast({
@@ -160,6 +181,8 @@ export async function cancelReservation(
 
   return { ok: true, reservation };
 }
+
+export const cancelReservation = releaseReservation;
 
 /**
  * Confirm an active reservation into an official plot booking.
