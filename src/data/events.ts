@@ -1,9 +1,11 @@
 export interface EventData {
   id: string;
   title: string;
+  subtitle?: string;
   date: string;
+  venue?: string;
   summary: string;
-  videoPreview: string; // URL to the video file
+  videoPreview?: string; // URL to the video file
   coverImage: string;
   gallery: string[];
   fullDescription: string;
@@ -11,62 +13,24 @@ export interface EventData {
 
 export const eventsData: EventData[] = [
   {
-    id: "event-1",
-    title: "NOC Approved Status",
-    date: "October 15, 2023",
-    summary: "Official announcement and documentation of Prime View's NOC approval.",
-    videoPreview: "/new assests/Vedios/NOC APRROVED VIDEO.mp4",
-    coverImage: "/assets/gallery/meeting-prime-view.jpg",
+    id: "pre-launch-ceremony",
+    title: "Pre-Launch Ceremony",
+    subtitle: "Prime View Cooperative Housing Society Abbottabad",
+    date: "Monday, 17 August | 12:00 PM",
+    venue: "Rosecliff Marquee, Main Margalla Road, E-11/1, Islamabad",
+    summary: "You are cordially invited to the Pre-Launch Ceremony of Prime View Cooperative Housing Society Abbottabad at Rosecliff Marquee, Islamabad.",
+    coverImage: "/new assests/Events and media/event1/QAS07562_improved.png",
     gallery: [
-      "/assets/gallery/meeting-prime-view.jpg",
-      "/assets/gallery/npf-meetings.jpg",
-      "/assets/gallery/npf-meetings-1.jpg",
-      "/assets/gallery/npf-dinner.jpg"
+      "/new assests/Events and media/event1/WhatsApp Image 2026-09-06 at 3.10.12 PM.jpeg",
+      "/new assests/Events and media/event1/QAS07025.JPG_202609031129.jpeg",
+      "/new assests/Events and media/event1/QAS07031.JPG_2K_202609031134.jpeg",
+      "/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg",
+      "/new assests/Events and media/event1/QAS07562_improved.png",
+      "/new assests/Events and media/event1/QAS07590_glow.png",
+      "/new assests/Events and media/event1/QAS07600.png_2K_202609031145.jpeg",
+      "/new assests/Events and media/event1/QAS07627.JPG_202609031125.jpeg",
     ],
-    fullDescription: "Prime View Co-Operative Housing Society Ltd. has officially received its NOC, ensuring complete regulatory compliance and securing the future for our investors and residents. This milestone reflects our commitment to transparent and legally sound development.",
+    fullDescription: "You are cordially invited to the Pre-Launch Ceremony of Prime View Cooperative Housing Society Abbottabad.\n\nDate & Time: Monday, 17 August at 12:00 PM\nVenue: Rosecliff Marquee, Main Margalla Road, E-11/1, Islamabad\n\nCelebrate this landmark pre-launch occasion with Prime View leadership, distinguished guests, and cooperative society members as we showcase the blueprint of modern master-planned living nestled in the serene hills of Abbottabad.",
   },
-  {
-    id: "event-2",
-    title: "Prime View Highlights",
-    date: "November 02, 2023",
-    summary: "A comprehensive look at the rapid development and scenic beauty of our society.",
-    videoPreview: "/new assests/Vedios/PM HIGHLIGHTS.mp4",
-    coverImage: "/assets/gallery/prime-site-view.jpg",
-    gallery: [
-      "/assets/gallery/site-picture.jpg",
-      "/assets/gallery/luxurious-villa-with-modern-architectural-design.jpg",
-      "/assets/gallery/luxury-house-about.jpg",
-      "/new assests/about page logos/drone pic.jpg"
-    ],
-    fullDescription: "Explore the latest developments at Prime View. From sprawling green landscapes to the construction of state-of-the-art residential and commercial zones, our community is rapidly taking shape. Witness the harmony of nature and modern infrastructure.",
-  },
-  {
-    id: "event-3",
-    title: "Blue Water Overview",
-    date: "December 10, 2023",
-    summary: "Discover the breathtaking water features integrated into the Prime View landscape.",
-    videoPreview: "/new assests/Vedios/PM BLUE WATER.mp4",
-    coverImage: "/assets/gallery/axel-holen-537656-unsplash-jpg.jpg",
-    gallery: [
-      "/assets/gallery/axel-holen-537656-unsplash-jpg.jpg",
-      "/assets/gallery/site-picture.jpg",
-      "/assets/gallery/prime-site-view.jpg",
-    ],
-    fullDescription: "Water is at the heart of our ecological design. The Blue Water project integrates natural streams and custom water features into the community, providing residents with serene spots for relaxation and enhancing the local microclimate.",
-  },
-  {
-    id: "event-4",
-    title: "Drone Footage",
-    date: "January 05, 2024",
-    summary: "Aerial perspectives capturing the vast expanse and strategic location of our society.",
-    videoPreview: "/new assests/Vedios/low qual vedio drone shoot.mp4",
-    coverImage: "/new assests/new pic/Aerial_view_of_town_center_202608142359.jpeg",
-    gallery: [
-      "/new assests/new pic/Aerial_view_of_town_center_202608142359.jpeg",
-      "/assets/gallery/abbotabad-club.jpg",
-      "/assets/gallery/prime-site-view.jpg",
-      "/assets/gallery/greenery_villa_cinematic.jpg"
-    ],
-    fullDescription: "Take to the skies with our latest drone footage. See the strategic location of Prime View nestled in the Abbottabad hills, showcasing the seamless connectivity to major highways while retaining a peaceful, secluded atmosphere.",
-  }
 ];
+

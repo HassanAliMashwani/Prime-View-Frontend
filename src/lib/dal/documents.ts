@@ -11,6 +11,7 @@ export interface PlotDocuments {
 
 export async function getMyDocuments(): Promise<{ ok: boolean; data: PlotDocuments[]; error?: string }> {
   try {
+    mockStore.loadFromStorage();
     const session = requireMemberSession();
     const userBookings = mockStore.bookings.filter((b) => b.customerId === session.customerId);
 

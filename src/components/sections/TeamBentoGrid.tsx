@@ -109,13 +109,16 @@ const TeamCard = ({
             <div className="w-6 h-[1px] bg-black/[0.08] my-1.5 shrink-0" />
 
             {/* Fixed-height role container: keeps identical spacing across all cards */}
-            <p className="text-[#6B7462] text-[10px] lg:text-[11px] font-medium leading-tight h-6 flex items-center justify-center text-center px-1">
+            <p
+              className="text-[#6B7462] text-[10px] lg:text-[11px] font-medium leading-tight h-6 flex items-center justify-center text-center px-1 line-clamp-1"
+              title={member.role}
+            >
               {member.role}
             </p>
 
             {/* Read Bio Link — elegant non-pill text style with animated underline and floating arrow */}
             <div className="h-7 flex items-center justify-center mt-2 shrink-0">
-              {member.bioBullets && onOpenBio ? (
+              {((member.bioBullets && member.bioBullets.length > 0) || (member.bioSections && member.bioSections.length > 0) || member.bio) && onOpenBio ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -173,11 +176,11 @@ const BioModal: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-2xl bg-[#FAF9F7] rounded-[28px] border border-black/[0.08] shadow-2xl p-6 sm:p-8 overflow-hidden text-[#151914] animate-in zoom-in-95 duration-200"
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-[#FAF9F7] rounded-[28px] border border-black/[0.08] shadow-2xl p-6 sm:p-8 text-[#151914] animate-in zoom-in-95 duration-200 cursor-default custom-modal-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}
@@ -243,7 +246,30 @@ const BioModal: React.FC<{
               </p>
             )}
 
-            {member.bioBullets && member.bioBullets.length > 0 && (
+            {/* Structured Sections if available */}
+            {member.bioSections && member.bioSections.length > 0 ? (
+              <div className="pt-2 space-y-4">
+                {member.bioSections.map((section, sIdx) => (
+                  <div key={sIdx} className="space-y-2">
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[#43612B] flex items-center justify-center sm:justify-start gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#43612B]" />
+                      {section.heading}
+                    </p>
+                    <ul className="space-y-1.5 pl-1">
+                      {section.bullets.map((bullet, bIdx) => (
+                        <li
+                          key={bIdx}
+                          className="flex items-start gap-2 text-xs sm:text-[13px] text-[#2C3529] font-medium leading-snug text-left"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-[#43612B] shrink-0 mt-0.5" />
+                          <span>{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : member.bioBullets && member.bioBullets.length > 0 ? (
               <div className="pt-1">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-[#151914] mb-2">
                   Specialized Credentials &amp; Background:
@@ -252,7 +278,7 @@ const BioModal: React.FC<{
                   {member.bioBullets.map((bullet, idx) => (
                     <li
                       key={idx}
-                      className="flex items-start gap-2 text-xs sm:text-[13px] text-[#2C3529] font-medium leading-snug"
+                      className="flex items-start gap-2 text-xs sm:text-[13px] text-[#2C3529] font-medium leading-snug text-left"
                     >
                       <CheckCircle2 className="w-4 h-4 text-[#43612B] shrink-0 mt-0.5" />
                       <span>{bullet}</span>
@@ -260,7 +286,7 @@ const BioModal: React.FC<{
                   ))}
                 </ul>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

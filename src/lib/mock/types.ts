@@ -65,6 +65,9 @@ export interface Customer {
   mailingAddress: string;
   nokName: string;
   nokCnic: string;
+  applicantPhotoUrl?: string;
+  cnicCopyUrl?: string;
+  nokCnicCopyUrl?: string;
   accountStatus: AccountStatus;
   createdDate: string;
   lastLogin?: string;
@@ -96,6 +99,7 @@ export interface Booking {
   status: 'active' | 'completed' | 'cancelled';
   bookingDate: string;
   confirmationDate?: string;
+  paperInstallmentRef?: string;
 }
 
 export interface PaymentRecord {
@@ -132,14 +136,14 @@ export interface MemberSession {
   expiresAt: number;
 }
 
-// ── Admin Roles & Permissions (Phase 2) ──
+// ── Admin Roles & Permissions (Phase 2 & Phase 3) ──
 export type AdminRole = 'super_admin' | 'sub_admin';
 
 export interface AdminPermissions {
   can_reserve: boolean;
   can_book: boolean;
   can_create_customer?: boolean;
-  can_manage_sub_admins?: boolean;
+  can_edit_content?: boolean;
 }
 
 export interface AdminUser {
@@ -191,6 +195,34 @@ export interface Reservation {
   resolutionNote?: string;
 }
 
+// ── Content CMS (Phase 3) ──
+export type ContentSection = 'plans' | 'events';
+
+export interface ContentBlock {
+  id: string;
+  section: ContentSection;
+  title: string;
+  subtitle?: string;
+  category?: string;
+  content: string;
+  metadata: {
+    price?: number;
+    size?: string;
+    date?: string;
+    location?: string;
+    imageUrl?: string;
+    featured?: boolean;
+    tags?: string[];
+    [key: string]: unknown;
+  };
+  lastModifiedBy?: string;
+  lastModifiedAt?: string;
+  lockedBy?: string;
+  lockedByName?: string;
+  lockedAt?: number;
+}
+
+// ── Audit Trail (Phase 3) ──
 export interface AuditEntry {
   id: string;
   timestamp: string;
@@ -198,8 +230,10 @@ export interface AuditEntry {
   actorName: string;
   actorRole: 'customer' | 'super_admin' | 'sub_admin';
   action: string;
-  entityType: 'customer' | 'plot' | 'booking' | 'payment' | 'document' | 'content' | 'reservation' | 'lock';
+  entityType: 'customer' | 'plot' | 'booking' | 'payment' | 'document' | 'content' | 'reservation' | 'lock' | 'sub_admin';
   entityId: string;
   details: string;
+  oldValue?: string;
+  newValue?: string;
 }
 

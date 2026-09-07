@@ -1,4 +1,4 @@
-import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AdminUser, Reservation } from './types';
+import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AdminUser, Reservation, ContentBlock } from './types';
 
 export const initialBlocks: Block[] = [
   {
@@ -134,7 +134,7 @@ export const initialAdminUsers: AdminUser[] = [
     email: 'admin@primeview.pk',
     role: 'super_admin',
     assignedBlocks: [], // all blocks
-    permissions: { can_reserve: true, can_book: true, can_create_customer: true, can_manage_sub_admins: true },
+    permissions: { can_reserve: true, can_book: true, can_create_customer: true, can_edit_content: true },
     status: 'active',
     passwordHash: 'password123',
     createdDate: '2026-01-01',
@@ -147,7 +147,7 @@ export const initialAdminUsers: AdminUser[] = [
     email: 'marketing@primeview.pk',
     role: 'sub_admin',
     assignedBlocks: ['abbott', 'royal'],
-    permissions: { can_reserve: true, can_book: true, can_create_customer: true },
+    permissions: { can_reserve: true, can_book: true, can_create_customer: true, can_edit_content: true },
     status: 'active',
     passwordHash: 'password123',
     createdDate: '2026-01-15',
@@ -160,7 +160,7 @@ export const initialAdminUsers: AdminUser[] = [
     email: 'police.liaison@primeview.pk',
     role: 'sub_admin',
     assignedBlocks: ['overseas', 'elite', 'chalet'],
-    permissions: { can_reserve: true, can_book: true, can_create_customer: true },
+    permissions: { can_reserve: true, can_book: true, can_create_customer: false, can_edit_content: false },
     status: 'active',
     passwordHash: 'password123',
     createdDate: '2026-02-01',
@@ -1341,4 +1341,104 @@ export const initialReservations: Reservation[] = [
     resolutionNote: 'VIP Farm House reservation awaiting bank pay order.',
   },
 ];
+
+export const initialContentBlocks: ContentBlock[] = [
+  {
+    id: 'plan-res-1',
+    section: 'plans',
+    title: 'Executive Residential Sector Plan',
+    subtitle: 'Abbott & Royal Blocks • 5, 7.5, 10, 13 Marla & 1 Kanal',
+    category: 'residential',
+    content: 'Comprehensive plot breakdown with standard 20% down payment, 8 quarterly installment options, and priority possession upon 60% liquidation.',
+    metadata: {
+      price: 3600000,
+      size: '5 Marla - 1 Kanal',
+      featured: true,
+      tags: ['Executive', 'Gated', 'Underground Utilities'],
+    },
+    lastModifiedBy: 'Chief Executive Officer (Super Admin)',
+    lastModifiedAt: '2026-09-01T10:00:00Z',
+  },
+  {
+    id: 'plan-farm-1',
+    section: 'plans',
+    title: 'Luxury 2 Kanal Farm Houses',
+    subtitle: 'Elite Block • Scenic Highland Country Living',
+    category: 'farm_house',
+    content: 'Exclusive 2 Kanal farm house terrain featuring natural orchards, natural water stream proximity, and private perimeter security arrangements.',
+    metadata: {
+      price: 25000000,
+      size: '2 Kanal Farm House',
+      featured: true,
+      tags: ['Luxury', 'Scenic', 'Private Estate'],
+    },
+    lastModifiedBy: 'Chief Executive Officer (Super Admin)',
+    lastModifiedAt: '2026-09-02T14:30:00Z',
+  },
+  {
+    id: 'plan-comm-1',
+    section: 'plans',
+    title: 'Main Boulevard Commercial Zone',
+    subtitle: 'Commercial Block • 25x40 & 30x50 High-Yield Plazas',
+    category: 'commercial',
+    content: 'Prime commercial plots facing the 120ft central arterial expressway, approved for 4-storey commercial and corporate plaza development.',
+    metadata: {
+      price: 15000000,
+      size: '25x40 & 30x50',
+      featured: false,
+      tags: ['Commercial', 'Main Boulevard', 'High ROI'],
+    },
+    lastModifiedBy: 'Chief Executive Officer (Super Admin)',
+    lastModifiedAt: '2026-09-03T11:15:00Z',
+  },
+  {
+    id: 'event-ballot-2026',
+    section: 'events',
+    title: 'Grand Annual Allotment Balloting 2026',
+    subtitle: 'Overseas, Royal & Abbott Blocks Allotments',
+    category: 'balloting',
+    content: 'Computerized balloting ceremony in the presence of legal and society executive board members. Live broadcast for overseas members across USA, UK, and UAE.',
+    metadata: {
+      date: '2026-10-15T11:00:00Z',
+      location: 'Prime View Executive Country Pavilion',
+      featured: true,
+      tags: ['Balloting', 'Allotment', 'Members Event'],
+    },
+    lastModifiedBy: 'Chief Executive Officer (Super Admin)',
+    lastModifiedAt: '2026-09-04T16:00:00Z',
+  },
+  {
+    id: 'event-site-tour',
+    section: 'events',
+    title: 'Infrastructure Progress Tour & Open House',
+    subtitle: 'Filtration Plant, Underground Power & Boulevard Inspection',
+    category: 'site_update',
+    content: 'Guided site tour for registered society members and prospective buyers showcasing asphalt carpeting on Roads 1 to 4 and solar grid station commissioning.',
+    metadata: {
+      date: '2026-09-22T10:00:00Z',
+      location: 'Hazara Expressway Gate 1',
+      featured: true,
+      tags: ['Inspection', 'Open House', 'Development'],
+    },
+    lastModifiedBy: 'Farhan Zaidi (Marketing Lead)',
+    lastModifiedAt: '2026-09-05T09:20:00Z',
+  },
+  {
+    id: 'event-plantation-drive',
+    section: 'events',
+    title: 'Clean & Green Hazara Tree Plantation',
+    subtitle: '10,000 Pine & Fruit Trees Plantation Drive',
+    category: 'community',
+    content: 'Community environmental initiative partnering with local forest department to plant 10,000 pine, olive, and walnut trees across Central Park and green verges.',
+    metadata: {
+      date: '2026-09-30T09:00:00Z',
+      location: 'Central Amenity Park, Royal Block',
+      featured: false,
+      tags: ['Eco-Friendly', 'Community', 'Green Drive'],
+    },
+    lastModifiedBy: 'Chief Executive Officer (Super Admin)',
+    lastModifiedAt: '2026-09-05T12:00:00Z',
+  },
+];
+
 

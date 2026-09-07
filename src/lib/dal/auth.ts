@@ -45,6 +45,7 @@ function removeCookie(name: string): void {
  * Enforces rate-limiting counter and generic security errors.
  */
 export async function login(identifier: string, password: string): Promise<LoginResult> {
+  mockStore.loadFromStorage();
   const trimmedId = identifier.trim();
 
   // 1. Rate-limit check (Exception 5.3)
@@ -63,7 +64,8 @@ export async function login(identifier: string, password: string): Promise<Login
     const matchCnic = c.cnic.replace(/\D/g, '') === trimmedId.replace(/\D/g, '');
     const matchPhone = c.phone.replace(/\D/g, '') === trimmedId.replace(/\D/g, '');
     const matchEmail = c.email.toLowerCase() === trimmedId.toLowerCase();
-    return matchCnic || matchPhone || matchEmail;
+    const matchMembership = c.membershipNo.toLowerCase() === trimmedId.toLowerCase();
+    return matchCnic || matchPhone || matchEmail || matchMembership;
   });
 
   // 3. Validate credentials

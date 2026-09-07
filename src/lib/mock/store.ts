@@ -1,5 +1,5 @@
-import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AuditEntry, AdminUser, Reservation } from './types';
-import { initialBlocks, initialCustomers, initialPlots, initialBookings, initialPayments, initialDocuments, initialAdminUsers, initialReservations } from './seed';
+import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AuditEntry, AdminUser, Reservation, ContentBlock } from './types';
+import { initialBlocks, initialCustomers, initialPlots, initialBookings, initialPayments, initialDocuments, initialAdminUsers, initialReservations, initialContentBlocks } from './seed';
 
 export interface SyncEvent {
   type:
@@ -11,7 +11,13 @@ export interface SyncEvent {
     | 'PLOT_UNLOCKED'
     | 'PLOT_RESERVED'
     | 'PLOT_BOOKED'
-    | 'RESERVATION_UPDATED';
+    | 'RESERVATION_UPDATED'
+    | 'SUB_ADMIN_CREATED'
+    | 'SUB_ADMIN_UPDATED'
+    | 'CONTENT_LOCKED'
+    | 'CONTENT_UNLOCKED'
+    | 'CONTENT_SAVED'
+    | 'CUSTOMER_CREATED';
   timestamp: string;
   [key: string]: unknown;
 }
@@ -25,28 +31,89 @@ class MockStore {
   public documents: SocietyDocument[] = [...initialDocuments];
   public adminUsers: AdminUser[] = [...initialAdminUsers];
   public reservations: Reservation[] = [...initialReservations];
+  public contentBlocks: ContentBlock[] = [...initialContentBlocks];
   public auditLog: AuditEntry[] = [];
 
   // In-memory rate limiting map: identifier -> { count, lockedUntil }
   private failedLoginAttempts: Map<string, { count: number; lockedUntil?: number }> = new Map();
 
-  // In-memory lock auto-release timeouts (10 minutes)
+  // In-memory lock auto-release timeouts (10 minutes for plots, 30 minutes for content)
   private lockTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private contentLockTimeouts: Map<string, NodeJS.Timeout> = new Map();
 
   private channel: BroadcastChannel | null = null;
 
   constructor() {
-    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
-      try {
-        this.channel = new BroadcastChannel('prime-view-sync');
-      } catch (e) {
-        console.warn('BroadcastChannel initialization failed:', e);
+    if (typeof window !== 'undefined') {
+      this.loadFromStorage();
+
+      if ('BroadcastChannel' in window) {
+        try {
+          this.channel = new BroadcastChannel('prime-view-sync');
+          this.channel.onmessage = () => {
+            this.loadFromStorage();
+          };
+        } catch (e) {
+          console.warn('BroadcastChannel initialization failed:', e);
+        }
       }
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'pv_mock_store') {
+          this.loadFromStorage();
+        }
+      });
+    }
+  }
+
+  public saveToStorage(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const state = {
+        plots: this.plots,
+        reservations: this.reservations,
+        bookings: this.bookings,
+        payments: this.payments,
+        customers: this.customers,
+        adminUsers: this.adminUsers,
+        contentBlocks: this.contentBlocks,
+        auditLog: this.auditLog,
+      };
+      localStorage.setItem('pv_mock_store', JSON.stringify(state));
+    } catch (e) {
+      console.warn('Failed saving mockStore to localStorage:', e);
+    }
+  }
+
+  public loadFromStorage(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = localStorage.getItem('pv_mock_store');
+      if (raw) {
+        const state = JSON.parse(raw);
+        if (state.plots && state.plots.length > 0) this.plots = state.plots;
+        if (state.reservations && state.reservations.length > 0) {
+          this.reservations = state.reservations;
+        } else {
+          this.reservations = [...initialReservations];
+        }
+        if (state.bookings && state.bookings.length > 0) this.bookings = state.bookings;
+        if (state.payments && state.payments.length > 0) this.payments = state.payments;
+        if (state.customers && state.customers.length > 0) this.customers = state.customers;
+        if (state.adminUsers && state.adminUsers.length > 0) this.adminUsers = state.adminUsers;
+        if (state.contentBlocks && state.contentBlocks.length > 0) this.contentBlocks = state.contentBlocks;
+        if (state.auditLog) this.auditLog = state.auditLog;
+      } else {
+        this.saveToStorage();
+      }
+    } catch (e) {
+      console.warn('Failed loading mockStore from localStorage:', e);
     }
   }
 
   // Cross-tab broadcast dispatcher
   public broadcast(event: SyncEvent): void {
+    this.saveToStorage();
     if (this.channel) {
       try {
         this.channel.postMessage(event);
@@ -58,6 +125,19 @@ class MockStore {
 
   public getBroadcastChannel(): BroadcastChannel | null {
     return this.channel;
+  }
+
+  public onBroadcast(listener: (event: SyncEvent) => void): () => void {
+    if (!this.channel) return () => {};
+    const handler = (e: MessageEvent) => {
+      if (e.data) {
+        listener(e.data as SyncEvent);
+      }
+    };
+    this.channel.addEventListener('message', handler);
+    return () => {
+      this.channel?.removeEventListener('message', handler);
+    };
   }
 
   // Lock Auto-Release Management (10 simulated minutes)
@@ -94,6 +174,7 @@ class MockStore {
   }
 
   public cleanExpiredLocks(): void {
+    this.loadFromStorage();
     const now = Date.now();
     const lockExpiryMs = 10 * 60 * 1000;
     this.plots.forEach(plot => {
@@ -149,6 +230,53 @@ class MockStore {
     this.failedLoginAttempts.delete(key);
   }
 
+  // Content Lock Auto-Release Management (30 simulated minutes)
+  public scheduleContentLockTimeout(blockId: string, durationMs: number = 30 * 60 * 1000): void {
+    this.clearContentLockTimeout(blockId);
+    const timeout = setTimeout(() => {
+      const block = this.contentBlocks.find(b => b.id === blockId);
+      if (block && block.lockedBy) {
+        block.lockedBy = undefined;
+        block.lockedByName = undefined;
+        block.lockedAt = undefined;
+        this.broadcast({
+          type: 'CONTENT_UNLOCKED',
+          timestamp: new Date().toISOString(),
+          contentBlockId: blockId,
+          reason: 'LOCK_EXPIRED',
+        });
+      }
+      this.contentLockTimeouts.delete(blockId);
+    }, durationMs);
+
+    if (typeof timeout.unref === 'function') {
+      timeout.unref();
+    }
+    this.contentLockTimeouts.set(blockId, timeout);
+  }
+
+  public clearContentLockTimeout(blockId: string): void {
+    const timeout = this.contentLockTimeouts.get(blockId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.contentLockTimeouts.delete(blockId);
+    }
+  }
+
+  public cleanExpiredContentLocks(): void {
+    this.loadFromStorage();
+    const now = Date.now();
+    const lockExpiryMs = 30 * 60 * 1000;
+    this.contentBlocks.forEach(block => {
+      if (block.lockedBy && block.lockedAt && now - block.lockedAt > lockExpiryMs) {
+        block.lockedBy = undefined;
+        block.lockedByName = undefined;
+        block.lockedAt = undefined;
+        this.clearContentLockTimeout(block.id);
+      }
+    });
+  }
+
   // Audit Logging
   public addAuditEntry(entry: Omit<AuditEntry, 'id' | 'timestamp'>): void {
     const newEntry: AuditEntry = {
@@ -157,6 +285,7 @@ class MockStore {
       timestamp: new Date().toISOString(),
     };
     this.auditLog.unshift(newEntry);
+    this.saveToStorage();
   }
 
   // Reset helper
@@ -169,10 +298,13 @@ class MockStore {
     this.documents = [...initialDocuments];
     this.adminUsers = [...initialAdminUsers];
     this.reservations = [...initialReservations];
+    this.contentBlocks = [...initialContentBlocks];
     this.auditLog = [];
     this.failedLoginAttempts.clear();
     this.lockTimeouts.forEach(t => clearTimeout(t));
     this.lockTimeouts.clear();
+    this.contentLockTimeouts.forEach(t => clearTimeout(t));
+    this.contentLockTimeouts.clear();
   }
 }
 

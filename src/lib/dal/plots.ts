@@ -20,6 +20,7 @@ export interface EnrichedPlot extends Plot {
 
 export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[]; error?: string }> {
   try {
+    mockStore.loadFromStorage();
     const session = requireMemberSession();
     // Resolve bookings belonging to this customer only
     const userBookings = mockStore.bookings.filter((b) => b.customerId === session.customerId);
@@ -81,6 +82,7 @@ export async function getPlotDetails(
   plotId: string
 ): Promise<{ ok: boolean; data?: EnrichedPlot; error?: string }> {
   try {
+    mockStore.loadFromStorage();
     const session = requireMemberSession();
 
     // Verify ownership: customer owns the booking for this plot (Exception 5.4)

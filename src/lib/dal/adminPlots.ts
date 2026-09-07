@@ -188,14 +188,6 @@ export async function acquireLock(
 
   mockStore.scheduleLockTimeout(plotId, 10 * 60 * 1000);
 
-  mockStore.broadcast({
-    type: 'PLOT_LOCKED',
-    timestamp: new Date().toISOString(),
-    plotId,
-    lockedBy: session.adminId,
-    lockedByName: session.fullName,
-  });
-
   mockStore.addAuditEntry({
     actorId: session.adminId,
     actorName: session.fullName,
@@ -204,6 +196,14 @@ export async function acquireLock(
     entityType: 'lock',
     entityId: plotId,
     details: `Admin ${session.fullName} acquired 10m booking lock on ${plot.plotNumber}`,
+  });
+
+  mockStore.broadcast({
+    type: 'PLOT_LOCKED',
+    timestamp: new Date().toISOString(),
+    plotId,
+    lockedBy: session.adminId,
+    lockedByName: session.fullName,
   });
 
   return { ok: true, plot };
@@ -216,6 +216,7 @@ export async function releaseLock(
   session: AdminSession,
   plotId: string
 ): Promise<{ ok: boolean; error?: string }> {
+  mockStore.loadFromStorage();
   const plot = mockStore.plots.find((p) => p.id === plotId);
   if (!plot) return { ok: false, error: 'PLOT_NOT_FOUND' };
 
@@ -225,13 +226,6 @@ export async function releaseLock(
     plot.lockedAt = undefined;
     mockStore.clearLockTimeout(plotId);
 
-    mockStore.broadcast({
-      type: 'PLOT_UNLOCKED',
-      timestamp: new Date().toISOString(),
-      plotId,
-      reason: 'MANUAL_RELEASE',
-    });
-
     mockStore.addAuditEntry({
       actorId: session.adminId,
       actorName: session.fullName,
@@ -240,6 +234,13 @@ export async function releaseLock(
       entityType: 'lock',
       entityId: plotId,
       details: `Lock released on ${plot.plotNumber}`,
+    });
+
+    mockStore.broadcast({
+      type: 'PLOT_UNLOCKED',
+      timestamp: new Date().toISOString(),
+      plotId,
+      reason: 'MANUAL_RELEASE',
     });
 
     return { ok: true };
@@ -268,6 +269,7 @@ export async function reservePlot(
   plot?: Plot;
   error?: string;
 }> {
+  mockStore.loadFromStorage();
   if (!session.permissions.can_reserve) {
     return { ok: false, error: 'FORBIDDEN' };
   }
@@ -324,13 +326,6 @@ export async function reservePlot(
 
   mockStore.reservations.push(reservation);
 
-  mockStore.broadcast({
-    type: 'PLOT_RESERVED',
-    timestamp: new Date().toISOString(),
-    plotId: plot.id,
-    reservationId: reservation.id,
-  });
-
   mockStore.addAuditEntry({
     actorId: session.adminId,
     actorName: session.fullName,
@@ -339,6 +334,13 @@ export async function reservePlot(
     entityType: 'reservation',
     entityId: reservation.id,
     details: `Plot ${plot.plotNumber} reserved for ${reservation.customerName} (Token: PKR ${reservation.tokenFee.toLocaleString()})`,
+  });
+
+  mockStore.broadcast({
+    type: 'PLOT_RESERVED',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+    reservationId: reservation.id,
   });
 
   return { ok: true, reservation, plot };
@@ -372,6 +374,8 @@ export async function bookPlot(
   customer?: Customer;
   error?: string;
 }> {
+  mockStore.loadFromStorage();
+
   if (!session.permissions.can_book) {
     return { ok: false, error: 'FORBIDDEN' };
   }
@@ -537,16 +541,16 @@ export async function bookPlot(
       res.supersededAt = new Date().toISOString();
       res.supersededByBookingId = bookingId;
       res.resolutionNote = `Superseded by direct purchase commitment ${bookingId}`;
+      mockStore.addAuditEntry({
+        actorId: session.adminId,
+        actorName: session.fullName,
+        actorRole: session.role,
+        action: 'RESERVATION_SUPERSEDED',
+        entityType: 'reservation',
+        entityId: res.id,
+        details: `Reservation ${res.id} for ${res.customerName} on plot ${plot.plotNumber} superseded by booking ${bookingId}`,
+      });
     }
-  });
-
-  // Cross-tab broadcast & Audit Log
-  mockStore.broadcast({
-    type: 'PLOT_BOOKED',
-    timestamp: new Date().toISOString(),
-    plotId: plot.id,
-    bookingId,
-    customerId: customer.id,
   });
 
   mockStore.addAuditEntry({
@@ -557,6 +561,15 @@ export async function bookPlot(
     entityType: 'booking',
     entityId: bookingId,
     details: `Committed booking ${bookingId} for plot ${plot.plotNumber} to ${customer.fullName}`,
+  });
+
+  // Cross-tab broadcast & Audit Log
+  mockStore.broadcast({
+    type: 'PLOT_BOOKED',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+    bookingId,
+    customerId: customer.id,
   });
 
   return { ok: true, booking, plot, customer };

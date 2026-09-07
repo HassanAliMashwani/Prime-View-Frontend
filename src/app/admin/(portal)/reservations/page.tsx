@@ -11,11 +11,25 @@ import {
   Edit3, 
   ArrowRight, 
   X,
-  Building2
+  Building2,
+  RotateCcw
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getReservations, updateReservationNote, ReservationWithConflict } from '@/lib/dal/reservations';
+import { getReservations, updateReservationNote, confirmReservation, cancelReservation, ReservationWithConflict } from '@/lib/dal/reservations';
+import { bookPlot } from '@/lib/dal/adminPlots';
 import { AdminSession, Reservation } from '@/lib/mock/types';
+import { mockStore } from '@/lib/mock/store';
+
+const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
+  abbott: { badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', border: 'border-emerald-200', accent: 'text-emerald-800' },
+  royal: { badge: 'bg-amber-100 text-amber-900 border-amber-300', border: 'border-amber-200', accent: 'text-amber-800' },
+  overseas: { badge: 'bg-sky-100 text-sky-900 border-sky-300', border: 'border-sky-200', accent: 'text-sky-800' },
+  elite: { badge: 'bg-purple-100 text-purple-900 border-purple-300', border: 'border-purple-200', accent: 'text-purple-800' },
+  chalet: { badge: 'bg-rose-100 text-rose-900 border-rose-300', border: 'border-rose-200', accent: 'text-rose-800' },
+  commercial: { badge: 'bg-indigo-100 text-indigo-900 border-indigo-300', border: 'border-indigo-200', accent: 'text-indigo-800' },
+  'npf-phase-1': { badge: 'bg-teal-100 text-teal-900 border-teal-300', border: 'border-teal-200', accent: 'text-teal-800' },
+  'npf-phase-2': { badge: 'bg-cyan-100 text-cyan-900 border-cyan-300', border: 'border-cyan-200', accent: 'text-cyan-800' },
+};
 
 export default function ReservationsPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
@@ -32,6 +46,7 @@ export default function ReservationsPage() {
 
   const loadData = useCallback(async (s: AdminSession) => {
     try {
+      mockStore.loadFromStorage();
       const res = await getReservations(s, {
         search,
         blockId: blockFilter,
@@ -39,6 +54,7 @@ export default function ReservationsPage() {
       });
 
       if (res.ok) {
+        console.log('RESERVATIONS LOADED:', res.reservations.length, res.reservations);
         setReservations(res.reservations);
       }
     } catch (err) {
@@ -55,6 +71,67 @@ export default function ReservationsPage() {
       loadData(s);
     }
   }, [loadData]);
+
+  // Real-time multi-window sync (Exception 5.5)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleSync = () => {
+      mockStore.loadFromStorage();
+      const s = getActiveAdminSession();
+      if (s) {
+        loadData(s);
+      }
+    };
+
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      channel = new BroadcastChannel('prime-view-sync');
+      channel.onmessage = handleSync;
+    }
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'pv_mock_store') {
+        handleSync();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, [loadData]);
+
+  const handleConfirmBooking = async (r: Reservation) => {
+    if (!session) return;
+    if (!confirm(`Confirm to move ${r.customerName}'s reservation on Plot ${r.plotNumber} to official Booked status? Doing so will supersede any conflicting reservations on this plot.`)) {
+      return;
+    }
+    const res = await confirmReservation(session, r.id, 'one_time');
+    if (res.ok) {
+      await loadData(session);
+    } else {
+      alert(`Failed to confirm booking: ${res.error}`);
+    }
+  };
+
+  const handleCancelReservation = async (r: Reservation) => {
+    if (!session) return;
+    if (
+      !confirm(
+        `Are you sure you want to release the reservation for ${r.customerName} on Plot ${r.plotNumber}?\n\nThis will revoke the active token reservation and return the plot to Available inventory.`
+      )
+    ) {
+      return;
+    }
+    const res = await cancelReservation(session, r.id, 'Released by admin from Reservations Ledger');
+    if (res.ok) {
+      await loadData(session);
+    } else {
+      alert(`Failed to release reservation: ${res.error}`);
+    }
+  };
 
   const handleOpenEditNote = (res: Reservation) => {
     setEditingRes(res);
@@ -94,35 +171,35 @@ export default function ReservationsPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Header Banner - Executive Forest Green */}
-      <div className="bg-gradient-to-r from-[#10251E] to-[#183B2B] border border-[#23503B] rounded-2xl p-6 sm:p-7 shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4 text-white">
+      {/* Header Banner - Light Warm Amber-Gold Theme */}
+      <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-white border-2 border-amber-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#D4AF37] flex items-center gap-1.5">
-              <BookmarkCheck className="w-3.5 h-3.5" />
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+              <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
               Sort Reservation Ledger
             </span>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight">
+          <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-slate-900">
             Token Allocations & Dispute Management
           </h2>
-          <p className="text-xs text-emerald-100/80 mt-1 max-w-2xl">
+          <p className="text-xs text-slate-600 mt-1 max-w-2xl">
             Track token deposits, resolve duplicate counter claims, and commit verified reservations into official bookings.
           </p>
         </div>
 
         {/* Tab Controls */}
-        <div className="flex items-center gap-1.5 bg-white/10 p-1.5 rounded-2xl border border-white/20">
+        <div className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200">
           <button
             onClick={() => setActiveTab('active')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'active'
-                ? 'bg-[#D4AF37] text-[#10251E] shadow-sm'
-                : 'text-emerald-100 hover:text-white'
+                ? 'bg-amber-500 text-amber-950 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <span>Active Reservations</span>
-            <span className="bg-[#10251E] text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
+            <span className="bg-amber-900 text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
               {activeReservations.length}
             </span>
           </button>
@@ -131,13 +208,13 @@ export default function ReservationsPage() {
             onClick={() => setActiveTab('history')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-[#D4AF37] text-[#10251E] shadow-sm'
-                : 'text-emerald-100 hover:text-white'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <History className="w-3.5 h-3.5" />
             <span>Resolved History</span>
-            <span className="bg-[#10251E] text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
+            <span className="bg-indigo-950 text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
               {historyReservations.length}
             </span>
           </button>
@@ -217,6 +294,8 @@ export default function ReservationsPage() {
           <div className="divide-y divide-slate-100">
             {displayedReservations.map((r) => {
               const isConflict = r.hasDuplicateConflict;
+              const sectorTheme = SECTOR_THEMES[r.blockId] || { badge: 'bg-slate-100 text-slate-800 border-slate-300', accent: 'text-slate-800' };
+
               return (
                 <div
                   key={r.id}
@@ -232,7 +311,7 @@ export default function ReservationsPage() {
                       <span className="font-mono font-bold text-sm text-slate-900 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
                         {r.plotNumber}
                       </span>
-                      <span className="text-xs uppercase font-mono font-bold text-emerald-800">
+                      <span className={`text-xs uppercase font-mono font-bold px-2 py-0.5 rounded-md border ${sectorTheme.badge}`}>
                         {r.blockId} Block
                       </span>
                       {isConflict && (
@@ -241,12 +320,14 @@ export default function ReservationsPage() {
                         </span>
                       )}
                       <span
-                        className={`text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[9px] uppercase font-mono font-bold px-2.5 py-0.5 rounded-full border ${
                           r.status === 'active'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                            ? 'bg-amber-100 text-amber-900 border-amber-300'
                             : r.status === 'confirmed'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
+                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : r.status === 'expired'
+                            ? 'bg-rose-100 text-rose-900 border-rose-300'
+                            : 'bg-slate-100 text-slate-700 border-slate-300'
                         }`}
                       >
                         {r.status}
@@ -254,7 +335,7 @@ export default function ReservationsPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-800">
-                      <span className="font-bold text-[#10251E] text-sm">{r.customerName}</span>
+                      <span className="font-bold text-slate-900 text-sm">{r.customerName}</span>
                       <span className="text-slate-600 font-medium">{r.customerPhone}</span>
                       <span className="text-slate-400 font-medium">{r.customerEmail}</span>
                     </div>
@@ -262,7 +343,7 @@ export default function ReservationsPage() {
                     <div className="flex flex-wrap items-center gap-x-4 text-[11px] text-slate-500">
                       <span>
                         Token Deposit:{' '}
-                        <strong className="text-slate-900 font-mono font-bold">
+                        <strong className="text-emerald-800 font-mono font-bold">
                           PKR {r.tokenFee.toLocaleString()}
                         </strong>
                       </span>
@@ -274,12 +355,12 @@ export default function ReservationsPage() {
                         </strong>
                       </span>
                       <span>•</span>
-                      <span>Reserved By: <strong>{r.reservedByAdminName}</strong></span>
+                      <span>Reserved By: <strong className="text-slate-700">{r.reservedByAdminName}</strong></span>
                     </div>
 
                     {/* Note / Dispute Context */}
                     {r.resolutionNote && (
-                      <div className="text-[11px] text-amber-900 bg-amber-50/70 border border-amber-200 p-2 rounded-xl inline-block mt-1">
+                      <div className="text-[11px] text-amber-900 bg-amber-50/80 border border-amber-200 p-2 rounded-xl inline-block mt-1">
                         <strong className="text-amber-800">Dispute/Status Note:</strong>{' '}
                         {r.resolutionNote}
                       </div>
@@ -297,13 +378,35 @@ export default function ReservationsPage() {
                       <span>Note</span>
                     </button>
 
+                    {r.status === 'active' && session.permissions.can_book && (
+                      <button
+                        onClick={() => handleConfirmBooking(r)}
+                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                        title="Move this reservation to official Booked status"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-200" />
+                        <span>Move to Booked</span>
+                      </button>
+                    )}
+
+                    {r.status === 'active' && session.permissions.can_reserve && (
+                      <button
+                        onClick={() => handleCancelReservation(r)}
+                        className="px-3 py-2 bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 hover:border-rose-300 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Release reservation back to society inventory"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
+                        <span>Release</span>
+                      </button>
+                    )}
+
                     {r.status === 'active' && (
                       <Link
                         href={`/admin/master-plan/${r.blockId}`}
-                        className="px-3.5 py-2 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                       >
                         <span>Manage In Grid</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-[#D4AF37]" />
+                        <ArrowRight className="w-3.5 h-3.5 text-amber-200" />
                       </Link>
                     )}
                   </div>
@@ -349,7 +452,7 @@ export default function ReservationsPage() {
                   value={noteText}
                   onChange={(e) => setNoteText(e.target.value)}
                   placeholder="Detail priority justification, counter deposit verification, or executive clearance..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 resize-none focus:bg-white focus:border-[#10251E]"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 resize-none focus:bg-white focus:border-emerald-600"
                 />
               </div>
 
@@ -364,7 +467,7 @@ export default function ReservationsPage() {
                 <button
                   type="submit"
                   disabled={savingNote}
-                  className="px-4 py-2 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-colors cursor-pointer"
                 >
                   {savingNote ? 'Saving...' : 'Save Resolution Note'}
                 </button>
