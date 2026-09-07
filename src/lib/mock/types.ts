@@ -89,6 +89,14 @@ export interface Plot {
   lockedBy?: string;     // adminId holding the lock
   lockedByName?: string; // admin name for live badge
   lockedAt?: number;     // timestamp in ms
+  // Live Reserve Tracking (Non-blocking)
+  reservingBy?: string;     // primary/latest adminId reserving
+  reservingByName?: string; // admin name for live badge
+  reservingAt?: number;     // timestamp in ms
+  reservingUsers?: { adminId: string; adminName: string; timestamp: number }[];
+  // Disputed counter claims tracking
+  activeReservationCount?: number;
+  isDisputed?: boolean;
 }
 
 export interface Booking {
@@ -172,7 +180,7 @@ export interface AdminSession {
 }
 
 // ── Reservations (Sort Reservation, Phase 2) ──
-export type ReservationStatus = 'active' | 'confirmed' | 'superseded' | 'expired';
+export type ReservationStatus = 'active' | 'confirmed' | 'superseded' | 'expired' | 'cancelled';
 
 export interface Reservation {
   id: string;
@@ -192,6 +200,8 @@ export interface Reservation {
   confirmedByBookingId?: string;
   supersededAt?: string;
   supersededByBookingId?: string;
+  cancelledAt?: string;
+  cancelledByAdminId?: string;
   resolutionNote?: string;
 }
 

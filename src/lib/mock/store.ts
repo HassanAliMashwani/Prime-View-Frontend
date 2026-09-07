@@ -9,6 +9,8 @@ export interface SyncEvent {
     | 'PROFILE_UPDATED'
     | 'PLOT_LOCKED'
     | 'PLOT_UNLOCKED'
+    | 'PLOT_RESERVING'
+    | 'PLOT_RESERVING_CANCELLED'
     | 'PLOT_RESERVED'
     | 'PLOT_BOOKED'
     | 'RESERVATION_UPDATED'
@@ -93,9 +95,41 @@ class MockStore {
       const raw = localStorage.getItem('pv_mock_store');
       if (raw) {
         const state = JSON.parse(raw);
-        if (state.plots && state.plots.length > 0) this.plots = state.plots;
+        if (state.plots && state.plots.length > 0) {
+          const hasRealElitePlots = state.plots.some((p: Plot) => p.blockId === 'elite' && p.plotNumber === '233');
+          if (!hasRealElitePlots) {
+            const nonElite = state.plots.filter((p: Plot) => p.blockId !== 'elite');
+            const eliteFromInit = initialPlots.filter((p: Plot) => p.blockId === 'elite');
+            this.plots = [...nonElite, ...eliteFromInit];
+            this.saveToStorage();
+          } else {
+            this.plots = state.plots;
+          }
+        } else {
+          this.plots = [...initialPlots];
+        }
         if (state.reservations && state.reservations.length > 0) {
-          this.reservations = state.reservations;
+          const hasStaleEliteReservation = state.reservations.some((r: Reservation) => r.plotId === 'plot-fh-02');
+          if (hasStaleEliteReservation) {
+            this.reservations = state.reservations.map((r: Reservation) => {
+              if (r.plotId === 'plot-fh-02') {
+                return {
+                  ...r,
+                  plotId: 'plot-el-235',
+                  plotNumber: '235',
+                  resolutionNote: 'VIP Executive 2-Kanal reservation awaiting bank pay order.',
+                };
+              }
+              return r;
+            });
+            const p235 = this.plots.find((p) => p.id === 'plot-el-235');
+            if (p235 && p235.status === 'available') {
+              p235.status = 'reserved';
+            }
+            this.saveToStorage();
+          } else {
+            this.reservations = state.reservations;
+          }
         } else {
           this.reservations = [...initialReservations];
         }
@@ -204,6 +238,20 @@ class MockStore {
         plot.lockedByName = undefined;
         plot.lockedAt = undefined;
         this.clearLockTimeout(plot.id);
+      }
+      if (plot.reservingUsers && plot.reservingUsers.length > 0) {
+        plot.reservingUsers = plot.reservingUsers.filter(u => now - u.timestamp <= lockExpiryMs);
+        if (plot.reservingUsers.length > 0) {
+          const latest = plot.reservingUsers[plot.reservingUsers.length - 1];
+          plot.reservingBy = latest.adminId;
+          plot.reservingByName = latest.adminName;
+          plot.reservingAt = latest.timestamp;
+        } else {
+          plot.reservingUsers = undefined;
+          plot.reservingBy = undefined;
+          plot.reservingByName = undefined;
+          plot.reservingAt = undefined;
+        }
       }
     });
   }

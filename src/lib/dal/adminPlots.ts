@@ -8,11 +8,12 @@ export interface BlockSummary extends Block {
   reservedCount: number;
   bookedCount: number;
   amenityCount: number;
+  disputedCount?: number;
 }
 
 export interface PlotFilterOptions {
   search?: string;
-  status?: 'all' | 'available' | 'reserved' | 'booked';
+  status?: 'all' | 'available' | 'reserved' | 'booked' | 'disputed';
   category?: 'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity';
 }
 
@@ -37,6 +38,18 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
     const bookedCount = blockPlots.filter((p) => p.status === 'booked' && p.category !== 'amenity').length;
     const amenityCount = blockPlots.filter((p) => p.category === 'amenity').length;
 
+    // Track active competing reservations for dispute count
+    const activeResCounts = new Map<string, number>();
+    mockStore.reservations.forEach((r) => {
+      if (r.status === 'active' && r.blockId === block.id) {
+        activeResCounts.set(r.plotId, (activeResCounts.get(r.plotId) || 0) + 1);
+      }
+    });
+    let disputedCount = 0;
+    activeResCounts.forEach((count) => {
+      if (count > 1) disputedCount++;
+    });
+
     return {
       ...block,
       totalCount: blockPlots.length,
@@ -44,6 +57,7 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
       reservedCount,
       bookedCount,
       amenityCount,
+      disputedCount,
     };
   });
 
@@ -77,6 +91,24 @@ export async function getAdminBlockPlots(
 
   let plots = mockStore.plots.filter((p) => p.blockId === blockId);
 
+  // 1. Calculate active reservation counts for dispute tracking first
+  const activeReservationCounts = new Map<string, number>();
+  mockStore.reservations.forEach((r) => {
+    if (r.status === 'active' && r.blockId === blockId) {
+      activeReservationCounts.set(r.plotId, (activeReservationCounts.get(r.plotId) || 0) + 1);
+    }
+  });
+
+  plots = plots.map((p) => {
+    const count = activeReservationCounts.get(p.id) || 0;
+    return {
+      ...p,
+      activeReservationCount: count,
+      isDisputed: count > 1,
+    };
+  });
+
+  // 2. Search filtering
   if (filters?.search) {
     const s = filters.search.trim().toLowerCase();
     plots = plots.filter(
@@ -87,10 +119,16 @@ export async function getAdminBlockPlots(
     );
   }
 
+  // 3. Status filtering (including disputed)
   if (filters?.status && filters.status !== 'all') {
-    plots = plots.filter((p) => p.status === filters.status);
+    if (filters.status === 'disputed') {
+      plots = plots.filter((p) => p.isDisputed);
+    } else {
+      plots = plots.filter((p) => p.status === filters.status);
+    }
   }
 
+  // 4. Category filtering
   if (filters?.category && filters.category !== 'all') {
     plots = plots.filter((p) => p.category === filters.category);
   }
@@ -250,6 +288,96 @@ export async function releaseLock(
 }
 
 /**
+ * Broadcast non-blocking PLOT_RESERVING status when an admin opens the Reserve form.
+ * Other admins can still open their own Reserve form on the same plot (informational only).
+ */
+export async function startReservingPlot(
+  session: AdminSession,
+  plotId: string
+): Promise<{ ok: boolean; plot?: Plot; error?: string }> {
+  mockStore.loadFromStorage();
+  const plot = mockStore.plots.find((p) => p.id === plotId);
+  if (!plot) return { ok: false, error: 'PLOT_NOT_FOUND' };
+
+  if (!canAccessBlock(session, plot.blockId)) {
+    return { ok: false, error: 'OUT_OF_SCOPE' };
+  }
+
+  if (!plot.reservingUsers) {
+    plot.reservingUsers = [];
+  }
+
+  const now = Date.now();
+  // Filter out any stale reservations older than 10 minutes
+  plot.reservingUsers = plot.reservingUsers.filter((u) => now - u.timestamp <= 10 * 60 * 1000);
+
+  const existingIdx = plot.reservingUsers.findIndex((u) => u.adminId === session.adminId);
+  if (existingIdx >= 0) {
+    plot.reservingUsers[existingIdx].timestamp = now;
+    plot.reservingUsers[existingIdx].adminName = session.fullName;
+  } else {
+    plot.reservingUsers.push({
+      adminId: session.adminId,
+      adminName: session.fullName,
+      timestamp: now,
+    });
+  }
+
+  plot.reservingBy = session.adminId;
+  plot.reservingByName = session.fullName;
+  plot.reservingAt = now;
+
+  mockStore.broadcast({
+    type: 'PLOT_RESERVING',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+    reservingBy: session.adminId,
+    reservingByName: session.fullName,
+    reservingUsers: plot.reservingUsers,
+  });
+
+  return { ok: true, plot };
+}
+
+/**
+ * Release/Cancel reserving state when an admin closes the Reserve form without submitting.
+ * Maintains other concurrent admins' reserving badges if present.
+ */
+export async function cancelReservingPlot(
+  session: AdminSession,
+  plotId: string
+): Promise<{ ok: boolean; error?: string }> {
+  mockStore.loadFromStorage();
+  const plot = mockStore.plots.find((p) => p.id === plotId);
+  if (!plot) return { ok: false, error: 'PLOT_NOT_FOUND' };
+
+  if (plot.reservingUsers && plot.reservingUsers.length > 0) {
+    plot.reservingUsers = plot.reservingUsers.filter((u) => u.adminId !== session.adminId);
+  }
+
+  if (plot.reservingUsers && plot.reservingUsers.length > 0) {
+    const latest = plot.reservingUsers[plot.reservingUsers.length - 1];
+    plot.reservingBy = latest.adminId;
+    plot.reservingByName = latest.adminName;
+    plot.reservingAt = latest.timestamp;
+  } else {
+    plot.reservingUsers = undefined;
+    plot.reservingBy = undefined;
+    plot.reservingByName = undefined;
+    plot.reservingAt = undefined;
+  }
+
+  mockStore.broadcast({
+    type: 'PLOT_RESERVING_CANCELLED',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+    reservingUsers: plot.reservingUsers,
+  });
+
+  return { ok: true };
+}
+
+/**
  * Reserve a plot with an admin-adjustable token fee (Sort Reservation, Phase 2).
  */
 export async function reservePlot(
@@ -317,11 +445,15 @@ export async function reservePlot(
     resolutionNote: input.note?.trim() || '',
   };
 
-  // Set plot status to reserved & release any soft lock
+  // Set plot status to reserved & release any soft lock and reserving tracking
   plot.status = 'reserved';
   plot.lockedBy = undefined;
   plot.lockedByName = undefined;
   plot.lockedAt = undefined;
+  plot.reservingBy = undefined;
+  plot.reservingByName = undefined;
+  plot.reservingAt = undefined;
+  plot.reservingUsers = undefined;
   mockStore.clearLockTimeout(plot.id);
 
   mockStore.reservations.push(reservation);
@@ -436,6 +568,10 @@ export async function bookPlot(
   plot.lockedBy = undefined;
   plot.lockedByName = undefined;
   plot.lockedAt = undefined;
+  plot.reservingBy = undefined;
+  plot.reservingByName = undefined;
+  plot.reservingAt = undefined;
+  plot.reservingUsers = undefined;
   mockStore.clearLockTimeout(plot.id);
 
   // Create booking record

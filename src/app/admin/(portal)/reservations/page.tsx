@@ -12,13 +12,16 @@ import {
   ArrowRight, 
   X,
   Building2,
-  RotateCcw
+  RotateCcw,
+  MapPin,
+  Lock
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getReservations, updateReservationNote, confirmReservation, cancelReservation, ReservationWithConflict } from '@/lib/dal/reservations';
+import { getReservations, updateReservationNote, confirmReservation, releaseReservation, ReservationWithConflict } from '@/lib/dal/reservations';
 import { bookPlot } from '@/lib/dal/adminPlots';
 import { AdminSession, Reservation } from '@/lib/mock/types';
 import { mockStore } from '@/lib/mock/store';
+import { getBlockDisplayName } from '@/lib/map/regionData';
 
 const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
   abbott: { badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', border: 'border-emerald-200', accent: 'text-emerald-800' },
@@ -116,20 +119,28 @@ export default function ReservationsPage() {
     }
   };
 
-  const handleCancelReservation = async (r: Reservation) => {
+  const handleReleaseReservation = async (r: Reservation) => {
     if (!session) return;
-    if (
-      !confirm(
-        `Are you sure you want to release the reservation for ${r.customerName} on Plot ${r.plotNumber}?\n\nThis will revoke the active token reservation and return the plot to Available inventory.`
-      )
-    ) {
+    const isOwner = r.reservedByAdminId === session.adminId;
+    const isSuperAdmin = session.role === 'super_admin';
+
+    const confirmMsg = !isOwner && isSuperAdmin
+      ? `SUPER ADMIN OVERRIDE:\n\nAre you sure you want to release the reservation for ${r.customerName} on Plot ${r.plotNumber}?\n\nThis reservation was created by ${r.reservedByAdminName}. Your override will be recorded in the official audit ledger.`
+      : `Are you sure you want to release the reservation for ${r.customerName} on Plot ${r.plotNumber}?\n\nThis will revoke the active token reservation and return the plot to Available inventory.`;
+
+    if (!confirm(confirmMsg)) {
       return;
     }
-    const res = await cancelReservation(session, r.id, 'Released by admin from Reservations Ledger');
+
+    const res = await releaseReservation(session, r.id, isOwner ? 'Released by reserving admin' : 'Released by Super Admin override');
     if (res.ok) {
       await loadData(session);
     } else {
-      alert(`Failed to release reservation: ${res.error}`);
+      if (res.error === 'NOT_RESERVATION_OWNER') {
+        alert(`Access Denied: Only the original reserving admin (${r.reservedByAdminName}) or a Super Admin can release this reservation.`);
+      } else {
+        alert(`Failed to release reservation: ${res.error}`);
+      }
     }
   };
 
@@ -273,7 +284,7 @@ export default function ReservationsPage() {
           ) : (
             session.assignedBlocks.map((b) => (
               <option key={b} value={b}>
-                {b.toUpperCase()} Block
+                {getBlockDisplayName(b)}
               </option>
             ))
           )}
@@ -307,12 +318,26 @@ export default function ReservationsPage() {
                 >
                   {/* Left Specs */}
                   <div className="space-y-1.5 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-sm text-slate-900 bg-slate-100 border border-slate-200 px-2.5 py-0.5 rounded-md">
-                        {r.plotNumber}
-                      </span>
-                      <span className={`text-xs uppercase font-mono font-bold px-2 py-0.5 rounded-md border ${sectorTheme.badge}`}>
-                        {r.blockId} Block
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/admin/master-plan/${r.blockId}?focusPlot=${r.plotId}`}
+                        className="font-bold text-sm text-slate-900 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 hover:border-emerald-300 border border-slate-200 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1.5 group shadow-2xs"
+                        title="View and focus plot on Master Plan map"
+                      >
+                        <span className="font-mono">{r.plotNumber}</span>
+                        {r.plot ? (
+                          <span className="text-xs text-slate-600 font-medium group-hover:text-emerald-700">
+                            {' — '}{r.plot.size}, {r.plot.category.charAt(0).toUpperCase() + r.plot.category.slice(1)}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-normal">
+                            {' — '}Details Pending
+                          </span>
+                        )}
+                        <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 transition-transform group-hover:translate-x-0.5 ml-0.5" />
+                      </Link>
+                      <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-md border ${sectorTheme.badge}`}>
+                        {getBlockDisplayName(r.blockId)}
                       </span>
                       {isConflict && (
                         <span className="text-[10px] bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full font-bold">
@@ -325,12 +350,16 @@ export default function ReservationsPage() {
                             ? 'bg-amber-100 text-amber-900 border-amber-300'
                             : r.status === 'confirmed'
                             ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                            : r.status === 'cancelled'
+                            ? 'bg-rose-100 text-rose-800 border-rose-300'
+                            : r.status === 'superseded'
+                            ? 'bg-orange-100 text-orange-900 border-orange-300'
                             : r.status === 'expired'
-                            ? 'bg-rose-100 text-rose-900 border-rose-300'
+                            ? 'bg-slate-100 text-slate-700 border-slate-300'
                             : 'bg-slate-100 text-slate-700 border-slate-300'
                         }`}
                       >
-                        {r.status}
+                        {r.status === 'cancelled' ? 'Released' : r.status}
                       </span>
                     </div>
 
@@ -391,22 +420,41 @@ export default function ReservationsPage() {
 
                     {r.status === 'active' && session.permissions.can_reserve && (
                       <button
-                        onClick={() => handleCancelReservation(r)}
-                        className="px-3 py-2 bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 hover:border-rose-300 transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                        title="Release reservation back to society inventory"
+                        onClick={() => handleReleaseReservation(r)}
+                        className={`px-3 py-2 font-bold text-xs rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${
+                          r.reservedByAdminId === session.adminId || session.role === 'super_admin'
+                            ? 'bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
+                            : 'bg-slate-50 text-slate-400 border-slate-200'
+                        }`}
+                        title={
+                          r.reservedByAdminId === session.adminId
+                            ? 'Release your reservation back to society inventory'
+                            : session.role === 'super_admin'
+                            ? `Super Admin Override: Release ${r.reservedByAdminName}'s reservation`
+                            : `Only reserving admin (${r.reservedByAdminName}) or Super Admin can release`
+                        }
                       >
-                        <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
+                        {r.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
+                          <Lock className="w-3.5 h-3.5 text-slate-400" />
+                        ) : (
+                          <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
+                        )}
                         <span>Release</span>
                       </button>
                     )}
 
                     {r.status === 'active' && (
                       <Link
-                        href={`/admin/master-plan/${r.blockId}`}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                        href={`/admin/master-plan/${r.blockId}?focusPlot=${r.plotId}`}
+                        className={`px-3.5 py-2 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
+                          isConflict
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white'
+                            : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        }`}
+                        title="View and focus plot on Master Plan map"
                       >
-                        <span>Manage In Grid</span>
-                        <ArrowRight className="w-3.5 h-3.5 text-amber-200" />
+                        <MapPin className="w-3.5 h-3.5 text-white" />
+                        <span>{isConflict ? 'View Dispute on Map' : 'View on Map'}</span>
                       </Link>
                     )}
                   </div>
@@ -437,8 +485,8 @@ export default function ReservationsPage() {
             <form onSubmit={handleSaveNote} className="space-y-4 text-xs">
               <div>
                 <span className="text-slate-500 font-medium">Target Plot:</span>{' '}
-                <strong className="text-slate-900 font-mono font-bold">
-                  {editingRes.plotNumber} ({editingRes.blockId} Block)
+                <strong className="text-slate-900 font-bold">
+                  {editingRes.plotNumber} ({getBlockDisplayName(editingRes.blockId)})
                 </strong>
               </div>
 

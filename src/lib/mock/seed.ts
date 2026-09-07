@@ -1,4 +1,5 @@
 import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AdminUser, Reservation, ContentBlock } from './types';
+import { eliteSeedPlots } from '../map/eliteSeedPlots';
 
 export const initialBlocks: Block[] = [
   {
@@ -446,79 +447,8 @@ export const initialPlots: Plot[] = [
     amenityName: 'Community Mosque',
   },
 
-  // ── ELITE BLOCK ──
-  {
-    id: 'plot-el-01',
-    blockId: 'elite',
-    plotNumber: 'EL-01',
-    size: '1 Kanal',
-    category: 'residential',
-    plotType: '1_kanal',
-    price: 13000000,
-    status: 'available',
-  },
-  {
-    id: 'plot-el-02',
-    blockId: 'elite',
-    plotNumber: 'EL-02',
-    size: '1 Kanal',
-    category: 'residential',
-    plotType: '1_kanal',
-    price: 13000000,
-    status: 'available',
-  },
-  {
-    id: 'plot-el-03',
-    blockId: 'elite',
-    plotNumber: 'EL-03',
-    size: '2 Kanal',
-    category: 'residential',
-    plotType: '2_kanal',
-    price: 25000000,
-    status: 'available',
-  },
-  {
-    id: 'plot-fh-01',
-    blockId: 'elite',
-    plotNumber: 'FH-01',
-    size: '2 Kanal',
-    category: 'farm_house',
-    plotType: '2_kanal_farm_house',
-    price: 25000000,
-    status: 'available',
-  },
-  {
-    id: 'plot-fh-02',
-    blockId: 'elite',
-    plotNumber: 'FH-02',
-    size: '4 Kanal',
-    category: 'farm_house',
-    plotType: '4_kanal_farm_house',
-    price: 48000000,
-    status: 'reserved',
-  },
-  {
-    id: 'plot-amn-park-el',
-    blockId: 'elite',
-    plotNumber: 'AMN-P02',
-    size: '4 Kanal',
-    category: 'amenity',
-    plotType: 'amenity_park',
-    price: 0,
-    status: 'available',
-    amenityName: 'Park',
-  },
-  {
-    id: 'plot-amn-pg-el',
-    blockId: 'elite',
-    plotNumber: 'AMN-G01',
-    size: '3 Kanal',
-    category: 'amenity',
-    plotType: 'amenity_playground',
-    price: 0,
-    status: 'available',
-    amenityName: 'Play Ground',
-  },
+  // ── ELITE BLOCK (Full Real Coverage: 183 Traced Plots & Amenities) ──
+  ...eliteSeedPlots,
 
   // ── CHALET BLOCK ──
   {
@@ -1323,11 +1253,11 @@ export const initialReservations: Reservation[] = [
     supersededByBookingId: 'book-3',
     resolutionNote: 'Customer Malik Usman executed direct purchase agreement book-3.',
   },
-  // Elite Farm House reservation
+  // Elite Executive 2-Kanal reservation
   {
     id: 'res-5',
-    plotId: 'plot-fh-02',
-    plotNumber: 'FH-02',
+    plotId: 'plot-el-235',
+    plotNumber: '235',
     blockId: 'elite',
     customerName: 'Sardar Tariq Abbasi',
     customerPhone: '0322-8889900',
@@ -1338,7 +1268,7 @@ export const initialReservations: Reservation[] = [
     reservedByAdminName: 'Inspector Kamran Qureshi (Police Liaison)',
     status: 'active',
     createdAt: '2026-09-05T12:30:00Z',
-    resolutionNote: 'VIP Farm House reservation awaiting bank pay order.',
+    resolutionNote: 'VIP Executive 2-Kanal reservation awaiting bank pay order.',
   },
 ];
 

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
@@ -16,28 +16,44 @@ import {
   X, 
   Phone, 
   Mail, 
-  User,
-  Sparkles,
-  RotateCcw
+  User, 
+  Sparkles, 
+  RotateCcw, 
+  Map as MapIcon, 
+  LayoutGrid,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
   getAdminBlockPlots, 
   acquireLock, 
   releaseLock, 
+  startReservingPlot,
+  cancelReservingPlot,
   reservePlot, 
   bookPlot 
 } from '@/lib/dal/adminPlots';
-import { cancelReservation } from '@/lib/dal/reservations';
-import { Block, Plot, AdminSession, Reservation } from '@/lib/mock/types';
+import { releaseReservation } from '@/lib/dal/reservations';
+import { Block, Plot, AdminSession, Reservation, PlotCategory } from '@/lib/mock/types';
 import { mockStore } from '@/lib/mock/store';
+import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
+import { hasBlockMap } from '@/lib/map/blockRegistry';
 
 const CATEGORY_COLORS: Record<string, string> = {
-  residential: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  commercial: 'bg-blue-100 text-blue-800 border-blue-300',
-  farm_house: 'bg-orange-100 text-orange-800 border-orange-300',
+  residential: 'bg-blue-100 text-blue-800 border-blue-300', // Residential in Blue per user specification
+  commercial: 'bg-indigo-100 text-indigo-800 border-indigo-300',
+  farm_house: 'bg-amber-100 text-amber-800 border-amber-300',
   amenity: 'bg-purple-100 text-purple-800 border-purple-300',
 };
+
+const CATEGORY_OPTIONS: { id: 'all' | PlotCategory; label: string; dot: string }[] = [
+  { id: 'all', label: 'All Categories', dot: 'bg-slate-400' },
+  { id: 'residential', label: 'Residential', dot: 'bg-blue-600' },
+  { id: 'commercial', label: 'Commercial', dot: 'bg-indigo-600' },
+  { id: 'farm_house', label: 'Farm House', dot: 'bg-amber-600' },
+  { id: 'amenity', label: 'Public Amenity', dot: 'bg-purple-600' },
+];
 
 const AMENITY_COLORS: Record<string, string> = {
   Hospital: 'bg-rose-50 text-rose-800 border-rose-200',
@@ -51,21 +67,40 @@ const AMENITY_COLORS: Record<string, string> = {
   'Grave Yard': 'bg-slate-100 text-slate-800 border-slate-300',
 };
 
-export default function BlockPlotsPage() {
+function BlockPlotsContent() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const blockId = params.blockId as string;
+  const focusPlotId = searchParams?.get('focusPlot');
 
   const [session, setSession] = useState<AdminSession | null>(null);
   const [block, setBlock] = useState<Block | null>(null);
   const [plots, setPlots] = useState<Plot[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [outOfScope, setOutOfScope] = useState<boolean>(false);
+  const [highlightedPlotId, setHighlightedPlotId] = useState<string | null>(null);
 
   // Filters
   const [search, setSearch] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'reserved' | 'booked'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'reserved' | 'booked' | 'disputed'>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity'>('all');
+  const [isCategoryOpen, setIsCategoryOpen] = useState<boolean>(false);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close category dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(e.target as Node)) {
+        setIsCategoryOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const hasTraced = hasBlockMap(blockId);
+  const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
 
   // Selected plot for action
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
@@ -140,6 +175,11 @@ export default function BlockPlotsPage() {
       if (s) {
         loadPlots(s);
       }
+      setSelectedPlot((prev) => {
+        if (!prev) return null;
+        const fresh = mockStore.plots.find((p) => p.id === prev.id);
+        return fresh || prev;
+      });
     };
 
     let channel: BroadcastChannel | null = null;
@@ -161,6 +201,24 @@ export default function BlockPlotsPage() {
     };
   }, [loadPlots]);
 
+  // Deep-link auto-scroll and highlight for Card Grid mode
+  useEffect(() => {
+    if (!focusPlotId || plots.length === 0) return;
+    const target = plots.find((p) => p.id === focusPlotId);
+    if (!target) return;
+
+    if (!hasTraced || viewMode === 'grid') {
+      const el = document.getElementById(`plot-card-${focusPlotId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedPlotId(focusPlotId);
+        handleSelectPlot(target);
+        const timer = setTimeout(() => setHighlightedPlotId(null), 4500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [focusPlotId, plots, hasTraced, viewMode]);
+
   // Open Plot Action Drawer
   const handleSelectPlot = (plot: Plot) => {
     setSelectedPlot(plot);
@@ -171,9 +229,9 @@ export default function BlockPlotsPage() {
     setPlotReservations(activeRes);
   };
 
-  // Open Reserve Modal
-  const openReserve = () => {
-    if (!selectedPlot) return;
+  // Open Reserve Modal (Broadcast non-blocking PLOT_RESERVING)
+  const openReserve = async () => {
+    if (!selectedPlot || !session) return;
     setReserveForm({
       customerName: '',
       customerPhone: '',
@@ -184,7 +242,30 @@ export default function BlockPlotsPage() {
     });
     setActionError(null);
     setIsReserveModalOpen(true);
+    await startReservingPlot(session, selectedPlot.id);
   };
+
+  // Cancel / Close Reserve Modal (Broadcast PLOT_RESERVING_CANCELLED)
+  const closeReserveModal = async () => {
+    if (session && selectedPlot) {
+      await cancelReservingPlot(session, selectedPlot.id);
+    }
+    setIsReserveModalOpen(false);
+    if (session) await loadPlots(session);
+  };
+
+  // Safety net: cleanup reserving badge on tab close/navigate
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (isReserveModalOpen && session && selectedPlot) {
+        cancelReservingPlot(session, selectedPlot.id);
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isReserveModalOpen, session, selectedPlot]);
 
   // Submit Reservation
   const handleReserveSubmit = async (e: React.FormEvent) => {
@@ -218,24 +299,27 @@ export default function BlockPlotsPage() {
     }
   };
 
-  // Release / Cancel an Active Reservation
+  // Release / Cancel an Active Reservation (Enforces Ownership & Audit)
   const handleReleaseReservation = async (res: Reservation) => {
     if (!session || !selectedPlot) return;
-    if (
-      !confirm(
-        `Are you sure you want to release the reservation for ${res.customerName} on Plot ${selectedPlot.plotNumber}?\n\nThis will revoke the active token reservation and release the plot back to society inventory.`
-      )
-    ) {
+    const isOwner = res.reservedByAdminId === session.adminId;
+    const isSuperAdmin = session.role === 'super_admin';
+
+    const confirmMsg = !isOwner && isSuperAdmin
+      ? `SUPER ADMIN OVERRIDE:\n\nAre you sure you want to release the reservation for ${res.customerName} on Plot ${selectedPlot.plotNumber}?\n\nThis reservation was created by ${res.reservedByAdminName}. Your override will be recorded in the official audit ledger.`
+      : `Are you sure you want to release the reservation for ${res.customerName} on Plot ${selectedPlot.plotNumber}?\n\nThis will revoke the active token reservation and release the plot back to society inventory.`;
+
+    if (!confirm(confirmMsg)) {
       return;
     }
     setActionLoading(true);
     setActionError(null);
 
     try {
-      const result = await cancelReservation(
+      const result = await releaseReservation(
         session,
         res.id,
-        'Released by admin via Master Plan'
+        isOwner ? 'Released by reserving admin via Master Plan' : 'Released by Super Admin override via Master Plan'
       );
       if (result.ok) {
         await loadPlots(session);
@@ -249,7 +333,11 @@ export default function BlockPlotsPage() {
           setPlotReservations(activeRes);
         }
       } else {
-        setActionError(result.error || 'Failed to release reservation.');
+        if (result.error === 'NOT_RESERVATION_OWNER') {
+          setActionError(`Access Denied: Only the original reserving admin (${res.reservedByAdminName}) or a Super Admin can release this reservation.`);
+        } else {
+          setActionError(result.error || 'Failed to release reservation.');
+        }
       }
     } catch {
       setActionError('An unexpected error occurred while releasing the reservation.');
@@ -427,77 +515,209 @@ export default function BlockPlotsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3 shadow-xs">
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-3 sm:p-3.5 shadow-xs flex flex-wrap items-center justify-between gap-3">
         {/* Search */}
-        <div className="relative flex-1">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+        <div className="relative w-full sm:w-64 lg:w-72 min-w-[200px] flex-1 sm:flex-initial">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-2.5" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search plot number (e.g. R-06, A-01, AMN-H01)..."
-            className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600"
+            placeholder="Search plot number (e.g. 233, R-06)..."
+            className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-slate-100/80 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 transition-all"
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full hover:bg-slate-200/60 transition-colors"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['all', 'available', 'reserved', 'booked'] as const).map((st) => {
-            let activeColor = 'bg-slate-800 text-white shadow-xs';
-            if (st === 'available') activeColor = 'bg-emerald-600 text-white shadow-xs';
-            else if (st === 'reserved') activeColor = 'bg-amber-500 text-amber-950 shadow-xs';
-            else if (st === 'booked') activeColor = 'bg-blue-600 text-white shadow-xs';
+        {/* Filter Groups & View Mode */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Status Filter */}
+          <div className="flex items-center gap-0.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0">
+            {(['all', 'available', 'reserved', 'booked', 'disputed'] as const).map((st) => {
+              let activeColor = 'bg-slate-900 text-white shadow-xs';
+              if (st === 'available') activeColor = 'bg-emerald-600 text-white shadow-xs';
+              else if (st === 'reserved') activeColor = 'bg-amber-500 text-amber-950 shadow-xs';
+              else if (st === 'booked') activeColor = 'bg-red-600 text-white shadow-xs'; // Red per user request
+              else if (st === 'disputed') activeColor = 'bg-fuchsia-600 text-white shadow-xs'; // Distinct vibrant fuchsia
 
-            return (
+              return (
+                <button
+                  key={st}
+                  id={`status-filter-${st}`}
+                  onClick={() => setStatusFilter(st)}
+                  className={`h-7 px-2.5 sm:px-3 rounded-lg text-xs font-bold capitalize whitespace-nowrap transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                    statusFilter === st
+                      ? activeColor
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                  }`}
+                >
+                  {st === 'disputed' && <AlertTriangle className="w-3 h-3 text-white" />}
+                  <span>{st}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Category Filter - Custom Dropdown List */}
+          <div className="relative shrink-0" ref={categoryDropdownRef}>
+            <button
+              type="button"
+              id="category-filter-dropdown"
+              onClick={() => setIsCategoryOpen((prev) => !prev)}
+              className={`h-9 px-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs ${
+                categoryFilter === 'residential'
+                  ? 'bg-blue-50 border-blue-300 text-blue-900 ring-2 ring-blue-500/10'
+                  : categoryFilter === 'commercial'
+                  ? 'bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/10'
+                  : categoryFilter === 'farm_house'
+                  ? 'bg-amber-50 border-amber-300 text-amber-900 ring-2 ring-amber-500/10'
+                  : categoryFilter === 'amenity'
+                  ? 'bg-purple-50 border-purple-300 text-purple-900 ring-2 ring-purple-500/10'
+                  : 'bg-slate-100/90 border-slate-200/80 text-slate-700 hover:bg-slate-200/70 hover:text-slate-900'
+              }`}
+              aria-expanded={isCategoryOpen}
+              aria-haspopup="listbox"
+            >
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  categoryFilter === 'residential'
+                    ? 'bg-blue-600'
+                    : categoryFilter === 'commercial'
+                    ? 'bg-indigo-600'
+                    : categoryFilter === 'farm_house'
+                    ? 'bg-amber-600'
+                    : categoryFilter === 'amenity'
+                    ? 'bg-purple-600'
+                    : 'bg-slate-400'
+                }`}
+              />
+              <span className="whitespace-nowrap">
+                {categoryFilter === 'all'
+                  ? 'Category: All'
+                  : categoryFilter === 'residential'
+                  ? 'Residential'
+                  : categoryFilter === 'commercial'
+                  ? 'Commercial'
+                  : categoryFilter === 'farm_house'
+                  ? 'Farm House'
+                  : 'Public Amenity'}
+              </span>
+              <ChevronDown
+                className={`w-3.5 h-3.5 transition-transform duration-150 ${
+                  isCategoryOpen ? 'rotate-180 text-slate-700' : 'text-slate-400'
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu List */}
+            {isCategoryOpen && (
+              <div
+                role="listbox"
+                id="category-options-list"
+                className="absolute left-0 sm:right-0 sm:left-auto mt-1.5 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl py-1.5 z-40 animate-in fade-in zoom-in-95 duration-100"
+              >
+                <div className="px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
+                  Plot Categories
+                </div>
+                {CATEGORY_OPTIONS.map((opt) => {
+                  const isSelected = categoryFilter === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      id={`cat-option-${opt.id}`}
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => {
+                        setCategoryFilter(opt.id);
+                        setIsCategoryOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-xs font-medium flex items-center justify-between transition-colors cursor-pointer text-left ${
+                        isSelected
+                          ? 'bg-slate-100 text-slate-900 font-bold'
+                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2.5 h-2.5 rounded-full ${opt.dot}`} />
+                        <span>{opt.label}</span>
+                      </div>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Traced Map / Card Grid Toggle (if block has traced map) */}
+          {hasTraced && (
+            <div className="flex items-center gap-0.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0">
               <button
-                key={st}
-                onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                  statusFilter === st
-                    ? activeColor
-                    : 'text-slate-600 hover:text-slate-900'
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  viewMode === 'map'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
               >
-                {st}
+                <MapIcon className="w-3.5 h-3.5" />
+                <span>Traced Map</span>
               </button>
-            );
-          })}
-        </div>
-
-        {/* Category Filter */}
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['all', 'residential', 'commercial', 'farm_house', 'amenity'] as const).map((cat) => {
-            let activeColor = 'bg-slate-800 text-white shadow-xs';
-            if (cat === 'residential') activeColor = 'bg-emerald-600 text-white shadow-xs';
-            else if (cat === 'commercial') activeColor = 'bg-blue-600 text-white shadow-xs';
-            else if (cat === 'farm_house') activeColor = 'bg-orange-500 text-white shadow-xs';
-            else if (cat === 'amenity') activeColor = 'bg-purple-600 text-white shadow-xs';
-
-            return (
               <button
-                key={cat}
-                onClick={() => setCategoryFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
-                  categoryFilter === cat
-                    ? activeColor
-                    : 'text-slate-600 hover:text-slate-900'
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 h-7 px-3 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                  viewMode === 'grid'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
                 }`}
               >
-                {cat.replace('_', ' ')}
+                <LayoutGrid className="w-3.5 h-3.5" />
+                <span>Card Grid</span>
               </button>
-            );
-          })}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Plot Grid - Distinct Vibrant Statuses */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+      {/* Interactive Traced Map OR Plot Grid */}
+      {hasTraced && viewMode === 'map' ? (
+        <InteractiveBlockMap
+          blockId={blockId}
+          plots={plots}
+          selectedPlot={selectedPlot}
+          onSelectPlot={handleSelectPlot}
+          searchFilter={search}
+          statusFilter={statusFilter}
+          categoryFilter={categoryFilter}
+          focusPlotId={focusPlotId}
+        />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
         {plots.map((plot) => {
+          const isDisputed = Boolean(
+            plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+          );
           const isLocked = Boolean(plot.lockedBy);
           const isAmenity = plot.category === 'amenity';
           const isReserved = plot.status === 'reserved';
           const isBooked = plot.status === 'booked';
           const isAvailable = plot.status === 'available' && !isAmenity;
+          const isHighlighted = highlightedPlotId === plot.id;
+
+          const reservingNames = (plot.reservingUsers && plot.reservingUsers.length > 0)
+            ? plot.reservingUsers.map((u) => u.adminName.split(' ')[0])
+            : plot.reservingByName
+            ? [plot.reservingByName.split(' ')[0]]
+            : [];
+          const isReserving = !isLocked && !isReserved && !isBooked && reservingNames.length > 0;
 
           let cardStyle = 'bg-white border-2 border-slate-200 text-slate-800';
           let statusBadge = 'bg-slate-100 text-slate-700 border-slate-200';
@@ -505,6 +725,12 @@ export default function BlockPlotsPage() {
           if (isLocked) {
             cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs animate-pulse';
             statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
+          } else if (isDisputed) {
+            cardStyle = 'bg-gradient-to-br from-amber-50/90 via-fuchsia-50/90 to-amber-50/90 border-2 border-fuchsia-500 text-fuchsia-950 shadow-xs animate-pulse hover:border-fuchsia-600';
+            statusBadge = 'bg-fuchsia-600 text-white border-fuchsia-700 font-bold';
+          } else if (isReserving) {
+            cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 shadow-xs animate-pulse hover:bg-amber-100/90 hover:border-amber-500';
+            statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';
           } else if (isAmenity) {
             cardStyle = 'bg-slate-100/90 border-2 border-slate-300 text-slate-800 hover:bg-slate-200/90 hover:border-slate-400';
             statusBadge = 'bg-slate-700 text-white border-slate-800 font-bold';
@@ -519,11 +745,19 @@ export default function BlockPlotsPage() {
             statusBadge = 'bg-emerald-600 text-white border-emerald-700 font-bold';
           }
 
+          if (isHighlighted) {
+            cardStyle += ' ring-4 ring-yellow-400 ring-offset-2';
+          }
+
           const catBadge = CATEGORY_COLORS[plot.category] || 'bg-slate-100 text-slate-700';
 
           return (
             <button
               key={plot.id}
+              id={`plot-card-${plot.id}`}
+              data-plot-id={plot.id}
+              data-plot-number={plot.plotNumber}
+              data-disputed={isDisputed ? 'true' : 'false'}
               onClick={() => handleSelectPlot(plot)}
               className={`p-3.5 rounded-2xl text-left transition-all hover:scale-[1.02] cursor-pointer relative group flex flex-col justify-between min-h-[120px] shadow-xs hover:shadow-md ${cardStyle}`}
             >
@@ -534,7 +768,11 @@ export default function BlockPlotsPage() {
                   </span>
                   <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-md border ${statusBadge}`}>
                     {isLocked
-                      ? `Being booked by ${plot.lockedByName?.includes('Marketing') ? 'Marketing' : plot.lockedByName?.split(' ')[0] || 'Admin'}`
+                      ? `Being booked by ${plot.lockedByName?.split(' ')[0] || 'Admin'}`
+                      : isDisputed
+                      ? `Disputed (${plot.activeReservationCount})`
+                      : isReserving
+                      ? `Being reserved by ${reservingNames.join(', ')}`
                       : isAmenity
                       ? 'Amenity'
                       : plot.status}
@@ -544,6 +782,12 @@ export default function BlockPlotsPage() {
                 <div className="text-[11px] font-semibold truncate mt-0.5">
                   {isAmenity ? plot.amenityName : plot.size}
                 </div>
+
+                {isDisputed && (
+                  <div className="mt-1 text-[9px] font-bold text-fuchsia-900 bg-fuchsia-100/90 border border-fuchsia-300 rounded px-1.5 py-0.5 inline-block">
+                    ⚠️ {plot.activeReservationCount} competing claims — needs resolution
+                  </div>
+                )}
 
                 {/* Category Pill */}
                 <div className="mt-1">
@@ -571,7 +815,8 @@ export default function BlockPlotsPage() {
             </button>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Plot Detail Modal / Action Drawer */}
       {selectedPlot && (
@@ -594,6 +839,8 @@ export default function BlockPlotsPage() {
                 </h3>
               </div>
               <button
+                data-testid="close-drawer-btn"
+                aria-label="Close plot details"
                 onClick={() => setSelectedPlot(null)}
                 className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200 transition-colors"
               >
@@ -634,6 +881,26 @@ export default function BlockPlotsPage() {
                       Force Release
                     </button>
                   )}
+                </div>
+              ) : ((selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0) || selectedPlot.reservingByName) && selectedPlot.status !== 'reserved' && selectedPlot.status !== 'booked' ? (
+                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5 text-amber-900">
+                    <BookmarkCheck className="w-4 h-4 text-amber-600" />
+                    <div>
+                      <div className="font-bold text-xs">Reserve Form In Progress</div>
+                      <div className="text-[11px] text-amber-800">
+                        Being reserved by:{' '}
+                        <strong>
+                          {selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0
+                            ? selectedPlot.reservingUsers.map((u) => u.adminName.split(' ')[0]).join(', ')
+                            : (selectedPlot.reservingByName?.split(' ')[0] || 'Admin')}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                    Non-blocking
+                  </span>
                 </div>
               ) : selectedPlot.category === 'amenity' ? (
                 <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-950">
@@ -711,10 +978,24 @@ export default function BlockPlotsPage() {
                             type="button"
                             onClick={() => handleReleaseReservation(res)}
                             disabled={actionLoading}
-                            className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 font-bold text-xs rounded-xl border border-slate-200 hover:border-rose-300 transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50"
-                            title="Release reservation back to Available inventory"
+                            className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 font-bold text-xs rounded-xl border transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50 ${
+                              res.reservedByAdminId === session.adminId || session.role === 'super_admin'
+                                ? 'bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
+                                : 'bg-slate-50 text-slate-400 border-slate-200'
+                            }`}
+                            title={
+                              res.reservedByAdminId === session.adminId
+                                ? 'Release your reservation back to society inventory'
+                                : session.role === 'super_admin'
+                                ? `Super Admin Override: Release ${res.reservedByAdminName}'s reservation`
+                                : `Only reserving admin (${res.reservedByAdminName}) or Super Admin can release`
+                            }
                           >
-                            <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
+                            {res.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
+                              <Lock className="w-3.5 h-3.5 text-slate-400" />
+                            ) : (
+                              <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
+                            )}
                             <span>Release</span>
                           </button>
                         )}
@@ -775,7 +1056,7 @@ export default function BlockPlotsPage() {
                 <span>Reserve Plot {selectedPlot.plotNumber}</span>
               </h3>
               <button
-                onClick={() => setIsReserveModalOpen(false)}
+                onClick={closeReserveModal}
                 className="text-slate-400 hover:text-slate-700"
               >
                 <X className="w-4 h-4" />
@@ -864,7 +1145,7 @@ export default function BlockPlotsPage() {
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsReserveModalOpen(false)}
+                  onClick={closeReserveModal}
                   className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
                 >
                   Cancel
@@ -1033,5 +1314,13 @@ export default function BlockPlotsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BlockPlotsPage() {
+  return (
+    <Suspense fallback={<div className="py-12 text-center text-emerald-800 animate-pulse font-medium">Loading Block Master Plan...</div>}>
+      <BlockPlotsContent />
+    </Suspense>
   );
 }
