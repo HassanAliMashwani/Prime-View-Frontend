@@ -730,13 +730,14 @@ export default function ContentCMSPage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmitForm} className="p-6 space-y-4 overflow-y-auto grow">
-              {editError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>{editError}</span>
-                </div>
-              )}
+            <form onSubmit={handleSubmitForm} className="flex flex-col grow overflow-hidden">
+              <div className="p-6 space-y-4 overflow-y-auto grow">
+                {editError && (
+                  <div className="p-3 bg-rose-50 border border-rose-200 text-rose-900 rounded-xl text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <span>{editError}</span>
+                  </div>
+                )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
@@ -971,20 +972,23 @@ export default function ContentCMSPage() {
                   </label>
                 </div>
               </div>
+            </div>
 
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+              {/* Sticky Footer Action Bar */}
+              <div className="p-4 bg-slate-100/90 backdrop-blur-xs border-t border-slate-200 flex items-center justify-between shrink-0">
                 <button
                   type="button"
                   onClick={handleCancelModal}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 cursor-pointer"
+                  className="px-5 py-2.5 bg-white hover:bg-rose-50 text-slate-800 hover:text-rose-700 text-xs font-bold rounded-xl border-2 border-slate-300 hover:border-rose-300 transition-all shadow-sm cursor-pointer flex items-center gap-2"
                 >
-                  {isCreating ? 'Cancel' : 'Discard & Release Lock'}
+                  <Unlock className="w-4 h-4 text-slate-500 hover:text-rose-600" />
+                  <span>{isCreating ? 'Cancel' : 'Discard & Release Lock'}</span>
                 </button>
 
                 <button
                   type="submit"
                   disabled={saving}
-                  className="px-6 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
+                  className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-sm cursor-pointer flex items-center gap-2"
                 >
                   {saving ? (
                     <>
