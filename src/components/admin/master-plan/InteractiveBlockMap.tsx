@@ -54,12 +54,17 @@ export default function InteractiveBlockMap({
   const [groupedToast, setGroupedToast] = useState<string | null>(null);
   const [highlightedAreaSlug, setHighlightedAreaSlug] = useState<string | null>(null);
 
+  // Track handled focusPlotId so auto-focus runs only once and does not fight modal close
+  const handledFocusPlotRef = useRef<string | null>(null);
+
   // Auto pan/zoom and focus when focusPlotId is provided
   useEffect(() => {
     if (!focusPlotId || !config || plots.length === 0) return;
+    if (handledFocusPlotRef.current === focusPlotId) return;
 
     const targetPlot = plots.find((p) => p.id === focusPlotId);
     if (!targetPlot) return;
+    handledFocusPlotRef.current = focusPlotId;
 
     // Find area matching plotNumber
     const targetArea = config.areas.find(
