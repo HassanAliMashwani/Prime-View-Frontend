@@ -219,15 +219,36 @@ function BlockPlotsContent() {
     }
   }, [focusPlotId, plots, hasTraced, viewMode]);
 
+  // Close Plot Action Drawer and clean up deep-link query param if present
+  const handleCloseDrawer = useCallback(() => {
+    setSelectedPlot(null);
+    setActionError(null);
+    if (focusPlotId) {
+      router.replace(`/admin/master-plan/${blockId}`, { scroll: false });
+    }
+  }, [focusPlotId, router, blockId]);
+
   // Open Plot Action Drawer
-  const handleSelectPlot = (plot: Plot) => {
+  const handleSelectPlot = useCallback((plot: Plot) => {
     setSelectedPlot(plot);
     setActionError(null);
     const activeRes = mockStore.reservations.filter(
       (r) => r.plotId === plot.id && r.status === 'active'
     );
     setPlotReservations(activeRes);
-  };
+  }, []);
+
+  // Keyboard shortcut: Escape to close drawer
+  useEffect(() => {
+    if (!selectedPlot) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isReserveModalOpen && !isBookModalOpen) {
+        handleCloseDrawer();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedPlot, isReserveModalOpen, isBookModalOpen, handleCloseDrawer]);
 
   // Open Reserve Modal (Broadcast non-blocking PLOT_RESERVING)
   const openReserve = async () => {
@@ -820,8 +841,16 @@ function BlockPlotsContent() {
 
       {/* Plot Detail Modal / Action Drawer */}
       {selectedPlot && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div 
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseDrawer();
+          }}
+        >
+          <div 
+            className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div>
@@ -841,8 +870,8 @@ function BlockPlotsContent() {
               <button
                 data-testid="close-drawer-btn"
                 aria-label="Close plot details"
-                onClick={() => setSelectedPlot(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200 transition-colors"
+                onClick={handleCloseDrawer}
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
