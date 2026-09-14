@@ -21,11 +21,11 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 }) => {
   const router = useRouter();
   const [syncStatus, setSyncStatus] = useState<'connected' | 'event_received'>('connected');
-  const [lastSyncMsg, setLastSyncMsg] = useState<string>('BroadcastChannel Active');
+  const [lastSyncMsg, setLastSyncMsg] = useState<string>('Live Sync Active');
   const [showRoleMenu, setShowRoleMenu] = useState<boolean>(false);
   const [switching, setSwitching] = useState<boolean>(false);
 
-  // Cross-tab Live Sync Listener (Exception 5.5)
+  // Cross-tab Live Sync Listener
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
 
@@ -38,9 +38,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
 
         // Visual flash indicator
         setSyncStatus('event_received');
+        const formattedType = String(data.type).replace(/_/g, ' ');
         const desc = data.plotId
-          ? `${data.type.replace('_', ' ')}: ${data.plotId}`
-          : `${data.type}`;
+          ? `${formattedType}: ${data.plotId}`
+          : formattedType;
         setLastSyncMsg(desc);
 
         // Notify parent to re-fetch
@@ -51,7 +52,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
         // Return to steady state after 3.5 seconds
         setTimeout(() => {
           setSyncStatus('connected');
-          setLastSyncMsg('BroadcastChannel Active');
+          setLastSyncMsg('Live Sync Active');
         }, 3500);
       };
     } catch (e) {

@@ -1,6 +1,7 @@
 import { mockStore } from '../mock/store';
 import { Booking, PaymentType, Plot } from '../mock/types';
 import { requireMemberSession } from './auth';
+import { apiGet } from '../api';
 
 export interface EnrichedPlot extends Plot {
   booking: Booking;
@@ -22,7 +23,56 @@ export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[];
   try {
     mockStore.loadFromStorage();
     const session = requireMemberSession();
-    // Resolve bookings belonging to this customer only
+
+    // Primary: Real Backend API call (GET /me/plots)
+    if (session.token) {
+      const apiRes = await apiGet<any[]>('/me/plots', session.token);
+      if (apiRes.ok && Array.isArray(apiRes.data)) {
+        const enrichedPlots: EnrichedPlot[] = apiRes.data.map((plot: any) => {
+          const apiBooking = plot.bookings && plot.bookings.length > 0 ? plot.bookings[0] : null;
+          const booking = apiBooking || mockStore.bookings.find((b) => b.plotId === plot.id && b.customerId === session.customerId) || {
+            id: `book-${plot.id}`,
+            customerId: session.customerId,
+            plotId: plot.id,
+            paymentType: 'installment' as PaymentType,
+            status: 'completed' as const,
+            bookingDate: '2026-01-10',
+          };
+
+          const bookingPayments = (apiBooking?.payments && apiBooking.payments.length > 0)
+            ? apiBooking.payments
+            : mockStore.payments.filter((p) => p.plotId === plot.id || p.bookingId === booking.id);
+
+          // All paid PaymentRecords (including statutory fees PKR 2,000 + PKR 10,000)
+          const allPaidAmount = bookingPayments
+            .filter((p: any) => p.status === 'paid')
+            .reduce((sum: number, p: any) => sum + (Number(p.paidAmount) || Number(p.amount) || 0), 0);
+
+          // Plot-only payments for remaining balance calculation (never merge fees into plot price)
+          const plotPricePaid = bookingPayments
+            .filter((p: any) => p.status === 'paid' && (p.feeType === 'plot_installment' || p.feeType === 'plot_one_time' || p.feeType === 'plot_downpayment'))
+            .reduce((sum: number, p: any) => sum + (Number(p.paidAmount) || Number(p.amount) || 0), 0);
+
+          const totalAmount = Number(plot.price) || 0;
+          const remainingAmount = Math.max(0, totalAmount - plotPricePaid);
+
+          return {
+            ...plot,
+            price: totalAmount,
+            booking,
+            paymentSummary: {
+              paymentType: booking.paymentType,
+              totalAmount,
+              paidAmount: allPaidAmount,
+              remainingAmount,
+            },
+          };
+        });
+        return { ok: true, data: enrichedPlots };
+      }
+    }
+
+    // Fallback: Resolve bookings belonging to this customer only
     const userBookings = mockStore.bookings.filter((b) => b.customerId === session.customerId);
 
     const enrichedPlots: EnrichedPlot[] = [];

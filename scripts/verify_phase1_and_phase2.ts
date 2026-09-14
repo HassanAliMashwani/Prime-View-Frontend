@@ -30,7 +30,7 @@ async function runComprehensiveVerification() {
   // ─────────────────────────────────────────────────────────
   console.log('--- PART 1: VERIFYING PHASE 1 FINANCIAL DISCIPLINE ---');
 
-  // 1. Tariq Mehmood (Plot A-12, One-Time)
+  // 1. Tariq Mehmood (Plot A-12, Full Payment)
   setCustomerSession('cust-1', 'Tariq Mehmood');
   const tariqPlotsRes = await getMyPlots();
   const tariqSchedRes = await getPaymentSchedule();

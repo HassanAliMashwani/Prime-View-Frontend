@@ -428,7 +428,7 @@ async function runFull3PhaseLoop() {
     const tabsData = await windowC.evaluate(() => {
       const buttons = Array.from(document.querySelectorAll('button'));
       const instBtn = buttons.find((b) => b.textContent?.includes('Installment'));
-      const oneTimeBtn = buttons.find((b) => b.textContent?.includes('One-Time'));
+      const oneTimeBtn = buttons.find((b) => b.textContent?.includes('Full Payment'));
       return {
         isInstallmentActive: instBtn?.className.includes('bg-[#43612B]') || false,
         instBadgeCount: instBtn?.querySelector('span:last-child')?.textContent?.trim() || '',
@@ -440,7 +440,7 @@ async function runFull3PhaseLoop() {
     console.log('\n[OBSERVED IN PAYMENTS & LEDGER TABS]');
     console.log('  - Payment-Type-First Navigation Active Tab:', tabsData.isInstallmentActive ? 'INSTALLMENT TAB (Auto-Selected)' : 'FAILED');
     console.log('  - Installment Tab Plot Count Badge:       ', tabsData.instBadgeCount);
-    console.log('  - One-Time Tab Plot Count Badge:          ', tabsData.oneTimeBadgeCount);
+    console.log('  - Full Payment Tab Plot Count Badge:      ', tabsData.oneTimeBadgeCount);
     console.log('  - Plot A-05 Card Present in Tab:          ', tabsData.hasPlotA05Card ? 'YES' : 'NO');
 
     // Click Plot A-05 card to view detailed ledger

@@ -70,6 +70,7 @@ export default function SubAdminsPage() {
       can_book: false,
       can_create_customer: false,
       can_edit_content: false,
+      can_verify_receipts: false,
     },
   });
   const [createSubmitting, setCreateSubmitting] = useState(false);
@@ -160,6 +161,9 @@ export default function SubAdminsPage() {
         can_book: false,
         can_create_customer: false,
         can_edit_content: false,
+        can_verify_receipts: false,
+        can_view_customers: false,
+        can_view_sales_reports: false,
       },
     });
     loadData(session);
@@ -408,6 +412,16 @@ export default function SubAdminsPage() {
                           )}
                           <span className={admin.permissions.can_edit_content ? 'text-slate-800' : 'text-slate-400'}>
                             Edit CMS Content
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {admin.permissions.can_verify_receipts ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <X className="w-3.5 h-3.5 text-slate-300" />
+                          )}
+                          <span className={admin.permissions.can_verify_receipts ? 'text-slate-800' : 'text-slate-400'}>
+                            Receipt Verification Authority
                           </span>
                         </div>
                       </div>
@@ -680,6 +694,48 @@ export default function SubAdminsPage() {
                       className="rounded text-emerald-600 focus:ring-emerald-500"
                     />
                   </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700 font-medium">Receipt Verification Authority</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(createForm.permissions.can_verify_receipts)}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          permissions: { ...createForm.permissions, can_verify_receipts: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700 font-medium">View Customer Directory</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(createForm.permissions.can_view_customers)}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          permissions: { ...createForm.permissions, can_view_customers: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700 font-medium">View Sales History Reports</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(createForm.permissions.can_view_sales_reports)}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          permissions: { ...createForm.permissions, can_view_sales_reports: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                    />
+                  </label>
                 </div>
               </div>
 
@@ -864,6 +920,48 @@ export default function SubAdminsPage() {
                         setEditForm({
                           ...editForm,
                           permissions: { ...editForm.permissions, can_edit_content: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700">Receipt Verification Authority</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editForm.permissions?.can_verify_receipts)}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          permissions: { ...editForm.permissions, can_verify_receipts: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700">View Customer Directory</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editForm.permissions?.can_view_customers)}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          permissions: { ...editForm.permissions, can_view_customers: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600"
+                    />
+                  </label>
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700">View Sales History Reports</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editForm.permissions?.can_view_sales_reports)}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          permissions: { ...editForm.permissions, can_view_sales_reports: e.target.checked },
                         })
                       }
                       className="rounded text-emerald-600"

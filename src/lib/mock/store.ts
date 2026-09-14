@@ -1,10 +1,12 @@
-import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AuditEntry, AdminUser, Reservation, ContentBlock } from './types';
-import { initialBlocks, initialCustomers, initialPlots, initialBookings, initialPayments, initialDocuments, initialAdminUsers, initialReservations, initialContentBlocks } from './seed';
+import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AuditEntry, AdminUser, Reservation, ContentBlock, ReceiptSubmission, CustomerDocument } from './types';
+import { initialBlocks, initialCustomers, initialPlots, initialBookings, initialPayments, initialDocuments, initialAdminUsers, initialReservations, initialContentBlocks, initialReceiptSubmissions, initialAuditLog } from './seed';
 
 export interface SyncEvent {
   type:
     | 'PAYMENT_RECORD_UPDATED'
     | 'PLOT_STATUS_CHANGED'
+    | 'PLOT_UPDATED'
+    | 'PLOT_ADJUSTMENT_TOGGLED'
     | 'BOOKING_CREATED'
     | 'PROFILE_UPDATED'
     | 'PLOT_LOCKED'
@@ -21,7 +23,16 @@ export interface SyncEvent {
     | 'CONTENT_SAVED'
     | 'CONTENT_CREATED'
     | 'CONTENT_DELETED'
-    | 'CUSTOMER_CREATED';
+    | 'CUSTOMER_CREATED'
+    | 'CUSTOMER_UPDATED'
+    | 'CUSTOMER_SUSPENDED'
+    | 'CUSTOMER_ACTIVATED'
+    | 'STRIKE_ASSIGNED'
+    | 'RECEIPT_SUBMITTED'
+    | 'RECEIPT_VERIFIED'
+    | 'RECEIPT_REJECTED'
+    | 'DOCUMENT_UPLOADED'
+    | 'DOCUMENT_DELETED';
   timestamp: string;
   [key: string]: unknown;
 }
@@ -36,7 +47,9 @@ class MockStore {
   public adminUsers: AdminUser[] = [...initialAdminUsers];
   public reservations: Reservation[] = [...initialReservations];
   public contentBlocks: ContentBlock[] = [...initialContentBlocks];
-  public auditLog: AuditEntry[] = [];
+  public receiptSubmissions: ReceiptSubmission[] = [...initialReceiptSubmissions];
+  public customerDocuments: CustomerDocument[] = [];
+  public auditLog: AuditEntry[] = [...initialAuditLog];
 
   // In-memory rate limiting map: identifier -> { count, lockedUntil }
   private failedLoginAttempts: Map<string, { count: number; lockedUntil?: number }> = new Map();
@@ -81,6 +94,8 @@ class MockStore {
         customers: this.customers,
         adminUsers: this.adminUsers,
         contentBlocks: this.contentBlocks,
+        receiptSubmissions: this.receiptSubmissions,
+        customerDocuments: this.customerDocuments,
         auditLog: this.auditLog,
       };
       localStorage.setItem('pv_mock_store', JSON.stringify(state));
@@ -97,14 +112,26 @@ class MockStore {
         const state = JSON.parse(raw);
         if (state.plots && state.plots.length > 0) {
           const hasRealElitePlots = state.plots.some((p: Plot) => p.blockId === 'elite' && p.plotNumber === '233');
+          let basePlots = state.plots;
           if (!hasRealElitePlots) {
             const nonElite = state.plots.filter((p: Plot) => p.blockId !== 'elite');
             const eliteFromInit = initialPlots.filter((p: Plot) => p.blockId === 'elite');
-            this.plots = [...nonElite, ...eliteFromInit];
-            this.saveToStorage();
-          } else {
-            this.plots = state.plots;
+            basePlots = [...nonElite, ...eliteFromInit];
           }
+          // Sync default adjustment seeds if not yet recorded in local state
+          this.plots = basePlots.map((p: Plot) => {
+            const init = initialPlots.find((ip) => ip.id === p.id);
+            if (init && init.isAdjustment && p.isAdjustment === undefined) {
+              return {
+                ...p,
+                isAdjustment: init.isAdjustment,
+                adjustmentReason: init.adjustmentReason,
+                adjustmentDate: init.adjustmentDate,
+                adjustmentBy: init.adjustmentBy,
+              };
+            }
+            return p;
+          });
         } else {
           this.plots = [...initialPlots];
         }
@@ -133,9 +160,63 @@ class MockStore {
         } else {
           this.reservations = [...initialReservations];
         }
-        if (state.bookings && state.bookings.length > 0) this.bookings = state.bookings;
+        if (state.bookings && state.bookings.length > 0) {
+          this.bookings = state.bookings;
+          const missingBookings = initialBookings.filter(
+            (initB) => !this.bookings.some((b) => b.id === initB.id)
+          );
+          if (missingBookings.length > 0) {
+            this.bookings = [...this.bookings, ...missingBookings];
+          }
+          this.bookings = this.bookings.map((b) => ({
+            ...b,
+            registrationStatus: b.registrationStatus || (b.id === 'book-5' ? 'minimal' : 'complete'),
+          }));
+        } else {
+          this.bookings = [...initialBookings];
+        }
         if (state.payments && state.payments.length > 0) this.payments = state.payments;
-        if (state.customers && state.customers.length > 0) this.customers = state.customers;
+        if (state.customers && state.customers.length > 0) {
+          const termsResetDone = localStorage.getItem('pv_terms_reset_v4');
+          this.customers = state.customers.map((c: Customer) => {
+            if (c.id === 'cust-1') {
+              return { ...c, membershipNo: 'PV-2024-001', passwordHash: 'password123' };
+            }
+            if (c.id === 'cust-2') {
+              return { ...c, membershipNo: 'PV-2024-002', passwordHash: 'password123' };
+            }
+            if (c.id === 'cust-3') {
+              const termsAccepted = termsResetDone ? (c.termsAccepted ?? false) : false;
+              return {
+                ...c,
+                membershipNo: 'PV-2024-003',
+                passwordHash: 'password123',
+                termsAccepted,
+                termsAcceptedAt: termsAccepted ? c.termsAcceptedAt : undefined,
+              };
+            }
+            if (c.id === 'cust-4') {
+              return { ...c, membershipNo: 'PV-2024-004', passwordHash: 'password123' };
+            }
+            return c;
+          });
+          const missingCustomers = initialCustomers.filter(
+            (initC) => !this.customers.some((c) => c.id === initC.id)
+          );
+          if (missingCustomers.length > 0) {
+            this.customers = [...this.customers, ...missingCustomers];
+          }
+          this.customers = this.customers.map((c) => ({
+            ...c,
+            registrationStatus: c.registrationStatus || (c.id === 'cust-5' ? 'minimal' : 'complete'),
+          }));
+          if (!termsResetDone) {
+            localStorage.setItem('pv_terms_reset_v4', 'true');
+            this.saveToStorage();
+          }
+        } else {
+          this.customers = [...initialCustomers];
+        }
         if (state.adminUsers && state.adminUsers.length > 0) {
           const missingDefaults = initialAdminUsers.filter(
             (initUser) => !state.adminUsers.some((u: AdminUser) => u.username.toLowerCase() === initUser.username.toLowerCase())
@@ -157,7 +238,35 @@ class MockStore {
           this.contentBlocks = [...initialContentBlocks];
           this.saveToStorage();
         }
-        if (state.auditLog) this.auditLog = state.auditLog;
+        if (state.receiptSubmissions && Array.isArray(state.receiptSubmissions) && state.receiptSubmissions.length > 0) {
+          this.receiptSubmissions = state.receiptSubmissions.map((r: any) => ({
+            ...r,
+            depositoryBank: r.depositoryBank || r.bankName || 'Meezan Bank Ltd',
+          }));
+        } else {
+          this.receiptSubmissions = [...initialReceiptSubmissions];
+        }
+        if (state.customerDocuments && Array.isArray(state.customerDocuments)) {
+          this.customerDocuments = state.customerDocuments;
+        } else {
+          this.customerDocuments = [];
+        }
+        if (state.auditLog && Array.isArray(state.auditLog) && state.auditLog.length > 0) {
+          // If stored auditLog only had old 2026-03 dates, merge fresh relative seed sales
+          const hasRecentSale = state.auditLog.some(
+            (a: AuditEntry) =>
+              a.action === 'PLOT_BOOKED' &&
+              new Date(a.timestamp).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
+          );
+          if (!hasRecentSale) {
+            const nonSeed = state.auditLog.filter((a: AuditEntry) => !a.id.startsWith('audit-seed-sale-'));
+            this.auditLog = [...initialAuditLog.filter((a) => a.id.startsWith('audit-seed-sale-')), ...nonSeed];
+          } else {
+            this.auditLog = state.auditLog;
+          }
+        } else {
+          this.auditLog = [...initialAuditLog];
+        }
       } else {
         this.saveToStorage();
       }
@@ -259,6 +368,16 @@ class MockStore {
   // Rate Limiting implementation (Exception 5.3)
   public checkRateLimit(identifier: string): { allowed: boolean; remainingLockoutSeconds?: number } {
     const key = identifier.trim().toLowerCase();
+    // Exclude demo accounts from rate limiting lockout
+    const demoKeys = [
+      'pv-2024-001', 'pv-2024-002', 'pv-2024-003', 'pv-2024-004',
+      'pv-m-1042', 'pv-m-0891', 'pv-m-0724', 'pv-m-1205',
+    ];
+    if (demoKeys.includes(key)) {
+      this.failedLoginAttempts.delete(key);
+      return { allowed: true };
+    }
+
     const record = this.failedLoginAttempts.get(key);
     if (!record) return { allowed: true };
 
@@ -368,7 +487,7 @@ class MockStore {
     this.adminUsers = [...initialAdminUsers];
     this.reservations = [...initialReservations];
     this.contentBlocks = [...initialContentBlocks];
-    this.auditLog = [];
+    this.auditLog = [...initialAuditLog];
     this.failedLoginAttempts.clear();
     this.lockTimeouts.forEach(t => clearTimeout(t));
     this.lockTimeouts.clear();

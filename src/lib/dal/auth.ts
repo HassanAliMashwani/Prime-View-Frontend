@@ -40,94 +40,71 @@ function removeCookie(name: string): void {
   document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
 }
 
+import { API_BASE_URL } from '../api';
+
 /**
- * Authenticate member by CNIC, Phone, or Email + password.
- * Enforces rate-limiting counter and generic security errors.
+ * Authenticate member by CNIC, Phone, Email, or Membership Number via real NestJS backend.
  */
 export async function login(identifier: string, password: string): Promise<LoginResult> {
-  mockStore.loadFromStorage();
   const trimmedId = identifier.trim();
 
-  // 1. Rate-limit check (Exception 5.3)
-  const rateCheck = mockStore.checkRateLimit(trimmedId);
-  if (!rateCheck.allowed) {
-    const minutes = Math.ceil((rateCheck.remainingLockoutSeconds || 300) / 60);
-    return {
-      ok: false,
-      error: `Too many failed login attempts. Account temporarily locked. Please try again in ${minutes} minute(s).`,
-      lockedUntil: Date.now() + (rateCheck.remainingLockoutSeconds || 300) * 1000,
-    };
-  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/member/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ membershipNo: trimmedId, password }),
+    });
 
-  // 2. Lookup customer by CNIC, Phone, or Email (case-insensitive)
-  const customer = mockStore.customers.find((c) => {
-    const matchCnic = c.cnic.replace(/\D/g, '') === trimmedId.replace(/\D/g, '');
-    const matchPhone = c.phone.replace(/\D/g, '') === trimmedId.replace(/\D/g, '');
-    const matchEmail = c.email.toLowerCase() === trimmedId.toLowerCase();
-    const matchMembership = c.membershipNo.toLowerCase() === trimmedId.toLowerCase();
-    return matchCnic || matchPhone || matchEmail || matchMembership;
-  });
-
-  // 3. Validate credentials
-  if (!customer || customer.passwordHash !== password) {
-    const failureResult = mockStore.recordFailedLogin(trimmedId);
-    if (failureResult.locked) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
       return {
         ok: false,
-        error: 'Too many failed login attempts. Account temporarily locked for 5 minutes.',
-        lockedUntil: Date.now() + 300 * 1000,
+        error: err.message || 'Invalid credentials. Please verify your details and try again.',
       };
     }
-    // Generic error message (Section 2.2 security requirement)
-    return {
-      ok: false,
-      error: 'Invalid credentials. Please verify your details and try again.',
+
+    const { access_token } = await res.json();
+    const payload = JSON.parse(
+      typeof window !== 'undefined'
+        ? atob(access_token.split('.')[1])
+        : Buffer.from(access_token.split('.')[1], 'base64').toString()
+    );
+
+    const session: MemberSession = {
+      customerId: payload.customerId,
+      role: 'customer',
+      fullName: payload.fullName,
+      email: payload.email,
+      token: access_token,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
     };
-  }
 
-  // Check account status
-  if (customer.accountStatus === 'suspended') {
-    return {
-      ok: false,
-      error: 'Your member account is currently suspended. Please contact society administration.',
-    };
-  }
-
-  // 4. Success — reset rate limit counter & create session
-  mockStore.resetFailedLogins(trimmedId);
-  customer.lastLogin = new Date().toISOString();
-
-  const session: MemberSession = {
-    customerId: customer.id,
-    role: 'customer',
-    fullName: customer.fullName,
-    email: customer.email,
-    token: `mock-token-${customer.id}-${Date.now()}`,
-    expiresAt: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-  };
-
-  // Persist session to sessionStorage AND cookie so it survives page refreshes
-  if (typeof window !== 'undefined') {
-    try {
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      setCookie(COOKIE_KEY, JSON.stringify(session));
-    } catch (e) {
-      console.warn('Could not write to storage:', e);
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+        setCookie(COOKIE_KEY, JSON.stringify(session));
+      } catch (e) {
+        console.warn('Could not write to storage:', e);
+      }
     }
+
+    mockStore.addAuditEntry({
+      actorId: session.customerId,
+      actorName: session.fullName,
+      actorRole: 'customer',
+      action: 'MEMBER_LOGIN',
+      entityType: 'customer',
+      entityId: session.customerId,
+      details: `Member ${session.fullName} (${session.customerId}) logged in successfully via API.`,
+    });
+
+    return { ok: true, session };
+  } catch (err) {
+    return {
+      ok: false,
+      error: 'Backend authentication service unreachable. Please ensure backend is running.',
+    };
   }
-
-  // Audit log entry
-  mockStore.addAuditEntry({
-    actorId: customer.id,
-    actorName: customer.fullName,
-    actorRole: 'customer',
-    action: 'MEMBER_LOGIN',
-    entityType: 'customer',
-    entityId: customer.id,
-    details: `Member ${customer.fullName} logged in successfully`,
-  });
-
-  return { ok: true, session };
 }
 
 /**

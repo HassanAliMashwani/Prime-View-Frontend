@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   Play,
   ArrowRight,
+  ArrowUpRight,
   X,
   ShieldCheck,
   MapPin,
@@ -154,33 +155,39 @@ export function ReferenceAboutView() {
             </div>
           </div>
 
-          {/* ── 4. BOTTOM-LEFT GAP: CALL TO ACTION & DETAILS ── */}
-          <div className="absolute bottom-0 left-0 w-[36%] flex items-center justify-between gap-3 p-3.5 rounded-[24px] bg-white border border-[#E2D6C3] shadow-xs z-10">
-            {/* Reassurance Checkmarks */}
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-charcoal">
-                <div className="w-3.5 h-3.5 rounded-full bg-[#2E6A4F]/15 flex items-center justify-center shrink-0">
-                  <Check className="w-2 h-2 text-[#2E6A4F]" />
-                </div>
-                <span>Registered Society KPK</span>
+          {/* ── 4. BOTTOM-LEFT GAP: ROMAN BUILDERS ATTRIBUTION LINK ── */}
+          <a
+            href="https://roman-builders.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute bottom-0 left-0 w-[32%] h-[78px] flex items-center justify-between gap-3 px-4 py-1.5 rounded-[20px] bg-white border border-[#E2D6C3] shadow-sm hover:shadow-md hover:border-[#2E6A4F] transition-all hover:-translate-y-0.5 z-10 group"
+          >
+            <div className="flex-1 flex flex-col justify-center h-full min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#2E6A4F] bg-[#2E6A4F]/10 px-1.5 py-0.5 rounded">
+                  Project By
+                </span>
+                <span className="text-[10px] font-semibold text-[#8C827A] hidden xl:inline-block">
+                  Master Developer
+                </span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-charcoal">
-                <div className="w-3.5 h-3.5 rounded-full bg-[#2E6A4F]/15 flex items-center justify-center shrink-0">
-                  <Check className="w-2 h-2 text-[#2E6A4F]" />
-                </div>
-                <span>Hazara Division Approved</span>
+              <div className="relative w-full h-[40px] flex items-center">
+                <Image
+                  src="/new assests/about page logos/roman-builders-logo.png"
+                  alt="Roman Builders & Developers"
+                  width={280}
+                  height={88}
+                  className="h-full w-auto max-w-[190px] xl:max-w-[210px] object-contain object-left transition-transform duration-300 group-hover:scale-[1.02]"
+                  priority
+                />
               </div>
             </div>
 
-            {/* Primary CTA Button */}
-            <Link
-              href="/our-plans"
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-full bg-[#1B1B1B] hover:bg-[#2E6A4F] text-white text-xs font-bold shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 shrink-0"
-            >
-              <span>Explore Plans</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+            <div className="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-full bg-[#1B1B1B] group-hover:bg-[#2E6A4F] text-white text-[11px] font-bold shadow-xs transition-colors shrink-0">
+              <span className="tracking-wide">Visit Site</span>
+              <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </div>
+          </a>
 
           {/* ── 5. BOTTOM-RIGHT GAP: SOCIAL PROOF / REVIEW WIDGET ── */}
           <div className="absolute bottom-0 right-14 w-[calc(35%-56px)] min-h-[105px] z-10">
@@ -212,24 +219,24 @@ export function ReferenceAboutView() {
                   <div className="flex items-center -space-x-1.5">
                     <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
                       <Image
-                        src="/new assests/team/team new/Huzaifa Zahid.jpg"
-                        alt="Allottee"
+                        src="/new assests/team/team new/president.jpeg"
+                        alt="President"
                         fill
                         className="object-cover"
                       />
                     </div>
                     <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
                       <Image
-                        src="/new assests/team/team new/Malik kamaran munir.jpg"
-                        alt="Allottee"
+                        src="/new assests/team/team new/chairman.jpeg"
+                        alt="Chairman"
                         fill
                         className="object-cover"
                       />
                     </div>
                     <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
                       <Image
-                        src="/new assests/team/team new/secretary.jpg"
-                        alt="Allottee"
+                        src="/new assests/team/team new/director.jpeg"
+                        alt="Director"
                         fill
                         className="object-cover"
                       />
@@ -336,26 +343,38 @@ export function ReferenceAboutView() {
             </div>
           </div>
 
-          {/* Bottom CTA & Reassurance */}
-          <div className="p-4 rounded-2xl bg-white border border-[#E2D6C3] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="space-y-1 text-xs font-bold text-charcoal">
-              <p className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-[#2E6A4F]" />
-                Registered Society KPK
-              </p>
-              <p className="flex items-center gap-1.5">
-                <Check className="w-3.5 h-3.5 text-[#2E6A4F]" />
-                Hazara Division Approved
-              </p>
+          {/* Bottom Roman Builders Attribution */}
+          <a
+            href="https://roman-builders.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-4 sm:p-5 rounded-2xl bg-white border border-[#E2D6C3] shadow-sm hover:shadow-md hover:border-[#2E6A4F]/50 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 group"
+          >
+            <div className="flex-1 flex flex-col min-w-0 w-full sm:w-auto">
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#2E6A4F] bg-[#2E6A4F]/10 px-2 py-0.5 rounded-md">
+                  Project By
+                </span>
+                <span className="text-[11px] font-semibold text-[#8C827A]">
+                  Master Developer
+                </span>
+              </div>
+              <div className="relative w-full h-12 sm:h-14 flex items-center">
+                <Image
+                  src="/new assests/about page logos/roman-builders-logo.png"
+                  alt="Roman Builders & Developers"
+                  width={280}
+                  height={88}
+                  className="h-full w-auto max-w-[240px] object-contain object-left"
+                  priority
+                />
+              </div>
             </div>
-            <Link
-              href="/our-plans"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full bg-[#1B1B1B] text-white text-xs font-bold"
-            >
-              <span>Explore Plot Plans</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+            <div className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#1B1B1B] group-hover:bg-[#2E6A4F] text-white text-xs font-bold shadow-xs transition-colors shrink-0">
+              <span>Visit Website</span>
+              <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </div>
+          </a>
 
           {/* Bottom Social Proof Widget */}
           <div className="p-4 rounded-2xl bg-[#1E1E1E] text-white shadow-md space-y-3">
@@ -366,8 +385,36 @@ export function ReferenceAboutView() {
               </div>
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="flex items-center justify-between p-2 rounded-full bg-[#2A2A2A]">
-              <span className="text-[11px] font-bold text-white/90">500+ Allottees</span>
+            <div className="flex items-center justify-between p-2 px-3 rounded-full bg-[#2A2A2A]">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center -space-x-1.5">
+                  <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
+                    <Image
+                      src="/new assests/team/team new/president.jpeg"
+                      alt="President"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
+                    <Image
+                      src="/new assests/team/team new/chairman.jpeg"
+                      alt="Chairman"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="relative w-5 h-5 rounded-full overflow-hidden border border-[#1E1E1E]">
+                    <Image
+                      src="/new assests/team/team new/director.jpeg"
+                      alt="Director"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold text-white/90">500+ Allottees</span>
+              </div>
               <span className="text-[10px] font-bold text-emerald-400 bg-[#1B1B1B] px-2 py-0.5 rounded-full">
                 Verified Land Bank
               </span>

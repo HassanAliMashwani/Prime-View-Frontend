@@ -12,9 +12,11 @@ import {
   AlertCircle,
   HelpCircle,
   Building2,
-  AlertTriangle
+  AlertTriangle,
+  User
 } from 'lucide-react';
 import { Plot } from '@/lib/mock/types';
+import { mockStore } from '@/lib/mock/store';
 import { getBlockMapConfig } from '@/lib/map/blockRegistry';
 import { TracedPlotArea } from '@/lib/map/types';
 
@@ -24,7 +26,7 @@ interface InteractiveBlockMapProps {
   selectedPlot: Plot | null;
   onSelectPlot: (plot: Plot) => void;
   searchFilter?: string;
-  statusFilter?: 'all' | 'available' | 'reserved' | 'booked' | 'disputed';
+  statusFilter?: 'all' | 'available' | 'reserved' | 'booked' | 'disputed' | 'adjustment';
   categoryFilter?: 'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity';
   focusPlotId?: string | null;
 }
@@ -218,6 +220,10 @@ export default function InteractiveBlockMap({
             <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs" />
             <span>Amenity</span>
           </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs animate-pulse" />
+            <span className="font-bold text-blue-400">Adjustment</span>
+          </div>
         </div>
 
         {/* Zoom Controls */}
@@ -292,6 +298,7 @@ export default function InteractiveBlockMap({
             viewBox={`0 0 ${naturalWidth} ${naturalHeight}`}
             className="absolute inset-0 w-full h-full"
             preserveAspectRatio="xMidYMid meet"
+            onPointerLeave={() => setHoveredArea(null)}
           >
             <defs>
               {/* Disputed Striped Pattern: alternating amber and vibrant fuchsia stripes */}
@@ -314,27 +321,46 @@ export default function InteractiveBlockMap({
               const isSelected = selectedPlot && plot && selectedPlot.id === plot.id;
               const isHovered = hoveredArea?.slug === area.slug;
 
-              // Filter checks: dim non-matching plots
+              // Filter checks: strictly hide non-matching plots when a filter is active
               let matchesFilter = true;
-              if (searchFilter && plot) {
-                const q = searchFilter.toLowerCase();
-                const matchesNum = plot.plotNumber.toLowerCase().includes(q);
-                const matchesSize = plot.size.toLowerCase().includes(q);
-                const matchesAmenity = plot.amenityName?.toLowerCase().includes(q);
+              const hasFilterActive = statusFilter !== 'all' || categoryFilter !== 'all' || Boolean(searchFilter && searchFilter.trim());
+
+              if (searchFilter && searchFilter.trim()) {
+                const q = searchFilter.toLowerCase().trim();
+                const matchesNum = area.plotNumber ? area.plotNumber.toLowerCase().includes(q) : false;
+                const matchesSize = plot?.size ? plot.size.toLowerCase().includes(q) : false;
+                const matchesAmenity = plot?.amenityName ? plot.amenityName.toLowerCase().includes(q) : false;
                 if (!matchesNum && !matchesSize && !matchesAmenity) matchesFilter = false;
               }
-              if (statusFilter !== 'all' && plot) {
-                if (statusFilter === 'disputed') {
+
+              if (statusFilter !== 'all') {
+                if (!plot) {
+                  matchesFilter = false;
+                } else if (statusFilter === 'adjustment') {
+                  if (!plot.isAdjustment) matchesFilter = false;
+                } else if (statusFilter === 'disputed') {
                   const isDisputed = Boolean(
                     plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
                   );
                   if (!isDisputed) matchesFilter = false;
+                } else if (statusFilter === 'available') {
+                  if (plot.status !== 'available' || plot.category === 'amenity' || plot.isAdjustment) {
+                    matchesFilter = false;
+                  }
                 } else if (plot.status !== statusFilter) {
                   matchesFilter = false;
                 }
               }
-              if (categoryFilter !== 'all' && plot && plot.category !== categoryFilter) {
-                matchesFilter = false;
+
+              if (categoryFilter !== 'all') {
+                if (!plot || plot.category !== categoryFilter) {
+                  matchesFilter = false;
+                }
+              }
+
+              // When any filter is active, completely omit non-matching plots so ONLY matching plots are rendered
+              if (hasFilterActive && !matchesFilter) {
+                return null;
               }
 
               // Styling calculation
@@ -358,7 +384,14 @@ export default function InteractiveBlockMap({
                   (plot.reservingUsers && plot.reservingUsers.length > 0) || plot.reservingByName
                 );
 
-                if (isLocked) {
+                if (plot.isAdjustment) {
+                  // Vibrant Blue for Master Plan Adjustment / Town Planning Re-Survey Freeze
+                  fillColor = '#2563eb';
+                  fillOpacity = isHovered ? 0.88 : 0.65;
+                  strokeColor = '#1d4ed8';
+                  strokeWidth = 3;
+                  isPulsing = true;
+                } else if (isLocked) {
                   fillColor = '#ef4444';
                   fillOpacity = 0.65;
                   strokeColor = '#dc2626';
@@ -383,10 +416,11 @@ export default function InteractiveBlockMap({
                   strokeColor = '#7e22ce';
                   strokeWidth = 2;
                 } else if (plot.status === 'booked') {
+                  // All booked plots render in bold Red (#ef4444)
                   fillColor = '#ef4444';
-                  fillOpacity = isHovered ? 0.75 : 0.52;
+                  fillOpacity = isHovered ? 0.78 : 0.55;
                   strokeColor = '#b91c1c';
-                  strokeWidth = 2;
+                  strokeWidth = 2.2;
                 } else if (plot.status === 'reserved') {
                   fillColor = '#f59e0b';
                   fillOpacity = isHovered ? 0.75 : 0.55;
@@ -413,10 +447,6 @@ export default function InteractiveBlockMap({
                 fillOpacity = Math.min(fillOpacity + 0.3, 0.9);
               }
 
-              if (!matchesFilter) {
-                fillOpacity = 0.08;
-                strokeWidth = 0.6;
-              }
 
               const isHighlighted = highlightedAreaSlug === area.slug;
               if (isHighlighted) {
@@ -444,6 +474,7 @@ export default function InteractiveBlockMap({
                     isPulsing ? 'animate-pulse' : ''
                   }`}
                   onMouseEnter={() => setHoveredArea(area)}
+                  onMouseLeave={() => setHoveredArea((cur) => (cur?.slug === area.slug ? null : cur))}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAreaClick(area);
@@ -506,6 +537,18 @@ export default function InteractiveBlockMap({
               );
               const isAmenity = plot.category === 'amenity';
 
+              const bookedCustomer = plot.status === 'booked' 
+                ? (plot.currentOwnerId 
+                    ? mockStore.customers.find((c) => c.id === plot.currentOwnerId)
+                    : mockStore.bookings.find((b) => b.plotId === plot.id)
+                    ? mockStore.customers.find((c) => c.id === mockStore.bookings.find((b) => b.plotId === plot.id)?.customerId)
+                    : null)
+                : null;
+              const activeRes = plot.status === 'reserved'
+                ? mockStore.reservations.find((r) => r.plotId === plot.id && r.status === 'active')
+                : null;
+              const reservedCustomerName = activeRes?.customerName;
+
               return (
                 <div className="w-68 rounded-2xl border border-slate-700 bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
                   <div className="flex items-center justify-between gap-2 mb-1">
@@ -514,7 +557,9 @@ export default function InteractiveBlockMap({
                     </span>
                     <span
                       className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
-                        isLocked
+                        plot.isAdjustment
+                          ? 'bg-blue-950 text-blue-300 border-blue-500 font-bold lowercase'
+                          : isLocked
                           ? 'bg-rose-950 text-rose-300 border-rose-700'
                           : isDisputed
                           ? 'bg-rose-950 text-rose-200 border-rose-600 animate-pulse font-bold'
@@ -523,13 +568,17 @@ export default function InteractiveBlockMap({
                           : isAmenity
                           ? 'bg-purple-950 text-purple-300 border-purple-700'
                           : plot.status === 'booked'
-                          ? 'bg-rose-950 text-rose-300 border-rose-700'
+                          ? bookedCustomer?.registrationStatus === 'minimal'
+                            ? 'bg-amber-950 text-amber-300 border-amber-600'
+                            : 'bg-rose-950 text-rose-300 border-rose-700'
                           : plot.status === 'reserved'
                           ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : 'bg-emerald-950 text-emerald-300 border-emerald-700'
                       }`}
                     >
-                      {isLocked
+                      {plot.isAdjustment
+                        ? 'adjustment'
+                        : isLocked
                         ? 'Locked'
                         : isDisputed
                         ? `Disputed (${plot.activeReservationCount})`
@@ -537,9 +586,60 @@ export default function InteractiveBlockMap({
                         ? 'Reserving'
                         : isAmenity
                         ? 'Amenity'
-                        : plot.status}
+                        : plot.status === 'booked' && bookedCustomer?.registrationStatus === 'minimal'
+                        ? 'Booked (Needs Reg)'
+                        : String(plot.status).replace(/_/g, ' ')}
                     </span>
                   </div>
+
+                  {/* Adjustment Notice */}
+                  {plot.isAdjustment && (
+                    <div className="mb-2 p-1.5 rounded-lg bg-blue-950/90 border border-blue-500 text-[10px] text-blue-200 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
+                      <span className="font-bold lowercase">
+                        adjustment: {plot.adjustmentReason || 'boundary review'}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Booked Customer Details */}
+                  {plot.status === 'booked' && bookedCustomer && (
+                    <div className={`mb-2 p-2 rounded-lg border text-[11px] flex items-center gap-2 ${
+                      bookedCustomer.registrationStatus === 'minimal'
+                        ? 'bg-amber-950/80 border-amber-800/70 text-amber-100'
+                        : 'bg-rose-950/80 border-rose-800/70 text-rose-100'
+                    }`}>
+                      <User className={`w-3.5 h-3.5 shrink-0 ${
+                        bookedCustomer.registrationStatus === 'minimal' ? 'text-amber-400' : 'text-rose-400'
+                      }`} />
+                      <div className="min-w-0 flex-1 truncate">
+                        <span className={`text-[9px] uppercase font-mono block leading-tight ${
+                          bookedCustomer.registrationStatus === 'minimal' ? 'text-amber-400/90 font-bold' : 'text-slate-400'
+                        }`}>
+                          {bookedCustomer.registrationStatus === 'minimal' ? 'Booked (Needs Registration)' : 'Booked by'}
+                        </span>
+                        <div className="font-semibold text-white truncate">
+                          {bookedCustomer.fullName}{bookedCustomer.registrationStatus === 'minimal' && bookedCustomer.city ? ` (${bookedCustomer.city})` : ''}
+                        </div>
+                        {bookedCustomer.membershipNo ? (
+                          <div className="text-[10px] text-rose-300 font-mono">{bookedCustomer.membershipNo}</div>
+                        ) : (
+                          <div className="text-[9px] text-amber-300 font-mono uppercase">Formalities Pending</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Reserved Customer Details */}
+                  {plot.status === 'reserved' && reservedCustomerName && (
+                    <div className="mb-2 p-2 rounded-lg bg-amber-950/80 border border-amber-800/70 text-[11px] text-amber-100 flex items-center gap-2">
+                      <BookmarkCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <div className="min-w-0 flex-1 truncate">
+                        <span className="text-[9px] uppercase font-mono text-amber-400/80 block leading-tight">Reserved for</span>
+                        <div className="font-semibold text-white truncate">{reservedCustomerName}</div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Disputed Conflict Warning */}
                   {isDisputed && (
@@ -575,7 +675,7 @@ export default function InteractiveBlockMap({
                       <div className="font-semibold text-purple-300">{plot.amenityName}</div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <span>{plot.size} • {plot.category}</span>
+                        <span className="capitalize">{plot.size} • {String(plot.category).replace(/_/g, ' ')}</span>
                         <span className="font-mono font-bold text-emerald-400">
                           {plot.price > 0 ? `PKR ${(plot.price / 1000000).toFixed(1)}M` : ''}
                         </span>

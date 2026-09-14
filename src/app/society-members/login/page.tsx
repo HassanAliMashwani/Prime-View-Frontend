@@ -6,11 +6,13 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { siteConfig } from '@/data/site';
-import { Shield, Lock, ArrowRight, AlertCircle, ArrowLeft, KeyRound, UserCheck } from 'lucide-react';
+import { mockStore } from '@/lib/mock/store';
+import { Shield, Lock, ArrowRight, AlertCircle, ArrowLeft, KeyRound, UserCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function MemberLoginPage() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { login } = useAuth();
@@ -21,7 +23,7 @@ export default function MemberLoginPage() {
     setErrorMessage(null);
 
     if (!identifier.trim() || !password.trim()) {
-      setErrorMessage('Please enter both your CNIC / Phone / Email and Password.');
+      setErrorMessage('Please enter both your Username / Membership Number and Password.');
       return;
     }
 
@@ -43,16 +45,24 @@ export default function MemberLoginPage() {
   // Demo account quick-fill helpers for seamless live presentations
   const fillDemo = (demoId: string) => {
     if (demoId === 'tariq') {
-      setIdentifier('0300-1234567');
+      setIdentifier('PV-2024-001');
       setPassword('password123');
     } else if (demoId === 'ayesha') {
-      setIdentifier('37405-7654321-2');
+      setIdentifier('PV-2024-002');
       setPassword('password123');
     } else if (demoId === 'usman') {
-      setIdentifier('0333-9988776');
+      setIdentifier('PV-2024-003');
       setPassword('password123');
+      // Reset terms agreement so user can see and test the Terms modal whenever they click Malik Usman
+      mockStore.loadFromStorage();
+      const usman = mockStore.customers.find((c) => c.id === 'cust-3');
+      if (usman) {
+        usman.termsAccepted = false;
+        usman.termsAcceptedAt = undefined;
+        mockStore.saveToStorage();
+      }
     } else if (demoId === 'bilal') {
-      setIdentifier('0345-0000000');
+      setIdentifier('PV-2024-004');
       setPassword('password123');
     }
     setErrorMessage(null);
@@ -89,7 +99,7 @@ export default function MemberLoginPage() {
               Member Portal
             </h1>
             <p className="text-xs sm:text-sm text-[#6B7462] leading-relaxed">
-              Sign in to view your society plot ledger, installment schedule, and documents.
+              Sign in to view your society plot ledger, installment schedule, and verified receipts.
             </p>
           </div>
 
@@ -108,14 +118,14 @@ export default function MemberLoginPage() {
                 htmlFor="identifier"
                 className="text-xs font-bold text-[#151914] uppercase tracking-wider block"
               >
-                CNIC, Phone or Email
+                Username / Membership Number
               </label>
               <input
                 id="identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="e.g. 37405-1234567-1 or 0300-1234567"
+                placeholder="e.g. PV-2024-001 or CNIC / Phone"
                 className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] placeholder-[#6B7462]/50 shadow-xs"
                 required
               />
@@ -130,15 +140,26 @@ export default function MemberLoginPage() {
                   Password
                 </label>
               </div>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] placeholder-[#6B7462]/50 shadow-xs"
-                required
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-3 pr-11 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] placeholder-[#6B7462]/50 shadow-xs"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <button
@@ -183,7 +204,7 @@ export default function MemberLoginPage() {
                 className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors"
               >
                 <span className="font-bold block text-[#151914]">Tariq Mehmood</span>
-                <span className="text-[#6B7462] text-[10px]">1 Plot (One-Time)</span>
+                <span className="text-[#6B7462] text-[10px]">1 Plot (Full Payment)</span>
               </button>
               <button
                 type="button"

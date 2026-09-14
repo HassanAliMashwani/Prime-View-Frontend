@@ -2,19 +2,21 @@
 
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Map, 
-  BookmarkCheck, 
-  LogOut, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  Map,
+  BookmarkCheck,
+  LogOut,
+  ShieldCheck,
   ExternalLink,
   Layers,
   Users,
   UserPlus,
   FileEdit,
-  ScrollText
+  ScrollText,
+  FileCheck
 } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
 import { adminLogout } from '@/lib/dal/adminAuth';
@@ -45,7 +47,10 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
 
   const isSuper = session?.role === 'super_admin';
   const canCreateCustomer = isSuper || Boolean(session?.permissions?.can_create_customer);
+  const canViewCustomers = isSuper || Boolean(session?.permissions?.can_view_customers || session?.permissions?.can_create_customer);
+  const canViewSales = isSuper || Boolean(session?.permissions?.can_view_sales_reports || session?.permissions?.can_book || session?.permissions?.can_create_customer);
   const canEditContent = isSuper || Boolean(session?.permissions?.can_edit_content);
+  const canVerifyReceipts = isSuper || Boolean(session?.permissions?.can_verify_receipts);
 
   const coreNavItems = [
     {
@@ -67,6 +72,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
       visible: true,
     },
     {
+      label: 'Inventory Overview',
+      href: '/admin/inventory',
+      icon: Layers,
+      iconColor: 'text-teal-600',
+      activeColor: 'bg-teal-50 text-teal-950 border-teal-600',
+      active: pathname === '/admin/inventory',
+      visible: true,
+    },
+    {
       label: 'Sort Reservations',
       href: '/admin/reservations',
       icon: BookmarkCheck,
@@ -76,6 +90,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
       visible: true,
     },
     {
+      label: 'Customer Directory',
+      href: '/admin/customers-directory',
+      icon: Users,
+      iconColor: 'text-cyan-600',
+      activeColor: 'bg-cyan-50 text-cyan-950 border-cyan-600',
+      active: pathname === '/admin/customers-directory',
+      visible: canViewCustomers,
+    },
+    {
       label: 'Customer Bookings',
       href: '/admin/customers',
       icon: UserPlus,
@@ -83,6 +106,24 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
       activeColor: 'bg-blue-50 text-blue-950 border-blue-600',
       active: pathname === '/admin/customers',
       visible: canCreateCustomer,
+    },
+    {
+      label: 'Sales History',
+      href: '/admin/sales-history',
+      icon: ScrollText,
+      iconColor: 'text-emerald-600',
+      activeColor: 'bg-emerald-50 text-emerald-950 border-emerald-600',
+      active: pathname === '/admin/sales-history',
+      visible: canViewSales,
+    },
+    {
+      label: 'Receipt Verification',
+      href: '/admin/receipts',
+      icon: FileCheck,
+      iconColor: 'text-purple-600',
+      activeColor: 'bg-purple-50 text-purple-950 border-purple-600',
+      active: pathname === '/admin/receipts',
+      visible: canVerifyReceipts,
     },
     {
       label: 'Content CMS',
@@ -119,19 +160,29 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
   return (
     <aside className="w-64 bg-white text-slate-800 flex flex-col border-r border-slate-200/90 select-none h-screen sticky top-0 shrink-0 shadow-xs z-20">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+      <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] border border-[#234F3D] flex items-center justify-center text-[#D4AF37] font-serif font-bold text-xl shadow-md">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] border border-[#234F3D] flex items-center justify-center text-[#D4AF37] font-serif font-bold text-xl shadow-md shrink-0">
             PV
           </div>
           <div>
-            <div className="font-serif font-bold text-base tracking-tight text-[#10251E]">
+            <div className="font-serif font-bold text-base tracking-tight text-[#10251E] leading-tight">
               PRIME VIEW
             </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-700">
-              Admin Core • Society Management
+            <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-700 mt-0.5">
+              Admin Core • Management
             </div>
           </div>
+        </div>
+        {/* Right side logo badge */}
+        <div className="relative w-7 h-7 opacity-80 shrink-0">
+          <Image
+            src="/logo-trimmed.png"
+            alt="Logo"
+            width={28}
+            height={28}
+            className="object-contain"
+          />
         </div>
       </div>
 
@@ -148,7 +199,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
               href={item.href}
               className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
                 item.active
-                  ? `${item.activeColor} border-l-4 shadow-xs`
+                  ? `${item.activeColor} border-l-4 shadow-xs font-bold`
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
@@ -171,7 +222,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
                   href={item.href}
                   className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
                     item.active
-                      ? `${item.activeColor} border-l-4 shadow-xs`
+                      ? `${item.activeColor} border-l-4 shadow-xs font-bold`
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                 >
@@ -188,20 +239,20 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
         </div>
         <Link
           href="/society-members/dashboard"
-          className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all"
+          className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all border border-slate-200/80 bg-slate-50/50"
         >
           <div className="flex items-center gap-2.5">
             <ExternalLink className="w-3.5 h-3.5 text-teal-600" />
             <span>Member Portal View</span>
           </div>
           <span className="text-[9px] bg-teal-50 text-teal-800 border border-teal-200 px-1.5 py-0.5 rounded-md font-mono font-bold">
-            Phase 1
+            Portal
           </span>
         </Link>
       </nav>
 
       {/* Admin Scope Panel */}
-      <div className="p-3.5 border-t border-slate-100 bg-slate-50/70">
+      <div className="p-3.5 border-t border-slate-100 bg-slate-50/50">
         <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
           <div className="flex items-center gap-2 mb-2">
             <ShieldCheck className={`w-4 h-4 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
@@ -252,7 +303,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
         {/* Sign Out Button */}
         <button
           onClick={handleLogout}
-          className="w-full mt-2.5 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors cursor-pointer"
+          className="w-full mt-2.5 flex items-center justify-center gap-2 px-3 py-2 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition-colors cursor-pointer text-center"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>Sign Out Admin</span>

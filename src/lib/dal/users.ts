@@ -11,7 +11,10 @@ export interface CreateSubAdminInput {
     can_reserve?: boolean;
     can_book?: boolean;
     can_create_customer?: boolean;
+    can_view_customers?: boolean;
+    can_view_sales_reports?: boolean;
     can_edit_content?: boolean;
+    can_verify_receipts?: boolean;
   };
 }
 
@@ -23,7 +26,10 @@ export interface UpdateSubAdminInput {
     can_reserve?: boolean;
     can_book?: boolean;
     can_create_customer?: boolean;
+    can_view_customers?: boolean;
+    can_view_sales_reports?: boolean;
     can_edit_content?: boolean;
+    can_verify_receipts?: boolean;
   };
 }
 
@@ -93,7 +99,10 @@ export async function createSubAdmin(
     can_reserve: Boolean(input.permissions.can_reserve),
     can_book: Boolean(input.permissions.can_book),
     can_create_customer: Boolean(input.permissions.can_create_customer),
+    can_view_customers: Boolean(input.permissions.can_view_customers),
+    can_view_sales_reports: Boolean(input.permissions.can_view_sales_reports),
     can_edit_content: Boolean(input.permissions.can_edit_content),
+    can_verify_receipts: Boolean(input.permissions.can_verify_receipts),
   };
 
   // 4. Create new sub admin record
@@ -181,7 +190,10 @@ export async function updateSubAdmin(
       can_reserve: Boolean(updates.permissions.can_reserve),
       can_book: Boolean(updates.permissions.can_book),
       can_create_customer: Boolean(updates.permissions.can_create_customer),
+      can_view_customers: Boolean(updates.permissions.can_view_customers),
+      can_view_sales_reports: Boolean(updates.permissions.can_view_sales_reports),
       can_edit_content: Boolean(updates.permissions.can_edit_content),
+      can_verify_receipts: Boolean(updates.permissions.can_verify_receipts),
     };
   }
 

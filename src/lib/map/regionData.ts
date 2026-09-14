@@ -229,3 +229,48 @@ export function getRegionByBlockId(blockId: string): Region | undefined {
   const norm = blockId.trim().toLowerCase();
   return regionData.find((r) => r.blockId === norm);
 }
+
+export interface BlockTheme {
+  blockId: string;
+  name: string;
+  color: string;
+  darkColor: string;
+  badgeStyle: React.CSSProperties;
+  cardBorderStyle: React.CSSProperties;
+  titleStyle: React.CSSProperties;
+  btnStyle: React.CSSProperties;
+  barStyle: React.CSSProperties;
+}
+
+export function getBlockTheme(blockId: string): BlockTheme {
+  const region = getRegionByBlockId(blockId);
+  const color = region?.color || '#AFD9AA';
+  const darkColor = region?.darkColor || '#2d5a3d';
+  const name = region?.name || getBlockDisplayName(blockId);
+
+  return {
+    blockId,
+    name,
+    color,
+    darkColor,
+    badgeStyle: {
+      backgroundColor: `${color}40`,
+      color: darkColor,
+      borderColor: `${color}`,
+    },
+    cardBorderStyle: {
+      borderColor: `${color}99`,
+    },
+    titleStyle: {
+      color: darkColor,
+    },
+    btnStyle: {
+      backgroundColor: darkColor,
+      color: '#ffffff',
+    },
+    barStyle: {
+      backgroundColor: color,
+    },
+  };
+}
+

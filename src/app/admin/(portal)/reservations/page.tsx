@@ -115,7 +115,12 @@ export default function ReservationsPage() {
     if (res.ok) {
       await loadData(session);
     } else {
-      alert(`Failed to confirm booking: ${res.error}`);
+      const errorMsg = res.error === 'OUT_OF_SCOPE'
+        ? 'Sector is outside your assigned administrative authority.'
+        : res.error === 'RESERVATION_NOT_FOUND'
+        ? 'Reservation record not found or already processed.'
+        : 'Failed to confirm booking. Please review plot status.';
+      alert(errorMsg);
     }
   };
 
@@ -137,9 +142,12 @@ export default function ReservationsPage() {
       await loadData(session);
     } else {
       if (res.error === 'NOT_RESERVATION_OWNER') {
-        alert(`Access Denied: Only the original reserving admin (${r.reservedByAdminName}) or a Super Admin can release this reservation.`);
+        alert(`Access Denied: Only the original reserving officer (${r.reservedByAdminName}) or a Super Administrator can release this reservation.`);
       } else {
-        alert(`Failed to release reservation: ${res.error}`);
+        const errorMsg = res.error === 'RESERVATION_NOT_FOUND'
+          ? 'Reservation record not found or already released.'
+          : 'Failed to release reservation. Please try again.';
+        alert(errorMsg);
       }
     }
   };
@@ -186,17 +194,12 @@ export default function ReservationsPage() {
       <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-white border-2 border-amber-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
-              <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
-              Sort Reservation Ledger
-            </span>
+            
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-slate-900">
             Token Allocations & Dispute Management
           </h2>
-          <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-            Track token deposits, resolve duplicate counter claims, and commit verified reservations into official bookings.
-          </p>
+          
         </div>
 
         {/* Tab Controls */}

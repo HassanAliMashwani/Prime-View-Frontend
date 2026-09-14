@@ -1,4 +1,4 @@
-import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AdminUser, Reservation, ContentBlock } from './types';
+import { Block, Customer, Plot, Booking, PaymentRecord, SocietyDocument, AdminUser, Reservation, ContentBlock, ReceiptSubmission, AuditEntry } from './types';
 import { eliteSeedPlots } from '../map/eliteSeedPlots';
 
 export const initialBlocks: Block[] = [
@@ -63,67 +63,98 @@ export const initialBlocks: Block[] = [
 export const initialCustomers: Customer[] = [
   {
     id: 'cust-1',
-    membershipNo: 'PV-M-1042',
+    membershipNo: 'PV-2024-001',
     fullName: 'Tariq Mehmood',
     fatherOrHusbandName: 'Muhammad Mehmood',
     cnic: '37405-1234567-1',
     email: 'tariq.mehmood@example.com',
     phone: '0300-1234567',
+    city: 'Islamabad',
     mailingAddress: 'House 14, Street 5, Sector F-7/2, Islamabad',
     nokName: 'Zainab Tariq',
     nokCnic: '37405-9876543-2',
     accountStatus: 'active',
+    registrationStatus: 'complete',
     createdDate: '2026-01-10',
     lastLogin: '2026-09-05T10:30:00Z',
     passwordHash: 'password123',
+    termsAccepted: true,
+    termsAcceptedAt: '2026-01-10T12:00:00Z',
   },
   {
     id: 'cust-2',
-    membershipNo: 'PV-M-0891',
+    membershipNo: 'PV-2024-002',
     fullName: 'Dr. Ayesha Khan',
     fatherOrHusbandName: 'Abdul Rehman Khan',
     cnic: '37405-7654321-2',
     email: 'ayesha.khan@example.com',
     phone: '0321-7654321',
+    city: 'Abbottabad',
     mailingAddress: 'Suite 4B, Pine Heights, Supply Road, Abbottabad',
     nokName: 'Hamza Khan',
     nokCnic: '37405-5544332-1',
     accountStatus: 'active',
+    registrationStatus: 'complete',
     createdDate: '2026-01-15',
     lastLogin: '2026-09-05T14:20:00Z',
     passwordHash: 'password123',
+    termsAccepted: true,
+    termsAcceptedAt: '2026-01-15T10:00:00Z',
   },
   {
     id: 'cust-3',
-    membershipNo: 'PV-M-0724',
+    membershipNo: 'PV-2024-003',
     fullName: 'Malik Usman',
     fatherOrHusbandName: 'Malik Farooq',
     cnic: '37405-9988776-3',
     email: 'malik.usman@example.com',
     phone: '0333-9988776',
+    city: 'Rawalpindi',
     mailingAddress: 'Villa 22, Overseas Enclave, Phase 8 Bahria Town, Rawalpindi',
     nokName: 'Bilal Usman',
     nokCnic: '37405-1122334-4',
     accountStatus: 'active',
+    registrationStatus: 'complete',
     createdDate: '2026-02-20',
     lastLogin: '2026-09-05T09:15:00Z',
     passwordHash: 'password123',
+    termsAccepted: false, // Demo account for First Login Terms & Conditions verification
   },
   {
     id: 'cust-4',
-    membershipNo: 'PV-M-1205',
+    membershipNo: 'PV-2024-004',
     fullName: 'Bilal Ahmed',
     fatherOrHusbandName: 'Ahmed Din',
     cnic: '37405-0000000-0',
     email: 'bilal.ahmed@example.com',
     phone: '0345-0000000',
+    city: 'Islamabad',
     mailingAddress: 'House 88, Street 12, DHA Phase 2, Islamabad',
     nokName: 'Maryam Bilal',
     nokCnic: '37405-6677889-5',
     accountStatus: 'active',
+    registrationStatus: 'complete',
     createdDate: '2026-02-01',
     lastLogin: '2026-03-05T12:00:00Z',
     passwordHash: 'password123',
+  },
+  {
+    id: 'cust-5',
+    membershipNo: '',
+    fullName: 'Hamza Tariq',
+    fatherOrHusbandName: '',
+    cnic: '37405-3344556-7',
+    email: '',
+    phone: '',
+    city: 'Lahore',
+    mailingAddress: 'Lahore',
+    nokName: '',
+    nokCnic: '',
+    accountStatus: 'active',
+    registrationStatus: 'minimal',
+    createdDate: '2026-09-10',
+    passwordHash: '',
+    credentialsPending: true,
   },
 ];
 
@@ -209,8 +240,7 @@ export const initialPlots: Plot[] = [
     category: 'residential',
     plotType: '2_kanal',
     price: 24000000,
-    status: 'booked',
-    currentOwnerId: 'cust-1',
+    status: 'available',
   },
   {
     id: 'plot-a-05',
@@ -221,6 +251,10 @@ export const initialPlots: Plot[] = [
     plotType: '1_kanal',
     price: 12500000,
     status: 'available',
+    isAdjustment: true,
+    adjustmentReason: 'Town Planning road widening re-survey & boundary reconciliation',
+    adjustmentDate: '2026-09-08T09:30:00Z',
+    adjustmentBy: 'Super Administrator',
   },
   {
     id: 'plot-a-12',
@@ -241,7 +275,8 @@ export const initialPlots: Plot[] = [
     category: 'residential',
     plotType: '1_kanal',
     price: 12500000,
-    status: 'available',
+    status: 'booked',
+    currentOwnerId: 'cust-5',
   },
   {
     id: 'plot-amn-hosp-ab',
@@ -286,6 +321,10 @@ export const initialPlots: Plot[] = [
     plotType: '10_marla',
     price: 6500000,
     status: 'available',
+    isAdjustment: true,
+    adjustmentReason: 'Hillside contour slope verification by Geotechnical Engineering team',
+    adjustmentDate: '2026-09-09T14:15:00Z',
+    adjustmentBy: 'Super Administrator',
   },
   {
     id: 'plot-r-03',
@@ -714,6 +753,7 @@ export const initialBookings: Booking[] = [
     plotId: 'plot-a-12',
     paymentType: 'one_time',
     status: 'completed',
+    registrationStatus: 'complete',
     bookingDate: '2026-01-10',
     confirmationDate: '2026-01-12',
   },
@@ -723,6 +763,7 @@ export const initialBookings: Booking[] = [
     plotId: 'plot-b-05',
     paymentType: 'installment',
     status: 'active',
+    registrationStatus: 'complete',
     bookingDate: '2026-01-15',
     confirmationDate: '2026-01-18',
   },
@@ -732,6 +773,7 @@ export const initialBookings: Booking[] = [
     plotId: 'plot-c-08',
     paymentType: 'installment',
     status: 'active',
+    registrationStatus: 'complete',
     bookingDate: '2026-02-20',
     confirmationDate: '2026-02-22',
   },
@@ -741,8 +783,18 @@ export const initialBookings: Booking[] = [
     plotId: 'plot-c-09',
     paymentType: 'one_time',
     status: 'completed',
+    registrationStatus: 'complete',
     bookingDate: '2026-03-05',
     confirmationDate: '2026-03-07',
+  },
+  {
+    id: 'book-5',
+    customerId: 'cust-5',
+    plotId: 'plot-a-14',
+    paymentType: 'installment',
+    status: 'active',
+    registrationStatus: 'minimal',
+    bookingDate: '2026-09-10',
   },
 ];
 
@@ -750,11 +802,10 @@ export const initialBookings: Booking[] = [
 function generateDrAyeshaPayments(): PaymentRecord[] {
   const records: PaymentRecord[] = [];
   const installmentAmount = 270833; // 6,500,000 / 24 ≈ 270,833
-  const startDate = new Date('2026-01-15');
 
   for (let i = 1; i <= 24; i++) {
-    const dueDate = new Date(startDate);
-    dueDate.setMonth(startDate.getMonth() + (i - 1));
+    // Due on 5th of every month starting from February 2026 (month after booking)
+    const dueDate = new Date(2026, 0 + i, 5);
     const dateStr = dueDate.toISOString().split('T')[0];
 
     let status: 'paid' | 'overdue' | 'pending' = 'pending';
@@ -762,12 +813,13 @@ function generateDrAyeshaPayments(): PaymentRecord[] {
     let paidDate: string | undefined = undefined;
     let transactionRef: string | undefined = undefined;
 
-    if (i <= 8) {
+    if (i <= 7) {
       status = 'paid';
       paidAmount = installmentAmount;
       paidDate = dateStr;
       transactionRef = `TXN-PV-B05-${1000 + i}`;
-    } else if (i === 9) {
+    } else if (i === 8) {
+      // Due 2026-09-05 (past due since today is Sept 12)
       status = 'overdue';
       paidAmount = 0;
     } else {
@@ -781,7 +833,7 @@ function generateDrAyeshaPayments(): PaymentRecord[] {
       plotId: 'plot-b-05',
       feeType: 'plot_installment',
       installmentNumber: i,
-      dueDate: i === 9 ? '2026-09-01' : dateStr,
+      dueDate: dateStr,
       amount: installmentAmount,
       paidAmount,
       paidDate,
@@ -796,11 +848,10 @@ function generateDrAyeshaPayments(): PaymentRecord[] {
 function generateMalikInstallments(): PaymentRecord[] {
   const records: PaymentRecord[] = [];
   const installmentAmount = 300000; // 3,600,000 / 12 = 300,000
-  const startDate = new Date('2026-03-15');
 
   for (let i = 1; i <= 12; i++) {
-    const dueDate = new Date(startDate);
-    dueDate.setMonth(startDate.getMonth() + (i - 1));
+    // Due on 5th of every month starting from March 2026 (month after booking)
+    const dueDate = new Date(2026, 1 + i, 5);
     const dateStr = dueDate.toISOString().split('T')[0];
 
     let status: 'paid' | 'overdue' | 'pending' = 'pending';
@@ -942,7 +993,7 @@ export const initialPayments: PaymentRecord[] = [
   },
 
   // ── Plot Price Payments (Never merged with fixed fees) ──
-  // Tariq Mehmood (One-Time: Plot A-12)
+  // Tariq Mehmood (Full Payment: Plot A-12)
   {
     id: 'pay-a12-1',
     bookingId: 'book-1',
@@ -959,7 +1010,7 @@ export const initialPayments: PaymentRecord[] = [
   ...generateDrAyeshaPayments(),
   // Malik Usman Plot C-08 (12 Installments)
   ...generateMalikInstallments(),
-  // Malik Usman Plot C-09 (One-Time: 7,000,000)
+  // Malik Usman Plot C-09 (Full Payment: 7,000,000)
   {
     id: 'pay-c09-1',
     bookingId: 'book-4',
@@ -1419,6 +1470,249 @@ export const initialContentBlocks: ContentBlock[] = [
     },
     lastModifiedBy: 'Chief Executive Officer (Super Admin)',
     lastModifiedAt: '2026-09-07T05:00:00Z',
+  },
+];
+
+// ── Initial Seeded Payment Receipt Submissions ──
+export const initialReceiptSubmissions: ReceiptSubmission[] = [
+  {
+    id: 'rcpt-seed-1',
+    customerId: 'cust-2',
+    membershipNo: 'PV-2024-002',
+    customerName: 'Dr. Ayesha Khan',
+    customerPhone: '0321-7654321',
+    customerCnic: '37405-7654321-2',
+    plotId: 'plot-b-05',
+    plotNumber: 'B-05',
+    blockName: 'Bismah Block',
+    paymentType: 'installment',
+    installmentNumber: 9,
+    amount: 220000,
+    depositoryBank: 'Meezan Bank Ltd (Havelian Branch)',
+    bankName: 'Meezan Bank Ltd (Havelian Branch)',
+    transactionRef: 'MBL-DEP-992014-B05',
+    paymentDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    receiptFileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380"><rect width="600" height="380" fill="%23f8fafc" stroke="%23cbd5e1" stroke-width="2"/><rect x="20" y="20" width="560" height="55" fill="%23065f46" rx="6"/><text x="40" y="54" fill="white" font-family="sans-serif" font-size="17" font-weight="bold">MEEZAN BANK LTD &bull; CASH/TRANSFER DEPOSIT SLIP</text><text x="40" y="110" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Beneficiary:</strong> Prime View Housing Society (Pvt) Ltd</text><text x="40" y="138" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Account No:</strong> 0102-0104882910 (PKR)</text><text x="40" y="166" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Applicant Member:</strong> Dr. Ayesha Khan (PV-2024-002)</text><text x="40" y="194" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Plot Allocation:</strong> Plot B-05 (Bismah Block) &bull; Inst. #9</text><text x="40" y="222" fill="%23065f46" font-family="sans-serif" font-size="15" font-weight="bold">Amount Paid: PKR 220,000/-</text><text x="40" y="250" fill="%2364748b" font-family="sans-serif" font-size="12">Trx Reference: MBL-DEP-992014-B05</text><circle cx="490" cy="275" r="45" fill="none" stroke="%23059669" stroke-width="2.5" stroke-dasharray="5,3"/><text x="455" y="278" fill="%23059669" font-family="sans-serif" font-size="11" font-weight="bold">BANK CLEARED</text></svg>',
+    receiptFileName: 'Meezan_Deposit_Slip_220k_DrAyesha.svg',
+    notes: 'Online inter-bank IBFT transfer receipt against Installment #9.',
+    status: 'pending',
+  },
+  {
+    id: 'rcpt-seed-2',
+    customerId: 'cust-2',
+    membershipNo: 'PV-2024-002',
+    customerName: 'Dr. Ayesha Khan',
+    customerPhone: '0321-7654321',
+    customerCnic: '37405-7654321-2',
+    plotId: 'plot-b-05',
+    plotNumber: 'B-05',
+    blockName: 'Bismah Block',
+    paymentType: 'installment',
+    installmentNumber: 8,
+    amount: 220000,
+    depositoryBank: 'Habib Bank Limited (Abbottabad)',
+    bankName: 'Habib Bank Limited (Abbottabad)',
+    transactionRef: 'HBL-DEP-883109-B05',
+    paymentDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    uploadedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    receiptFileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380"><rect width="600" height="380" fill="%23f8fafc" stroke="%23cbd5e1" stroke-width="2"/><rect x="20" y="20" width="560" height="55" fill="%23047857" rx="6"/><text x="40" y="54" fill="white" font-family="sans-serif" font-size="17" font-weight="bold">HABIB BANK LIMITED &bull; VERIFIED DEPOSIT CHALLAN</text><text x="40" y="110" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Credit Account:</strong> Prime View Housing Society Secretariat</text><text x="40" y="138" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Branch:</strong> Abbottabad Main Branch (Code 0491)</text><text x="40" y="166" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Depositor:</strong> Dr. Ayesha Khan (PV-2024-002)</text><text x="40" y="194" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Installment Account:</strong> Installment #8 &bull; Plot B-05</text><text x="40" y="222" fill="%23047857" font-family="sans-serif" font-size="15" font-weight="bold">Deposited Amount: PKR 220,000/-</text><text x="40" y="250" fill="%2364748b" font-family="sans-serif" font-size="12">Reference: HBL-DEP-883109-B05</text><circle cx="490" cy="275" r="45" fill="none" stroke="%23b91c1c" stroke-width="2.5" stroke-dasharray="5,3"/><text x="455" y="278" fill="%23b91c1c" font-family="sans-serif" font-size="11" font-weight="bold">TELLER STAMP</text></svg>',
+    receiptFileName: 'HBL_Counter_Slip_Inst8.svg',
+    status: 'verified',
+    verifiedByAdminId: 'admin-1',
+    verifiedByAdminName: 'Super Administrator',
+    verifiedAt: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+    slip: {
+      slipNumber: 'PV-SLIP-2026-0881',
+      securityHash: 'PV-SEC-E92A-44B1-8890F',
+      generatedAt: new Date(Date.now() - 29 * 24 * 60 * 60 * 1000).toISOString(),
+      qrPayload: 'VERIFIED|PRIME-VIEW|PV-2024-002|PLOT-B-05|INST-8|220000|PV-SLIP-2026-0881',
+      societyAuthorityStamp: 'OFFICIAL SOCIETY VERIFICATION • REG NO 411 KPK',
+    },
+  },
+  {
+    id: 'rcpt-seed-3',
+    customerId: 'cust-3',
+    membershipNo: 'PV-2024-003',
+    customerName: 'Malik Usman',
+    customerPhone: '0300-9876543',
+    customerCnic: '37405-9876543-1',
+    plotId: 'plot-c-08',
+    plotNumber: 'C-08',
+    blockName: 'Overseas Block',
+    paymentType: 'installment',
+    installmentNumber: 2,
+    amount: 150000,
+    depositoryBank: 'Bank Alfalah Ltd',
+    bankName: 'Bank Alfalah Ltd',
+    transactionRef: 'BAFL-IBFT-491028',
+    paymentDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    receiptFileUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="380" viewBox="0 0 600 380"><rect width="600" height="380" fill="%23f8fafc" stroke="%23cbd5e1" stroke-width="2"/><rect x="20" y="20" width="560" height="55" fill="%23be123c" rx="6"/><text x="40" y="54" fill="white" font-family="sans-serif" font-size="17" font-weight="bold">BANK ALFALAH &bull; ONLINE TRANSFER RECEIPT</text><text x="40" y="110" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>To:</strong> Prime View Housing Society</text><text x="40" y="140" fill="%231e293b" font-family="sans-serif" font-size="13"><strong>Amount:</strong> PKR 150,000</text></svg>',
+    receiptFileName: 'Alfalah_Receipt_Inst2.svg',
+    status: 'rejected',
+    rejectionReason: 'Transaction reference not found in bank ledger statement.',
+    verifiedByAdminId: 'admin-1',
+    verifiedByAdminName: 'Super Administrator',
+    verifiedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+// ── Initial Seeded Audit Trail Log ──
+export const initialAuditLog: AuditEntry[] = [
+  {
+    id: 'audit-seed-sale-1',
+    timestamp: new Date().toISOString(), // Today's sale
+    actorId: 'admin-2',
+    actorName: 'Marketing Sub-Admin',
+    actorRole: 'sub_admin',
+    action: 'PLOT_BOOKED',
+    entityType: 'booking',
+    entityId: 'book-2',
+    details: 'Booked Plot B-05 (10 Marla) in Royal Block for Dr. Ayesha Khan (PV-2024-002) - PKR 6,500,000 via 24-Month Installment Scheme',
+    newValue: JSON.stringify({
+      plotId: 'plot-b-05',
+      plotNumber: 'B-05',
+      blockId: 'royal',
+      blockName: 'Royal Block',
+      category: 'residential',
+      size: '10 Marla',
+      price: 6500000,
+      customerId: 'cust-2',
+      customerName: 'Dr. Ayesha Khan',
+      membershipNo: 'PV-2024-002',
+      paymentType: 'installment',
+      sellerAdminId: 'admin-2',
+      sellerAdminName: 'Marketing Sub-Admin',
+    }),
+  },
+  {
+    id: 'audit-seed-sale-2',
+    timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday's sale
+    actorId: 'admin-1',
+    actorName: 'Super Administrator',
+    actorRole: 'super_admin',
+    action: 'PLOT_BOOKED',
+    entityType: 'booking',
+    entityId: 'book-4',
+    details: 'Booked Plot C-09 (10 Marla) in Overseas Block for Malik Usman (PV-2024-003) - PKR 7,000,000 via Full Payment',
+    newValue: JSON.stringify({
+      plotId: 'plot-c-09',
+      plotNumber: 'C-09',
+      blockId: 'overseas',
+      blockName: 'Overseas Block',
+      category: 'residential',
+      size: '10 Marla',
+      price: 7000000,
+      customerId: 'cust-3',
+      customerName: 'Malik Usman',
+      membershipNo: 'PV-2024-003',
+      paymentType: 'one_time',
+      sellerAdminId: 'admin-1',
+      sellerAdminName: 'Super Administrator',
+    }),
+  },
+  {
+    id: 'audit-seed-sale-3',
+    timestamp: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago (Last 7 Days & This Month)
+    actorId: 'admin-3',
+    actorName: 'Police Sub-Admin',
+    actorRole: 'sub_admin',
+    action: 'PLOT_BOOKED',
+    entityType: 'booking',
+    entityId: 'book-3',
+    details: 'Booked Plot C-08 (5 Marla) in Overseas Block for Malik Usman (PV-2024-003) - PKR 3,600,000 via 24-Month Installment Scheme',
+    newValue: JSON.stringify({
+      plotId: 'plot-c-08',
+      plotNumber: 'C-08',
+      blockId: 'overseas',
+      blockName: 'Overseas Block',
+      category: 'residential',
+      size: '5 Marla',
+      price: 3600000,
+      customerId: 'cust-3',
+      customerName: 'Malik Usman',
+      membershipNo: 'PV-2024-003',
+      paymentType: 'installment',
+      sellerAdminId: 'admin-3',
+      sellerAdminName: 'Police Sub-Admin',
+    }),
+  },
+  {
+    id: 'audit-seed-sale-4',
+    timestamp: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(), // 15 days ago (Last 30 Days)
+    actorId: 'admin-1',
+    actorName: 'Super Administrator',
+    actorRole: 'super_admin',
+    action: 'PLOT_BOOKED',
+    entityType: 'booking',
+    entityId: 'book-1',
+    details: 'Booked Plot A-12 (1 Kanal) in Abbott Block for Tariq Mehmood (PV-2024-001) - PKR 12,500,000 via Full Payment',
+    newValue: JSON.stringify({
+      plotId: 'plot-a-12',
+      plotNumber: 'A-12',
+      blockId: 'abbott',
+      blockName: 'Abbott Block',
+      category: 'residential',
+      size: '1 Kanal',
+      price: 12500000,
+      customerId: 'cust-1',
+      customerName: 'Tariq Mehmood',
+      membershipNo: 'PV-2024-001',
+      paymentType: 'one_time',
+      sellerAdminId: 'admin-1',
+      sellerAdminName: 'Super Administrator',
+    }),
+  },
+  {
+    id: 'audit-seed-sale-5',
+    timestamp: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(), // 45 days ago (All Time)
+    actorId: 'admin-2',
+    actorName: 'Marketing Sub-Admin',
+    actorRole: 'sub_admin',
+    action: 'PLOT_BOOKED',
+    entityType: 'booking',
+    entityId: 'book-5',
+    details: 'Booked Plot R-04 (1 Kanal) in Royal Block for Tariq Mehmood (PV-2024-001) - PKR 11,000,000 via 24-Month Installment Scheme',
+    newValue: JSON.stringify({
+      plotId: 'plot-r-04',
+      plotNumber: 'R-04',
+      blockId: 'royal',
+      blockName: 'Royal Block',
+      category: 'residential',
+      size: '1 Kanal',
+      price: 11000000,
+      customerId: 'cust-1',
+      customerName: 'Tariq Mehmood',
+      membershipNo: 'PV-2024-001',
+      paymentType: 'installment',
+      sellerAdminId: 'admin-2',
+      sellerAdminName: 'Marketing Sub-Admin',
+    }),
+  },
+  {
+    id: 'audit-seed-adj-1',
+    timestamp: '2026-09-08T09:30:00Z',
+    actorId: 'admin-1',
+    actorName: 'Super Administrator',
+    actorRole: 'super_admin',
+    action: 'PLOT_ADJUSTMENT_TOGGLED',
+    entityType: 'plot',
+    entityId: 'plot-a-05',
+    details: 'Plot A-05 placed under Administrative Adjustment / Re-Survey Freeze. Reason: Town Planning road widening re-survey & boundary reconciliation',
+    newValue: JSON.stringify({ isAdjustment: true, reason: 'Town Planning road widening re-survey & boundary reconciliation' }),
+  },
+  {
+    id: 'audit-seed-adj-2',
+    timestamp: '2026-09-09T14:15:00Z',
+    actorId: 'admin-1',
+    actorName: 'Super Administrator',
+    actorRole: 'super_admin',
+    action: 'PLOT_ADJUSTMENT_TOGGLED',
+    entityType: 'plot',
+    entityId: 'plot-r-02',
+    details: 'Plot R-02 placed under Administrative Adjustment / Re-Survey Freeze. Reason: Hillside contour slope verification by Geotechnical Engineering team',
+    newValue: JSON.stringify({ isAdjustment: true, reason: 'Hillside contour slope verification by Geotechnical Engineering team' }),
   },
 ];
 

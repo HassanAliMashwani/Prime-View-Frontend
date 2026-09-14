@@ -262,4 +262,125 @@ body {
 .stagger-delay-1 { animation-delay: 100ms; }
 .stagger-delay-2 { animation-delay: 200ms; }
 .stagger-delay-3 { animation-delay: 300ms; }
+
+/* Scale In Animation */
+@keyframes scale-in {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-in {
+  animation: scale-in 250ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ==========================================================================
+   Universal Print Isolation Utility
+   Guarantees print output contains strictly the target document, suppressing
+   all background chrome, sidebars, headers, navigation bars, and overlays.
+   Shared across Member Portal and Admin Portal.
+   ========================================================================== */
+@media print {
+  @page {
+    size: auto;
+    margin: 10mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Universal isolation for printable documents */
+  body:has(#pv-official-slip-printable) * {
+    visibility: hidden;
+  }
+  #pv-official-slip-printable,
+  #pv-official-slip-printable * {
+    visibility: visible !important;
+  }
+  #pv-official-slip-printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  body:has(#pv-booking-agreement-printable) * {
+    visibility: hidden;
+  }
+  #pv-booking-agreement-printable,
+  #pv-booking-agreement-printable * {
+    visibility: visible !important;
+  }
+  #pv-booking-agreement-printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  body:has(#pv-sales-ledger-printable) * {
+    visibility: hidden;
+  }
+  #pv-sales-ledger-printable,
+  #pv-sales-ledger-printable * {
+    visibility: visible !important;
+  }
+  #pv-sales-ledger-printable {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    overflow: visible !important;
+  }
+
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Table and element break utilities */
+  tr, .print-break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tfoot {
+    display: table-footer-group !important;
+  }
+}
+
 

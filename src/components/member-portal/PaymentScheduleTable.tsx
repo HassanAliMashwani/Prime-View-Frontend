@@ -114,7 +114,13 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                     }`}
                   >
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
-                      #{record.installmentNumber || '1'}
+                      {record.feeType === 'plot_downpayment' ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                          Downpayment
+                        </span>
+                      ) : (
+                        `#${record.installmentNumber || '1'}`
+                      )}
                     </td>
                     <td className="py-3.5 px-4 text-[#151914] font-medium">
                       {record.dueDate}

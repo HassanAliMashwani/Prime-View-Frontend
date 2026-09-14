@@ -62,6 +62,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
           viewBox="0 0 847 712"
           className="absolute inset-0 w-full h-full"
           preserveAspectRatio="xMidYMid meet"
+          onPointerLeave={() => setHoveredRegion(null)}
         >
           <defs>
             {/* Out-of-scope hatch pattern */}
@@ -103,6 +104,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                 data-region-group={region.blockId}
                 className={isAccessible ? 'cursor-pointer transition-all duration-200' : 'cursor-not-allowed opacity-60'}
                 onMouseEnter={() => setHoveredRegion(region)}
+                onMouseLeave={() => setHoveredRegion((cur) => (cur?.id === region.id ? null : cur))}
                 onClick={() => handleRegionClick(region)}
               >
                 {/* Boundary Polygon / Path */}

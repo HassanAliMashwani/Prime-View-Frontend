@@ -60,9 +60,12 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
 
   const isInstallment = plot.paymentSummary.paymentType === 'installment';
   const progress = plot.paymentSummary.installmentProgress;
-  const percentPaid = Math.round(
-    (plot.paymentSummary.paidAmount / plot.paymentSummary.totalAmount) * 100
-  );
+  const percentPaid = isInstallment && progress && progress.totalCount > 0
+    ? Math.round((progress.paidCount / progress.totalCount) * 100)
+    : plot.paymentSummary.totalAmount > 0
+    ? Math.round((plot.paymentSummary.paidAmount / plot.paymentSummary.totalAmount) * 100)
+    : 0;
+  const clampedPercent = Math.min(100, Math.max(0, percentPaid));
 
   return (
     <div className="bg-white rounded-2xl border border-black/[0.08] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)] transition-all">
@@ -96,7 +99,7 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
 
           {/* Payment Type Badge */}
           <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FAF9F5] text-[#151914] border border-black/[0.08]">
-            {isInstallment ? 'Installment Plan' : 'One-Time Payment'}
+            {isInstallment ? 'Installment Plan' : 'Full Payment'}
           </span>
         </div>
       </div>
@@ -129,38 +132,44 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
         </div>
       </div>
 
-      {/* Installment Progress Bar (if applicable) */}
-      {isInstallment && progress && (
-        <div className="py-3 px-4 rounded-xl bg-[#FAF9F7] border border-black/[0.06] space-y-2">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-[#151914]">
-              Installments Paid: {progress.paidCount} of {progress.totalCount}
-            </span>
-            <span className="text-[#43612B]">{percentPaid}% Completed</span>
-          </div>
+      {/* Dynamic Payment Progress Bar (Derived strictly from PaymentRecord data) */}
+      <div className="py-3 px-4 rounded-xl bg-[#FAF9F7] border border-black/[0.06] space-y-2">
+        <div className="flex items-center justify-between text-xs font-semibold">
+          <span className="text-[#151914]">
+            {isInstallment && progress
+              ? `Installments Paid: ${progress.paidCount} of ${progress.totalCount}`
+              : `Payment Progress: ${formattedPaid} of ${formattedPrice}`}
+          </span>
+          <span className="text-[#43612B] font-mono">{clampedPercent}% Completed</span>
+        </div>
 
-          {/* Progress track */}
-          <div className="w-full h-2.5 bg-black/10 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[#43612B] rounded-full transition-all duration-500"
-              style={{ width: `${Math.min(100, Math.max(0, percentPaid))}%` }}
-            />
-          </div>
+        {/* Progress track */}
+        <div className="w-full h-2.5 bg-black/10 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-[#43612B] rounded-full transition-all duration-500"
+            style={{ width: `${clampedPercent}%` }}
+          />
+        </div>
 
-          {/* Overdue alert or next due date */}
-          <div className="flex items-center justify-between text-[11px] pt-1 text-[#6B7462]">
-            {progress.hasOverdue ? (
+        {/* Overdue alert or status text */}
+        <div className="flex items-center justify-between text-[11px] pt-1 text-[#6B7462]">
+          {isInstallment && progress ? (
+            progress.hasOverdue ? (
               <span className="text-red-600 font-semibold flex items-center gap-1">
                 <AlertCircle className="w-3.5 h-3.5" />
                 Installment Overdue
               </span>
             ) : (
               <span>Next Due: {progress.nextDueDate || 'All Paid'}</span>
-            )}
-            <span>Monthly Terms</span>
-          </div>
+            )
+          ) : (
+            <span>
+              {clampedPercent >= 100 ? 'Full Payment Settled' : 'Awaiting Settlement'}
+            </span>
+          )}
+          <span>{isInstallment ? 'Monthly Terms' : 'One-Time Clearance'}</span>
         </div>
-      )}
+      </div>
 
       {/* Expandable Details Section */}
       {isExpanded && (
