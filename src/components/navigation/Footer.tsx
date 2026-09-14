@@ -201,12 +201,16 @@ export const Footer: React.FC = () => {
 
               {/* Project of Roman Builders */}
               <div className="mt-7 sm:mt-8 pt-1">
-                <p
-                  className="font-sans text-[13px] sm:text-sm font-extrabold whitespace-nowrap tracking-tight"
+                <a
+                  href="https://roman-builders.vercel.app/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-sans text-[13px] sm:text-sm font-extrabold whitespace-nowrap tracking-tight hover:opacity-85 transition-opacity"
                   style={{ color: '#70c729ff' }}
                 >
-                  Project of Roman Builders
-                </p>
+                  <span>Project of Roman Builders</span>
+                  <span className="text-[11px]">↗</span>
+                </a>
               </div>
 
 

@@ -37,89 +37,74 @@ function removeCookie(name: string): void {
   document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
 }
 
+import { API_BASE_URL } from '../api';
+
 /**
- * Administrative login by username + password.
- * Rate limited to 5 attempts per 5 minutes.
+ * Administrative login by username + password via real NestJS backend.
  */
 export async function adminLogin(username: string, password: string): Promise<AdminLoginResult> {
   const trimmedUser = username.trim().toLowerCase();
 
-  // 1. Rate limiting check (Exception 5.3)
-  const rateCheck = mockStore.checkRateLimit(trimmedUser);
-  if (!rateCheck.allowed) {
-    const minutes = Math.ceil((rateCheck.remainingLockoutSeconds || 300) / 60);
-    return {
-      ok: false,
-      error: `Too many failed login attempts. Account temporarily locked. Please try again in ${minutes} minute(s).`,
-      lockedUntil: Date.now() + (rateCheck.remainingLockoutSeconds || 300) * 1000,
-    };
-  }
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: trimmedUser, password }),
+    });
 
-  // 2. Lookup Admin
-  const admin = mockStore.adminUsers.find(
-    (u) => u.username.toLowerCase() === trimmedUser
-  );
-
-  if (!admin || admin.passwordHash !== password) {
-    const lockout = mockStore.recordFailedLogin(trimmedUser);
-    if (lockout.locked) {
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
       return {
         ok: false,
-        error: `Too many failed attempts. Administrative access locked for 5 minutes.`,
-        lockedUntil: Date.now() + 300 * 1000,
+        error: err.message || 'Invalid administrative credentials.',
       };
     }
-    return {
-      ok: false,
-      error: 'Invalid administrative credentials.',
+
+    const { access_token } = await res.json();
+    const payload = JSON.parse(
+      typeof window !== 'undefined'
+        ? atob(access_token.split('.')[1])
+        : Buffer.from(access_token.split('.')[1], 'base64').toString()
+    );
+
+    const session: AdminSession = {
+      adminId: payload.adminId,
+      username: payload.username,
+      fullName: payload.fullName,
+      role: payload.role,
+      assignedBlocks: payload.assignedBlocks || [],
+      permissions: payload.permissions || {},
+      token: access_token,
+      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
     };
-  }
 
-  // 3. Status check
-  if (admin.status !== 'active') {
-    return {
-      ok: false,
-      error: 'Administrative account is suspended. Contact the Chief Executive Officer.',
-    };
-  }
-
-  // 4. Reset failed attempts
-  mockStore.resetFailedLogins(trimmedUser);
-
-  // 5. Create session (24 hour expiration)
-  const session: AdminSession = {
-    adminId: admin.id,
-    username: admin.username,
-    fullName: admin.fullName,
-    role: admin.role,
-    assignedBlocks: [...admin.assignedBlocks],
-    permissions: { ...admin.permissions },
-    token: `pv_admin_tok_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-    expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-  };
-
-  if (typeof window !== 'undefined') {
-    try {
-      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-      setCookie(COOKIE_KEY, session.username, 86400);
-    } catch {
-      // Storage unavailable fallback
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+        localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+        setCookie(COOKIE_KEY, session.username, 86400);
+      } catch {
+        // Storage unavailable fallback
+      }
     }
+
+    mockStore.addAuditEntry({
+      actorId: session.adminId,
+      actorName: session.fullName,
+      actorRole: session.role,
+      action: 'ADMIN_LOGIN',
+      entityType: 'customer',
+      entityId: session.adminId,
+      details: `Admin ${session.fullName} (${session.role}) logged in successfully via API.`,
+    });
+
+    return { ok: true, session };
+  } catch (netErr) {
+    return {
+      ok: false,
+      error: 'Backend authentication service unreachable. Please ensure backend is running.',
+    };
   }
-
-  // 6. Audit Log
-  mockStore.addAuditEntry({
-    actorId: admin.id,
-    actorName: admin.fullName,
-    actorRole: admin.role,
-    action: 'ADMIN_LOGIN',
-    entityType: 'customer',
-    entityId: admin.id,
-    details: `Admin ${admin.fullName} (${admin.role}) logged in successfully.`,
-  });
-
-  return { ok: true, session };
 }
 
 /**

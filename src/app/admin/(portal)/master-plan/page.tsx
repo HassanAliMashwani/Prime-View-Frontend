@@ -31,64 +31,7 @@ const AMENITY_COLORS: Record<string, string> = {
   'Grave Yard': 'bg-slate-100 text-slate-800 border-slate-300',
 };
 
-const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string; bar: string; btn: string }> = {
-  abbott: {
-    badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    border: 'border-emerald-200 hover:border-emerald-500',
-    accent: 'text-emerald-800',
-    bar: 'bg-emerald-600',
-    btn: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-  },
-  royal: {
-    badge: 'bg-amber-100 text-amber-900 border-amber-300',
-    border: 'border-amber-200 hover:border-amber-500',
-    accent: 'text-amber-800',
-    bar: 'bg-amber-600',
-    btn: 'bg-amber-600 hover:bg-amber-700 text-white',
-  },
-  overseas: {
-    badge: 'bg-sky-100 text-sky-900 border-sky-300',
-    border: 'border-sky-200 hover:border-sky-500',
-    accent: 'text-sky-800',
-    bar: 'bg-sky-600',
-    btn: 'bg-sky-600 hover:bg-sky-700 text-white',
-  },
-  elite: {
-    badge: 'bg-purple-100 text-purple-900 border-purple-300',
-    border: 'border-purple-200 hover:border-purple-500',
-    accent: 'text-purple-800',
-    bar: 'bg-purple-600',
-    btn: 'bg-purple-600 hover:bg-purple-700 text-white',
-  },
-  chalet: {
-    badge: 'bg-rose-100 text-rose-900 border-rose-300',
-    border: 'border-rose-200 hover:border-rose-500',
-    accent: 'text-rose-800',
-    bar: 'bg-rose-600',
-    btn: 'bg-rose-600 hover:bg-rose-700 text-white',
-  },
-  commercial: {
-    badge: 'bg-indigo-100 text-indigo-900 border-indigo-300',
-    border: 'border-indigo-200 hover:border-indigo-500',
-    accent: 'text-indigo-800',
-    bar: 'bg-indigo-600',
-    btn: 'bg-indigo-600 hover:bg-indigo-700 text-white',
-  },
-  'npf-phase-1': {
-    badge: 'bg-teal-100 text-teal-900 border-teal-300',
-    border: 'border-teal-200 hover:border-teal-500',
-    accent: 'text-teal-800',
-    bar: 'bg-teal-600',
-    btn: 'bg-teal-600 hover:bg-teal-700 text-white',
-  },
-  'npf-phase-2': {
-    badge: 'bg-cyan-100 text-cyan-900 border-cyan-300',
-    border: 'border-cyan-200 hover:border-cyan-500',
-    accent: 'text-cyan-800',
-    bar: 'bg-cyan-600',
-    btn: 'bg-cyan-600 hover:bg-cyan-700 text-white',
-  },
-};
+import { getBlockTheme } from '@/lib/map/regionData';
 
 export default function MasterPlanPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
@@ -204,22 +147,21 @@ export default function MasterPlanPage() {
           const availPct = block.totalCount > 0 ? (block.availableCount / block.totalCount) * 100 : 0;
           const resPct = block.totalCount > 0 ? (block.reservedCount / block.totalCount) * 100 : 0;
           const bookPct = block.totalCount > 0 ? (block.bookedCount / block.totalCount) * 100 : 0;
-          const theme = SECTOR_THEMES[block.id] || {
-            badge: 'bg-slate-100 text-slate-800 border-slate-300',
-            border: 'border-slate-200 hover:border-slate-400',
-            accent: 'text-slate-800',
-            bar: 'bg-slate-700',
-          };
+          const theme = getBlockTheme(block.id);
 
           return (
             <div
               key={block.id}
-              className={`bg-white border-2 ${theme.border} rounded-3xl p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-all group`}
+              style={theme.cardBorderStyle}
+              className="bg-white border-2 rounded-3xl p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-all group"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div>
-                    <h3 className={`font-serif font-bold text-lg ${theme.accent} transition-colors`}>
+                    <h3
+                      style={theme.titleStyle}
+                      className="font-serif font-bold text-lg transition-colors"
+                    >
                       {block.name}
                     </h3>
                     <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono mt-0.5">
@@ -227,7 +169,10 @@ export default function MasterPlanPage() {
                       <span>{block.id.toUpperCase()} SECTOR</span>
                     </div>
                   </div>
-                  <span className={`text-xs font-mono font-bold border px-2.5 py-1 rounded-xl ${theme.badge}`}>
+                  <span
+                    style={theme.badgeStyle}
+                    className="text-xs font-mono font-bold border px-2.5 py-1 rounded-xl"
+                  >
                     {block.totalCount} Plots
                   </span>
                 </div>
@@ -324,7 +269,8 @@ export default function MasterPlanPage() {
               {/* Action Button */}
               <Link
                 href={`/admin/master-plan/${block.id}`}
-                className={`w-full py-2.5 px-4 ${theme.btn} text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs`}
+                style={theme.btnStyle}
+                className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <span>Enter Plot Grid</span>
                 <ArrowRight className="w-4 h-4 text-white" />

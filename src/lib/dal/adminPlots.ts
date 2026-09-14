@@ -13,12 +13,14 @@ export interface BlockSummary extends Block {
 
 export interface PlotFilterOptions {
   search?: string;
-  status?: 'all' | 'available' | 'reserved' | 'booked' | 'disputed';
+  status?: 'all' | 'available' | 'reserved' | 'booked' | 'disputed' | 'adjustment';
   category?: 'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity';
 }
 
+import { apiGet } from '../api';
+
 /**
- * Level 1 Master Plan blocks view.
+ * Level 1 Master Plan blocks view via real API (GET /blocks).
  * Super Admins see all 8 blocks.
  * Sub Admins strictly see their assigned blocks (Exception 5.4).
  */
@@ -28,6 +30,29 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
   error?: string;
 }> {
   mockStore.cleanExpiredLocks();
+
+  if (session?.token) {
+    const apiRes = await apiGet<Block[]>('/blocks', session.token);
+    if (apiRes.ok && Array.isArray(apiRes.data)) {
+      const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id));
+      const summaries: BlockSummary[] = accessibleBlocks.map((block: any) => {
+        return {
+          id: block.id,
+          name: block.name,
+          description: block.description || '',
+          totalPlots: block.totalPlots, // descriptive capacity
+          amenities: block.amenities && block.amenities.length > 0 ? block.amenities : ['Central Park', 'Community Mosque'],
+          totalCount: typeof block.totalCount === 'number' ? block.totalCount : 0,
+          availableCount: typeof block.availableCount === 'number' ? block.availableCount : 0,
+          reservedCount: typeof block.reservedCount === 'number' ? block.reservedCount : 0,
+          bookedCount: typeof block.bookedCount === 'number' ? block.bookedCount : 0,
+          amenityCount: typeof block.amenityCount === 'number' ? block.amenityCount : 0,
+          disputedCount: typeof block.disputedCount === 'number' ? block.disputedCount : 0,
+        };
+      });
+      return { ok: true, blocks: summaries };
+    }
+  }
 
   const accessibleBlocks = mockStore.blocks.filter((b) => canAccessBlock(session, b.id));
 
@@ -52,7 +77,7 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
 
     return {
       ...block,
-      totalCount: blockPlots.length,
+      totalCount: blockPlots.filter((p) => p.category !== 'amenity').length,
       availableCount,
       reservedCount,
       bookedCount,
@@ -65,7 +90,7 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
 }
 
 /**
- * Level 2 Block detail with plot grid.
+ * Level 2 Block detail with plot grid via real API (GET /plots?blockId=...).
  * Out-of-scope block requests are strictly rejected (Exception 5.4).
  */
 export async function getAdminBlockPlots(
@@ -85,6 +110,46 @@ export async function getAdminBlockPlots(
   mockStore.cleanExpiredLocks();
 
   const block = mockStore.blocks.find((b) => b.id === blockId);
+
+  if (session?.token) {
+    const apiRes = await apiGet<Plot[]>(`/plots?blockId=${blockId}`, session.token);
+    if (apiRes.ok && Array.isArray(apiRes.data)) {
+      let plots: Plot[] = apiRes.data.map((p: any) => ({
+        ...p,
+        price: Number(p.price) || 0,
+      }));
+
+      // Search filtering
+      if (filters?.search) {
+        const s = filters.search.trim().toLowerCase();
+        plots = plots.filter(
+          (p) =>
+            p.plotNumber.toLowerCase().includes(s) ||
+            p.size.toLowerCase().includes(s) ||
+            (p.amenityName && p.amenityName.toLowerCase().includes(s))
+        );
+      }
+
+      // Status filtering
+      if (filters?.status && filters.status !== 'all') {
+        if (filters.status === 'adjustment') {
+          plots = plots.filter((p) => Boolean(p.isAdjustment));
+        } else if (filters.status === 'disputed') {
+          plots = plots.filter((p) => Boolean(p.isDisputed));
+        } else {
+          plots = plots.filter((p) => p.status === filters.status);
+        }
+      }
+
+      // Category filtering
+      if (filters?.category && filters.category !== 'all') {
+        plots = plots.filter((p) => p.category === filters.category);
+      }
+
+      return { ok: true, block, plots };
+    }
+  }
+
   if (!block) {
     return { ok: false, error: 'BLOCK_NOT_FOUND' };
   }
@@ -119,9 +184,11 @@ export async function getAdminBlockPlots(
     );
   }
 
-  // 3. Status filtering (including disputed)
+  // 3. Status filtering (including disputed and adjustment)
   if (filters?.status && filters.status !== 'all') {
-    if (filters.status === 'disputed') {
+    if (filters.status === 'adjustment') {
+      plots = plots.filter((p) => Boolean(p.isAdjustment));
+    } else if (filters.status === 'disputed') {
       plots = plots.filter((p) => p.isDisputed);
     } else {
       plots = plots.filter((p) => p.status === filters.status);
@@ -137,7 +204,7 @@ export async function getAdminBlockPlots(
 }
 
 /**
- * Get full administrative plot details including lock status and active reservations.
+ * Get full administrative plot details via real API (GET /plots/:id).
  */
 export async function getAdminPlotDetails(
   session: AdminSession,
@@ -151,6 +218,42 @@ export async function getAdminPlotDetails(
   error?: string;
 }> {
   mockStore.cleanExpiredLocks();
+
+  if (session?.token) {
+    const apiRes = await apiGet<any>(`/plots/${plotId}`, session.token);
+    if (apiRes.ok) {
+      if (apiRes.data) {
+        const p = apiRes.data;
+        if (!canAccessBlock(session, p.blockId)) {
+          return { ok: false, error: 'OUT_OF_SCOPE' };
+        }
+        const plot: Plot = {
+          ...p,
+          price: Number(p.price) || 0,
+        };
+        const reservations: Reservation[] = (p.reservations || []).map((r: any) => ({
+          ...r,
+          tokenFee: Number(r.tokenFee) || 0,
+        }));
+        let owner: Customer | undefined = undefined;
+        let booking: Booking | undefined = undefined;
+
+        if (plot.currentOwnerId) {
+          owner = mockStore.customers.find((c) => c.id === plot.currentOwnerId);
+          booking = mockStore.bookings.find((b) => b.plotId === plotId);
+        }
+
+        return { ok: true, plot, reservations, owner, booking };
+      }
+    } else {
+      if (apiRes.error === 'OUT_OF_SCOPE' || apiRes.status === 403) {
+        return { ok: false, error: 'OUT_OF_SCOPE' };
+      }
+      if (apiRes.status === 404) {
+        return { ok: false, error: 'PLOT_NOT_FOUND' };
+      }
+    }
+  }
 
   const plot = mockStore.plots.find((p) => p.id === plotId);
   if (!plot) {
@@ -186,6 +289,7 @@ export async function acquireLock(
 ): Promise<{
   ok: boolean;
   plot?: Plot;
+  lockToken?: string;
   error?: string;
   lockedByName?: string;
   lockedAt?: number;
@@ -197,6 +301,14 @@ export async function acquireLock(
 
   if (!canAccessBlock(session, plot.blockId)) {
     return { ok: false, error: 'OUT_OF_SCOPE' };
+  }
+
+  if (plot.isAdjustment) {
+    return {
+      ok: false,
+      error: 'PLOT_UNDER_ADJUSTMENT',
+      lockedByName: 'Adjustment',
+    };
   }
 
   if (plot.category === 'amenity') {
@@ -220,9 +332,11 @@ export async function acquireLock(
   }
 
   // Acquire lock
+  const lockToken = `lock-${plotId}-${session.adminId}-${now}`;
   plot.lockedBy = session.adminId;
   plot.lockedByName = session.fullName;
   plot.lockedAt = now;
+  plot.lockToken = lockToken;
 
   mockStore.scheduleLockTimeout(plotId, 10 * 60 * 1000);
 
@@ -244,7 +358,7 @@ export async function acquireLock(
     lockedByName: session.fullName,
   });
 
-  return { ok: true, plot };
+  return { ok: true, plot, lockToken };
 }
 
 /**
@@ -262,6 +376,7 @@ export async function releaseLock(
     plot.lockedBy = undefined;
     plot.lockedByName = undefined;
     plot.lockedAt = undefined;
+    plot.lockToken = undefined;
     mockStore.clearLockTimeout(plotId);
 
     mockStore.addAuditEntry({
@@ -284,7 +399,34 @@ export async function releaseLock(
     return { ok: true };
   }
 
-  return { ok: false, error: 'NOT_LOCK_HOLDER' };
+  return { ok: false, error: 'UNAUTHORIZED_RELEASE' };
+}
+
+/**
+ * Synchronous lock release utility for pagehide / beforeunload / popstate events.
+ * Guarantees that closing a browser tab or hitting Back doesn't leave an orphaned 10-minute lock.
+ */
+export function releaseLockSync(plotId: string, adminId: string): void {
+  try {
+    mockStore.loadFromStorage();
+    const plot = mockStore.plots.find((p) => p.id === plotId);
+    if (plot && plot.lockedBy === adminId) {
+      plot.lockedBy = undefined;
+      plot.lockedByName = undefined;
+      plot.lockedAt = undefined;
+      plot.lockToken = undefined;
+      mockStore.clearLockTimeout(plotId);
+      mockStore.saveToStorage();
+      mockStore.broadcast({
+        type: 'PLOT_UNLOCKED',
+        timestamp: new Date().toISOString(),
+        plotId,
+        reason: 'PAGE_UNLOAD',
+      });
+    }
+  } catch (e) {
+    console.warn('releaseLockSync failed:', e);
+  }
 }
 
 /**
@@ -301,6 +443,10 @@ export async function startReservingPlot(
 
   if (!canAccessBlock(session, plot.blockId)) {
     return { ok: false, error: 'OUT_OF_SCOPE' };
+  }
+
+  if (plot.isAdjustment) {
+    return { ok: false, error: 'PLOT_UNDER_ADJUSTMENT' };
   }
 
   if (!plot.reservingUsers) {
@@ -407,6 +553,10 @@ export async function reservePlot(
 
   if (!canAccessBlock(session, plot.blockId)) {
     return { ok: false, error: 'OUT_OF_SCOPE' };
+  }
+
+  if (plot.isAdjustment) {
+    return { ok: false, error: 'PLOT_UNDER_ADJUSTMENT' };
   }
 
   if (plot.category === 'amenity') {
@@ -517,6 +667,10 @@ export async function bookPlot(
 
   if (!canAccessBlock(session, plot.blockId)) {
     return { ok: false, error: 'OUT_OF_SCOPE' };
+  }
+
+  if (plot.isAdjustment) {
+    return { ok: false, error: 'PLOT_UNDER_ADJUSTMENT' };
   }
 
   if (plot.category === 'amenity') {
@@ -639,8 +793,8 @@ export async function bookPlot(
     const startDate = new Date();
 
     for (let i = 1; i <= 8; i++) {
-      const dueDate = new Date(startDate);
-      dueDate.setMonth(startDate.getMonth() + (i - 1) * 3);
+      // Due date strictly falls on 5th of the month following booking (Item 2)
+      const dueDate = new Date(startDate.getFullYear(), startDate.getMonth() + (i * 3), 5);
       const dueDateStr = dueDate.toISOString().split('T')[0];
 
       const isFirst = i === 1;
@@ -710,3 +864,148 @@ export async function bookPlot(
 
   return { ok: true, booking, plot, customer };
 }
+
+/**
+ * Toggle Master Plan Adjustment (Town Planning Re-Survey Freeze) state on a plot.
+ * Super Administrator exclusive capability (strictly no Sub Admin override).
+ */
+export async function togglePlotAdjustment(
+  session: AdminSession,
+  plotId: string,
+  isAdjustment: boolean,
+  reason?: string
+): Promise<{ ok: boolean; plot?: Plot; error?: string; message?: string }> {
+  mockStore.loadFromStorage();
+
+  if (session.role !== 'super_admin') {
+    return {
+      ok: false,
+      error: 'FORBIDDEN',
+      message: 'Only Super Administrators have authority to modify Master Plan plot adjustments.',
+    };
+  }
+
+  const plot = mockStore.plots.find((p) => p.id === plotId);
+  if (!plot) {
+    return { ok: false, error: 'PLOT_NOT_FOUND', message: 'Plot not found in Master Plan.' };
+  }
+
+  plot.isAdjustment = isAdjustment;
+  if (isAdjustment) {
+    plot.adjustmentReason = reason?.trim() || 'Town Planning re-survey and boundary adjustment';
+    plot.adjustmentDate = new Date().toISOString();
+    plot.adjustmentBy = session.fullName;
+    // Clear any soft locks or active reserving tracking on this plot
+    plot.lockedBy = undefined;
+    plot.lockedByName = undefined;
+    plot.lockedAt = undefined;
+    plot.reservingBy = undefined;
+    plot.reservingByName = undefined;
+    plot.reservingAt = undefined;
+    plot.reservingUsers = undefined;
+    mockStore.clearLockTimeout(plot.id);
+  } else {
+    plot.adjustmentReason = undefined;
+    plot.adjustmentDate = undefined;
+    plot.adjustmentBy = undefined;
+  }
+
+  mockStore.saveToStorage();
+
+  const detailsMsg = isAdjustment
+    ? `Plot ${plot.plotNumber} (${plot.blockId}) placed under Administrative Adjustment / Re-Survey Freeze. Reason: ${plot.adjustmentReason}`
+    : `Plot ${plot.plotNumber} (${plot.blockId}) released from Administrative Adjustment / Re-Survey Freeze`;
+
+  mockStore.addAuditEntry({
+    actorId: session.adminId,
+    actorName: session.fullName,
+    actorRole: session.role,
+    action: 'PLOT_ADJUSTMENT_TOGGLED',
+    entityType: 'plot',
+    entityId: plot.id,
+    details: detailsMsg,
+    newValue: JSON.stringify({ isAdjustment, reason: plot.adjustmentReason }),
+  });
+
+  mockStore.broadcast({
+    type: 'PLOT_ADJUSTMENT_TOGGLED',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+    isAdjustment,
+    reason: plot.adjustmentReason,
+  });
+
+  mockStore.broadcast({
+    type: 'PLOT_STATUS_CHANGED',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+    newStatus: plot.status,
+  });
+
+  return {
+    ok: true,
+    plot,
+    message: isAdjustment
+      ? `Plot ${plot.plotNumber} flagged for Master Plan Adjustment.`
+      : `Plot ${plot.plotNumber} adjustment hold released.`,
+  };
+}
+
+/**
+ * Super Admin Action: Update Official Plot Price.
+ * Modifies the official society inventory price for a plot,
+ * synchronizing across the Master Plan Map and customer booking calculations.
+ */
+export async function updatePlotPrice(
+  session: AdminSession,
+  plotId: string,
+  newPrice: number
+): Promise<{ ok: boolean; plot?: Plot; error?: string; message?: string }> {
+  mockStore.loadFromStorage();
+
+  if (session.role !== 'super_admin') {
+    return {
+      ok: false,
+      error: 'FORBIDDEN',
+      message: 'Only Super Administrator has authority to modify official plot prices.',
+    };
+  }
+
+  const plot = mockStore.plots.find((p) => p.id === plotId);
+  if (!plot) {
+    return { ok: false, error: 'NOT_FOUND', message: 'Plot record not found.' };
+  }
+
+  const parsedPrice = Number(newPrice);
+  if (!parsedPrice || parsedPrice <= 0 || !Number.isFinite(parsedPrice)) {
+    return { ok: false, error: 'INVALID_PRICE', message: 'Plot price must be a valid positive amount.' };
+  }
+
+  const oldPrice = plot.price;
+  plot.price = Math.round(parsedPrice);
+  mockStore.saveToStorage();
+
+  mockStore.addAuditEntry({
+    actorId: session.adminId,
+    actorName: session.fullName,
+    actorRole: session.role,
+    action: 'PLOT_PRICE_UPDATED',
+    entityType: 'plot',
+    entityId: plot.id,
+    details: `Super Admin ${session.fullName} updated official price of Plot ${plot.plotNumber} (${plot.blockId}) from PKR ${oldPrice.toLocaleString()} to PKR ${plot.price.toLocaleString()}`,
+    newValue: JSON.stringify({ oldPrice, newPrice: plot.price }),
+  });
+
+  mockStore.broadcast({
+    type: 'PLOT_UPDATED',
+    timestamp: new Date().toISOString(),
+    plotId: plot.id,
+  });
+
+  return {
+    ok: true,
+    plot,
+    message: `Official price for Plot ${plot.plotNumber} successfully updated to PKR ${plot.price.toLocaleString()}.`,
+  };
+}
+

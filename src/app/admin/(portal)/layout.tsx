@@ -47,29 +47,45 @@ export default function AdminPortalLayout({
   if (pathname.includes('/admin/master-plan')) {
     pageTitle = 'Master Plan';
     pageSubtitle = 'Inventory & Plot Grid';
+  } else if (pathname.includes('/admin/inventory')) {
+    pageTitle = 'Inventory Overview';
+    pageSubtitle = 'Category Breakdown & Availability';
   } else if (pathname.includes('/admin/reservations')) {
     pageTitle = 'Sort Reservations';
     pageSubtitle = 'Token Priority & Disputes';
-  } else if (pathname.includes('/admin/sub-admins')) {
-    pageTitle = 'Sub-Administrators';
-    pageSubtitle = 'Access Delegation & Sector Scopes';
+  } else if (pathname.includes('/admin/customers-directory')) {
+    pageTitle = 'Customer Directory';
+    pageSubtitle = 'Member Dossiers & Compliance Ledger';
   } else if (pathname.includes('/admin/customers')) {
     pageTitle = 'Customer Bookings';
     pageSubtitle = 'Paper Application Form & Accounts';
+  } else if (pathname.includes('/admin/sales-history')) {
+    pageTitle = 'Sales History';
+    pageSubtitle = 'Audit Ledger & Revenue Attribution';
+  } else if (pathname.includes('/admin/receipts')) {
+    pageTitle = 'Receipt Verification';
+    pageSubtitle = 'Payment Approvals & Bank Slips';
   } else if (pathname.includes('/admin/content')) {
     pageTitle = 'Content CMS';
     pageSubtitle = 'Plans & Society Events';
+  } else if (pathname.includes('/admin/sub-admins')) {
+    pageTitle = 'Sub-Administrators';
+    pageSubtitle = 'Access Delegation & Sector Scopes';
   } else if (pathname.includes('/admin/audit-log')) {
     pageTitle = 'Audit Trail';
     pageSubtitle = 'Activity Logs & Modification Diffs';
   }
 
   return (
-    <div className="h-screen flex overflow-hidden bg-[#F8FAF9] text-slate-900">
-      <AdminSidebar session={session} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <AdminHeader session={session} title={pageTitle} subtitle={pageSubtitle} />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#F4F7F5]">
+    <div className="h-screen flex overflow-hidden bg-[#F8FAF9] text-slate-900 print:h-auto print:overflow-visible print:bg-white print:block">
+      <div className="print:hidden shrink-0">
+        <AdminSidebar session={session} />
+      </div>
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:h-auto print:overflow-visible print:block">
+        <div className="print:hidden">
+          <AdminHeader session={session} title={pageTitle} subtitle={pageSubtitle} />
+        </div>
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#F4F7F5] print:p-0 print:m-0 print:bg-white print:overflow-visible print:h-auto print:block">
           {children}
         </main>
       </div>

@@ -42,14 +42,14 @@ const TeamCard = ({
 
   // Auto-Expand this specific card after its entrance animation
   useEffect(() => {
-    if (isInView && !isMobile) {
-      // Entrance delay + 400ms for a seamless drop-down follow-through
+    if (isInView) {
+      // Entrance delay + 350ms for a seamless drop-down follow-through
       const timer = setTimeout(() => {
         setIsExpanded(true);
-      }, (getDelay() * 1000) + 400);
+      }, (getDelay() * 1000) + 350);
       return () => clearTimeout(timer);
     }
-  }, [isInView, isMobile]);
+  }, [isInView]);
 
   const cardVariants = {
     hidden: { opacity: 0, y: 50 },
@@ -73,7 +73,7 @@ const TeamCard = ({
       {/* The Card Wrapper (Expands into a pill) */}
       <div
         className={`relative w-full bg-[#FAF9F7] flex flex-col ${borderClass} transition-all duration-700 ease-in-out cursor-pointer p-1.5 shadow-xs hover:shadow-xl rounded-t-[1000px] ${
-          isExpanded ? "rounded-b-[1000px] pb-7" : "rounded-b-2xl pb-1.5"
+          isExpanded ? "rounded-b-[1000px] pb-8" : "rounded-b-2xl pb-1.5"
         }`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -96,28 +96,34 @@ const TeamCard = ({
         <div
           className={`grid transition-all duration-700 ease-in-out w-full ${
             isExpanded
-              ? "grid-rows-[1fr] opacity-100 mt-3.5"
+              ? "grid-rows-[1fr] opacity-100 mt-3"
               : "grid-rows-[0fr] opacity-0 mt-0"
           }`}
         >
-          <div className="overflow-hidden flex flex-col items-center text-center px-2">
-            {/* Fixed-height name container: fits 1-line and 2-line names with identical height */}
-            <h3 className="font-display text-[#151914] font-bold text-xs sm:text-sm lg:text-[14px] leading-snug h-10 flex items-center justify-center text-center px-1">
+          <div className="overflow-hidden flex flex-col items-center text-center px-3">
+            {/* 1. Name: Scaled down refined Serif Headline */}
+            <h3 className="font-display text-[#151914] font-bold text-[13px] sm:text-[13.5px] lg:text-[14px] leading-snug min-h-[2rem] flex items-center justify-center text-center px-1">
               {member.name}
             </h3>
 
-            <div className="w-6 h-[1px] bg-black/[0.08] my-1.5 shrink-0" />
+            {/* 2. Title: Scaled down Pine Green All-Caps Tagline */}
+            <p className="font-sans font-bold text-[#2A5C24] text-[9.5px] sm:text-[10px] tracking-[0.12em] uppercase text-center leading-tight mt-0.5 px-1">
+              {member.title}
+            </p>
 
-            {/* Fixed-height role container: keeps identical spacing across all cards */}
+            {/* 3. Refined Accent Divider */}
+            <div className="w-5 h-[1px] bg-[#2A5C24]/25 my-1.5 shrink-0" />
+
+            {/* 4. Role: Scaled down Muted Subtext */}
             <p
-              className="text-[#6B7462] text-[10px] lg:text-[11px] font-medium leading-tight h-6 flex items-center justify-center text-center px-1 line-clamp-1"
+              className="font-sans text-[#5A6556] text-[9.5px] sm:text-[10px] font-medium leading-tight text-center px-1 max-w-[220px]"
               title={member.role}
             >
               {member.role}
             </p>
 
-            {/* Read Bio Link — elegant non-pill text style with animated underline and floating arrow */}
-            <div className="h-7 flex items-center justify-center mt-2 shrink-0">
+            {/* 5. Scaled down Read Bio Link */}
+            <div className="h-7 flex items-center justify-center mt-1.5 shrink-0">
               {((member.bioBullets && member.bioBullets.length > 0) || (member.bioSections && member.bioSections.length > 0) || member.bio) && onOpenBio ? (
                 <button
                   type="button"
@@ -125,12 +131,12 @@ const TeamCard = ({
                     e.stopPropagation();
                     onOpenBio(member);
                   }}
-                  className="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#43612B] hover:text-[#1b2b11] transition-colors group cursor-pointer"
+                  className="inline-flex items-center gap-1 text-[10.5px] sm:text-[11px] font-bold text-[#2A5C24] hover:text-[#132d10] transition-colors group cursor-pointer"
                 >
-                  <span className="relative pb-0.5 border-b-[1.5px] border-[#43612B]/50 group-hover:border-[#43612B] group-hover:border-b-2 transition-all">
+                  <span className="relative pb-0.5 border-b border-[#2A5C24]/50 group-hover:border-[#2A5C24] transition-all">
                     Read Bio
                   </span>
-                  <span className="text-[12px] inline-block transition-transform duration-300 ease-out group-hover:translate-x-1 group-hover:-translate-y-0.5">
+                  <span className="text-[10.5px] inline-block transition-transform duration-300 ease-out group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                     ↗
                   </span>
                 </button>
@@ -139,30 +145,6 @@ const TeamCard = ({
           </div>
         </div>
       </div>
-
-      {/* External Title Label — uniform height ensures all titles align on the exact same baseline */}
-      <motion.div 
-        className="mt-4 flex items-center justify-center w-full text-center h-8"
-        variants={{
-          hidden: { 
-            opacity: 0, 
-            y: 10
-          },
-          visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-              duration: 0.4,
-              delay: getDelay() + 0.15,
-              ease: "easeOut"
-            }
-          }
-        }}
-      >
-        <span className="font-display font-bold text-[#151914] text-[13px] lg:text-[14px] tracking-wide leading-tight">
-          {member.title}
-        </span>
-      </motion.div>
     </motion.div>
   );
 };

@@ -16,6 +16,7 @@ export type PlotCategory = 'residential' | 'commercial' | 'farm_house' | 'amenit
 export type FeeType =
   | 'admission_fee'
   | 'share_subscription_fee'
+  | 'plot_downpayment'
   | 'plot_installment'
   | 'plot_one_time';
 
@@ -69,9 +70,28 @@ export interface Customer {
   cnicCopyUrl?: string;
   nokCnicCopyUrl?: string;
   accountStatus: AccountStatus;
+  registrationStatus?: 'minimal' | 'complete';
+  city?: string;
   createdDate: string;
   lastLogin?: string;
   passwordHash: string;
+  termsAccepted?: boolean;
+  termsAcceptedAt?: string;
+  strikeCount?: number;
+  strikeHistory?: Array<{
+    id: string;
+    reason: string;
+    assignedBy: string;
+    assignedAt: string;
+    receiptId?: string;
+  }>;
+  strikes?: Array<{
+    id: string;
+    reason: string;
+    issuedAt: string;
+    issuedByName?: string;
+  }>;
+  credentialsPending?: boolean;
 }
 
 export interface Plot {
@@ -89,6 +109,7 @@ export interface Plot {
   lockedBy?: string;     // adminId holding the lock
   lockedByName?: string; // admin name for live badge
   lockedAt?: number;     // timestamp in ms
+  lockToken?: string;    // lock validation token across redirects
   // Live Reserve Tracking (Non-blocking)
   reservingBy?: string;     // primary/latest adminId reserving
   reservingByName?: string; // admin name for live badge
@@ -97,6 +118,21 @@ export interface Plot {
   // Disputed counter claims tracking
   activeReservationCount?: number;
   isDisputed?: boolean;
+  // Master Plan Town Planning Adjustment / Re-Survey Freeze (Super Admin Only)
+  isAdjustment?: boolean;
+  adjustmentReason?: string;
+  adjustmentDate?: string;
+  adjustmentBy?: string;
+}
+
+export interface InstallmentPlanConfig {
+  totalPayment: number;
+  downpayment: number;
+  planYears?: number;
+  years?: number;
+  paidAfterEveryMonths?: number;
+  paidAfterEvery?: number;
+  numberOfInstallments: number;
 }
 
 export interface Booking {
@@ -105,9 +141,11 @@ export interface Booking {
   plotId: string;
   paymentType: PaymentType;
   status: 'active' | 'completed' | 'cancelled';
+  registrationStatus?: 'minimal' | 'complete';
   bookingDate: string;
   confirmationDate?: string;
   paperInstallmentRef?: string;
+  installmentPlan?: InstallmentPlanConfig;
 }
 
 export interface PaymentRecord {
@@ -115,7 +153,7 @@ export interface PaymentRecord {
   bookingId: string;
   plotId: string;
   feeType: FeeType;
-  installmentNumber?: number; // 1..N for installments; undefined for one-time
+  installmentNumber?: number; // 1..N for installments; undefined for full payment
   dueDate: string;
   amount: number;
   paidAmount: number;
@@ -152,6 +190,9 @@ export interface AdminPermissions {
   can_book: boolean;
   can_create_customer?: boolean;
   can_edit_content?: boolean;
+  can_verify_receipts?: boolean;
+  can_view_customers?: boolean;
+  can_view_sales_reports?: boolean;
 }
 
 export interface AdminUser {
@@ -240,10 +281,76 @@ export interface AuditEntry {
   actorName: string;
   actorRole: 'customer' | 'super_admin' | 'sub_admin';
   action: string;
-  entityType: 'customer' | 'plot' | 'booking' | 'payment' | 'document' | 'content' | 'reservation' | 'lock' | 'sub_admin';
+  entityType: 'customer' | 'plot' | 'booking' | 'payment' | 'document' | 'content' | 'reservation' | 'lock' | 'sub_admin' | 'receipt' | 'strike' | 'report';
   entityId: string;
   details: string;
   oldValue?: string;
   newValue?: string;
 }
+
+// ── Payment Receipt Upload & Verification (Customer & Admin) ──
+export type ReceiptStatus = 'pending' | 'verified' | 'rejected';
+
+export interface ReceiptSlipData {
+  slipNumber: string;
+  securityHash: string;
+  generatedAt: string;
+  qrPayload: string;
+  societyAuthorityStamp: string;
+}
+
+export interface ReceiptSubmission {
+  id: string;
+  customerId: string;
+  membershipNo: string;
+  customerName: string;
+  customerPhone?: string;
+  customerCnic?: string;
+  plotId: string;
+  plotNumber: string;
+  blockName: string;
+  paymentType: PaymentType;
+  installmentNumber?: number;
+  amount: number;
+  depositoryBank: string;
+  bankName?: string;
+  transactionRef: string;
+  paymentDate: string;
+  uploadedAt: string;
+  receiptFileUrl: string;
+  receiptFileName: string;
+  notes?: string;
+  status: ReceiptStatus;
+  verifiedByAdminId?: string;
+  verifiedByAdminName?: string;
+  verifiedAt?: string;
+  rejectionReason?: string;
+  slip?: ReceiptSlipData;
+  customerStrikeCount?: number;
+  customerStrikeHistory?: Array<{
+    id: string;
+    reason: string;
+    assignedBy: string;
+    assignedAt: string;
+    receiptId?: string;
+  }>;
+}
+
+// ── Physical Customer Booking Documents (Change Request 05 §2) ──
+export type CustomerDocumentType = 'applicant_photo' | 'cnic_copy' | 'nok_cnic_copy' | 'other';
+
+export interface CustomerDocument {
+  id: string;
+  customerId: string;
+  bookingId?: string;
+  type: CustomerDocumentType;
+  label?: string; // required when type === 'other'
+  fileUrl: string; // Base64 data URL (JPEG) or uncompressed PDF
+  fileName: string;
+  fileSizeKb: number;
+  uploadedAt: string;
+  uploadedByUserId: string;
+  uploadedByUserName?: string;
+}
+
 

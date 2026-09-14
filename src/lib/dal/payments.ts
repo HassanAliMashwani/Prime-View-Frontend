@@ -1,6 +1,7 @@
 import { mockStore } from '../mock/store';
 import { PaymentRecord, PaymentStatus, PaymentType } from '../mock/types';
 import { requireMemberSession } from './auth';
+import { apiGet } from '../api';
 
 export interface PlotPaymentSchedule {
   plotId: string;
@@ -14,6 +15,8 @@ export interface PlotPaymentSchedule {
   remainingBalance: number;
   admissionFee?: PaymentRecord;
   shareSubscriptionFee?: PaymentRecord;
+  downpaymentFee?: PaymentRecord;
+  installmentPlan?: import('../mock/types').InstallmentPlanConfig;
   schedule: PaymentRecord[];
 }
 
@@ -35,6 +38,15 @@ export async function getPaymentSchedule(
     mockStore.loadFromStorage();
     const session = requireMemberSession();
 
+    // Primary: Real Backend API call (GET /me/payments)
+    let apiPayments: any[] | null = null;
+    if (session.token) {
+      const apiRes = await apiGet<any[]>('/me/payments', session.token);
+      if (apiRes.ok && Array.isArray(apiRes.data)) {
+        apiPayments = apiRes.data;
+      }
+    }
+
     // Get bookings belonging to this member
     let userBookings = mockStore.bookings.filter((b) => b.customerId === session.customerId);
 
@@ -54,16 +66,25 @@ export async function getPaymentSchedule(
 
       const block = mockStore.blocks.find((b) => b.id === plot.blockId);
 
-      // Scoped strictly to this booking (Exception 5.6)
-      const bookingPayments = mockStore.payments.filter((p) => p.bookingId === booking.id);
+      // Scoped strictly to this booking (Exception 5.6) - uses real API payments when available
+      const bookingPayments = apiPayments
+        ? apiPayments
+            .filter((p) => p.bookingId === booking.id)
+            .map((p) => ({
+              ...p,
+              amount: Number(p.amount) || 0,
+              paidAmount: Number(p.paidAmount) || 0,
+            }))
+        : mockStore.payments.filter((p) => p.bookingId === booking.id);
 
       // Separate fixed statutory fees (PKR 2,000 + PKR 10,000, Section 2.5) from plot price
       const admissionFee = bookingPayments.find((p) => p.feeType === 'admission_fee');
       const shareSubscriptionFee = bookingPayments.find((p) => p.feeType === 'share_subscription_fee');
+      const downpaymentFee = bookingPayments.find((p) => p.feeType === 'plot_downpayment');
 
       // Plot price payments only - NEVER merge admission/share fees into plot total
       const plotPricePayments = bookingPayments.filter(
-        (p) => p.feeType === 'plot_installment' || p.feeType === 'plot_one_time'
+        (p) => p.feeType === 'plot_installment' || p.feeType === 'plot_one_time' || p.feeType === 'plot_downpayment'
       );
 
       const paidAmount = plotPricePayments
@@ -85,9 +106,13 @@ export async function getPaymentSchedule(
         remainingBalance,
         admissionFee,
         shareSubscriptionFee,
+        downpaymentFee,
+        installmentPlan: booking.installmentPlan,
         schedule: plotPricePayments.sort((a, b) => {
-          if (a.installmentNumber && b.installmentNumber) {
-            return a.installmentNumber - b.installmentNumber;
+          const numA = a.installmentNumber ?? (a.feeType === 'plot_downpayment' ? 0 : 999);
+          const numB = b.installmentNumber ?? (b.feeType === 'plot_downpayment' ? 0 : 999);
+          if (numA !== numB) {
+            return numA - numB;
           }
           return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
         }),
@@ -134,14 +159,16 @@ export async function getPaymentHistory(
             desc = 'Admission Fee';
           } else if (payment.feeType === 'share_subscription_fee') {
             desc = 'Share Subscription Fee';
+          } else if (payment.feeType === 'plot_downpayment') {
+            desc = 'Plot Upfront Downpayment';
           } else if (payment.feeType === 'plot_installment' && payment.installmentNumber) {
             desc = `Installment #${payment.installmentNumber} Payment`;
           } else if (payment.feeType === 'plot_one_time') {
-            desc = 'Full / One-Time Payment';
+            desc = 'Full Payment';
           } else if (booking.paymentType === 'installment' && payment.installmentNumber) {
             desc = `Installment #${payment.installmentNumber} Payment`;
           } else {
-            desc = 'Full / One-Time Payment';
+            desc = 'Full Payment';
           }
 
           transactions.push({
@@ -168,4 +195,90 @@ export async function getPaymentHistory(
     }
     return { ok: false, data: [], error: 'UNKNOWN_ERROR' };
   }
+}
+
+export interface BookingProgressData {
+  paymentType: PaymentType;
+  percent: number;
+  paidInstallments?: number;
+  totalInstallments?: number;
+  paidAmount: number;
+  totalAmount: number;
+  remainingAmount: number;
+  isCompleted: boolean;
+}
+
+/**
+ * Derive exact real-time progress from PaymentRecord data.
+ * - installment: paid installments / total installments
+ * - full payment: paidAmount vs amount
+ * Clamped strictly between 0 and 100 without hardcoded values.
+ */
+export function getBookingProgress(bookingId: string): BookingProgressData {
+  mockStore.loadFromStorage();
+  const booking = mockStore.bookings.find((b) => b.id === bookingId);
+  const plot = booking ? mockStore.plots.find((p) => p.id === booking.plotId) : undefined;
+  const payments = mockStore.payments.filter((p) => p.bookingId === bookingId);
+
+  const totalAmount = plot?.price || 0;
+  const paidAmount = payments
+    .filter((p) => p.status === 'paid' && (p.feeType === 'plot_installment' || p.feeType === 'plot_one_time' || p.feeType === 'plot_downpayment'))
+    .reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+
+  const remainingAmount = Math.max(0, totalAmount - paidAmount);
+
+  if (booking?.paymentType === 'installment') {
+    const installments = payments.filter((p) => p.feeType === 'plot_installment');
+    const totalInstallments = installments.length;
+    const paidInstallments = installments.filter((p) => p.status === 'paid').length;
+    const percent = totalInstallments > 0 ? Math.min(100, Math.max(0, Math.round((paidInstallments / totalInstallments) * 100))) : 0;
+
+    return {
+      paymentType: 'installment',
+      percent,
+      paidInstallments,
+      totalInstallments,
+      paidAmount,
+      totalAmount,
+      remainingAmount,
+      isCompleted: paidInstallments === totalInstallments && totalInstallments > 0,
+    };
+  }
+
+  // Full Payment / One-Time
+  const percent = totalAmount > 0 ? Math.min(100, Math.max(0, Math.round((paidAmount / totalAmount) * 100))) : 0;
+  return {
+    paymentType: booking?.paymentType || 'one_time',
+    percent,
+    paidAmount,
+    totalAmount,
+    remainingAmount,
+    isCompleted: paidAmount >= totalAmount && totalAmount > 0,
+  };
+}
+
+export function getCustomerPortfolioProgress(customerId: string): {
+  totalPlots: number;
+  totalVolume: number;
+  totalPaid: number;
+  overallPercent: number;
+} {
+  mockStore.loadFromStorage();
+  const bookings = mockStore.bookings.filter((b) => b.customerId === customerId);
+  let totalVolume = 0;
+  let totalPaid = 0;
+
+  for (const b of bookings) {
+    const prog = getBookingProgress(b.id);
+    totalVolume += prog.totalAmount;
+    totalPaid += prog.paidAmount;
+  }
+
+  const overallPercent = totalVolume > 0 ? Math.min(100, Math.max(0, Math.round((totalPaid / totalVolume) * 100))) : 0;
+  return {
+    totalPlots: bookings.length,
+    totalVolume,
+    totalPaid,
+    overallPercent,
+  };
 }

@@ -17,6 +17,9 @@ interface MemberState {
 
   fetchDashboardData: () => Promise<void>;
   fetchProfile: () => Promise<void>;
+  termsModalOpen: boolean;
+  openTermsModal: () => void;
+  closeTermsModal: () => void;
   fetchPlots: () => Promise<void>;
   fetchPayments: (filterPlotId?: string) => Promise<void>;
   fetchDocuments: () => Promise<void>;
@@ -32,6 +35,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   documents: [],
   isLoading: false,
   error: null,
+  termsModalOpen: false,
+  openTermsModal: () => set({ termsModalOpen: true }),
+  closeTermsModal: () => set({ termsModalOpen: false }),
 
   fetchDashboardData: async () => {
     set({ isLoading: true, error: null });
@@ -75,13 +81,17 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   fetchPayments: async (filterPlotId?: string) => {
     set({ isLoading: true });
     try {
-      const [schedRes, histRes] = await Promise.all([
+      const [schedRes, histRes, plotsRes, profileRes] = await Promise.all([
         getPaymentSchedule(filterPlotId),
         getPaymentHistory(filterPlotId),
+        getMyPlots(),
+        getCustomerProfile(),
       ]);
       set({
         schedules: schedRes.data || [],
         transactions: histRes.data || [],
+        plots: plotsRes.ok && plotsRes.data ? plotsRes.data : get().plots,
+        profile: profileRes.ok && profileRes.data ? profileRes.data : get().profile,
         isLoading: false,
       });
     } catch (e) {
@@ -108,6 +118,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
       documents: [],
       isLoading: false,
       error: null,
+      termsModalOpen: false,
     });
   },
 

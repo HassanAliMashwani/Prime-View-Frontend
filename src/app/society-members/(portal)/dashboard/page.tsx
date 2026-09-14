@@ -13,13 +13,16 @@ import {
   Calendar,
   ArrowRight,
   CreditCard,
-  FileText,
+  History,
   AlertCircle,
+  AlertTriangle,
   HelpCircle,
+  Bell,
+  FileCheck,
 } from 'lucide-react';
 
 export default function MemberDashboardPage() {
-  const { profile, plots, fetchDashboardData, isLoading } = useMemberStore();
+  const { profile, plots, schedules, fetchDashboardData, isLoading, openTermsModal } = useMemberStore();
 
   useEffect(() => {
     fetchDashboardData();
@@ -41,6 +44,18 @@ export default function MemberDashboardPage() {
   let hasOverdue = false;
   let nearestDueDate: string | undefined = undefined;
 
+  interface UpcomingAlert {
+    plotNumber: string;
+    plotId: string;
+    dueDate: string;
+    amount: number;
+    installmentNumber: number;
+    isOverdue: boolean;
+  }
+
+  let upcomingAlert: UpcomingAlert | null = null;
+  const today = new Date().toISOString().split('T')[0];
+
   for (const plot of plots) {
     if (plot.paymentSummary.installmentProgress) {
       const prog = plot.paymentSummary.installmentProgress;
@@ -49,6 +64,34 @@ export default function MemberDashboardPage() {
         upcomingCount += prog.totalCount - prog.paidCount;
         if (!nearestDueDate || prog.nextDueDate < nearestDueDate) {
           nearestDueDate = prog.nextDueDate;
+        }
+      }
+    }
+  }
+
+  for (const s of schedules) {
+    if (s.paymentType === 'installment') {
+      const pendingItems = s.schedule
+        .filter((item) => item.status === 'pending' || item.status === 'overdue')
+        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+      if (pendingItems.length > 0) {
+        const nextItem = pendingItems[0];
+        const isItemOverdue = nextItem.status === 'overdue' || nextItem.dueDate < today;
+
+        if (
+          !upcomingAlert ||
+          (isItemOverdue && !upcomingAlert.isOverdue) ||
+          (!upcomingAlert.isOverdue && nextItem.dueDate < upcomingAlert.dueDate)
+        ) {
+          upcomingAlert = {
+            plotNumber: s.plotNumber,
+            plotId: s.plotId,
+            dueDate: nextItem.dueDate,
+            amount: nextItem.amount,
+            installmentNumber: nextItem.installmentNumber || 1,
+            isOverdue: isItemOverdue,
+          };
         }
       }
     }
@@ -79,13 +122,110 @@ export default function MemberDashboardPage() {
               Hello, {profile?.fullName || 'Valued Member'}
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20 flex items-center gap-1.5 shadow-xs">
               <CheckCircle className="w-4 h-4 text-[#43612B]" />
               <span>Allotted File Holder</span>
             </span>
+
+            <button
+              type="button"
+              onClick={openTermsModal}
+              title="Click to view and review society bylaws and terms agreement"
+              className="px-3.5 py-1.5 rounded-full text-xs font-semibold bg-white hover:bg-slate-50 text-[#151914] border border-black/10 flex items-center gap-1.5 shadow-2xs hover:shadow-xs transition-all cursor-pointer"
+            >
+              <FileCheck className="w-4 h-4 text-[#43612B]" />
+              <span>{profile?.termsAccepted ? 'Review Terms Agreement' : 'Sign Terms Agreement'}</span>
+            </button>
           </div>
         </div>
+
+        {/* ── Active Strike Warning Banner ── */}
+        {(profile?.strikeCount || 0) > 0 && (
+          <div className="rounded-2xl p-5 border bg-amber-50/95 border-amber-300 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-200 text-amber-900 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-600 text-white font-mono">
+                    Compliance Warning • {profile?.strikeCount} {profile?.strikeCount === 1 ? 'Active Strike' : 'Active Strikes'}
+                  </span>
+                </div>
+                <p className="text-xs text-amber-900 leading-relaxed">
+                  You have <strong>{profile?.strikeCount} administrative compliance {profile?.strikeCount === 1 ? 'strike' : 'strikes'}</strong> on your member record. Please resolve overdue installments or check recent receipt submissions to maintain full portal access.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/society-members/profile"
+              className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-colors whitespace-nowrap"
+            >
+              <span>View Strike Record</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
+
+        {/* ── Upcoming Installment Payment Alert Banner ── */}
+        {upcomingAlert && (
+          <div
+            className={`rounded-2xl p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm transition-all ${
+              upcomingAlert.isOverdue
+                ? 'bg-rose-50/90 border-rose-200 text-rose-950'
+                : 'bg-[#FAF9F5] border-[#43612B]/30 text-[#151914]'
+            }`}
+          >
+            <div className="flex items-start gap-3.5">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                  upcomingAlert.isOverdue
+                    ? 'bg-rose-100 text-rose-700'
+                    : 'bg-[#EAF0E7] text-[#43612B]'
+                }`}
+              >
+                {upcomingAlert.isOverdue ? (
+                  <AlertCircle className="w-5 h-5" />
+                ) : (
+                  <Bell className="w-5 h-5" />
+                )}
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                      upcomingAlert.isOverdue
+                        ? 'bg-rose-200 text-rose-800'
+                        : 'bg-[#43612B] text-white'
+                    }`}
+                  >
+                    {upcomingAlert.isOverdue ? 'Overdue Installment Alert' : 'Upcoming Installment Alert'}
+                  </span>
+                  <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
+                </div>
+                <p className="text-xs text-[#4A5347] leading-relaxed">
+                  Installment #{upcomingAlert.installmentNumber} of{' '}
+                  <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
+                  {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
+                  <strong className="text-[#151914]">{upcomingAlert.dueDate}</strong>. Upload your bank deposit receipt directly in the portal once paid to maintain good standing.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href={`/society-members/payments?plot=${upcomingAlert.plotId}`}
+              className={`shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs ${
+                upcomingAlert.isOverdue
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+                  : 'bg-[#43612B] hover:bg-[#365222] text-white shadow-[#43612B]/20'
+              }`}
+            >
+              <span>Upload Receipt / Pay</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        )}
 
         {/* ── KPI Stat Cards (Tremor Style) ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -171,16 +311,16 @@ export default function MemberDashboardPage() {
           </Link>
 
           <Link
-            href="/society-members/documents"
+            href="/society-members/payments/history"
             className="bg-white p-5 rounded-2xl border border-black/[0.08] hover:border-[#43612B] hover:shadow-md transition-all group flex items-center justify-between"
           >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#FAF9F5] group-hover:bg-[#EAF0E7] text-[#43612B] flex items-center justify-center transition-colors">
-                <FileText className="w-5 h-5" />
+                <History className="w-5 h-5" />
               </div>
               <div>
-                <h4 className="font-bold text-xs sm:text-sm text-[#151914]">Official Documents</h4>
-                <p className="text-[11px] text-[#6B7462]">Agreements &amp; payment receipts</p>
+                <h4 className="font-bold text-xs sm:text-sm text-[#151914]">Payment History</h4>
+                <p className="text-[11px] text-[#6B7462]">Past transactions &amp; status</p>
               </div>
             </div>
             <ArrowRight className="w-4 h-4 text-[#6B7462] group-hover:text-[#43612B] group-hover:translate-x-1 transition-all" />

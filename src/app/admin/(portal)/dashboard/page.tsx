@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { 
-  Building2, 
-  BookmarkCheck, 
-  CheckCircle2, 
-  Clock, 
-  ArrowUpRight, 
+import {
+  Building2,
+  BookmarkCheck,
+  CheckCircle2,
+  Clock,
+  ArrowUpRight,
   ArrowRight,
   AlertTriangle,
   Layers,
@@ -20,57 +20,8 @@ import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
 import { getReservations, ReservationWithConflict } from '@/lib/dal/reservations';
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { mockStore } from '@/lib/mock/store';
-
-const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string; btn: string }> = {
-  abbott: {
-    badge: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-    border: 'border-emerald-200 hover:border-emerald-500',
-    accent: 'text-emerald-700',
-    btn: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-  },
-  royal: {
-    badge: 'bg-amber-100 text-amber-900 border-amber-300',
-    border: 'border-amber-200 hover:border-amber-500',
-    accent: 'text-amber-700',
-    btn: 'bg-amber-600 hover:bg-amber-700 text-white',
-  },
-  overseas: {
-    badge: 'bg-sky-100 text-sky-900 border-sky-300',
-    border: 'border-sky-200 hover:border-sky-500',
-    accent: 'text-sky-700',
-    btn: 'bg-sky-600 hover:bg-sky-700 text-white',
-  },
-  elite: {
-    badge: 'bg-purple-100 text-purple-900 border-purple-300',
-    border: 'border-purple-200 hover:border-purple-500',
-    accent: 'text-purple-700',
-    btn: 'bg-purple-600 hover:bg-purple-700 text-white',
-  },
-  chalet: {
-    badge: 'bg-rose-100 text-rose-900 border-rose-300',
-    border: 'border-rose-200 hover:border-rose-500',
-    accent: 'text-rose-700',
-    btn: 'bg-rose-600 hover:bg-rose-700 text-white',
-  },
-  commercial: {
-    badge: 'bg-indigo-100 text-indigo-900 border-indigo-300',
-    border: 'border-indigo-200 hover:border-indigo-500',
-    accent: 'text-indigo-700',
-    btn: 'bg-indigo-600 hover:bg-indigo-700 text-white',
-  },
-  'npf-phase-1': {
-    badge: 'bg-teal-100 text-teal-900 border-teal-300',
-    border: 'border-teal-200 hover:border-teal-500',
-    accent: 'text-teal-700',
-    btn: 'bg-teal-600 hover:bg-teal-700 text-white',
-  },
-  'npf-phase-2': {
-    badge: 'bg-cyan-100 text-cyan-900 border-cyan-300',
-    border: 'border-cyan-200 hover:border-cyan-500',
-    accent: 'text-cyan-700',
-    btn: 'bg-cyan-600 hover:bg-cyan-700 text-white',
-  },
-};
+import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
+import { getBlockTheme } from '@/lib/map/regionData';
 
 export default function AdminDashboardPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
@@ -255,6 +206,13 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
+      {/* Inventory Overview Trend Chart */}
+      <InventoryOverviewChart
+        currentAvailable={availablePlots}
+        currentReserved={reservedPlots}
+        currentBooked={bookedPlots}
+      />
+
       {/* Accessible Blocks Overview - Distinct Colored Sectors */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs">
         <div className="flex items-center justify-between mb-5">
@@ -280,24 +238,27 @@ export default function AdminDashboardPage() {
             const availPct = block.totalCount > 0 ? (block.availableCount / block.totalCount) * 100 : 0;
             const resPct = block.totalCount > 0 ? (block.reservedCount / block.totalCount) * 100 : 0;
             const bookPct = block.totalCount > 0 ? (block.bookedCount / block.totalCount) * 100 : 0;
-            const theme = SECTOR_THEMES[block.id] || {
-              badge: 'bg-slate-100 text-slate-800 border-slate-300',
-              border: 'border-slate-200 hover:border-slate-400',
-              accent: 'text-slate-700',
-            };
+            const theme = getBlockTheme(block.id);
 
             return (
               <div
                 key={block.id}
-                className={`bg-slate-50/70 border-2 ${theme.border} rounded-2xl p-5 hover:bg-white transition-all shadow-xs group flex flex-col justify-between`}
+                style={theme.cardBorderStyle}
+                className="bg-slate-50/70 border-2 rounded-2xl p-5 hover:bg-white transition-all shadow-xs group flex flex-col justify-between"
               >
                 <div>
                   {/* Header: Sector Name & Plot Badge */}
                   <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className={`font-serif font-bold text-base tracking-tight ${theme.accent} group-hover:underline`}>
+                    <span
+                      style={theme.titleStyle}
+                      className="font-serif font-bold text-base tracking-tight group-hover:underline"
+                    >
                       {block.name}
                     </span>
-                    <span className={`text-[11px] font-mono font-bold border px-2.5 py-1 rounded-lg leading-none inline-flex items-center shadow-2xs ${theme.badge}`}>
+                    <span
+                      style={theme.badgeStyle}
+                      className="text-[11px] font-mono font-bold border px-2.5 py-1 rounded-lg leading-none inline-flex items-center shadow-2xs"
+                    >
                       {block.totalCount} Plots
                     </span>
                   </div>
@@ -341,7 +302,8 @@ export default function AdminDashboardPage() {
                 {/* Manage Block Grid Action Button */}
                 <Link
                   href={`/admin/master-plan/${block.id}`}
-                  className={`w-full py-2.5 px-4 ${theme.btn} text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 group/btn`}
+                  style={theme.btnStyle}
+                  className="w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 group/btn cursor-pointer"
                 >
                   <span>Manage Block Grid</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
@@ -374,20 +336,22 @@ export default function AdminDashboardPage() {
               .filter((r) => r.status === 'active')
               .slice(0, 5)
               .map((r) => {
-                const sectorTheme = SECTOR_THEMES[r.blockId] || { badge: 'bg-slate-100 text-slate-800' };
+                const sectorTheme = getBlockTheme(r.blockId);
                 return (
                   <div
                     key={r.id}
-                    className={`p-3.5 rounded-2xl border transition-colors ${
-                      r.hasDuplicateConflict
+                    className={`p-3.5 rounded-2xl border transition-colors ${r.hasDuplicateConflict
                         ? 'bg-amber-50/90 border-amber-300'
                         : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
-                    } flex items-center justify-between gap-3`}
+                      } flex items-center justify-between gap-3`}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-900 text-xs font-mono">{r.plotNumber}</span>
-                        <span className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border ${sectorTheme.badge}`}>
+                        <span
+                          style={sectorTheme.badgeStyle}
+                          className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border"
+                        >
                           {r.blockId}
                         </span>
                         {r.hasDuplicateConflict && (
@@ -446,7 +410,7 @@ export default function AdminDashboardPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded-md ${badgeColor}`}>
-                          {log.action}
+                          {String(log.action).replace(/_/g, ' ')}
                         </span>
                         <span className="text-[10px] text-slate-400 font-mono">
                           {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -454,7 +418,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div className="text-[11px] text-slate-700 mt-1 font-medium">{log.details}</div>
                       <div className="text-[10px] text-slate-400 mt-0.5">
-                        Actor: <strong className="text-slate-800">{log.actorName}</strong> ({log.actorRole})
+                        Actor: <strong className="text-slate-800">{log.actorName}</strong> ({String(log.actorRole).replace(/_/g, ' ')})
                       </div>
                     </div>
                   </div>

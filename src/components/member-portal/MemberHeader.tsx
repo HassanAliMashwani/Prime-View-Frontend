@@ -4,6 +4,7 @@ import React from 'react';
 import { Menu, User, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { usePortal } from './PortalContext';
+import { useMemberStore } from '@/lib/store/useMemberStore';
 
 interface MemberHeaderProps {
   title: string;
@@ -18,6 +19,7 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const portal = usePortal();
+  const { openTermsModal } = useMemberStore();
 
   const handleOpenMenu = onOpenMobileMenu || portal.openMobileMenu;
 
@@ -42,10 +44,15 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EAF0E7] border border-[#43612B]/20 text-[#43612B] text-xs font-semibold">
+        <button
+          type="button"
+          onClick={openTermsModal}
+          title="Click to review Society Terms & Conditions Agreement"
+          className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EAF0E7] hover:bg-[#dbe7d7] border border-[#43612B]/20 text-[#43612B] text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:shadow-xs active:scale-95"
+        >
           <ShieldCheck className="w-4 h-4 text-[#43612B]" />
           <span>Verified Member File</span>
-        </div>
+        </button>
 
         <div className="flex items-center gap-2.5 pl-2 border-l border-black/10">
           <div className="w-9 h-9 rounded-full bg-[#43612B] text-white flex items-center justify-center font-bold text-xs shadow-xs">

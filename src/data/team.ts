@@ -30,7 +30,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Beneficial owner & Director",
     email: "president@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/president.jpg",
+    photoPath: "/new assests/team/team new/president.jpeg",
     photoDiscovered: true,
     bio: "Liaqat Khan Jadoon serves as President of Prime View Co-Operative Housing Society Ltd. With a distinguished background in specialized operations, advanced tactical instruction, and engineering discipline, he provides strategic direction and steadfast governance to ensure Prime View remains a symbol of integrity and excellence.",
     bioBullets: [
@@ -48,7 +48,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Medical Professional / Businessman",
     email: "secretary@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/secretary.jpg",
+    photoPath: "/new assests/team/team new/secretary.jpeg",
     photoDiscovered: true,
     bio: "Dr. Roman Gul is an accomplished Medical Professional and Businessman. Serving as the General Secretary of Prime View Cooperative Housing Society Abbottabad, he brings strong organizational governance across institutional healthcare and property development.",
     bioBullets: [
@@ -105,7 +105,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "CEO Nexus Builders | Group Director J7",
     email: "Chairman@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/chairman.jpg",
+    photoPath: "/new assests/team/team new/chairman.jpeg",
     photoDiscovered: true,
     bio: "Chaudhary Mohsin Azad serves as Chairman of Prime View Co-Operative Housing Society Ltd. With over 26 years of distinguished leadership in the construction and real estate industry, he has successfully delivered multiple landmark residential and commercial projects across Pakistan.",
     bioSections: [
@@ -135,7 +135,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Planning & operation",
     email: "info@primeview.pk",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/director.jpg",
+    photoPath: "/new assests/team/team new/director.jpeg",
     photoDiscovered: true,
   },
 
@@ -147,7 +147,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "CEO-Sign Marketing",
     email: "info@primeview.pk",
     category: "Marketing Partner",
-    photoPath: "/new assests/team/team new/Muhammad aleem.jpg",
+    photoPath: "/new assests/team/team new/Muhammad aleem.jpeg",
     photoDiscovered: true,
   },
   {
@@ -157,7 +157,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Director-Sign Marketing",
     email: "info@primeview.pk",
     category: "Marketing Partner",
-    photoPath: "/new assests/team/team new/Malik kamaran munir.jpg",
+    photoPath: "/new assests/team/team new/Malik kamaran munir.jpeg",
     photoDiscovered: true,
   },
   {
@@ -167,7 +167,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Hz markings SMC Pvt Ltd",
     email: "info@primeview.pk",
     category: "Marketing Partner",
-    photoPath: "/new assests/team/team new/Huzaifa Zahid.jpg",
+    photoPath: "/new assests/team/team new/Huzaifa Zahid.jpeg",
     photoDiscovered: true,
   },
 
@@ -179,7 +179,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Legal Counsel & Director",
     email: "info@primeview.pk",
     category: "Legal Team",
-    photoPath: "/new assests/team/team new/Justice (R) Arshad Manzoor Khan.jpg",
+    photoPath: "/new assests/team/team new/Justice (R) Arshad Manzoor Khan.jpeg",
     photoDiscovered: true,
   },
   {
@@ -189,7 +189,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Advocate & Legal Counsel",
     email: "info@primeview.pk",
     category: "Legal Team",
-    photoPath: "/new assests/team/team new/Advocate Raja Gulfam Kiani.jpg",
+    photoPath: "/new assests/team/team new/Advocate Raja Gulfam Kiani.jpeg",
     photoDiscovered: true,
   },
 ];

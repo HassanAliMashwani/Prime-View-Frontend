@@ -317,7 +317,7 @@ export default function AuditLogPage() {
                               : 'bg-blue-100 text-blue-900 border-blue-300'
                           }`}
                         >
-                          {entry.actorRole}
+                          {String(entry.actorRole).replace(/_/g, ' ')}
                         </span>
                       </td>
 
@@ -328,7 +328,7 @@ export default function AuditLogPage() {
                             ACTION_COLORS[entry.action] || 'bg-slate-100 text-slate-800 border-slate-200'
                           }`}
                         >
-                          {entry.action}
+                          {String(entry.action).replace(/_/g, ' ')}
                         </span>
                       </td>
 

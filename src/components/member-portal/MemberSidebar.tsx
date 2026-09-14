@@ -9,7 +9,6 @@ import {
   Home,
   CreditCard,
   History,
-  FileText,
   User,
   LogOut,
   ChevronRight,
@@ -29,7 +28,6 @@ const navItems = [
   { href: '/society-members/properties', label: 'My Properties', icon: Home },
   { href: '/society-members/payments', label: 'Payments', icon: CreditCard },
   { href: '/society-members/payments/history', label: 'Payment History', icon: History },
-  { href: '/society-members/documents', label: 'Documents', icon: FileText },
   { href: '/society-members/profile', label: 'Profile', icon: User },
 ];
 
@@ -126,13 +124,9 @@ export const MemberSidebar: React.FC<MemberSidebarProps> = ({ isOpen, onClose })
 
           <button
             onClick={() => logout()}
-            className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+            className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors text-center cursor-pointer"
           >
-            <div className="flex items-center gap-2.5">
-              <LogOut className="w-4 h-4 text-red-600" />
-              <span>Log Out</span>
-            </div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-red-600/80">Exit</span>
+            Log Out
           </button>
         </div>
       </aside>
