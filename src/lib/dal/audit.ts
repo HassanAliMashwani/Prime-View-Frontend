@@ -1,5 +1,5 @@
-import { mockStore } from '../mock/store';
 import { AdminSession, AuditEntry } from '../mock/types';
+import { apiGet } from '../api';
 
 export interface AuditFilterOptions {
   actorId?: string;
@@ -12,7 +12,7 @@ export interface AuditFilterOptions {
 
 /**
  * Retrieve system activity audit logs (Super Admin exclusive).
- * Read-only: no edit or delete operations exist.
+ * Read-only: fetched directly from real NestJS backend GET /admin/audit.
  */
 export async function getAuditLogs(
   session: AdminSession,
@@ -23,14 +23,32 @@ export async function getAuditLogs(
   totalCount: number;
   error?: string;
 }> {
-  mockStore.loadFromStorage();
-
   // Super Admin Exclusive Guard
   if (session.role !== 'super_admin') {
     return { ok: false, logs: [], totalCount: 0, error: 'FORBIDDEN_SUPER_ADMIN_ONLY' };
   }
 
-  let logs = [...mockStore.auditLog];
+  const res = await apiGet<{ logs: AuditEntry[]; totalCount: number }>(
+    '/admin/audit',
+    session.token
+  );
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      logs: [],
+      totalCount: 0,
+      error: res.error || 'AUDIT_FETCH_FAILED',
+    };
+  }
+
+  const rawLogs: AuditEntry[] = Array.isArray(res.data?.logs)
+    ? res.data.logs
+    : Array.isArray(res.data)
+    ? (res.data as unknown as AuditEntry[])
+    : [];
+
+  let logs = [...rawLogs];
 
   if (filters?.actorId && filters.actorId !== 'all') {
     logs = logs.filter((l) => l.actorId === filters.actorId);
@@ -58,10 +76,10 @@ export async function getAuditLogs(
     const s = filters.search.trim().toLowerCase();
     logs = logs.filter(
       (l) =>
-        l.details.toLowerCase().includes(s) ||
-        l.actorName.toLowerCase().includes(s) ||
-        l.action.toLowerCase().includes(s) ||
-        l.entityId.toLowerCase().includes(s)
+        (l.details && l.details.toLowerCase().includes(s)) ||
+        (l.actorName && l.actorName.toLowerCase().includes(s)) ||
+        (l.action && l.action.toLowerCase().includes(s)) ||
+        (l.entityId && l.entityId.toLowerCase().includes(s))
     );
   }
 

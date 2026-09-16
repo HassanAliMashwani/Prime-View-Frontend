@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { siteConfig } from '@/data/site';
-import { mockStore } from '@/lib/mock/store';
+
 import { Shield, Lock, ArrowRight, AlertCircle, ArrowLeft, KeyRound, UserCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function MemberLoginPage() {
@@ -53,14 +53,8 @@ export default function MemberLoginPage() {
     } else if (demoId === 'usman') {
       setIdentifier('PV-2024-003');
       setPassword('password123');
-      // Reset terms agreement so user can see and test the Terms modal whenever they click Malik Usman
-      mockStore.loadFromStorage();
-      const usman = mockStore.customers.find((c) => c.id === 'cust-3');
-      if (usman) {
-        usman.termsAccepted = false;
-        usman.termsAcceptedAt = undefined;
-        mockStore.saveToStorage();
-      }
+      // Terms agreement cannot be reset client-side with real backend.
+      // Assuming terms are persistent now.
     } else if (demoId === 'bilal') {
       setIdentifier('PV-2024-004');
       setPassword('password123');

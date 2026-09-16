@@ -27,7 +27,7 @@ import {
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminReceipts, verifyReceipt, rejectReceipt } from '@/lib/dal/receipts';
-import { mockStore } from '@/lib/mock/store';
+
 import {
   OfficialA4PaymentSlip,
   buildSlipDataFromSubmission,
@@ -76,22 +76,15 @@ export default function AdminReceiptsPage() {
     setSession(cur);
     loadData(cur);
 
-    // Cross-tab real-time listener
-    const unsubscribe = mockStore.onBroadcast((event) => {
-      if (
-        event.type === 'RECEIPT_SUBMITTED' ||
-        event.type === 'RECEIPT_VERIFIED' ||
-        event.type === 'RECEIPT_REJECTED' ||
-        event.type === 'STRIKE_ASSIGNED'
-      ) {
-        const latestSession = getActiveAdminSession();
-        if (latestSession) {
-          loadData(latestSession);
-        }
+    // Auto-refresh via polling
+    const intervalId = setInterval(() => {
+      const latestSession = getActiveAdminSession();
+      if (latestSession) {
+        loadData(latestSession);
       }
-    });
+    }, 30000);
 
-    return () => unsubscribe();
+    return () => clearInterval(intervalId);
   }, [router, loadData]);
 
   // Flash feedback auto-clear
@@ -419,8 +412,8 @@ export default function AdminReceiptsPage() {
 
                   {/* Member Strike System Badge */}
                   {(() => {
-                    const cust = mockStore.customers.find((c) => c.id === sub.customerId);
-                    const strikeCount = cust?.strikeCount ?? sub.customerStrikeCount ?? 0;
+                    const strikeCount = (sub as any).customer?.strikeCount ?? sub.customerStrikeCount ?? 0;
+                    const accountStatus = (sub as any).customer?.accountStatus || 'active';
                     return (
                       <span
                         className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border flex items-center gap-1 ${
@@ -434,7 +427,7 @@ export default function AdminReceiptsPage() {
                       >
                         <AlertTriangle className="w-3 h-3" />
                         <span>{strikeCount}/3 Strikes</span>
-                        {cust?.accountStatus === 'suspended' && (
+                        {accountStatus === 'suspended' && (
                           <span className="text-rose-700 font-extrabold ml-1">(Suspended)</span>
                         )}
                       </span>
@@ -479,8 +472,7 @@ export default function AdminReceiptsPage() {
 
                 {/* Prior Compliance Strikes History Snippet */}
                 {(() => {
-                  const cust = mockStore.customers.find((c) => c.id === sub.customerId);
-                  const strikes = cust?.strikeHistory || sub.customerStrikeHistory || [];
+                  const strikes = (sub as any).customer?.strikeHistory || sub.customerStrikeHistory || [];
                   if (strikes.length === 0) return null;
                   return (
                     <div className="bg-amber-50/70 border border-amber-200/80 p-2.5 rounded-xl text-xs space-y-1">
@@ -489,7 +481,7 @@ export default function AdminReceiptsPage() {
                         <span>Prior Compliance Strikes ({strikes.length}/3):</span>
                       </div>
                       <div className="text-[10px] text-amber-800 space-y-0.5 pl-5">
-                        {strikes.slice(-2).map((st, i) => (
+                        {strikes.slice(-2).map((st: any, i: number) => (
                           <div key={i} className="flex items-center gap-2">
                             <span className="font-mono text-slate-500">[{st.assignedAt.split('T')[0]}]</span>
                             <span className="font-semibold text-slate-900">{st.reason}</span>
@@ -617,9 +609,6 @@ export default function AdminReceiptsPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* REJECT MODAL                                                  */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* ══════════════════════════════════════════════════════════════ */}
-      {/* REJECT MODAL (WITH INLINE STRIKE SYSTEM OPTION)              */}
-      {/* ══════════════════════════════════════════════════════════════ */}
       {rejectModalReceipt && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 space-y-4 border border-slate-200">
@@ -648,8 +637,7 @@ export default function AdminReceiptsPage() {
 
             {/* Current Member Standing Info */}
             {(() => {
-              const cust = mockStore.customers.find((c) => c.id === rejectModalReceipt.customerId);
-              const currentStrikes = cust?.strikeCount ?? rejectModalReceipt.customerStrikeCount ?? 0;
+              const currentStrikes = (rejectModalReceipt as any).customer?.strikeCount ?? rejectModalReceipt.customerStrikeCount ?? 0;
               return (
                 <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs space-y-1">
                   <div className="flex items-center justify-between">

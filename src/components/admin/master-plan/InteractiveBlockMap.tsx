@@ -16,7 +16,7 @@ import {
   User
 } from 'lucide-react';
 import { Plot } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
+
 import { getBlockMapConfig } from '@/lib/map/blockRegistry';
 import { TracedPlotArea } from '@/lib/map/types';
 
@@ -537,17 +537,7 @@ export default function InteractiveBlockMap({
               );
               const isAmenity = plot.category === 'amenity';
 
-              const bookedCustomer = plot.status === 'booked' 
-                ? (plot.currentOwnerId 
-                    ? mockStore.customers.find((c) => c.id === plot.currentOwnerId)
-                    : mockStore.bookings.find((b) => b.plotId === plot.id)
-                    ? mockStore.customers.find((c) => c.id === mockStore.bookings.find((b) => b.plotId === plot.id)?.customerId)
-                    : null)
-                : null;
-              const activeRes = plot.status === 'reserved'
-                ? mockStore.reservations.find((r) => r.plotId === plot.id && r.status === 'active')
-                : null;
-              const reservedCustomerName = activeRes?.customerName;
+
 
               return (
                 <div className="w-68 rounded-2xl border border-slate-700 bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
@@ -568,9 +558,7 @@ export default function InteractiveBlockMap({
                           : isAmenity
                           ? 'bg-purple-950 text-purple-300 border-purple-700'
                           : plot.status === 'booked'
-                          ? bookedCustomer?.registrationStatus === 'minimal'
-                            ? 'bg-amber-950 text-amber-300 border-amber-600'
-                            : 'bg-rose-950 text-rose-300 border-rose-700'
+                          ? 'bg-rose-950 text-rose-300 border-rose-700'
                           : plot.status === 'reserved'
                           ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : 'bg-emerald-950 text-emerald-300 border-emerald-700'
@@ -586,8 +574,8 @@ export default function InteractiveBlockMap({
                         ? 'Reserving'
                         : isAmenity
                         ? 'Amenity'
-                        : plot.status === 'booked' && bookedCustomer?.registrationStatus === 'minimal'
-                        ? 'Booked (Needs Reg)'
+                        : plot.status === 'booked'
+                        ? 'Booked'
                         : String(plot.status).replace(/_/g, ' ')}
                     </span>
                   </div>
@@ -599,45 +587,6 @@ export default function InteractiveBlockMap({
                       <span className="font-bold lowercase">
                         adjustment: {plot.adjustmentReason || 'boundary review'}
                       </span>
-                    </div>
-                  )}
-
-                  {/* Booked Customer Details */}
-                  {plot.status === 'booked' && bookedCustomer && (
-                    <div className={`mb-2 p-2 rounded-lg border text-[11px] flex items-center gap-2 ${
-                      bookedCustomer.registrationStatus === 'minimal'
-                        ? 'bg-amber-950/80 border-amber-800/70 text-amber-100'
-                        : 'bg-rose-950/80 border-rose-800/70 text-rose-100'
-                    }`}>
-                      <User className={`w-3.5 h-3.5 shrink-0 ${
-                        bookedCustomer.registrationStatus === 'minimal' ? 'text-amber-400' : 'text-rose-400'
-                      }`} />
-                      <div className="min-w-0 flex-1 truncate">
-                        <span className={`text-[9px] uppercase font-mono block leading-tight ${
-                          bookedCustomer.registrationStatus === 'minimal' ? 'text-amber-400/90 font-bold' : 'text-slate-400'
-                        }`}>
-                          {bookedCustomer.registrationStatus === 'minimal' ? 'Booked (Needs Registration)' : 'Booked by'}
-                        </span>
-                        <div className="font-semibold text-white truncate">
-                          {bookedCustomer.fullName}{bookedCustomer.registrationStatus === 'minimal' && bookedCustomer.city ? ` (${bookedCustomer.city})` : ''}
-                        </div>
-                        {bookedCustomer.membershipNo ? (
-                          <div className="text-[10px] text-rose-300 font-mono">{bookedCustomer.membershipNo}</div>
-                        ) : (
-                          <div className="text-[9px] text-amber-300 font-mono uppercase">Formalities Pending</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Reserved Customer Details */}
-                  {plot.status === 'reserved' && reservedCustomerName && (
-                    <div className="mb-2 p-2 rounded-lg bg-amber-950/80 border border-amber-800/70 text-[11px] text-amber-100 flex items-center gap-2">
-                      <BookmarkCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <div className="min-w-0 flex-1 truncate">
-                        <span className="text-[9px] uppercase font-mono text-amber-400/80 block leading-tight">Reserved for</span>
-                        <div className="font-semibold text-white truncate">{reservedCustomerName}</div>
-                      </div>
                     </div>
                   )}
 

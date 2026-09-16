@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { AdminSession, CustomerDocument, CustomerDocumentType } from '@/lib/mock/types';
 import { getCustomerDocuments, uploadCustomerDocument, deleteCustomerDocument } from '@/lib/dal/documents';
-import { mockStore } from '@/lib/mock/store';
+
 
 interface CustomerDocumentsManagerProps {
   session: AdminSession;
@@ -76,16 +76,14 @@ export default function CustomerDocumentsManager({
 
   useEffect(() => {
     loadDocs();
-    const unsub = mockStore.onBroadcast((event) => {
-      if (
-        (event.type === 'DOCUMENT_UPLOADED' || event.type === 'DOCUMENT_DELETED') &&
-        event.customerId === customerId
-      ) {
-        loadDocs();
-      }
-    });
-    return unsub;
-  }, [loadDocs, customerId]);
+
+    // Auto-refresh via polling
+    const intervalId = setInterval(() => {
+      loadDocs();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [loadDocs]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

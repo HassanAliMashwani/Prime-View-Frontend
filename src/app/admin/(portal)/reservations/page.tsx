@@ -20,7 +20,7 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getReservations, updateReservationNote, confirmReservation, releaseReservation, ReservationWithConflict } from '@/lib/dal/reservations';
 import { bookPlot } from '@/lib/dal/adminPlots';
 import { AdminSession, Reservation } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
+
 import { getBlockDisplayName } from '@/lib/map/regionData';
 
 const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
@@ -49,7 +49,7 @@ export default function ReservationsPage() {
 
   const loadData = useCallback(async (s: AdminSession) => {
     try {
-      mockStore.loadFromStorage();
+
       const res = await getReservations(s, {
         search,
         blockId: blockFilter,
@@ -75,35 +75,16 @@ export default function ReservationsPage() {
     }
   }, [loadData]);
 
-  // Real-time multi-window sync (Exception 5.5)
+  // Auto-refresh via polling
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleSync = () => {
-      mockStore.loadFromStorage();
+    const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s) {
         loadData(s);
       }
-    };
+    }, 30000);
 
-    let channel: BroadcastChannel | null = null;
-    if ('BroadcastChannel' in window) {
-      channel = new BroadcastChannel('prime-view-sync');
-      channel.onmessage = handleSync;
-    }
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'pv_mock_store') {
-        handleSync();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      if (channel) channel.close();
-      window.removeEventListener('storage', handleStorage);
-    };
+    return () => clearInterval(intervalId);
   }, [loadData]);
 
   const handleConfirmBooking = async (r: Reservation) => {

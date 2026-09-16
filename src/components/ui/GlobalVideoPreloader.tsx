@@ -14,13 +14,9 @@ export const GlobalVideoPreloader = () => {
     // Wait until the main page is completely idle before silently downloading videos
     const preloadVideos = () => {
       videosToPreload.forEach((src) => {
-        const link = document.createElement("link");
-        link.rel = "preload";
-        link.as = "video";
-        link.href = src;
-        // @ts-ignore - fetchpriority is relatively new and might not be in standard TS types yet
-        link.fetchpriority = "low";
-        document.head.appendChild(link);
+        const video = document.createElement("video");
+        video.preload = "auto";
+        video.src = src;
       });
     };
 

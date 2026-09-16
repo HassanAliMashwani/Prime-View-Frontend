@@ -37,7 +37,7 @@ import {
   CustomerDirectoryEntry 
 } from '@/lib/dal/customers';
 import { AdminSession } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
+
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
 function CustomersDirectoryContent() {
@@ -109,25 +109,16 @@ function CustomersDirectoryContent() {
     setSession(cur);
     loadData(cur);
 
-    // Cross-tab broadcast listener for real-time updates
-    const unsubscribe = mockStore.onBroadcast((event) => {
-      if (
-        event.type === 'CUSTOMER_UPDATED' ||
-        event.type === 'STRIKE_ASSIGNED' ||
-        event.type === 'CUSTOMER_SUSPENDED' ||
-        event.type === 'CUSTOMER_ACTIVATED' ||
-        event.type === 'BOOKING_CREATED'
-      ) {
-        const latestSession = getActiveAdminSession();
-        if (latestSession) {
-          loadData(latestSession);
-        }
+    // Auto-refresh customer directory every 30 seconds
+    const intervalId = setInterval(() => {
+      const latestSession = getActiveAdminSession();
+      if (latestSession) {
+        loadData(latestSession);
       }
-    });
+    }, 30000);
 
-    return () => unsubscribe();
+    return () => clearInterval(intervalId);
   }, [router, loadData]);
-
   // Flash feedback auto-clear
   useEffect(() => {
     if (feedback) {
@@ -777,94 +768,25 @@ function CustomersDirectoryContent() {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  {dossierCustomer.plots.map((p) => {
-                    const plotReceipts = mockStore.receiptSubmissions.filter(
-                      (r) => r.plotId === p.plotId || (r.customerId === dossierCustomer.id && r.plotNumber === p.plotNumber)
-                    );
-                    return (
-                      <div
-                        key={p.bookingId}
-                        className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-3"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-bold text-slate-900">{p.blockName} • Plot {p.plotNumber}</div>
-                            <div className="text-slate-500 text-[11px]">
-                              {p.size} • {p.category.toUpperCase()} • Scheme: {p.paymentType === 'installment' ? '24-Month Installments' : 'Full Payment'}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold font-mono text-slate-900">PKR {p.price.toLocaleString()}</div>
-                            <div className="text-[10px] text-slate-400">Booked: {p.bookingDate}</div>
+                  {dossierCustomer.plots.map((p) => (
+                    <div
+                      key={p.bookingId}
+                      className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-bold text-slate-900">{p.blockName} • Plot {p.plotNumber}</div>
+                          <div className="text-slate-500 text-[11px]">
+                            {p.size} • {p.category.toUpperCase()} • Scheme: {p.paymentType === 'installment' ? '24-Month Installments' : 'Full Payment'}
                           </div>
                         </div>
-
-                        {/* Installment Receipts Timeline */}
-                        <div className="pt-2 border-t border-slate-100 space-y-1.5">
-                          <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
-                            <span>Installment Receipts ({plotReceipts.length})</span>
-                            <span className="text-[10px] text-slate-400 font-normal">Pending / Verified / Declined</span>
-                          </div>
-                          {plotReceipts.length === 0 ? (
-                            <div className="text-xs text-slate-400 italic py-1">No payment receipts submitted for this plot yet.</div>
-                          ) : (
-                            <div className="space-y-1.5">
-                              {plotReceipts.map((r) => {
-                                const bank = r.depositoryBank || r.bankName || 'Meezan Bank Ltd';
-                                return (
-                                  <div
-                                    key={r.id}
-                                    className="bg-slate-50/80 border border-slate-200/70 rounded-lg p-2 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                                  >
-                                    <div className="space-y-0.5">
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        <span className={`text-[9px] font-bold uppercase font-mono px-1.5 py-0.5 rounded ${
-                                          r.status === 'verified'
-                                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                                            : r.status === 'rejected'
-                                            ? 'bg-rose-100 text-rose-800 border border-rose-200'
-                                            : 'bg-amber-100 text-amber-800 border border-amber-200'
-                                        }`}>
-                                          {r.status === 'verified' ? 'Verified' : r.status === 'rejected' ? 'Declined' : 'Pending'}
-                                        </span>
-                                        <span className="font-semibold text-slate-900">
-                                          {r.paymentType === 'installment'
-                                            ? `Installment #${r.installmentNumber}`
-                                            : 'Full Payment'}
-                                        </span>
-                                        {r.slip?.slipNumber && (
-                                          <span className="font-mono text-[10px] text-teal-800 bg-teal-50 border border-teal-200 px-1 rounded">
-                                            Slip #{r.slip.slipNumber}
-                                          </span>
-                                        )}
-                                      </div>
-                                      <div className="text-[11px] text-slate-500 flex items-center gap-2 flex-wrap">
-                                        <span>🏦 {bank}</span>
-                                        <span>&bull;</span>
-                                        <span>Ref: <code className="text-[10px] font-bold text-slate-700">{r.transactionRef}</code></span>
-                                        <span>&bull;</span>
-                                        <span>{r.paymentDate}</span>
-                                      </div>
-                                      {r.status === 'rejected' && r.rejectionReason && (
-                                        <div className="text-[10px] text-rose-700 font-medium">
-                                          Decline Note: {r.rejectionReason}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="sm:text-right shrink-0">
-                                      <div className="font-mono font-bold text-emerald-800">
-                                        PKR {r.amount.toLocaleString()}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
+                        <div className="text-right">
+                          <div className="font-bold font-mono text-slate-900">PKR {p.price.toLocaleString()}</div>
+                          <div className="text-[10px] text-slate-400">Booked: {p.bookingDate}</div>
                         </div>
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
               </div>
 

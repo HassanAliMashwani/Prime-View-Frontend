@@ -28,6 +28,7 @@ import {
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
   getAdminBlockPlots, 
+  getAdminPlotDetails,
   acquireLock, 
   releaseLock,
   startReservingPlot,
@@ -38,8 +39,8 @@ import {
 } from '@/lib/dal/adminPlots';
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking } from '@/lib/dal/customers';
-import { Block, Plot, AdminSession, Reservation, PlotCategory } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
+import { Block, Plot, AdminSession, Reservation, PlotCategory, Customer, Booking } from '@/lib/mock/types';
+
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
 
@@ -107,6 +108,9 @@ function BlockPlotsContent() {
 
   // Selected plot for action
   const [selectedPlot, setSelectedPlot] = useState<Plot | null>(null);
+  const [selectedPlotOwner, setSelectedPlotOwner] = useState<Customer | null>(null);
+  const [selectedPlotBooking, setSelectedPlotBooking] = useState<Booking | null>(null);
+  const [isLoadingPlotDetails, setIsLoadingPlotDetails] = useState<boolean>(false);
   const [plotReservations, setPlotReservations] = useState<Reservation[]>([]);
 
   // Modals
@@ -151,6 +155,9 @@ function BlockPlotsContent() {
       setIsEditingPrice(false);
       setSelectedPlot(res.plot);
       await loadPlots(session);
+    } else {
+      alert(res.message || 'This feature is not available yet (NOT_YET_IMPLEMENTED).');
+      setIsEditingPrice(false);
     }
   };
 
@@ -213,41 +220,28 @@ function BlockPlotsContent() {
     }
   }, [loadPlots]);
 
-  // Real-time multi-window sync (Exception 5.5)
+  // Real-time sync via interval
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleSync = () => {
-      mockStore.loadFromStorage();
+    const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s) {
         loadPlots(s);
+        // Refresh selected plot if it is open
+        if (selectedPlot) {
+          getAdminPlotDetails(s, selectedPlot.id).then((res) => {
+             if (res.ok && res.plot) {
+                setSelectedPlot(res.plot);
+                if (res.reservations) setPlotReservations(res.reservations);
+                if (res.owner) setSelectedPlotOwner(res.owner);
+                if (res.booking) setSelectedPlotBooking(res.booking);
+             }
+          });
+        }
       }
-      setSelectedPlot((prev) => {
-        if (!prev) return null;
-        const fresh = mockStore.plots.find((p) => p.id === prev.id);
-        return fresh || prev;
-      });
-    };
+    }, 30000);
 
-    let channel: BroadcastChannel | null = null;
-    if ('BroadcastChannel' in window) {
-      channel = new BroadcastChannel('prime-view-sync');
-      channel.onmessage = handleSync;
-    }
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'pv_mock_store') {
-        handleSync();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      if (channel) channel.close();
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, [loadPlots]);
+    return () => clearInterval(intervalId);
+  }, [loadPlots, selectedPlot]);
 
   // Deep-link auto-scroll and highlight for Card Grid mode
   useEffect(() => {
@@ -282,10 +276,25 @@ function BlockPlotsContent() {
     setSelectedPlot(plot);
     setActionError(null);
     setIsEditingPrice(false);
-    const activeRes = mockStore.reservations.filter(
-      (r) => r.plotId === plot.id && r.status === 'active'
-    );
-    setPlotReservations(activeRes);
+    setSelectedPlotOwner(null);
+    setSelectedPlotBooking(null);
+    setPlotReservations([]);
+    
+    setIsLoadingPlotDetails(true);
+    const s = getActiveAdminSession();
+    if (s) {
+      getAdminPlotDetails(s, plot.id).then((res) => {
+        if (res.ok) {
+          if (res.plot) setSelectedPlot(res.plot);
+          if (res.reservations) setPlotReservations(res.reservations);
+          if (res.owner) setSelectedPlotOwner(res.owner);
+          if (res.booking) setSelectedPlotBooking(res.booking);
+        }
+        setIsLoadingPlotDetails(false);
+      });
+    } else {
+      setIsLoadingPlotDetails(false);
+    }
   }, []);
 
   // Keyboard shortcut: Escape to close drawer
@@ -436,14 +445,10 @@ function BlockPlotsContent() {
       );
       if (result.ok) {
         await loadPlots(session);
-        mockStore.loadFromStorage();
-        const updated = mockStore.plots.find((p) => p.id === selectedPlot.id);
-        if (updated) {
-          setSelectedPlot(updated);
-          const activeRes = mockStore.reservations.filter(
-            (r) => r.plotId === updated.id && r.status === 'active'
-          );
-          setPlotReservations(activeRes);
+        const detailRes = await getAdminPlotDetails(session, selectedPlot.id);
+        if (detailRes.ok && detailRes.plot) {
+          setSelectedPlot(detailRes.plot);
+          setPlotReservations(detailRes.reservations || []);
         }
       } else {
         if (result.error === 'NOT_RESERVATION_OWNER') {
@@ -864,15 +869,6 @@ function BlockPlotsContent() {
 
           const catBadge = CATEGORY_COLORS[plot.category] || 'bg-slate-100 text-slate-700';
 
-          const bookedCustRef = plot.status === 'booked' 
-            ? (plot.currentOwnerId 
-                ? mockStore.customers.find((c) => c.id === plot.currentOwnerId)
-                : mockStore.bookings.find((b) => b.plotId === plot.id)
-                ? mockStore.customers.find((c) => c.id === mockStore.bookings.find((b) => b.plotId === plot.id)?.customerId)
-                : null)
-            : null;
-          const isMinimalCust = bookedCustRef?.registrationStatus === 'minimal';
-
           return (
             <button
               key={plot.id}
@@ -899,8 +895,6 @@ function BlockPlotsContent() {
                       ? `Being reserved by ${reservingNames.join(', ')}`
                       : isAmenity
                       ? 'Amenity'
-                      : isBooked && isMinimalCust
-                      ? 'Booked (Needs Reg)'
                       : plot.status}
                   </span>
                 </div>
@@ -908,31 +902,6 @@ function BlockPlotsContent() {
                 <div className="text-[11px] font-semibold truncate mt-0.5">
                   {isAmenity ? plot.amenityName : plot.size}
                 </div>
-
-                {/* Customer name on booked / reserved plot card */}
-                {plot.status === 'booked' && bookedCustRef && (
-                  <div className={`mt-1 text-[10px] rounded px-1.5 py-0.5 font-medium truncate flex items-center gap-1 border ${
-                    isMinimalCust
-                      ? 'text-amber-950 bg-amber-100/90 border-amber-300'
-                      : 'text-rose-900 bg-rose-50 border-rose-200'
-                  }`}>
-                    <User className={`w-2.5 h-2.5 shrink-0 ${isMinimalCust ? 'text-amber-600' : 'text-rose-600'}`} />
-                    <span className="truncate font-semibold">
-                      {bookedCustRef.fullName}{isMinimalCust && bookedCustRef.city ? ` (${bookedCustRef.city})` : ''}
-                    </span>
-                  </div>
-                )}
-
-                {plot.status === 'reserved' && (() => {
-                  const resv = mockStore.reservations.find((r) => r.plotId === plot.id && r.status === 'active');
-                  const rName = resv?.customerName;
-                  return rName ? (
-                    <div className="mt-1 text-[10px] text-amber-900 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 font-medium truncate flex items-center gap-1">
-                      <BookmarkCheck className="w-2.5 h-2.5 text-amber-600 shrink-0" />
-                      <span className="truncate font-semibold">{rName}</span>
-                    </div>
-                  ) : null;
-                })()}
 
                 {isDisputed && (
                   <div className="mt-1 text-[9px] font-bold text-fuchsia-900 bg-fuchsia-100/90 border border-fuchsia-300 rounded px-1.5 py-0.5 inline-block">
@@ -1260,12 +1229,9 @@ function BlockPlotsContent() {
 
               {/* Allocated Member Card for Booked Plot */}
               {selectedPlot.status === 'booked' && (() => {
-                const booking = mockStore.bookings.find((b) => b.plotId === selectedPlot.id);
-                const bookedCustomer = selectedPlot.currentOwnerId 
-                  ? mockStore.customers.find((c) => c.id === selectedPlot.currentOwnerId)
-                  : booking
-                  ? mockStore.customers.find((c) => c.id === booking.customerId)
-                  : null;
+                const booking = selectedPlotBooking;
+                const bookedCustomer = selectedPlotOwner;
+                
                 if (bookedCustomer?.registrationStatus === 'minimal') {
                   return (
                     <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-3 shadow-xs">

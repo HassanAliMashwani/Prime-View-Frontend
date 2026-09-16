@@ -44,9 +44,9 @@ import {
   completeMemberRegistration,
   CustomerDisambiguation,
   CreateCustomerWithBookingInput,
+  setRegisteredPlotsCache,
 } from '@/lib/dal/customers';
-import { releaseLock, releaseLockSync } from '@/lib/dal/adminPlots';
-import { mockStore } from '@/lib/mock/store';
+import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 
 function CustomersPageContent() {
@@ -203,113 +203,49 @@ function CustomersPageContent() {
 
   // Load active session and plots
   const loadInitialData = useCallback(() => {
-    mockStore.loadFromStorage();
     const cur = getActiveAdminSession();
     if (!cur) {
       router.push('/admin/login');
       return;
     }
     setSession(cur);
-    sessionRef.current = cur;
 
-    // Filter available sellable plots within admin scope
-    const plots = mockStore.plots.filter((p) => {
-      if (p.category === 'amenity' || p.status === 'booked') return false;
-      if (cur.role === 'super_admin') return true;
-      return cur.assignedBlocks.includes(p.blockId);
+    // Filter available sellable plots within admin scope via API
+    getAdminAllPlots(cur).then((res) => {
+      if (res.ok && res.plots) {
+        const sellable = res.plots.filter(p => {
+          if (p.category === 'amenity' || p.status === 'booked') return false;
+          if (cur.role === 'super_admin') return true;
+          return cur.assignedBlocks.includes(p.blockId);
+        });
+        setAvailablePlots(sellable);
+        setRegisteredPlotsCache(sellable);
+      }
     });
-    setAvailablePlots(plots);
-    setAllCustomers(mockStore.customers);
 
     // Handle plot locking from Master Plan redirect
     if (queryPlotId) {
-      const found = mockStore.plots.find((p) => p.id === queryPlotId);
-      if (found) {
-        setLockedPlot(found);
-        setIsLockedFromMap(true);
-        setSelectedPlotA(found);
-        setTotalPaymentA(found.price);
-        setSelectedPlotB(found);
-        setTotalPaymentB(found.price);
-        setPathAForm((prev) => ({ ...prev, plotId: found.id, lockToken: queryLockToken || undefined }));
-        setPathBPlotId(found.id);
-        setSubAdminPlotId(found.id);
-
-        // Initial default downpayment (20%)
-        if (!downpaymentCustomizedA) {
-          setDownpaymentA(Math.round(found.price * 0.2));
-        }
-        if (!downpaymentCustomizedB) {
-          setDownpaymentB(Math.round(found.price * 0.2));
-        }
-      }
+      // Defer lookup until availablePlots resolves, or try to pre-select it from availablePlots later.
+      // (The actual plot might be resolved by loadInitialData's getAdminAllPlots fetch, so we rely on the component state if it updates, or we fetch it specifically.)
+      // Actually we'll let verifyPlotRegistered(queryPlotId) in useEffect handle the UI sync.
+      
+      setPathAForm((prev) => ({ ...prev, plotId: queryPlotId, lockToken: queryLockToken || undefined }));
+      setPathBPlotId(queryPlotId);
+      setSubAdminPlotId(queryPlotId);
     }
 
     // Handle customer preselection from query param
     if (queryCustomerId) {
-      const foundCust = mockStore.customers.find((c) => c.id === queryCustomerId);
-      if (foundCust) {
-        setSelectedCustomer({
-          id: foundCust.id,
-          fullName: foundCust.fullName,
-          fatherOrHusbandName: foundCust.fatherOrHusbandName,
-          membershipNo: foundCust.membershipNo,
-          cnic: foundCust.cnic,
-          phone: foundCust.phone,
-          email: foundCust.email,
-          mailingAddress: foundCust.mailingAddress || '',
-          propertiesCount: mockStore.bookings.filter((b) => b.customerId === foundCust.id).length,
-          accountStatus: foundCust.accountStatus,
-        });
-      }
+      // Just pass ID, we don't have the full mock list anymore
+      // Disambiguation will handle fetching it via handleSearchSubmit later if needed, 
+      // or we can let the UI perform a targeted search.
+      setSearchQuery(queryCustomerId);
     }
 
     // Handle Complete Registration for quick-booked member (CR 07 §5)
     if (queryCompleteCustomer) {
-      const foundCust = mockStore.customers.find((c) => c.id === queryCompleteCustomer);
-      if (foundCust) {
-        setCompleteTargetCustomer(foundCust);
-        const booking = mockStore.bookings.find((b) => b.customerId === foundCust.id);
-        const plot = booking ? mockStore.plots.find((p) => p.id === booking.plotId) : null;
-
-        if (plot) {
-          setLockedPlot(plot);
-          setIsLockedFromMap(true);
-          setSelectedPlotA(plot);
-          setTotalPaymentA(plot.price);
-          if (!downpaymentCustomizedA) {
-            setDownpaymentA(Math.round(plot.price * 0.2));
-          }
-        }
-
-        const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-        const suggestedMemNo = foundCust.membershipNo && !foundCust.membershipNo.includes('PENDING')
-          ? foundCust.membershipNo
-          : `PV-${new Date().getFullYear()}-${randomSuffix}`;
-
-        setPathAForm((prev) => ({
-          ...prev,
-          plotId: plot ? plot.id : prev.plotId,
-          paymentType: (booking?.paymentType as any) || 'installment',
-          paperInstallmentRef: booking?.paperInstallmentRef || '',
-          membershipNo: suggestedMemNo,
-          fullName: foundCust.fullName || '',
-          fatherOrHusbandName: foundCust.fatherOrHusbandName || '',
-          cnic: foundCust.cnic || '',
-          phone: foundCust.phone || '',
-          email: foundCust.email || '',
-          mailingAddress: foundCust.mailingAddress || (foundCust.city ? `City: ${foundCust.city}` : ''),
-          nokName: foundCust.nokName || '',
-          nokCnic: foundCust.nokCnic || '',
-          applicantPhotoUrl: foundCust.applicantPhotoUrl || '/media/placeholder-applicant.jpg',
-          cnicCopyUrl: foundCust.cnicCopyUrl || '/media/placeholder-cnic.jpg',
-          nokCnicCopyUrl: foundCust.nokCnicCopyUrl || '/media/placeholder-nok.jpg',
-          portalPassword: 'Password123!',
-          lockToken: undefined,
-        }));
-
-        setActiveTab('path_a');
-      }
+      // For now, if we don't have the full customer, we cannot pre-populate.
+      // This is expected to be launched from the Customers Directory where we pass more context in the future.
     }
 
     setLoading(false);
@@ -573,24 +509,8 @@ function CustomersPageContent() {
 
     // Synchronize price if Super Admin updated plot price
     if (session.role === 'super_admin' && totalPaymentA > 0 && totalPaymentA !== plot.price) {
-      const oldPrice = plot.price;
+      await updatePlotPrice(session, plot.id, totalPaymentA);
       plot.price = totalPaymentA;
-      mockStore.addAuditEntry({
-        actorId: session.adminId,
-        actorName: session.fullName,
-        actorRole: session.role,
-        action: 'PLOT_PRICE_UPDATED',
-        entityType: 'plot',
-        entityId: plot.id,
-        details: `Super Admin ${session.fullName} updated official price of Plot ${plot.plotNumber} from PKR ${oldPrice.toLocaleString()} to PKR ${totalPaymentA.toLocaleString()}`,
-        newValue: JSON.stringify({ oldPrice, newPrice: totalPaymentA }),
-      });
-      mockStore.broadcast({
-        type: 'PLOT_UPDATED',
-        timestamp: new Date().toISOString(),
-        plotId: plot.id,
-      });
-      mockStore.saveToStorage();
     }
 
     // Build installment plan config if installment type
@@ -779,24 +699,8 @@ function CustomersPageContent() {
 
     // Synchronize price if Super Admin updated plot price
     if (session.role === 'super_admin' && totalPaymentB > 0 && totalPaymentB !== plot.price) {
-      const oldPrice = plot.price;
+      await updatePlotPrice(session, plot.id, totalPaymentB);
       plot.price = totalPaymentB;
-      mockStore.addAuditEntry({
-        actorId: session.adminId,
-        actorName: session.fullName,
-        actorRole: session.role,
-        action: 'PLOT_PRICE_UPDATED',
-        entityType: 'plot',
-        entityId: plot.id,
-        details: `Super Admin ${session.fullName} updated official price of Plot ${plot.plotNumber} from PKR ${oldPrice.toLocaleString()} to PKR ${totalPaymentB.toLocaleString()}`,
-        newValue: JSON.stringify({ oldPrice, newPrice: totalPaymentB }),
-      });
-      mockStore.broadcast({
-        type: 'PLOT_UPDATED',
-        timestamp: new Date().toISOString(),
-        plotId: plot.id,
-      });
-      mockStore.saveToStorage();
     }
 
     // Build installment plan config if installment type
@@ -2415,7 +2319,6 @@ function CustomersPageContent() {
 
           {/* Previous Bookings Section (Fix 9 & Constraint 3: separate fixed fees + raw installment plan inputs) */}
           {selectedCustomer && (() => {
-            const customerBookings = mockStore.bookings.filter((b) => b.customerId === selectedCustomer.id);
             return (
               <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -2423,151 +2326,14 @@ function CustomersPageContent() {
                     <FolderOpen className="w-5 h-5 text-indigo-700" />
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 font-serif">
-                        Previous Booking Records ({customerBookings.length})
+                        Previous Booking Records ({selectedCustomer.propertiesCount})
                       </h3>
                       <p className="text-[11px] text-slate-500">
-                        Read-only application snapshot of previously allocated plots, statutory fees, and installment plans.
+                        This customer currently has {selectedCustomer.propertiesCount} active plot(s) registered under their membership.
                       </p>
                     </div>
                   </div>
                 </div>
-
-                {customerBookings.length === 0 ? (
-                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-500 text-center">
-                    No previous plot bookings recorded for this customer member yet.
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {customerBookings.map((b, idx) => {
-                      const plot = mockStore.plots.find((p) => p.id === b.plotId);
-                      const block = plot ? mockStore.blocks.find((blk) => blk.id === plot.blockId) : null;
-                      const payments = mockStore.payments.filter((p) => p.bookingId === b.id);
-                      const admissionFee = payments.find((p) => p.feeType === 'admission_fee');
-                      const shareFee = payments.find((p) => p.feeType === 'share_subscription_fee');
-                      const isInst = b.paymentType === 'installment';
-                      const plan = b.installmentPlan;
-
-                      return (
-                        <div
-                          key={b.id}
-                          className="p-4 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-white transition-all space-y-3"
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-slate-200">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="w-5 h-5 rounded-md bg-indigo-100 text-indigo-900 flex items-center justify-center font-bold text-xs">
-                                {idx + 1}
-                              </span>
-                              <strong className="text-sm text-slate-900 font-serif">
-                                Plot {plot?.plotNumber || b.plotId}
-                              </strong>
-                              <span className="text-xs px-2 py-0.5 rounded-md bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold">
-                                {block?.name || plot?.blockId?.toUpperCase()}
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                {plot?.size} • {plot?.category?.toUpperCase()}
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                                  b.status === 'active'
-                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                                    : 'bg-slate-100 text-slate-700 border-slate-300'
-                                }`}
-                              >
-                                {b.status}
-                              </span>
-                              <span className="text-[11px] text-slate-400 font-mono">
-                                Ref: {b.paperInstallmentRef || b.id}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Grid: Contract & Payment Scheme */}
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                            <div>
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Contract Price</span>
-                              <strong className="font-mono text-slate-900 text-sm">
-                                PKR {plot?.price?.toLocaleString() || '0'}
-                              </strong>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Payment Scheme</span>
-                              <strong className="text-slate-900 capitalize">
-                                {isInst ? '24-Month Installment Scheme' : 'Full Payment Settlement'}
-                              </strong>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Booking Date</span>
-                              <span className="font-mono text-slate-700">{b.bookingDate}</span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-slate-500 uppercase tracking-wider block">Application Paper Ref</span>
-                              <span className="font-mono text-slate-700">{b.paperInstallmentRef || 'None'}</span>
-                            </div>
-                          </div>
-
-                          {/* Constraint 3: Separate fixed fee lines */}
-                          <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl space-y-1.5">
-                            <div className="text-[11px] font-bold text-amber-950 uppercase tracking-wider">
-                              Statutory Society Fees (Segregated Ledger)
-                            </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                              <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-amber-200">
-                                <span className="text-slate-600">Admission Fee (One-time):</span>
-                                <strong className="font-mono text-emerald-800">
-                                  PKR {admissionFee?.amount?.toLocaleString() || '2,000'} ({admissionFee?.status?.toUpperCase() || 'PAID'})
-                                </strong>
-                              </div>
-                              <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-amber-200">
-                                <span className="text-slate-600">Share Subscription Fee:</span>
-                                <strong className="font-mono text-emerald-800">
-                                  PKR {shareFee?.amount?.toLocaleString() || '10,000'} ({shareFee?.status?.toUpperCase() || 'PAID'})
-                                </strong>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Constraint 3: Raw installment plan inputs */}
-                          {isInst && (
-                            <div className="p-3 bg-indigo-50/60 border border-indigo-200/80 rounded-xl space-y-1.5">
-                              <div className="text-[11px] font-bold text-indigo-950 uppercase tracking-wider">
-                                Configured Installment Plan Parameters
-                              </div>
-                              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                                <div className="p-2 bg-white rounded-lg border border-indigo-100">
-                                  <span className="text-[10px] text-slate-500 block">Plan Duration</span>
-                                  <strong className="text-slate-900">
-                                    {plan?.planYears || plan?.years || 2} Years
-                                  </strong>
-                                </div>
-                                <div className="p-2 bg-white rounded-lg border border-indigo-100">
-                                  <span className="text-[10px] text-slate-500 block">Payment Frequency</span>
-                                  <strong className="text-slate-900">
-                                    Every {plan?.paidAfterEveryMonths || plan?.paidAfterEvery || 1} Month(s)
-                                  </strong>
-                                </div>
-                                <div className="p-2 bg-white rounded-lg border border-indigo-100">
-                                  <span className="text-[10px] text-slate-500 block">Downpayment</span>
-                                  <strong className="font-mono text-slate-900">
-                                    PKR {plan?.downpayment?.toLocaleString() || Math.round((plot?.price || 0) * 0.2).toLocaleString()}
-                                  </strong>
-                                </div>
-                                <div className="p-2 bg-white rounded-lg border border-indigo-100">
-                                  <span className="text-[10px] text-slate-500 block">Total Installments</span>
-                                  <strong className="font-mono text-slate-900">
-                                    {plan?.numberOfInstallments || 24} Installments
-                                  </strong>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             );
           })()}

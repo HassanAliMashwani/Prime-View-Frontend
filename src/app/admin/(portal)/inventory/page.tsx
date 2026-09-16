@@ -23,7 +23,7 @@ import {
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { canAccessBlock } from '@/lib/dal/adminAuth';
 import { AdminSession, Block, Plot, PlotCategory } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
+import { getAdminMasterPlanBlocks, getAdminAllPlots } from '@/lib/dal/adminPlots';
 import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
 
 interface BlockInventoryStats {
@@ -46,62 +46,76 @@ export default function InventoryOverviewPage() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'residential' | 'commercial' | 'farm_house'>('all');
   const [search, setSearch] = useState<string>('');
 
-  const loadData = useCallback((currentSession: AdminSession) => {
-    mockStore.loadFromStorage();
+  const loadData = useCallback(async (currentSession: AdminSession) => {
     const isSuper = currentSession.role === 'super_admin';
 
-    // Accessible blocks filter
-    const visibleBlocks = mockStore.blocks.filter((b) => isSuper || canAccessBlock(currentSession, b.id));
+    try {
+      const [blocksRes, plotsRes] = await Promise.all([
+        getAdminMasterPlanBlocks(currentSession),
+        getAdminAllPlots(currentSession)
+      ]);
 
-    const stats: BlockInventoryStats[] = visibleBlocks.map((block) => {
-      const blockPlots = mockStore.plots.filter((p) => p.blockId.toLowerCase() === block.id.toLowerCase());
+      if (!blocksRes.ok || !plotsRes.ok) {
+        setLoading(false);
+        return;
+      }
 
-      const resPlots = blockPlots.filter((p) => p.category === 'residential');
-      const comPlots = blockPlots.filter((p) => p.category === 'commercial');
-      const fhPlots = blockPlots.filter((p) => p.category === 'farm_house');
-      const amenityPlots = blockPlots.filter((p) => p.category === 'amenity');
-      const adjPlots = blockPlots.filter((p) => Boolean(p.isAdjustment));
+      const visibleBlocks = blocksRes.blocks || [];
+      const allPlots = plotsRes.plots || [];
 
-      const residential = {
-        available: resPlots.filter((p) => p.status === 'available').length,
-        reserved: resPlots.filter((p) => p.status === 'reserved').length,
-        booked: resPlots.filter((p) => p.status === 'booked').length,
-        total: resPlots.length,
-      };
+      const stats: BlockInventoryStats[] = visibleBlocks.map((block) => {
+        const blockPlots = allPlots.filter((p) => p.blockId.toLowerCase() === block.id.toLowerCase());
 
-      const commercial = {
-        available: comPlots.filter((p) => p.status === 'available').length,
-        reserved: comPlots.filter((p) => p.status === 'reserved').length,
-        booked: comPlots.filter((p) => p.status === 'booked').length,
-        total: comPlots.length,
-      };
+        const resPlots = blockPlots.filter((p) => p.category === 'residential');
+        const comPlots = blockPlots.filter((p) => p.category === 'commercial');
+        const fhPlots = blockPlots.filter((p) => p.category === 'farm_house');
+        const amenityPlots = blockPlots.filter((p) => p.category === 'amenity');
+        const adjPlots = blockPlots.filter((p) => Boolean(p.isAdjustment));
 
-      const farmHouse = {
-        available: fhPlots.filter((p) => p.status === 'available').length,
-        reserved: fhPlots.filter((p) => p.status === 'reserved').length,
-        booked: fhPlots.filter((p) => p.status === 'booked').length,
-        total: fhPlots.length,
-      };
+        const residential = {
+          available: resPlots.filter((p) => p.status === 'available').length,
+          reserved: resPlots.filter((p) => p.status === 'reserved').length,
+          booked: resPlots.filter((p) => p.status === 'booked').length,
+          total: resPlots.length,
+        };
 
-      const totalSellable = residential.total + commercial.total + farmHouse.total;
-      const totalBooked = residential.booked + commercial.booked + farmHouse.booked;
-      const occupancyRate = totalSellable > 0 ? Math.round((totalBooked / totalSellable) * 100) : 0;
+        const commercial = {
+          available: comPlots.filter((p) => p.status === 'available').length,
+          reserved: comPlots.filter((p) => p.status === 'reserved').length,
+          booked: comPlots.filter((p) => p.status === 'booked').length,
+          total: comPlots.length,
+        };
 
-      return {
-        block,
-        residential,
-        commercial,
-        farmHouse,
-        amenitiesCount: amenityPlots.length,
-        adjustmentsCount: adjPlots.length,
-        totalSellable,
-        totalBooked,
-        occupancyRate,
-      };
-    });
+        const farmHouse = {
+          available: fhPlots.filter((p) => p.status === 'available').length,
+          reserved: fhPlots.filter((p) => p.status === 'reserved').length,
+          booked: fhPlots.filter((p) => p.status === 'booked').length,
+          total: fhPlots.length,
+        };
 
-    setInventoryStats(stats);
-    setLoading(false);
+        const totalSellable = residential.total + commercial.total + farmHouse.total;
+        const totalBooked = residential.booked + commercial.booked + farmHouse.booked;
+        const occupancyRate = totalSellable > 0 ? Math.round((totalBooked / totalSellable) * 100) : 0;
+
+        return {
+          block: block as unknown as Block,
+          residential,
+          commercial,
+          farmHouse,
+          amenitiesCount: amenityPlots.length,
+          adjustmentsCount: adjPlots.length,
+          totalSellable,
+          totalBooked,
+          occupancyRate,
+        };
+      });
+
+      setInventoryStats(stats);
+    } catch (err) {
+      console.error('Failed to load inventory data:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -113,22 +127,15 @@ export default function InventoryOverviewPage() {
     setSession(cur);
     loadData(cur);
 
-    // Cross-tab broadcast listener for plot status changes
-    const unsubscribe = mockStore.onBroadcast((event) => {
-      if (
-        event.type === 'PLOT_STATUS_CHANGED' ||
-        event.type === 'PLOT_BOOKED' ||
-        event.type === 'PLOT_RESERVED' ||
-        event.type === 'PLOT_ADJUSTMENT_TOGGLED'
-      ) {
-        const latestSession = getActiveAdminSession();
-        if (latestSession) {
-          loadData(latestSession);
-        }
+    // Auto-refresh inventory data every 30 seconds
+    const intervalId = setInterval(() => {
+      const latestSession = getActiveAdminSession();
+      if (latestSession) {
+        loadData(latestSession);
       }
-    });
+    }, 30000);
 
-    return () => unsubscribe();
+    return () => clearInterval(intervalId);
   }, [router, loadData]);
 
   // Totals across visible blocks

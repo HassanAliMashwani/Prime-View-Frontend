@@ -1,11 +1,9 @@
-import { mockStore } from '../mock/store';
-import { AdminSession, PlotCategory, AuditEntry } from '../mock/types';
-import { canAccessBlock } from './adminAuth';
+import { AdminSession, PlotCategory } from '../mock/types';
 
 export interface SalesReportFilters {
   datePreset?: 'today' | 'yesterday' | 'last_7_days' | 'last_30_days' | 'this_month' | 'all';
   dateFrom?: string; // YYYY-MM-DD
-  dateTo?: string;   // YYYY-MM-DD
+  dateTo?: string; // YYYY-MM-DD
   adminId?: string;
   blockId?: string;
   category?: 'all' | PlotCategory;
@@ -48,16 +46,23 @@ export interface SalesReportMetrics {
   salesByCategory: Record<string, { count: number; revenuePkr: number }>;
 }
 
-/**
- * Retrieve Sales History Report by joining Audit Log PLOT_BOOKED entries with
- * bookings, plots, and customer profiles.
- * Item 16: Zero redundant tables; 100% audit trail integrity.
- */
-import { getSalesHistory } from './salesHistory';
+const emptyMetrics: SalesReportMetrics = {
+  totalPlotsSold: 0,
+  totalRevenuePkr: 0,
+  todayPlotsSold: 0,
+  todayRevenuePkr: 0,
+  topAdmin: null,
+  salesByCategory: {},
+};
 
+/**
+ * Deferred per user requirement: sales reports module.
+ */
 export async function getSalesHistoryReport(
-  session: AdminSession,
-  filters: SalesReportFilters = {}
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _session: AdminSession,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _filters: SalesReportFilters = {}
 ): Promise<{
   ok: boolean;
   items: SalesReportItem[];
@@ -65,23 +70,11 @@ export async function getSalesHistoryReport(
   error?: string;
   message?: string;
 }> {
-  const res = await getSalesHistory(session, filters);
   return {
-    ok: res.ok,
-    items: res.items,
-    metrics: {
-      totalPlotsSold: res.kpis.totalPlotsSold,
-      totalRevenuePkr: res.kpis.totalRevenuePkr,
-      todayPlotsSold: res.kpis.todayPlotsSold,
-      todayRevenuePkr: res.kpis.todayRevenuePkr,
-      topAdmin: res.kpis.topCloser ? {
-        name: res.kpis.topCloser.name,
-        count: res.kpis.topCloser.count,
-        revenuePkr: res.kpis.topCloser.revenuePkr,
-      } : null,
-      salesByCategory: res.kpis.salesByCategory,
-    },
-    error: res.error,
-    message: res.message,
+    ok: false,
+    items: [],
+    metrics: emptyMetrics,
+    error: 'NOT_YET_IMPLEMENTED',
+    message: 'Sales reports module is deferred and not yet available on the backend.',
   };
 }

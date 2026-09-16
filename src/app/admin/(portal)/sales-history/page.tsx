@@ -32,7 +32,6 @@ import {
   SalesHistoryFilters 
 } from '@/lib/dal/salesHistory';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
 
 export default function SalesHistoryPage() {
   const router = useRouter();
@@ -93,18 +92,6 @@ export default function SalesHistoryPage() {
     }
     setSession(cur);
     loadData(cur);
-
-    // Cross-tab broadcast listener for new sales
-    const unsubscribe = mockStore.onBroadcast((event) => {
-      if (event.type === 'PLOT_BOOKED' || event.type === 'BOOKING_CREATED') {
-        const latest = getActiveAdminSession();
-        if (latest) {
-          loadData(latest);
-        }
-      }
-    });
-
-    return () => unsubscribe();
   }, [router, loadData]);
 
   // Handle Preset change

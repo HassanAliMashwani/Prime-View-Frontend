@@ -1,4 +1,3 @@
-import { mockStore } from '../mock/store';
 import { AdminSession, AdminUser } from '../mock/types';
 
 const SESSION_STORAGE_KEY = 'prime_view_admin_session';
@@ -88,16 +87,6 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       }
     }
 
-    mockStore.addAuditEntry({
-      actorId: session.adminId,
-      actorName: session.fullName,
-      actorRole: session.role,
-      action: 'ADMIN_LOGIN',
-      entityType: 'customer',
-      entityId: session.adminId,
-      details: `Admin ${session.fullName} (${session.role}) logged in successfully via API.`,
-    });
-
     return { ok: true, session };
   } catch (netErr) {
     return {
@@ -111,19 +100,6 @@ export async function adminLogin(username: string, password: string): Promise<Ad
  * Logout administrator and invalidate session
  */
 export async function adminLogout(): Promise<{ ok: boolean }> {
-  const current = getActiveAdminSession();
-  if (current) {
-    mockStore.addAuditEntry({
-      actorId: current.adminId,
-      actorName: current.fullName,
-      actorRole: current.role,
-      action: 'ADMIN_LOGOUT',
-      entityType: 'customer',
-      entityId: current.adminId,
-      details: `Admin ${current.fullName} logged out.`,
-    });
-  }
-
   if (typeof window !== 'undefined') {
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);

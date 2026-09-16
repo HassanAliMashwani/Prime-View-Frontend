@@ -1,7 +1,6 @@
-import { mockStore } from '../mock/store';
 import { AdminSession, Reservation, ReservationStatus, Booking, Plot } from '../mock/types';
 import { canAccessBlock } from './adminAuth';
-import { bookPlot } from './adminPlots';
+import { apiGet, apiPost, apiPatch } from '../api';
 
 export interface ReservationWithConflict extends Reservation {
   hasDuplicateConflict: boolean;
@@ -11,6 +10,7 @@ export interface ReservationWithConflict extends Reservation {
 
 /**
  * Retrieve reservations filtered by administrative block access.
+ * Extracted from real backend GET /plots (which includes reservations: true on every plot).
  * Automatically identifies and flags duplicate/race-condition reservations on the same plot.
  */
 export async function getReservations(
@@ -25,10 +25,53 @@ export async function getReservations(
   reservations: ReservationWithConflict[];
   error?: string;
 }> {
-  mockStore.loadFromStorage();
+  const plotsRes = await apiGet<any[]>('/plots', session.token);
+
+  if (!plotsRes.ok || !Array.isArray(plotsRes.data)) {
+    return {
+      ok: false,
+      reservations: [],
+      error: plotsRes.error || 'FETCH_PLOTS_FAILED',
+    };
+  }
+
+  // Flatten all reservations from plots
+  const rawReservations: (Reservation & { plot: Plot })[] = [];
+  const plotMap = new Map<string, Plot>();
+
+  for (const plot of plotsRes.data) {
+    plotMap.set(plot.id, plot);
+    if (plot.reservations && Array.isArray(plot.reservations)) {
+      for (const r of plot.reservations) {
+        rawReservations.push({
+          id: r.id,
+          plotId: r.plotId || plot.id,
+          plotNumber: plot.plotNumber || 'Unknown',
+          blockId: plot.blockId || '',
+          customerName: r.customerName || '',
+          customerPhone: r.customerPhone || '',
+          customerEmail: r.customerEmail || undefined,
+          tokenFee: Number(r.tokenFee) || 50000,
+          validUntil: r.validUntil || new Date(Date.now() + 7 * 86400000).toISOString(),
+          reservedByAdminId: r.reservedByAdminId || '',
+          reservedByAdminName: r.reservedByAdminName || 'Admin Officer',
+          status: (r.status || 'active') as ReservationStatus,
+          createdAt: r.createdAt || new Date().toISOString(),
+          confirmedAt: r.confirmedAt || undefined,
+          confirmedByBookingId: r.confirmedByBookingId || undefined,
+          supersededAt: r.supersededAt || undefined,
+          supersededByBookingId: r.supersededByBookingId || undefined,
+          cancelledAt: r.cancelledAt || undefined,
+          cancelledByAdminId: r.cancelledByAdminId || undefined,
+          resolutionNote: r.resolutionNote || undefined,
+          plot,
+        });
+      }
+    }
+  }
 
   // 1. Filter by block accessibility (Exception 5.4)
-  let accessible = mockStore.reservations.filter((r) =>
+  let accessible = rawReservations.filter((r) =>
     canAccessBlock(session, r.blockId)
   );
 
@@ -56,21 +99,19 @@ export async function getReservations(
         r.plotNumber.toLowerCase().includes(s) ||
         r.customerName.toLowerCase().includes(s) ||
         r.customerPhone.toLowerCase().includes(s) ||
-        r.customerEmail.toLowerCase().includes(s) ||
+        (r.customerEmail && r.customerEmail.toLowerCase().includes(s)) ||
         r.reservedByAdminName.toLowerCase().includes(s)
     );
   }
 
   // 4. Attach conflict indicators & live plot details
-  const plotMap = new Map(mockStore.plots.map((p) => [p.id, p]));
   const results: ReservationWithConflict[] = accessible.map((r) => {
     const conflictCount = r.status === 'active' ? activePlotCounts.get(r.plotId) || 0 : 0;
-    const plot = plotMap.get(r.plotId);
     return {
       ...r,
       hasDuplicateConflict: conflictCount > 1,
       conflictCount,
-      plot,
+      plot: r.plot,
     };
   });
 
@@ -79,106 +120,47 @@ export async function getReservations(
 
 /**
  * Update the dispute/resolution note on an active or superseded reservation.
+ * Calls PATCH /reservations/:id/note.
  */
 export async function updateReservationNote(
   session: AdminSession,
   reservationId: string,
   note: string
 ): Promise<{ ok: boolean; reservation?: Reservation; error?: string }> {
-  mockStore.loadFromStorage();
-  const reservation = mockStore.reservations.find((r) => r.id === reservationId);
-  if (!reservation) return { ok: false, error: 'RESERVATION_NOT_FOUND' };
+  const res = await apiPatch<any>(
+    `/reservations/${reservationId}/note`,
+    { note: note.trim() },
+    session.token
+  );
 
-  if (!canAccessBlock(session, reservation.blockId)) {
-    return { ok: false, error: 'OUT_OF_SCOPE' };
+  if (!res.ok) {
+    return { ok: false, error: res.error || 'UPDATE_FAILED' };
   }
 
-  reservation.resolutionNote = note.trim();
-
-  mockStore.broadcast({
-    type: 'RESERVATION_UPDATED',
-    timestamp: new Date().toISOString(),
-    reservationId,
-  });
-
-  mockStore.addAuditEntry({
-    actorId: session.adminId,
-    actorName: session.fullName,
-    actorRole: session.role,
-    action: 'RESERVATION_NOTE_UPDATED',
-    entityType: 'reservation',
-    entityId: reservationId,
-    details: `Updated resolution note for plot ${reservation.plotNumber}: "${note.trim()}"`,
-  });
-
+  const reservation = res.data?.updatedReservation || res.data;
   return { ok: true, reservation };
 }
 
 /**
  * Release / cancel an active reservation back to society inventory.
- * Enforces ownership: only the original reserving admin or Super Admin can release an active reservation.
+ * Calls POST /reservations/:id/release.
  */
 export async function releaseReservation(
   session: AdminSession,
   reservationId: string,
   reason?: string
 ): Promise<{ ok: boolean; reservation?: Reservation; error?: string }> {
-  mockStore.loadFromStorage();
-  const reservation = mockStore.reservations.find((r) => r.id === reservationId);
-  if (!reservation) return { ok: false, error: 'RESERVATION_NOT_FOUND' };
-
-  if (!canAccessBlock(session, reservation.blockId)) {
-    return { ok: false, error: 'OUT_OF_SCOPE' };
-  }
-
-  // Ownership check: only original reserving admin or Super Admin override can release
-  const isOwner = reservation.reservedByAdminId === session.adminId;
-  const isSuperAdmin = session.role === 'super_admin';
-
-  if (!isOwner && !isSuperAdmin) {
-    return { ok: false, error: 'NOT_RESERVATION_OWNER' };
-  }
-
-  reservation.status = 'cancelled';
-  reservation.cancelledAt = new Date().toISOString();
-  reservation.cancelledByAdminId = session.adminId;
-
-  if (reason) {
-    reservation.resolutionNote = (reservation.resolutionNote ? reservation.resolutionNote + ' | ' : '') + reason;
-  }
-
-  // Check if any other active reservation exists for this plot
-  const otherActive = mockStore.reservations.some(
-    (r) => r.plotId === reservation.plotId && r.status === 'active' && r.id !== reservationId
+  const res = await apiPost<any>(
+    `/reservations/${reservationId}/release`,
+    { reason },
+    session.token
   );
 
-  const plot = mockStore.plots.find((p) => p.id === reservation.plotId);
-  if (plot && !otherActive && plot.status === 'reserved') {
-    plot.status = 'available';
+  if (!res.ok) {
+    return { ok: false, error: res.error || 'RELEASE_FAILED' };
   }
 
-  const isOverride = !isOwner && isSuperAdmin;
-  const auditDetails = isOverride
-    ? `Super Admin ${session.fullName} overrode and released reservation ${reservation.id} (originally reserved by ${reservation.reservedByAdminName}) on plot ${reservation.plotNumber}.${reason ? ` (${reason})` : ''}`
-    : `Admin ${session.fullName} released reservation ${reservation.id} on plot ${reservation.plotNumber}.${reason ? ` (${reason})` : ''}`;
-
-  mockStore.addAuditEntry({
-    actorId: session.adminId,
-    actorName: session.fullName,
-    actorRole: session.role,
-    action: 'RESERVATION_RELEASED',
-    entityType: 'reservation',
-    entityId: reservationId,
-    details: auditDetails,
-  });
-
-  mockStore.broadcast({
-    type: 'RESERVATION_UPDATED',
-    timestamp: new Date().toISOString(),
-    reservationId,
-    plotId: reservation.plotId,
-  });
-
+  const reservation = res.data?.updatedReservation || res.data;
   return { ok: true, reservation };
 }
 
@@ -186,46 +168,23 @@ export const cancelReservation = releaseReservation;
 
 /**
  * Confirm an active reservation into an official plot booking.
- * Automatically supersedes any competing active reservations on the same plot and records audit logs.
+ * Calls POST /reservations/:id/confirm.
  */
 export async function confirmReservation(
   session: AdminSession,
   reservationId: string,
   paymentType: 'one_time' | 'installment' = 'one_time'
 ): Promise<{ ok: boolean; booking?: Booking; error?: string }> {
-  mockStore.loadFromStorage();
-  const reservation = mockStore.reservations.find((r) => r.id === reservationId);
-  if (!reservation) return { ok: false, error: 'RESERVATION_NOT_FOUND' };
-
-  if (!canAccessBlock(session, reservation.blockId)) {
-    return { ok: false, error: 'OUT_OF_SCOPE' };
-  }
-
-  const res = await bookPlot(session, {
-    plotId: reservation.plotId,
-    reservationId: reservation.id,
-    paymentType,
-    customer: {
-      fullName: reservation.customerName,
-      phone: reservation.customerPhone,
-      email: reservation.customerEmail,
-    },
-  });
+  const res = await apiPost<any>(
+    `/reservations/${reservationId}/confirm`,
+    { paymentType },
+    session.token
+  );
 
   if (!res.ok) {
-    return { ok: false, error: res.error };
+    return { ok: false, error: res.error || 'CONFIRM_FAILED' };
   }
 
-  mockStore.addAuditEntry({
-    actorId: session.adminId,
-    actorName: session.fullName,
-    actorRole: session.role,
-    action: 'RESERVATION_CONFIRMED',
-    entityType: 'reservation',
-    entityId: reservation.id,
-    details: `Confirmed reservation ${reservation.id} for ${reservation.customerName} on plot ${reservation.plotNumber} into booking ${res.booking?.id}`,
-  });
-
-  return { ok: true, booking: res.booking };
+  const booking = res.data?.booking || res.data;
+  return { ok: true, booking };
 }
-

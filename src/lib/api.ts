@@ -3,7 +3,8 @@
  * Phase 1 read-side swap — Doc 09 §6.
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001';
+import { API_BASE_URL } from './apiBase';
+export { API_BASE_URL };
 
 const ADMIN_SESSION_KEY = 'prime_view_admin_session';
 const MEMBER_SESSION_KEY = 'prime_view_member_session';
@@ -59,35 +60,117 @@ export function getMemberToken(): string | null {
 /**
  * Build a standard Authorization header object from a token.
  */
-export function authHeader(token: string): Record<string, string> {
+export function authHeader(token?: string): Record<string, string> {
+  if (!token) return {};
   return { Authorization: `Bearer ${token}` };
 }
 
+export interface ApiResponse<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+  status?: number;
+}
+
 /**
- * Generic API GET helper. Returns { ok, data } or { ok: false, error }.
+ * Generic API GET helper.
  */
-export async function apiGet<T>(
-  path: string,
-  token: string
-): Promise<{ ok: true; data: T } | { ok: false; error: string; status?: number }> {
+export async function apiGet<T>(path: string, token?: string): Promise<ApiResponse<T>> {
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       headers: { 'Content-Type': 'application/json', ...authHeader(token) },
     });
-    if (res.status === 401) return { ok: false, error: 'UNAUTHORIZED', status: 401 };
-    if (res.status === 403) {
-      const body = await res.json().catch(() => ({}));
-      return { ok: false, error: body?.reason ?? 'FORBIDDEN', status: 403 };
-    }
-    if (res.status === 404) return { ok: false, error: 'NOT_FOUND', status: 404 };
+    const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const body = await res.text();
-      return { ok: false, error: body || `HTTP_${res.status}`, status: res.status };
+      return {
+        ok: false,
+        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
+        message: body?.message || body?.error,
+        status: res.status,
+      };
     }
-    const data: T = await res.json();
-    return { ok: true, data };
+    return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
-    return { ok: false, error: msg };
+    return { ok: false, error: msg, message: msg };
   }
 }
+
+/**
+ * Generic API POST helper.
+ */
+export async function apiPost<T>(path: string, bodyData: any, token?: string): Promise<ApiResponse<T>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader(token) },
+      body: JSON.stringify(bodyData),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
+        message: body?.message || body?.error,
+        status: res.status,
+      };
+    }
+    return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
+    return { ok: false, error: msg, message: msg };
+  }
+}
+
+/**
+ * Generic API PATCH helper.
+ */
+export async function apiPatch<T>(path: string, bodyData: any, token?: string): Promise<ApiResponse<T>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeader(token) },
+      body: JSON.stringify(bodyData),
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
+        message: body?.message || body?.error,
+        status: res.status,
+      };
+    }
+    return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
+    return { ok: false, error: msg, message: msg };
+  }
+}
+
+/**
+ * Generic API DELETE helper.
+ */
+export async function apiDelete<T = any>(path: string, token?: string): Promise<ApiResponse<T>> {
+  try {
+    const res = await fetch(`${API_BASE_URL}${path}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeader(token) },
+    });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
+        message: body?.message || body?.error,
+        status: res.status,
+      };
+    }
+    return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
+    return { ok: false, error: msg, message: msg };
+  }
+}
+

@@ -19,7 +19,7 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
 import { getReservations, ReservationWithConflict } from '@/lib/dal/reservations';
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
-import { mockStore } from '@/lib/mock/store';
+import { getAuditLogs } from '@/lib/dal/audit';
 import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
 import { getBlockTheme } from '@/lib/map/regionData';
 
@@ -32,15 +32,15 @@ export default function AdminDashboardPage() {
 
   const loadData = useCallback(async (activeSession: AdminSession) => {
     try {
-      mockStore.loadFromStorage();
-      const [blockRes, resRes] = await Promise.all([
+      const [blockRes, resRes, auditRes] = await Promise.all([
         getAdminMasterPlanBlocks(activeSession),
         getReservations(activeSession),
+        getAuditLogs(activeSession)
       ]);
 
       if (blockRes.ok) setBlocks(blockRes.blocks);
       if (resRes.ok) setReservations(resRes.reservations);
-      setAuditLog(mockStore.auditLog.slice(0, 8));
+      if (auditRes.ok && auditRes.logs) setAuditLog(auditRes.logs.slice(0, 8));
     } catch (err) {
       console.error('Failed loading dashboard data:', err);
     } finally {
@@ -56,39 +56,16 @@ export default function AdminDashboardPage() {
     }
   }, [loadData]);
 
-  // Real-time multi-window sync (Exception 5.5)
+  // Real-time sync via interval
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleSync = () => {
-      mockStore.loadFromStorage();
+    const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s) {
         loadData(s);
       }
-    };
+    }, 30000);
 
-    let channel: BroadcastChannel | null = null;
-    if ('BroadcastChannel' in window) {
-      try {
-        channel = new BroadcastChannel('prime-view-sync');
-        channel.onmessage = handleSync;
-      } catch (e) {
-        console.warn('BroadcastChannel failed to initialize on dashboard:', e);
-      }
-    }
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'pv_mock_store') {
-        handleSync();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      if (channel) channel.close();
-      window.removeEventListener('storage', handleStorage);
-    };
+    return () => clearInterval(intervalId);
   }, [loadData]);
 
   if (loading || !session) {

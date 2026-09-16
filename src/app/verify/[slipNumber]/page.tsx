@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { mockStore } from '@/lib/mock/store';
-import { ReceiptSubmission } from '@/lib/mock/types';
+import { verifySlipPublic } from '@/lib/dal/receipts';
+import { ReceiptStatus } from '@/lib/mock/types';
 import {
   ShieldCheck,
   ShieldAlert,
@@ -16,6 +16,8 @@ import {
   Award,
   ArrowLeft,
   ExternalLink,
+  User,
+  CreditCard,
 } from 'lucide-react';
 
 export default function VerifySlipPage() {
@@ -24,20 +26,28 @@ export default function VerifySlipPage() {
   const slipNumber = decodeURIComponent(rawSlipNumber).trim();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [submission, setSubmission] = useState<ReceiptSubmission | null>(null);
+  const [submission, setSubmission] = useState<{
+    exists: boolean;
+    status: ReceiptStatus | 'not_found';
+    amount?: number;
+    paymentDate?: string;
+    customerContext?: string;
+  } | null>(null);
 
   useEffect(() => {
-    mockStore.loadFromStorage();
-
-    // Look up by slip number (case-insensitive)
-    const match = mockStore.receiptSubmissions.find(
-      (r) =>
-        r.slip?.slipNumber?.toLowerCase() === slipNumber.toLowerCase() ||
-        r.id?.toLowerCase() === slipNumber.toLowerCase()
-    );
-
-    setSubmission(match || null);
-    setIsLoading(false);
+    async function fetchVerify() {
+      setIsLoading(true);
+      try {
+        const data = await verifySlipPublic(slipNumber);
+        setSubmission(data);
+      } catch (err) {
+        console.error('Error verifying slip:', err);
+        setSubmission({ exists: false, status: 'not_found' });
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    fetchVerify();
   }, [slipNumber]);
 
   return (
@@ -85,7 +95,7 @@ export default function VerifySlipPage() {
             <div className="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-slate-400 text-sm">Consulting Society Verification Ledger...</p>
           </div>
-        ) : submission && submission.status === 'verified' && submission.slip ? (
+        ) : submission && submission.exists && submission.status === 'verified' ? (
           /* Genuine & Verified Record */
           <div className="bg-slate-950/90 border border-emerald-500/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl shadow-emerald-950/40 animate-in fade-in zoom-in-95 duration-200">
             {/* Top Verification Ribbon */}
@@ -108,7 +118,7 @@ export default function VerifySlipPage() {
             </div>
 
             <div className="p-6 md:p-8 space-y-6">
-              {/* Slip & Security Seal details */}
+              {/* Slip details */}
               <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
@@ -116,45 +126,57 @@ export default function VerifySlipPage() {
                     Verified Slip Number
                   </span>
                   <span className="font-mono font-bold text-white text-sm tracking-wider">
-                    {submission.slip.slipNumber}
+                    {slipNumber}
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-emerald-400" />
-                    Verification Timestamp
-                  </span>
-                  <span className="font-mono text-xs text-slate-200">
-                    {new Date(submission.verifiedAt || submission.slip.generatedAt).toLocaleDateString(
-                      'en-PK',
-                      {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      }
-                    )}
-                  </span>
-                </div>
-
-                <div className="space-y-1.5">
-                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                    <Award className="w-4 h-4 text-emerald-400" />
-                    Cryptographic Security Hash
-                  </span>
-                  <div className="bg-slate-950 border border-slate-800/80 rounded-lg p-2.5 text-center font-mono text-[11px] text-emerald-300 tracking-wider break-all select-all">
-                    {submission.slip.securityHash}
+                {submission.customerContext && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-emerald-400" />
+                      Depositor
+                    </span>
+                    <span className="font-semibold text-sm text-slate-200">
+                      {submission.customerContext}
+                    </span>
                   </div>
-                </div>
+                )}
+
+                {submission.amount && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-emerald-400" />
+                      Amount
+                    </span>
+                    <span className="font-mono font-bold text-sm text-emerald-300">
+                      PKR {Number(submission.amount).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+
+                {submission.paymentDate && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-emerald-400" />
+                      Payment Date
+                    </span>
+                    <span className="font-mono text-xs text-slate-200">
+                      {new Date(submission.paymentDate).toLocaleDateString(
+                        'en-PK',
+                        {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        }
+                      )}
+                    </span>
+                  </div>
+                )}
 
                 <div className="pt-2 text-[11px] text-slate-400 flex items-center justify-between">
                   <span>Clearing Authority:</span>
                   <span className="font-semibold text-slate-300">
-                    {submission.verifiedByAdminName
-                      ? `Finance Directorate (${submission.verifiedByAdminName})`
-                      : 'Society Secretariat & Finance Desk'}
+                    Society Secretariat & Finance Desk
                   </span>
                 </div>
               </div>
@@ -166,9 +188,8 @@ export default function VerifySlipPage() {
                   <p className="font-semibold text-blue-300">Privacy & Financial Data Protection</p>
                   <p className="text-[11px] leading-relaxed text-blue-200/80">
                     In compliance with member privacy standards, individual customer identities, plot
-                    allotment numbers, and transaction amounts are not displayed on this public
-                    registry. Genuine printed slips must match the security hash and official society
-                    embossed seal.
+                    allotment numbers, and full transaction details are masked or not displayed on this public
+                    registry.
                   </p>
                 </div>
               </div>
@@ -203,7 +224,7 @@ export default function VerifySlipPage() {
                     Security Advisory
                   </span>
                   <h1 className="text-base font-bold tracking-tight">
-                    {submission ? 'Unverified / Pending Clearance' : 'Unrecognized Slip Number'}
+                    {submission && submission.exists && submission.status !== 'verified' ? 'Unverified / Pending Clearance' : 'Unrecognized Slip Number'}
                   </h1>
                 </div>
               </div>
@@ -215,8 +236,8 @@ export default function VerifySlipPage() {
                   Requested Reference: <span className="font-mono font-bold text-amber-300">{slipNumber || 'N/A'}</span>
                 </p>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                  {submission
-                    ? 'This payment submission is currently under review by the Finance Directorate and has not yet been certified with an official clearance slip.'
+                  {submission && submission.exists && submission.status !== 'verified'
+                    ? `This payment submission is currently marked as "${submission.status}". It has not yet been certified with an official clearance slip.`
                     : 'This slip number does not match any certified receipt in the Prime View Housing Society registry. Physical slips with unrecognized reference numbers may be invalid.'}
                 </p>
               </div>

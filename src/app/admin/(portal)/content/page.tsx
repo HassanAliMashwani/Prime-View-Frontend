@@ -37,7 +37,6 @@ import {
   createContentBlock,
   deleteContentBlock,
 } from '@/lib/dal/content';
-import { mockStore } from '@/lib/mock/store';
 
 export default function ContentCMSPage() {
   const router = useRouter();
@@ -100,23 +99,15 @@ export default function ContentCMSPage() {
     setSession(cur);
     loadData(cur, activeSection);
 
-    // Cross-tab broadcast listener for real-time lock and content updates
-    const unsubscribe = mockStore.onBroadcast((event) => {
-      if (
-        event.type === 'CONTENT_LOCKED' ||
-        event.type === 'CONTENT_UNLOCKED' ||
-        event.type === 'CONTENT_SAVED' ||
-        event.type === 'CONTENT_CREATED' ||
-        event.type === 'CONTENT_DELETED'
-      ) {
-        const latestSession = getActiveAdminSession();
-        if (latestSession) {
-          loadData(latestSession, activeSection);
-        }
+    // Auto-refresh content list every 30 seconds to catch lock changes
+    const intervalId = setInterval(() => {
+      const latestSession = getActiveAdminSession();
+      if (latestSession) {
+        loadData(latestSession, activeSection);
       }
-    });
+    }, 30000);
 
-    return () => unsubscribe();
+    return () => clearInterval(intervalId);
   }, [router, activeSection, loadData]);
 
   // Flash feedback timer

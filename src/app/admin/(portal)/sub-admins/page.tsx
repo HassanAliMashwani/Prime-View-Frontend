@@ -23,7 +23,7 @@ import {
 import { AdminSession, AdminUser, BlockId } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getSubAdmins, createSubAdmin, updateSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
-import { mockStore } from '@/lib/mock/store';
+
 
 const ALL_BLOCKS: { id: BlockId; name: string }[] = [
   { id: 'abbott', name: 'Abbott Block' },
@@ -103,18 +103,14 @@ export default function SubAdminsPage() {
     setSession(cur);
     loadData(cur);
 
-    // Cross-tab broadcast listener
-    const unsubscribe = mockStore.onBroadcast((event) => {
-      if (event.type === 'SUB_ADMIN_CREATED' || event.type === 'SUB_ADMIN_UPDATED') {
-        const latestSession = getActiveAdminSession();
-        if (latestSession && latestSession.role === 'super_admin') {
-          loadData(latestSession);
-        }
-      }
-    });
+    // Auto-refresh via polling
+    const intervalId = setInterval(() => {
+      const s = getActiveAdminSession();
+      if (s) loadData(s);
+    }, 30000);
 
-    return () => unsubscribe();
-  }, [router, loadData]);
+    return () => clearInterval(intervalId);
+  }, [loadData]);
 
   // Flash feedback timer
   useEffect(() => {

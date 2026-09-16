@@ -35,6 +35,13 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
       if (profile) {
         const res = await acceptTermsAndConditions(profile.id);
         if (res.ok) {
+          useMemberStore.setState((state) => ({
+            ...state,
+            profile: state.profile
+              ? { ...state.profile, termsAccepted: true, termsAcceptedAt: new Date().toISOString() }
+              : null,
+            termsModalOpen: false,
+          }));
           await fetchProfile();
           closeTermsModal();
         } else {

@@ -22,7 +22,6 @@ import {
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
-import { mockStore } from '@/lib/mock/store';
 
 const ACTION_COLORS: Record<string, string> = {
   PLOT_BOOKED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
@@ -97,18 +96,19 @@ export default function AuditLogPage() {
       }
     };
 
-    const unsubscribe = mockStore.onBroadcast(handleSync);
-
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'pv_mock_store') {
+      if (e.key === 'pv_auth_session') {
         handleSync();
       }
     };
     window.addEventListener('storage', handleStorage);
 
+    // Auto refresh every 30 seconds
+    const intervalId = setInterval(handleSync, 30000);
+
     return () => {
-      unsubscribe();
       window.removeEventListener('storage', handleStorage);
+      clearInterval(intervalId);
     };
   }, [router, loadData]);
 

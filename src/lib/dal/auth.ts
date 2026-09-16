@@ -1,4 +1,3 @@
-import { mockStore } from '../mock/store';
 import { MemberSession } from '../mock/types';
 
 const SESSION_STORAGE_KEY = 'prime_view_member_session';
@@ -88,16 +87,6 @@ export async function login(identifier: string, password: string): Promise<Login
       }
     }
 
-    mockStore.addAuditEntry({
-      actorId: session.customerId,
-      actorName: session.fullName,
-      actorRole: 'customer',
-      action: 'MEMBER_LOGIN',
-      entityType: 'customer',
-      entityId: session.customerId,
-      details: `Member ${session.fullName} (${session.customerId}) logged in successfully via API.`,
-    });
-
     return { ok: true, session };
   } catch (err) {
     return {
@@ -111,19 +100,6 @@ export async function login(identifier: string, password: string): Promise<Login
  * Logout member and purge session
  */
 export async function logout(): Promise<void> {
-  const current = getActiveSession();
-  if (current) {
-    mockStore.addAuditEntry({
-      actorId: current.customerId,
-      actorName: current.fullName,
-      actorRole: 'customer',
-      action: 'MEMBER_LOGOUT',
-      entityType: 'customer',
-      entityId: current.customerId,
-      details: `Member ${current.fullName} logged out`,
-    });
-  }
-
   if (typeof window !== 'undefined') {
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
