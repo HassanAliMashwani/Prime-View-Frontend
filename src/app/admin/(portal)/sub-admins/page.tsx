@@ -71,6 +71,7 @@ export default function SubAdminsPage() {
       can_create_customer: false,
       can_edit_content: false,
       can_verify_receipts: false,
+      can_view_sales_history: false,
     },
   });
   const [createSubmitting, setCreateSubmitting] = useState(false);
@@ -160,6 +161,7 @@ export default function SubAdminsPage() {
         can_verify_receipts: false,
         can_view_customers: false,
         can_view_sales_reports: false,
+        can_view_sales_history: false,
       },
     });
     loadData(session);
@@ -418,6 +420,16 @@ export default function SubAdminsPage() {
                           )}
                           <span className={admin.permissions.can_verify_receipts ? 'text-slate-800' : 'text-slate-400'}>
                             Receipt Verification Authority
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {admin.permissions.can_view_sales_history ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <X className="w-3.5 h-3.5 text-slate-300" />
+                          )}
+                          <span className={admin.permissions.can_view_sales_history ? 'text-slate-800' : 'text-slate-400'}>
+                            Sales History Access
                           </span>
                         </div>
                       </div>
@@ -731,6 +743,19 @@ export default function SubAdminsPage() {
                       }
                       className="rounded text-emerald-600 focus:ring-emerald-500"
                     />
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700 font-medium">View Sales History</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(createForm.permissions.can_view_sales_history)}
+                      onChange={(e) =>
+                        setCreateForm({
+                          ...createForm,
+                          permissions: { ...createForm.permissions, can_view_sales_history: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600 focus:ring-emerald-500"
+                    />
                   </label>
                 </div>
               </div>
@@ -958,6 +983,19 @@ export default function SubAdminsPage() {
                         setEditForm({
                           ...editForm,
                           permissions: { ...editForm.permissions, can_view_sales_reports: e.target.checked },
+                        })
+                      }
+                      className="rounded text-emerald-600"
+                    />
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <span className="text-slate-700">View Sales History</span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(editForm.permissions?.can_view_sales_history)}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          permissions: { ...editForm.permissions, can_view_sales_history: e.target.checked },
                         })
                       }
                       className="rounded text-emerald-600"

@@ -1,4 +1,5 @@
 import { AdminSession, PlotCategory } from '../mock/types';
+import { API_BASE_URL } from '../api';
 
 export interface SalesHistoryFilters {
   datePreset?: 'today' | 'yesterday' | 'last_7_days' | 'last_30_days' | 'this_month' | 'all';
@@ -64,42 +65,60 @@ const emptyKpis: SalesHistoryKpis = {
   salesByCategory: {},
 };
 
-/**
- * Deferred per user requirement: sales history reporting.
- */
 export async function getSalesHistory(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _session: AdminSession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _filters: SalesHistoryFilters = {}
+  session: AdminSession,
+  filters: SalesHistoryFilters = {}
 ): Promise<SalesHistoryResult> {
-  return {
-    ok: false,
-    items: [],
-    kpis: emptyKpis,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Sales history reporting is deferred and not yet available on the backend.',
-  };
-}
+  try {
+    const params = new URLSearchParams();
+    if (filters.datePreset) params.append('datePreset', filters.datePreset);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.adminId) params.append('adminId', filters.adminId);
+    if (filters.blockId) params.append('blockId', filters.blockId);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.paymentType) params.append('paymentType', filters.paymentType);
+    if (filters.search) params.append('search', filters.search);
 
-/**
- * Deferred per user requirement: sales KPIs reporting.
- */
-export async function getSalesKpis(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _session: AdminSession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _filters: SalesHistoryFilters = {}
-): Promise<{
-  ok: boolean;
-  kpis: SalesHistoryKpis;
-  error?: string;
-  message?: string;
-}> {
-  return {
-    ok: false,
-    kpis: emptyKpis,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Sales KPIs reporting is deferred and not yet available on the backend.',
-  };
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/sales/history${queryString ? '?' + queryString : ''}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.token}`,
+      },
+    });
+
+    if (!res.ok) {
+      if (res.status === 403) {
+        return {
+          ok: false,
+          items: [],
+          kpis: emptyKpis,
+          error: 'FORBIDDEN_SALES_HISTORY_ACCESS',
+          message: 'You do not have permission to view sales history.',
+        };
+      }
+      return {
+        ok: false,
+        items: [],
+        kpis: emptyKpis,
+        error: 'FETCH_ERROR',
+        message: 'Failed to fetch sales history.',
+      };
+    }
+
+    const data = await res.json();
+    return data;
+  } catch (error: any) {
+    return {
+      ok: false,
+      items: [],
+      kpis: emptyKpis,
+      error: 'NETWORK_ERROR',
+      message: error.message || 'A network error occurred.',
+    };
+  }
 }
