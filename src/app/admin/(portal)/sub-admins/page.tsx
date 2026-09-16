@@ -743,6 +743,7 @@ export default function SubAdminsPage() {
                       }
                       className="rounded text-emerald-600 focus:ring-emerald-500"
                     />
+                  </label>
                   <label className="flex items-center justify-between cursor-pointer">
                     <span className="text-slate-700 font-medium">View Sales History</span>
                     <input
@@ -987,6 +988,7 @@ export default function SubAdminsPage() {
                       }
                       className="rounded text-emerald-600"
                     />
+                  </label>
                   <label className="flex items-center justify-between cursor-pointer">
                     <span className="text-slate-700">View Sales History</span>
                     <input
