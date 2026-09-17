@@ -98,7 +98,7 @@ export default function StyleguidePage() {
                 Interface Subtitle &amp; Body (Plus Jakarta Sans)
               </span>
               <p className="text-sm font-sans text-charcoal/85 leading-relaxed max-w-2xl">
-                Get Your Dream House Today in Abbottabad. Prime View Co-Operative Housing Society Ltd Hazara Division offers registered residential and commercial plots with 24/7 security and underground utilities.
+                Get Your Dream House Today in Abbottabad. PrimeView Cooperative Housing Society Abt offers registered residential and commercial plots with 24/7 security and underground utilities.
               </p>
             </div>
           </div>

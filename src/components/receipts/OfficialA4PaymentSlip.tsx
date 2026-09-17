@@ -154,10 +154,10 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                       </span>
                     </div>
                     <p className="text-[11px] text-[#6B7462] mt-0.5">
-                      Registered Society KPK &bull; Hazara Division Approved &bull; Reg No. PV/KPK/2021-09
+                      Registered Society KPK &bull; PrimeView Cooperative Housing Society Abt &bull; Reg No. PV/KPK/2021-09
                     </p>
                     <p className="text-[10px] text-[#6B7462]">
-                      Central Secretariat: Main Boulevard, Abbottabad Road, Hazara Division, KPK
+                      Central Secretariat: Main Boulevard, Abbottabad Road, KPK
                     </p>
                   </div>
 
@@ -284,7 +284,7 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                   </span>
                 </div>
                 <p className="text-xs text-[#6B7462]">
-                  Registered Society KPK &bull; Hazara Division &bull; Co-operative Societies Act 1925
+                  Registered Society KPK &bull; PrimeView Cooperative Housing Society Abt &bull; Co-operative Societies Act 1925
                 </p>
                 <p className="text-[11px] text-[#43612B] font-semibold">
                   Official Verified Payment Receipt &bull; Customer Retained Record

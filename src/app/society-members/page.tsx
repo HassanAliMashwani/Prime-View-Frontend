@@ -96,7 +96,7 @@ export default function SocietyMembersPage() {
         {/* Bylaws Regulatory Footer Box */}
         <div className="bg-[#FAF9F7] rounded-2xl border border-black/[0.06] p-5 text-xs text-[#6B7462] space-y-1">
           <p className="font-bold text-[#151914] font-sans uppercase tracking-wider text-[11px]">
-            Co-Operative Housing Society Ltd Hazara Division
+            PrimeView Cooperative Housing Society Abt
           </p>
           <p className="leading-relaxed">
             Membership applications and file allotment transfers are processed strictly according to the Co-operative Societies Act 1925 (Amended 2020) &amp; Co-operative Societies Rules 1927.

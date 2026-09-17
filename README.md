@@ -1,6 +1,6 @@
 # Prime View Abbottabad - Official Web Application
 
-Modern web platform for **Prime View Co-Operative Housing Society Ltd Hazara Division**, located in Abbottabad, Khyber Pakhtunkhwa.
+Modern web platform for **PrimeView Cooperative Housing Society Abt**, located in Abbottabad, Khyber Pakhtunkhwa.
 
 Built with **Next.js 15 (App Router)**, **TypeScript**, and **Tailwind CSS**.
 
@@ -67,4 +67,4 @@ npm run start
 
 ## 📄 License
 
-Proprietary © Prime View Co-Operative Housing Society Ltd Hazara Division. All rights reserved.
+Proprietary © PrimeView Cooperative Housing Society Abt. All rights reserved.

@@ -36,7 +36,7 @@ export const AboutTrustStrip: React.FC = () => {
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
               </div>
               <span className="text-xs sm:text-sm text-charcoal font-medium">
-                Hazara Division Approved Final Master Plan
+                PrimeView Cooperative Housing Society Abt Approved Final Master Plan
               </span>
             </div>
 

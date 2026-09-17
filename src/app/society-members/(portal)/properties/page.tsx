@@ -35,7 +35,7 @@ export default function PropertiesPage() {
           <div className="flex items-center gap-2">
             <span className="px-3 py-1.5 rounded-full bg-[#FAF9F5] border border-black/[0.08] text-xs font-semibold text-[#151914] flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5 text-[#43612B]" />
-              <span>Hazara Division Allotments</span>
+              <span>PrimeView Cooperative Housing Society Abt Allotments</span>
             </span>
           </div>
         </div>

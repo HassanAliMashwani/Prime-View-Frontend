@@ -15,7 +15,7 @@ export interface SiteConfig {
 
 export const siteConfig: SiteConfig = {
   name: "Prime View",
-  fullName: "Prime View Co-Operative Housing Society Ltd Hazara Division",
+  fullName: "PrimeView Cooperative Housing Society Abt",
   tagline: "Your Land. Your Home. Your Future.",
   description: "At Prime View, you don't just get access to the best natural surroundings but also top-notch amenities designed for modern living. Our housing society offers 24/7 electricity, clean water, a reliable gas supply, an underground sewerage system, and wide, carpeted roads for smooth access.",
   address: "Galyat Bypass, Havelian, Abbottabad",

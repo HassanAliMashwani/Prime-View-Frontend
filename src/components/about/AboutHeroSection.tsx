@@ -15,7 +15,7 @@ const STATS = [
 
 const TRUST_CHIPS = [
   "Registered with Cooperative Societies Dept. KPK",
-  "Hazara Division Approved Masterplan",
+  "PrimeView Cooperative Housing Society Abt Approved Masterplan",
   "Active GT Road Frontage Access",
   "Legal Team & Managing Committee",
 ];
@@ -112,7 +112,7 @@ export const AboutHeroSection: React.FC = () => {
               className="flex items-center gap-3 text-xs text-charcoal/60 font-medium"
             >
               <MapPin className="w-3.5 h-3.5 text-accent-green shrink-0" />
-              <span>Abbottabad, Hazara Division, KPK — Pakistan</span>
+              <span>Abbottabad, PrimeView Cooperative Housing Society Abt, KPK — Pakistan</span>
               <span className="text-charcoal/20">|</span>
               <span className="font-bold text-charcoal/80">Cooperative Housing Society</span>
             </motion.div>
@@ -222,7 +222,7 @@ export const AboutHeroSection: React.FC = () => {
                 A Community Built on Trust, Nature &amp; Modern Living
               </h2>
               <p className="font-sans text-base text-charcoal/70 leading-relaxed">
-                Prime View Co-Operative Housing Society is a legally registered society under the Cooperative Societies Department of KPK, situated in the scenic Hazara Division near Abbottabad. Our mission is to provide residents with a secure, peaceful, and fully serviced community away from the noise of the city.
+                Prime View Co-Operative Housing Society is a legally registered society under the Cooperative Societies Department of KPK, situated in the scenic PrimeView Cooperative Housing Society Abt near Abbottabad. Our mission is to provide residents with a secure, peaceful, and fully serviced community away from the noise of the city.
               </p>
               <p className="font-sans text-base text-charcoal/70 leading-relaxed">
                 Every plot in Prime View is backed by a formally approved masterplan, active on-ground development, and transparent cooperative governance. We offer flexible 3.5-year installment plans to ensure that owning a dream home in the mountains is within reach for every Pakistani family.

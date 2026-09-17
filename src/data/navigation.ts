@@ -26,6 +26,7 @@ export const mainNavigation: NavItem[] = [
       { title: "Masterplan Map", href: "/map-2" },
     ],
   },
+  { title: "Society Members", href: "/society-members/login" },
   { title: "Contact", href: "/contact" },
 ];
 

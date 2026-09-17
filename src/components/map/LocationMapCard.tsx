@@ -111,7 +111,7 @@ export const LocationMapCard: React.FC = () => {
                 Prime View Abbottabad Location
               </h2>
               <p className="font-sans text-xs sm:text-sm text-[#647160] mt-0.5">
-                Tata Suchian, Havelian, Hazara Division, Khyber Pakhtunkhwa
+                Tata Suchian, Havelian, PrimeView Cooperative Housing Society Abt, Khyber Pakhtunkhwa
               </p>
             </div>
           </div>

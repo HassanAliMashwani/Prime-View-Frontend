@@ -43,7 +43,7 @@ export default function OwnersPage() {
             Managing Committee &amp; Owners
           </h1>
           <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-2xl mx-auto leading-relaxed">
-            Prime View Co-Operative Housing Society Ltd Hazara Division Executive Management
+            PrimeView Cooperative Housing Society Abt Executive Management
           </p>
         </div>
       </div>

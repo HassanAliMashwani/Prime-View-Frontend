@@ -184,8 +184,8 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
   },
   {
     id: "leg-2",
-    name: "Advocate Raja Gulfam Kiani",
-    title: "Legal Advisor",
+    name: "Raja Gulfam Kayani",
+    title: "Advocate High Court, Chartered Management Accountant, Legal Advisor and Financial Consultant",
     role: "Advocate & Legal Counsel",
     email: "info@primeview.pk",
     category: "Legal Team",
@@ -195,9 +195,9 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
 ];
 
 export const membershipCriteriaList: string[] = [
-  "Should be of more than 18 years of age, unless he/she is a minor nominee of a deceased member.",
+  "A Pakistani National",
   "Must possess good moral character.",
   "Purchase at least one share.",
   "Has applied for membership or his/her membership is approved, as a nominee or legal representative of deceased member.",
-  "Is in accordance with the directions issued by the Prime View Co-operative Housing Society Ltd Hazara Division Revise by-Laws, & Co-operative Society Act 1925 Amended 2020 & Co-operative societies rules 1927, from time to time.",
+  "Is in accordance with the directions issued by the PrimeView Cooperative Housing Society Abt Revise by-Laws, & Co-operative Society Act 1925 Amended 2020 & Co-operative societies rules 1927, from time to time.",
 ];

@@ -30,7 +30,7 @@ const phases: NarrativePhase[] = [
     step: "01",
     badge: "Origin",
     title: "Foundation & Registration",
-    summary: "Formally chartered and legally registered under the Cooperative Societies Department of KPK, Hazara Division.",
+    summary: "Formally chartered and legally registered under the Cooperative Societies Department of KPK, PrimeView Cooperative Housing Society Abt.",
     image: "/assets/gallery/hero-collage-editorial.jpg",
     icon: ShieldCheck,
     tag: "Legal Inception",
