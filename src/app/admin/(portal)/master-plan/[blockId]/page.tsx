@@ -1255,13 +1255,11 @@ function BlockPlotsContent() {
                           <span>🪪 CNIC: <strong className="text-slate-800 font-mono">{bookedCustomer.cnic}</strong></span>
                           <span>📍 City: <strong className="text-slate-800">{bookedCustomer.city || bookedCustomer.mailingAddress}</strong></span>
                         </div>
-                        <div className="text-[11px] text-amber-900/90 bg-white/80 p-2.5 rounded-xl border border-amber-200 leading-relaxed">
-                          ℹ️ <strong>Simplified Booking:</strong> Statutory society fees (PKR 12,000) and formal payment schedule will be established upon completion of member registration.
-                        </div>
+                        
                         {session?.role === 'super_admin' && (
-                          <div className="pt-2">
+                          <div className="pt-2"> 
                             <Link
-                              href={`/admin/customers?completeCustomer=${bookedCustomer.id}`}
+                              href={`/admin/customers? completeCustomer=${bookedCustomer.id}`}
                               className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
                             >
                               <ShieldCheck className="w-4 h-4" />
@@ -1600,9 +1598,7 @@ function BlockPlotsContent() {
               </div>
             </div>
 
-            <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 rounded-xl p-2.5 mb-4 leading-relaxed">
-              ⚡ <strong>Simplified Sub Admin Booking:</strong> Enter the 3 required fields below to immediately commit this plot to inventory hold. Statutory fee deposits and payment schedules are finalized by Super Administration upon completing member registration.
-            </p>
+            
 
             <form onSubmit={handleMinimalBookSubmit} className="space-y-3.5 text-xs">
               <div>
