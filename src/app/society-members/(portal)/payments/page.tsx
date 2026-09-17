@@ -66,7 +66,7 @@ function PaymentsContent() {
 
   // Unified available plot files for selection in receipts and modal (plots with schedules fallback)
   const availablePlotOptions = React.useMemo(() => {
-    let options = [];
+    let options: any[] = [];
     if (plots && plots.length > 0) {
       options = plots.map((p) => {
         const matchingSchedule = schedules.find((s) => s.plotId === p.id);

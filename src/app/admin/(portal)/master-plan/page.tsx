@@ -19,17 +19,7 @@ import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
 import { AdminSession } from '@/lib/mock/types';
 import InteractiveOverviewMap from '@/components/admin/master-plan/InteractiveOverviewMap';
 
-const AMENITY_COLORS: Record<string, string> = {
-  Hospital: 'bg-rose-50 text-rose-800 border-rose-200',
-  'Community Mosque': 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  School: 'bg-blue-50 text-blue-800 border-blue-200',
-  Park: 'bg-green-50 text-green-800 border-green-200',
-  'Filtration Plant': 'bg-cyan-50 text-cyan-800 border-cyan-200',
-  'Community Centre': 'bg-purple-50 text-purple-800 border-purple-200',
-  'Play Ground': 'bg-amber-50 text-amber-800 border-amber-200',
-  'Grid Station': 'bg-amber-100 text-amber-900 border-amber-300',
-  'Grave Yard': 'bg-slate-100 text-slate-800 border-slate-300',
-};
+
 
 import { getBlockTheme } from '@/lib/map/regionData';
 
