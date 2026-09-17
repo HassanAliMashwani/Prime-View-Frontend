@@ -1259,7 +1259,7 @@ function BlockPlotsContent() {
                         {session?.role === 'super_admin' && (
                           <div className="pt-2"> 
                             <Link
-                              href={`/admin/customers? completeCustomer=${bookedCustomer.id}`}
+                              href={`/admin/customers?completeCustomer=${bookedCustomer.id}`}
                               className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
                             >
                               <ShieldCheck className="w-4 h-4" />
