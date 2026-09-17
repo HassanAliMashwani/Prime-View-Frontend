@@ -165,19 +165,13 @@ export default function SalesHistoryPage() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50 hover:text-emerald-800 text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
-            <Printer className="w-4 h-4 text-emerald-700" />
+            <Printer className="w-4 h-4 text-white" />
             <span>Print Ledger</span>
           </button>
 
-          {session?.role === 'super_admin' ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Full Society Audit Scope</span>
-            </span>
-            
-          ) : (
+          {session?.role === 'super_admin' ? null : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold">
               <Layers className="w-3.5 h-3.5 text-indigo-600" />
               <span>Scoped: {session?.assignedBlocks?.join(', ').toUpperCase()}</span>

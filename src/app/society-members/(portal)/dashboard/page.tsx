@@ -241,7 +241,7 @@ export default function MemberDashboardPage() {
           />
 
           <StatCard
-            title="Total Investment"
+            title="Total Value of Property"
             value={formatPKR(totalInvestment)}
             subtitle="Combined value"
             icon={Wallet}
