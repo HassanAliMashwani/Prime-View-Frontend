@@ -181,24 +181,6 @@ export default function MasterPlanPage() {
                   {block.description}
                 </p>
 
-                {/* Individual Colorful Amenity Badges */}
-                <div className="mb-4">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Authentic Society Amenities:
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {block.amenities.map((amenity) => (
-                      <span
-                        key={amenity}
-                        className={`border text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs ${
-                          AMENITY_COLORS[amenity] || 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        }`}
-                      >
-                        ★ {amenity}
-                      </span>
-                    ))}
-                  </div>
-                </div>
 
                 {/* Disputed Plots Warning Indicator if any plots in conflict */}
                 {block.disputedCount && block.disputedCount > 0 ? (
