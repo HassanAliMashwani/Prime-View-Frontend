@@ -42,10 +42,10 @@ export default function MasterplanPage() {
 
         <div className="relative z-10 max-w-4xl mx-auto space-y-4">
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight font-bold leading-[1.05] uppercase drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)]">
-            Master Plan
+            LOP (Layout Plan)
           </h1>
           <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-2xl mx-auto leading-relaxed">
-            Prime View Co-Operative Housing Society Ltd Hazara Division Approved Final Master Plan &amp; Block Layout
+            PrimeView Cooperative Housing Society Abt Approved Final Master Plan &amp; Block Layout
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
@@ -57,14 +57,6 @@ export default function MasterplanPage() {
             >
               <ZoomIn className="w-4 h-4" />
               View HD Map
-            </a>
-            <a
-              href={masterplanPdf}
-              download
-              className="bg-white/90 hover:bg-white text-[#151914] text-xs font-bold px-6 py-3 rounded-xl transition-colors duration-150 border border-white/50 backdrop-blur-md flex items-center gap-2 uppercase tracking-wider shadow-sm"
-            >
-              <Download className="w-4 h-4" />
-              Download PDF
             </a>
           </div>
         </div>
