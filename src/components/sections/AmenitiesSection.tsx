@@ -13,6 +13,9 @@ import {
   Compass,
   School,
   Dumbbell,
+  ShoppingBag,
+  BedDouble,
+  Coffee,
 } from "lucide-react";
 import { LuxuryCard } from "@/components/ui/LuxuryCard";
 
@@ -107,6 +110,31 @@ const amenityChapters: AmenityChapter[] = [
         title: "Sports Facilities",
         image: "/assets/amenities/sports_arena_multiple.jpg",
         icon: Dumbbell,
+      },
+    ],
+  },
+  {
+    id: "chapter-commercial",
+    stepNumber: "04",
+    category: "COMMERCIAL & LEISURE",
+    title: "Premium Commercial Hub",
+    oneLiner: "High-end shopping, dining, and stay options.",
+    heroImage: "/assets/commercial/boulevard.jpg",
+    cards: [
+      {
+        title: "Commercial Mall",
+        image: "/assets/commercial/mall.jpg",
+        icon: ShoppingBag,
+      },
+      {
+        title: "Motel and Hotel",
+        image: "/assets/commercial/motel.jpg",
+        icon: BedDouble,
+      },
+      {
+        title: "Restaurants",
+        image: "/assets/commercial/restaurant.jpg",
+        icon: Coffee,
       },
     ],
   },
