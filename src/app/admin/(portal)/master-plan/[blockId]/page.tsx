@@ -611,19 +611,6 @@ function BlockPlotsContent() {
           <p className="text-xs text-slate-500 mt-1">{block.description}</p>
         </div>
 
-        {/* Amenity Badges */}
-        <div className="flex flex-wrap gap-1.5 self-start sm:self-center">
-          {block.amenities.map((a) => (
-            <span
-              key={a}
-              className={`border text-[10px] px-2.5 py-1 rounded-lg font-bold shadow-2xs ${
-                AMENITY_COLORS[a] || 'bg-emerald-50 text-emerald-800 border-emerald-200'
-              }`}
-            >
-              ★ {a}
-            </span>
-          ))}
-        </div>
       </div>
 
       {/* Filter and Search Bar */}

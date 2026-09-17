@@ -66,8 +66,9 @@ function PaymentsContent() {
 
   // Unified available plot files for selection in receipts and modal (plots with schedules fallback)
   const availablePlotOptions = React.useMemo(() => {
+    let options = [];
     if (plots && plots.length > 0) {
-      return plots.map((p) => {
+      options = plots.map((p) => {
         const matchingSchedule = schedules.find((s) => s.plotId === p.id);
         return {
           id: p.id,
@@ -78,9 +79,8 @@ function PaymentsContent() {
           paymentType: matchingSchedule?.paymentType || (p.paymentSummary?.paymentType as any) || 'installment',
         };
       });
-    }
-    if (schedules && schedules.length > 0) {
-      return schedules.map((s) => ({
+    } else if (schedules && schedules.length > 0) {
+      options = schedules.map((s) => ({
         id: s.plotId,
         plotNumber: s.plotNumber,
         blockName: s.blockName,
@@ -89,7 +89,12 @@ function PaymentsContent() {
         paymentType: s.paymentType,
       }));
     }
-    return [];
+
+    return options.filter((opt) => {
+      const s = schedules.find((sched) => sched.plotId === opt.id);
+      if (!s) return true; // Keep if schedule not loaded yet
+      return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue');
+    });
   }, [plots, schedules]);
 
   const loadReceipts = useCallback(async () => {
@@ -999,7 +1004,8 @@ function PaymentsContent() {
                   <select
                     value={formPaymentType}
                     onChange={(e) => setFormPaymentType(e.target.value as 'installment' | 'one_time')}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                    disabled={true}
+                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed"
                   >
                     <option value="installment">Installment Plan</option>
                     <option value="one_time">Full Payment</option>
