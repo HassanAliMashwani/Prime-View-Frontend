@@ -391,6 +391,11 @@ export default function AdminReceiptsPage() {
                       ? `Installment #${sub.installmentNumber}`
                       : 'Full Payment Settlement'}
                   </span>
+                  {sub.paymentType === 'one_time' && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-200">
+                      Record Only &bull; Settled
+                    </span>
+                  )}
 
                   {/* Status chip */}
                   {sub.status === 'verified' ? (

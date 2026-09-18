@@ -93,9 +93,14 @@ function PaymentsContent() {
     return options.filter((opt) => {
       const s = schedules.find((sched) => sched.plotId === opt.id);
       if (!s) return true; // Keep if schedule not loaded yet
+      if (opt.paymentType === 'one_time') {
+        // Allow exactly ONE documentation receipt for an already-settled one-time plot
+        const alreadySubmitted = receipts.some((r) => r.plotId === opt.id);
+        return !alreadySubmitted;
+      }
       return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue');
     });
-  }, [plots, schedules]);
+  }, [plots, schedules, receipts]);
 
   const loadReceipts = useCallback(async () => {
     if (profile?.id) {
@@ -227,9 +232,13 @@ function PaymentsContent() {
       setFormAmount(String(amount));
     } else if (targetPlotId) {
       const sched = schedules.find((s) => s.plotId === targetPlotId);
-      const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
-      if (nextPending?.amount) {
-        setFormAmount(String(nextPending.amount));
+      if (sched?.paymentType === 'one_time') {
+        setFormAmount(String(sched.totalPrice || sched.paidAmount || ''));
+      } else {
+        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
+        if (nextPending?.amount) {
+          setFormAmount(String(nextPending.amount));
+        }
       }
     }
 
@@ -308,9 +317,13 @@ function PaymentsContent() {
           setUploadError(
             res.message || 'This installment has already been settled and marked paid in the society ledger.'
           );
+        } else if (res.error === 'ALREADY_RECORDED') {
+          setUploadError(
+            res.message || 'A documentation receipt has already been submitted and recorded for this payment.'
+          );
         } else if (res.error === 'RECEIPT_ALREADY_PENDING') {
           setUploadError(
-            res.message || 'A receipt for this installment is already pending verification by the society desk.'
+            res.message || 'A receipt for this payment is already pending verification by the society desk.'
           );
         } else {
           setUploadError(res.message || res.error || 'Failed to submit receipt.');
@@ -837,6 +850,11 @@ function PaymentsContent() {
                               ? `Installment #${sub.installmentNumber}`
                               : 'Full Payment Settlement'}
                           </span>
+                          {sub.paymentType === 'one_time' && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                              Documentation Record
+                            </span>
+                          )}
                           {/* Status Badge */}
                           {sub.status === 'verified' ? (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
@@ -969,14 +987,18 @@ function PaymentsContent() {
                       if (selected?.paymentType) {
                         setFormPaymentType(selected.paymentType === 'one_time' ? 'one_time' : 'installment');
                       }
-                      // Auto-fill next due installment if available
+                      // Auto-fill next due installment or one-time total amount if available
                       const sched = schedules.find((s) => s.plotId === newPlotId);
-                      const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
-                      if (nextPending?.installmentNumber) {
-                        setFormInstallmentNo(nextPending.installmentNumber);
-                      }
-                      if (nextPending?.amount) {
-                        setFormAmount(String(nextPending.amount));
+                      if (selected?.paymentType === 'one_time' && sched) {
+                        setFormAmount(String(sched.totalPrice || sched.paidAmount || ''));
+                      } else {
+                        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
+                        if (nextPending?.installmentNumber) {
+                          setFormInstallmentNo(nextPending.installmentNumber);
+                        }
+                        if (nextPending?.amount) {
+                          setFormAmount(String(nextPending.amount));
+                        }
                       }
                     }}
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] cursor-pointer font-medium"
