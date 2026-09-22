@@ -1,5 +1,23 @@
 # Changelog — Prime View Frontend
 
+## [P2-03] - 2026-09-23
+
+### Added
+- **Derived Disputed Display Status (Visual-only, no DB write):**
+  - Added `displayStatus` and `displayStatusReason` optional fields to `Plot` interface (`src/lib/mock/types.ts`).
+  - Created `src/lib/utils/displayStatus.ts` with client-side `resolveDisplayStatus` helper.
+  - `InteractiveBlockMap.tsx`: All polygon fill, filter, tooltip, and badge logic now uses `plot.displayStatus || plot.status` (visual layer). Dispute tooltip text shows `plot.displayStatusReason` when set (exact string `"Disputed — customer account suspended"` for suspended-owner case).
+  - `master-plan/[blockId]/page.tsx`: `filteredPlots` memoized filter, card grid status badge, card grid dispute note, drawer "Current Status" field, and new drawer Dispute Warning Banner all use `displayStatus` and `displayStatusReason`.
+  - Drawer shows `(stored: <status>)` annotation when displayStatus differs from stored status.
+- **Legend & SVG Hatch:**
+  - Disputed SVG hatch pattern `#disputedHatch` already present — confirmed no regression.
+
+### Unchanged (by design)
+- `Plot.status` in the database is NEVER mutated by suspend/reinstate.
+- Inventory overview, lock guards, and sweep continue to use stored `plot.status`.
+
+---
+
 ## [P2-02] - 2026-09-22
 
 ### Changed

@@ -180,16 +180,17 @@ function BlockPlotsContent() {
         if (!matchNum && !matchSize && !matchAmenity) return false;
       }
       if (statusFilter !== 'all') {
+        const visualStatus = plot.displayStatus || plot.status;
         if (statusFilter === 'adjustment') {
           if (!plot.isAdjustment) return false;
         } else if (statusFilter === 'disputed') {
           const isDisputed = Boolean(
-            plot.status === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+            visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
           );
           if (!isDisputed) return false;
         } else if (statusFilter === 'available') {
-          if (plot.status !== 'available' || plot.category === 'amenity' || plot.isAdjustment) return false;
-        } else if (plot.status !== statusFilter) {
+          if (visualStatus !== 'available' || plot.category === 'amenity' || plot.isAdjustment) return false;
+        } else if (visualStatus !== statusFilter) {
           return false;
         }
       }
@@ -793,17 +794,18 @@ function BlockPlotsContent() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
         {filteredPlots.map((plot) => {
+          const visualStatus = plot.displayStatus || plot.status;
           const isDisputed = Boolean(
-            plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+            visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
           );
           const isAdjustment = Boolean(plot.isAdjustment);
           const isLocked = Boolean(plot.lockedBy);
           const isAmenity = plot.category === 'amenity';
-          const isReserved = plot.status === 'reserved';
-          const isBooked = plot.status === 'booked';
-          const isAllotted = plot.status === 'allotted';
-          const isCommercialAvailable = plot.category === 'commercial' && plot.status === 'available';
-          const isAvailable = plot.status === 'available' && !isAmenity && !isAdjustment;
+          const isReserved = visualStatus === 'reserved';
+          const isBooked = visualStatus === 'booked';
+          const isAllotted = visualStatus === 'allotted';
+          const isCommercialAvailable = plot.category === 'commercial' && visualStatus === 'available' && plot.status === 'available';
+          const isAvailable = visualStatus === 'available' && !isAmenity && !isAdjustment;
           const isHighlighted = highlightedPlotId === plot.id;
 
           const reservingNames = (plot.reservingUsers && plot.reservingUsers.length > 0)
@@ -873,14 +875,20 @@ function BlockPlotsContent() {
                     {isLocked
                       ? `Being booked by ${plot.lockedByName?.split(' ')[0] || 'Admin'}`
                       : isDisputed
-                      ? `Disputed (${plot.activeReservationCount})`
+                      ? (plot.activeReservationCount && plot.activeReservationCount > 1 ? `Disputed (${plot.activeReservationCount})` : 'Disputed')
                       : isAdjustment
                       ? 'adjustment'
                       : isReserving
                       ? `Being reserved by ${reservingNames.join(', ')}`
                       : isAmenity
                       ? 'Amenity'
-                      : plot.status}
+                      : visualStatus === 'allotted'
+                      ? 'Allotted'
+                      : visualStatus === 'booked'
+                      ? 'Booked'
+                      : visualStatus === 'reserved'
+                      ? 'Reserved'
+                      : 'Available'}
                   </span>
                 </div>
 
@@ -890,7 +898,7 @@ function BlockPlotsContent() {
 
                 {isDisputed && (
                   <div className="mt-1 text-[9px] font-bold text-fuchsia-900 bg-fuchsia-100/90 border border-fuchsia-300 rounded px-1.5 py-0.5 inline-block">
-                    ⚠️ {plot.activeReservationCount} competing claims — needs resolution
+                    ⚠️ {plot.displayStatusReason || (plot.activeReservationCount && plot.activeReservationCount > 1 ? `${plot.activeReservationCount} competing claims — needs resolution` : 'Plot is disputed')}
                   </div>
                 )}
 
@@ -1062,6 +1070,28 @@ function BlockPlotsContent() {
                 </div>
               ) : null}
 
+              {/* Dispute Warning Banner in Drawer */}
+              {((selectedPlot.displayStatus || selectedPlot.status) === 'disputed' || selectedPlot.isDisputed || (selectedPlot.activeReservationCount && selectedPlot.activeReservationCount > 1)) && (
+                <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl text-rose-950 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 font-bold text-sm text-rose-900">
+                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>Disputed Plot</span>
+                    </div>
+                    <span className="text-[10px] bg-rose-600 text-white font-mono font-bold px-2 py-0.5 rounded-md uppercase">
+                      disputed
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-rose-800 leading-relaxed font-medium">
+                    {selectedPlot.displayStatusReason || (
+                      selectedPlot.activeReservationCount && selectedPlot.activeReservationCount > 1
+                        ? `${selectedPlot.activeReservationCount} competing reservations — needs resolution.`
+                        : 'Plot is currently marked as disputed.'
+                    )}
+                  </p>
+                </div>
+              )}
+
               {/* Plot Specs */}
               <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div>
@@ -1124,7 +1154,14 @@ function BlockPlotsContent() {
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Current Status</span>
-                  <div className="text-sm font-bold capitalize text-slate-900">{selectedPlot.status}</div>
+                  <div className="text-sm font-bold capitalize text-slate-900 flex items-center gap-1.5 flex-wrap">
+                    <span>{selectedPlot.displayStatus || selectedPlot.status}</span>
+                    {selectedPlot.displayStatus && selectedPlot.displayStatus !== selectedPlot.status && (
+                      <span className="text-[10px] font-mono text-rose-600 font-normal">
+                        (stored: {selectedPlot.status})
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Plot Type</span>

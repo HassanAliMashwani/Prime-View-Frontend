@@ -119,6 +119,7 @@ export const SPECIAL_PLOT_STYLES = {
  */
 export function getPlotStyle(plot: {
   status: string;
+  displayStatus?: string;
   category?: string;
   isAdjustment?: boolean;
 }): PlotStyleConfig {
@@ -130,15 +131,17 @@ export function getPlotStyle(plot: {
     return SPECIAL_PLOT_STYLES.amenity;
   }
 
+  const effectiveStatus = plot.displayStatus || plot.status;
+
   // D3: Available commercial plots render with white fill + visible dark border
-  if (plot.category === 'commercial' && plot.status === 'available') {
+  if (plot.category === 'commercial' && effectiveStatus === 'available') {
     return SPECIAL_PLOT_STYLES.commercialAvailable;
   }
 
   const validStatuses: PlotStatus[] = ['available', 'reserved', 'booked', 'allotted', 'disputed'];
-  if (!validStatuses.includes(plot.status as PlotStatus)) {
-    throw new Error(`Unknown plot status: "${plot.status}". Allowed values: ${validStatuses.join(', ')}`);
+  if (!validStatuses.includes(effectiveStatus as PlotStatus)) {
+    throw new Error(`Unknown plot status: "${effectiveStatus}". Allowed values: ${validStatuses.join(', ')}`);
   }
 
-  return PLOT_STATUS_STYLES[plot.status as PlotStatus];
+  return PLOT_STATUS_STYLES[effectiveStatus as PlotStatus];
 }

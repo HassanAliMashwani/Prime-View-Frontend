@@ -355,20 +355,21 @@ export default function InteractiveBlockMap({
               }
 
               if (statusFilter !== 'all') {
+                const visualStatus = plot?.displayStatus || plot?.status;
                 if (!plot) {
                   matchesFilter = false;
                 } else if (statusFilter === 'adjustment') {
                   if (!plot.isAdjustment) matchesFilter = false;
                 } else if (statusFilter === 'disputed') {
                   const isDisputed = Boolean(
-                    plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+                    visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
                   );
                   if (!isDisputed) matchesFilter = false;
                 } else if (statusFilter === 'available') {
-                  if (plot.status !== 'available' || plot.category === 'amenity' || plot.isAdjustment) {
+                  if (visualStatus !== 'available' || plot.category === 'amenity' || plot.isAdjustment) {
                     matchesFilter = false;
                   }
-                } else if (plot.status !== statusFilter) {
+                } else if (visualStatus !== statusFilter) {
                   matchesFilter = false;
                 }
               }
@@ -397,8 +398,9 @@ export default function InteractiveBlockMap({
                 strokeColor = '#0284c7';
                 strokeWidth = 2.5;
               } else if (plot) {
+                const visualStatus = plot.displayStatus || plot.status;
                 const isDisputed = Boolean(
-                  plot.status === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+                  visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
                 );
                 const isLocked = Boolean(plot.lockedBy);
                 const isReserving = Boolean(
@@ -426,7 +428,7 @@ export default function InteractiveBlockMap({
                   strokeColor = style.stroke;
                   strokeWidth = 3.5;
                   isPulsing = true;
-                } else if (isReserving && plot.status !== 'reserved' && plot.status !== 'booked' && plot.status !== 'allotted') {
+                } else if (isReserving && visualStatus !== 'reserved' && visualStatus !== 'booked' && visualStatus !== 'allotted') {
                   const style = PLOT_STATUS_STYLES.reserved;
                   fillColor = style.fill;
                   fillOpacity = 0.65;
@@ -439,7 +441,7 @@ export default function InteractiveBlockMap({
                   fillOpacity = isHovered ? 0.6 : 0.35;
                   strokeColor = style.stroke;
                   strokeWidth = 2;
-                } else if (plot.category === 'commercial' && plot.status === 'available') {
+                } else if (plot.category === 'commercial' && visualStatus === 'available' && plot.status === 'available') {
                   const style = SPECIAL_PLOT_STYLES.commercialAvailable;
                   fillColor = style.fill;
                   fillOpacity = isHovered ? 0.95 : 0.85;
@@ -449,15 +451,19 @@ export default function InteractiveBlockMap({
                   const style = getPlotStyle(plot);
                   fillColor = style.fill;
                   strokeColor = style.stroke;
-                  if (plot.status === 'allotted') {
+                  if (visualStatus === 'allotted') {
                     fillOpacity = isHovered ? 0.95 : 0.88;
                     strokeWidth = 2.2;
-                  } else if (plot.status === 'booked') {
+                  } else if (visualStatus === 'booked') {
                     fillOpacity = isHovered ? 0.78 : 0.55;
                     strokeWidth = 2.2;
-                  } else if (plot.status === 'reserved') {
+                  } else if (visualStatus === 'reserved') {
                     fillOpacity = isHovered ? 0.75 : 0.55;
                     strokeWidth = 2;
+                  } else if (visualStatus === 'disputed') {
+                    fillOpacity = isHovered ? 1.0 : 0.9;
+                    strokeWidth = 3.5;
+                    isPulsing = true;
                   } else {
                     fillOpacity = isHovered ? 0.75 : 0.42;
                     strokeWidth = 2;
@@ -492,7 +498,7 @@ export default function InteractiveBlockMap({
                   data-slug={area.slug}
                   data-plot-number={area.plotNumber || ''}
                   data-grouped={isGrouped ? 'true' : 'false'}
-                  data-disputed={plot && (plot.isDisputed || (plot.activeReservationCount ?? 0) > 1) ? 'true' : 'false'}
+                  data-disputed={plot && ((plot.displayStatus || plot.status) === 'disputed' || plot.isDisputed || (plot.activeReservationCount ?? 0) > 1) ? 'true' : 'false'}
                   data-highlighted={isHighlighted ? 'true' : 'false'}
                   points={pointsStr}
                   fill={fillColor}
@@ -558,8 +564,9 @@ export default function InteractiveBlockMap({
                 );
               }
 
+              const visualStatus = plot.displayStatus || plot.status;
               const isDisputed = Boolean(
-                plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+                visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
               );
               const isLocked = Boolean(plot.lockedBy);
               const isReserving = Boolean(
@@ -587,11 +594,11 @@ export default function InteractiveBlockMap({
                           ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : isAmenity
                           ? 'bg-purple-950 text-purple-300 border-purple-700'
-                          : plot.status === 'allotted'
+                          : visualStatus === 'allotted'
                           ? 'bg-slate-950 text-white border-slate-700'
-                          : plot.status === 'booked'
+                          : visualStatus === 'booked'
                           ? 'bg-rose-950 text-rose-300 border-rose-700'
-                          : plot.status === 'reserved'
+                          : visualStatus === 'reserved'
                           ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : 'bg-emerald-950 text-emerald-300 border-emerald-700'
                       }`}
@@ -601,16 +608,16 @@ export default function InteractiveBlockMap({
                         : isLocked
                         ? 'Locked'
                         : isDisputed
-                        ? `Disputed (${plot.activeReservationCount})`
+                        ? (plot.activeReservationCount && plot.activeReservationCount > 1 ? `Disputed (${plot.activeReservationCount})` : 'Disputed')
                         : isReserving
                         ? 'Reserving'
                         : isAmenity
                         ? 'Amenity'
-                        : plot.status === 'allotted'
+                        : visualStatus === 'allotted'
                         ? 'Allotted'
-                        : plot.status === 'booked'
+                        : visualStatus === 'booked'
                         ? 'Booked'
-                        : String(plot.status).replace(/_/g, ' ')}
+                        : String(visualStatus).replace(/_/g, ' ')}
                     </span>
                   </div>
 
@@ -629,7 +636,10 @@ export default function InteractiveBlockMap({
                     <div className="mb-2 p-1.5 rounded-lg bg-rose-950/80 border border-rose-500 text-[10px] text-rose-200 flex items-center gap-1.5">
                       <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
                       <span className="font-bold">
-                        {plot.activeReservationCount} competing reservations — needs resolution.
+                        {plot.displayStatusReason ||
+                          (plot.activeReservationCount && plot.activeReservationCount > 1
+                            ? `${plot.activeReservationCount} competing reservations — needs resolution.`
+                            : 'Plot is currently marked as disputed.')}
                       </span>
                     </div>
                   )}

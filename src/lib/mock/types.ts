@@ -123,6 +123,9 @@ export interface Plot {
   adjustmentReason?: string;
   adjustmentDate?: string;
   adjustmentBy?: string;
+  // P2-03 Derived Display Status
+  displayStatus?: PlotStatus;
+  displayStatusReason?: string | null;
 }
 
 export interface InstallmentPlanConfig {
