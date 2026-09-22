@@ -76,6 +76,13 @@ export default function InventoryOverviewPage() {
             />
           </div>
           <button
+            onClick={() => window.print()}
+            className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+            title="Print Inventory"
+          >
+            <span className="hidden sm:inline text-sm font-medium">Print</span>
+          </button>
+          <button
             onClick={loadStats}
             disabled={loading}
             className="p-2 bg-brand-800 text-brand-300 rounded-lg hover:bg-brand-700 hover:text-white transition-colors"
