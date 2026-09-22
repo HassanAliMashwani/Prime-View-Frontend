@@ -16,6 +16,7 @@ import {
   User
 } from 'lucide-react';
 import { Plot } from '@/lib/mock/types';
+import { PLOT_STATUS_STYLES, SPECIAL_PLOT_STYLES, getPlotStyle } from '@/lib/constants/plotStatusStyles';
 
 import { getBlockMapConfig } from '@/lib/map/blockRegistry';
 import { TracedPlotArea } from '@/lib/map/types';
@@ -26,7 +27,7 @@ interface InteractiveBlockMapProps {
   selectedPlot: Plot | null;
   onSelectPlot: (plot: Plot) => void;
   searchFilter?: string;
-  statusFilter?: 'all' | 'available' | 'reserved' | 'booked' | 'disputed' | 'adjustment';
+  statusFilter?: 'all' | 'available' | 'reserved' | 'booked' | 'allotted' | 'disputed' | 'adjustment';
   categoryFilter?: 'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity';
   focusPlotId?: string | null;
 }
@@ -189,40 +190,60 @@ export default function InteractiveBlockMap({
     <div className="relative w-full rounded-3xl border border-slate-200/90 bg-slate-950 overflow-hidden shadow-2xl select-none">
       {/* Map Header Controls Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
-        {/* Map Legend */}
-        <div className="pointer-events-auto bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-800 flex items-center gap-3 text-[11px] text-slate-300 shadow-lg">
-          <div className="flex items-center gap-1.5 font-bold font-serif text-slate-100 pr-2 border-r border-slate-700">
-            <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{blockName} Traced Map</span>
+        {/* Map Legend & Pills */}
+        <div className="flex flex-col gap-2 pointer-events-auto items-start">
+          <div className="bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-800 flex flex-wrap items-center gap-3 text-[11px] text-slate-300 shadow-lg">
+            <div className="flex items-center gap-1.5 font-bold font-serif text-slate-100 pr-2 border-r border-slate-700">
+              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{blockName} Traced Map</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.available.fill }} />
+              <span>Available</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.reserved.fill }} />
+              <span>Reserved</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.booked.fill }} />
+              <span>Booked</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border border-slate-600 shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.allotted.fill }} />
+              <span>Allotted</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-3 h-3 rounded-full border shadow-xs"
+                style={{
+                  borderColor: PLOT_STATUS_STYLES.disputed.stroke,
+                  background: `repeating-linear-gradient(45deg, ${PLOT_STATUS_STYLES.disputed.stroke}, ${PLOT_STATUS_STYLES.disputed.stroke} 2px, #ffffff 2px, #ffffff 4px)`,
+                }}
+              />
+              <span className="font-bold text-red-400">Disputed</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full border border-slate-700 shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.commercialAvailable.fill }} />
+              <span>Commercial</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.amenity.fill }} />
+              <span>Amenity</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full shadow-xs animate-pulse" style={{ backgroundColor: SPECIAL_PLOT_STYLES.adjustment.fill }} />
+              <span className="font-bold text-blue-400">Adjustment</span>
+            </div>
+            <div className="pl-2 border-l border-slate-700 text-[10.5px] text-amber-300 font-medium">
+              Color scale is not applicable to amenities
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs" />
-            <span>Available</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-xs" />
-            <span>Reserved</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-xs" />
-            <span>Booked</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span
-              className="w-3 h-3 rounded-full border border-fuchsia-600 shadow-xs"
-              style={{
-                background: 'repeating-linear-gradient(45deg, #f59e0b, #f59e0b 2px, #c026d3 2px, #c026d3 4px)',
-              }}
-            />
-            <span className="font-bold text-fuchsia-300">Disputed</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-500 shadow-xs" />
-            <span>Amenity</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs animate-pulse" />
-            <span className="font-bold text-blue-400">Adjustment</span>
+
+          {/* D1 Pill directly under Traced Map */}
+          <div className="bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-xl border border-slate-800 text-[11px] font-medium text-amber-300 shadow-md flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+            <span>Color scale is not applicable to amenities</span>
           </div>
         </div>
 
@@ -301,7 +322,7 @@ export default function InteractiveBlockMap({
             onPointerLeave={() => setHoveredArea(null)}
           >
             <defs>
-              {/* Disputed Striped Pattern: alternating amber and vibrant fuchsia stripes */}
+              {/* Disputed Striped Pattern: alternating red and white stripes */}
               <pattern
                 id="disputedHatch"
                 width="10"
@@ -309,8 +330,8 @@ export default function InteractiveBlockMap({
                 patternUnits="userSpaceOnUse"
                 patternTransform="rotate(45)"
               >
-                <rect width="10" height="10" fill="#f59e0b" fillOpacity="0.85" />
-                <line x1="0" y1="0" x2="0" y2="10" stroke="#c026d3" strokeWidth="3.5" />
+                <rect width="10" height="10" fill={PLOT_STATUS_STYLES.disputed.stroke} />
+                <line x1="0" y1="0" x2="0" y2="10" stroke="#ffffff" strokeWidth="3.5" />
               </pattern>
             </defs>
 
@@ -364,9 +385,9 @@ export default function InteractiveBlockMap({
               }
 
               // Styling calculation
-              let fillColor = '#10b981'; // available green default
+              let fillColor = PLOT_STATUS_STYLES.available.fill; // available green default
               let fillOpacity = 0.38;
-              let strokeColor = '#059669';
+              let strokeColor = PLOT_STATUS_STYLES.available.stroke;
               let strokeWidth = 1.8;
               let isPulsing = false;
 
@@ -377,7 +398,7 @@ export default function InteractiveBlockMap({
                 strokeWidth = 2.5;
               } else if (plot) {
                 const isDisputed = Boolean(
-                  plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+                  plot.status === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
                 );
                 const isLocked = Boolean(plot.lockedBy);
                 const isReserving = Boolean(
@@ -385,53 +406,62 @@ export default function InteractiveBlockMap({
                 );
 
                 if (plot.isAdjustment) {
-                  // Vibrant Blue for Master Plan Adjustment / Town Planning Re-Survey Freeze
-                  fillColor = '#2563eb';
+                  const style = SPECIAL_PLOT_STYLES.adjustment;
+                  fillColor = style.fill;
                   fillOpacity = isHovered ? 0.88 : 0.65;
-                  strokeColor = '#1d4ed8';
+                  strokeColor = style.stroke;
                   strokeWidth = 3;
                   isPulsing = true;
                 } else if (isLocked) {
-                  fillColor = '#ef4444';
+                  const style = PLOT_STATUS_STYLES.booked;
+                  fillColor = style.fill;
                   fillOpacity = 0.65;
-                  strokeColor = '#dc2626';
+                  strokeColor = style.stroke;
                   strokeWidth = 3;
                   isPulsing = true;
                 } else if (isDisputed) {
-                  // Distinct Disputed Visual: Amber/Fuchsia Striped Hatch with bold fuchsia border
-                  fillColor = 'url(#disputedHatch)';
+                  const style = PLOT_STATUS_STYLES.disputed;
+                  fillColor = style.fill;
                   fillOpacity = isHovered ? 1.0 : 0.9;
-                  strokeColor = '#c026d3';
+                  strokeColor = style.stroke;
                   strokeWidth = 3.5;
                   isPulsing = true;
-                } else if (isReserving && plot.status !== 'reserved' && plot.status !== 'booked') {
-                  fillColor = '#f59e0b';
+                } else if (isReserving && plot.status !== 'reserved' && plot.status !== 'booked' && plot.status !== 'allotted') {
+                  const style = PLOT_STATUS_STYLES.reserved;
+                  fillColor = style.fill;
                   fillOpacity = 0.65;
-                  strokeColor = '#d97706';
+                  strokeColor = style.stroke;
                   strokeWidth = 3;
                   isPulsing = true;
                 } else if (plot.category === 'amenity') {
-                  fillColor = '#a855f7';
+                  const style = SPECIAL_PLOT_STYLES.amenity;
+                  fillColor = style.fill;
                   fillOpacity = isHovered ? 0.6 : 0.35;
-                  strokeColor = '#7e22ce';
+                  strokeColor = style.stroke;
                   strokeWidth = 2;
-                } else if (plot.status === 'booked') {
-                  // All booked plots render in bold Red (#ef4444)
-                  fillColor = '#ef4444';
-                  fillOpacity = isHovered ? 0.78 : 0.55;
-                  strokeColor = '#b91c1c';
-                  strokeWidth = 2.2;
-                } else if (plot.status === 'reserved') {
-                  fillColor = '#f59e0b';
-                  fillOpacity = isHovered ? 0.75 : 0.55;
-                  strokeColor = '#d97706';
-                  strokeWidth = 2;
+                } else if (plot.category === 'commercial' && plot.status === 'available') {
+                  const style = SPECIAL_PLOT_STYLES.commercialAvailable;
+                  fillColor = style.fill;
+                  fillOpacity = isHovered ? 0.95 : 0.85;
+                  strokeColor = style.stroke;
+                  strokeWidth = 2.5;
                 } else {
-                  // Available
-                  fillColor = '#10b981';
-                  fillOpacity = isHovered ? 0.75 : 0.42;
-                  strokeColor = '#059669';
-                  strokeWidth = 2;
+                  const style = getPlotStyle(plot);
+                  fillColor = style.fill;
+                  strokeColor = style.stroke;
+                  if (plot.status === 'allotted') {
+                    fillOpacity = isHovered ? 0.95 : 0.88;
+                    strokeWidth = 2.2;
+                  } else if (plot.status === 'booked') {
+                    fillOpacity = isHovered ? 0.78 : 0.55;
+                    strokeWidth = 2.2;
+                  } else if (plot.status === 'reserved') {
+                    fillOpacity = isHovered ? 0.75 : 0.55;
+                    strokeWidth = 2;
+                  } else {
+                    fillOpacity = isHovered ? 0.75 : 0.42;
+                    strokeWidth = 2;
+                  }
                 }
               } else {
                 // Not registered fallback
@@ -557,6 +587,8 @@ export default function InteractiveBlockMap({
                           ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : isAmenity
                           ? 'bg-purple-950 text-purple-300 border-purple-700'
+                          : plot.status === 'allotted'
+                          ? 'bg-slate-950 text-white border-slate-700'
                           : plot.status === 'booked'
                           ? 'bg-rose-950 text-rose-300 border-rose-700'
                           : plot.status === 'reserved'
@@ -574,6 +606,8 @@ export default function InteractiveBlockMap({
                         ? 'Reserving'
                         : isAmenity
                         ? 'Amenity'
+                        : plot.status === 'allotted'
+                        ? 'Allotted'
                         : plot.status === 'booked'
                         ? 'Booked'
                         : String(plot.status).replace(/_/g, ' ')}

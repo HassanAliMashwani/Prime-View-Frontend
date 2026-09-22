@@ -75,7 +75,7 @@ function BlockPlotsContent() {
 
   // Filters
   const [search, setSearch] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'reserved' | 'booked' | 'disputed' | 'adjustment'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'reserved' | 'booked' | 'allotted' | 'disputed' | 'adjustment'>('all');
   const [categoryFilter, setCategoryFilter] = useState<'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity'>('all');
   const [isCategoryOpen, setIsCategoryOpen] = useState<boolean>(false);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
@@ -183,7 +183,7 @@ function BlockPlotsContent() {
           if (!plot.isAdjustment) return false;
         } else if (statusFilter === 'disputed') {
           const isDisputed = Boolean(
-            plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
+            plot.status === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
           );
           if (!isDisputed) return false;
         } else if (statusFilter === 'available') {
@@ -628,12 +628,13 @@ function BlockPlotsContent() {
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Status Filter */}
           <div className="flex items-center gap-0.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0">
-            {(['all', 'available', 'reserved', 'booked', 'disputed', 'adjustment'] as const).map((st) => {
+            {(['all', 'available', 'reserved', 'booked', 'allotted', 'disputed', 'adjustment'] as const).map((st) => {
               let activeColor = 'bg-slate-900 text-white shadow-xs';
               if (st === 'available') activeColor = 'bg-emerald-600 text-white shadow-xs';
               else if (st === 'reserved') activeColor = 'bg-amber-500 text-amber-950 shadow-xs';
               else if (st === 'booked') activeColor = 'bg-red-600 text-white shadow-xs'; // Red per user request
-              else if (st === 'disputed') activeColor = 'bg-fuchsia-600 text-white shadow-xs'; // Distinct vibrant fuchsia
+              else if (st === 'allotted') activeColor = 'bg-slate-950 text-white shadow-xs';
+              else if (st === 'disputed') activeColor = 'bg-red-600 text-white shadow-xs';
               else if (st === 'adjustment') activeColor = 'bg-blue-600 text-white shadow-xs'; // Blue per adjustment freeze specification
 
               return (
@@ -799,6 +800,8 @@ function BlockPlotsContent() {
           const isAmenity = plot.category === 'amenity';
           const isReserved = plot.status === 'reserved';
           const isBooked = plot.status === 'booked';
+          const isAllotted = plot.status === 'allotted';
+          const isCommercialAvailable = plot.category === 'commercial' && plot.status === 'available';
           const isAvailable = plot.status === 'available' && !isAmenity && !isAdjustment;
           const isHighlighted = highlightedPlotId === plot.id;
 
@@ -807,7 +810,7 @@ function BlockPlotsContent() {
             : plot.reservingByName
             ? [plot.reservingByName.split(' ')[0]]
             : [];
-          const isReserving = !isLocked && !isReserved && !isBooked && reservingNames.length > 0;
+          const isReserving = !isLocked && !isReserved && !isBooked && !isAllotted && reservingNames.length > 0;
 
           let cardStyle = 'bg-white border-2 border-slate-200 text-slate-800';
           let statusBadge = 'bg-slate-100 text-slate-700 border-slate-200';
@@ -816,8 +819,8 @@ function BlockPlotsContent() {
             cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs animate-pulse';
             statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
           } else if (isDisputed) {
-            cardStyle = 'bg-gradient-to-br from-amber-50/90 via-fuchsia-50/90 to-amber-50/90 border-2 border-fuchsia-500 text-fuchsia-950 shadow-xs animate-pulse hover:border-fuchsia-600';
-            statusBadge = 'bg-fuchsia-600 text-white border-fuchsia-700 font-bold';
+            cardStyle = 'bg-red-50/90 border-2 border-red-500 text-red-950 shadow-xs animate-pulse hover:border-red-600';
+            statusBadge = 'bg-red-600 text-white border-red-700 font-bold';
           } else if (isAdjustment) {
             cardStyle = 'bg-blue-50/90 border-2 border-blue-500 text-blue-950 shadow-xs hover:bg-blue-100/90 hover:border-blue-600';
             statusBadge = 'bg-blue-600 text-white border-blue-700 font-bold';
@@ -827,6 +830,12 @@ function BlockPlotsContent() {
           } else if (isAmenity) {
             cardStyle = 'bg-slate-100/90 border-2 border-slate-300 text-slate-800 hover:bg-slate-200/90 hover:border-slate-400';
             statusBadge = 'bg-slate-700 text-white border-slate-800 font-bold';
+          } else if (isCommercialAvailable) {
+            cardStyle = 'bg-white border-2 border-slate-800 text-slate-900 hover:bg-slate-50';
+            statusBadge = 'bg-slate-100 text-slate-900 border-slate-400 font-bold';
+          } else if (isAllotted) {
+            cardStyle = 'bg-slate-950 border-2 border-slate-800 text-white hover:bg-slate-900';
+            statusBadge = 'bg-slate-900 text-white border-slate-700 font-bold';
           } else if (isReserved) {
             cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 hover:bg-amber-100/90 hover:border-amber-500';
             statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';

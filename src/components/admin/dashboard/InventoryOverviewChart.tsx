@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { PLOT_STATUS_STYLES } from '@/lib/constants/plotStatusStyles';
 
 type TimeRange = '6_months' | '1_year' | 'all_time';
 
@@ -199,19 +200,19 @@ export default function InventoryOverviewChart({
         </div>
       </div>
 
-      {/* Legend Row: Exactly matching the provided reference image */}
+      {/* Legend Row: Connected directly to PLOT_STATUS_STYLES config */}
       <div className="flex items-center justify-center gap-6 sm:gap-10 my-4 text-xs font-medium text-slate-700">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#059669] shadow-2xs" />
-          <span className="text-slate-700 font-semibold">Available</span>
+          <span className="w-3 h-3 rounded-full shadow-2xs" style={{ backgroundColor: PLOT_STATUS_STYLES.available.stroke }} />
+          <span className="text-slate-700 font-semibold">{PLOT_STATUS_STYLES.available.label}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#d97706] shadow-2xs" />
-          <span className="text-slate-700 font-semibold">Reserved</span>
+          <span className="w-3 h-3 rounded-full shadow-2xs" style={{ backgroundColor: PLOT_STATUS_STYLES.reserved.stroke }} />
+          <span className="text-slate-700 font-semibold">{PLOT_STATUS_STYLES.reserved.label}</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-[#0f3b32] shadow-2xs" />
-          <span className="text-slate-700 font-semibold">Booked</span>
+          <span className="w-3 h-3 rounded-full shadow-2xs" style={{ backgroundColor: PLOT_STATUS_STYLES.booked.fill }} />
+          <span className="text-slate-700 font-semibold">{PLOT_STATUS_STYLES.booked.label}</span>
         </div>
       </div>
 
@@ -225,21 +226,21 @@ export default function InventoryOverviewChart({
           <defs>
             {/* Soft Translucent Linear Gradients for Area Fills */}
             <linearGradient id="availableAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#059669" stopOpacity="0.22" />
-              <stop offset="60%" stopColor="#10b981" stopOpacity="0.08" />
-              <stop offset="100%" stopColor="#10b981" stopOpacity="0.01" />
+              <stop offset="0%" stopColor={PLOT_STATUS_STYLES.available.stroke} stopOpacity="0.22" />
+              <stop offset="60%" stopColor={PLOT_STATUS_STYLES.available.fill} stopOpacity="0.08" />
+              <stop offset="100%" stopColor={PLOT_STATUS_STYLES.available.fill} stopOpacity="0.01" />
             </linearGradient>
 
             <linearGradient id="reservedAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d97706" stopOpacity="0.18" />
-              <stop offset="60%" stopColor="#f59e0b" stopOpacity="0.06" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.01" />
+              <stop offset="0%" stopColor={PLOT_STATUS_STYLES.reserved.stroke} stopOpacity="0.18" />
+              <stop offset="60%" stopColor={PLOT_STATUS_STYLES.reserved.fill} stopOpacity="0.06" />
+              <stop offset="100%" stopColor={PLOT_STATUS_STYLES.reserved.fill} stopOpacity="0.01" />
             </linearGradient>
 
             <linearGradient id="bookedAreaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0f3b32" stopOpacity="0.16" />
-              <stop offset="70%" stopColor="#1e293b" stopOpacity="0.05" />
-              <stop offset="100%" stopColor="#1e293b" stopOpacity="0.01" />
+              <stop offset="0%" stopColor={PLOT_STATUS_STYLES.booked.stroke} stopOpacity="0.16" />
+              <stop offset="70%" stopColor={PLOT_STATUS_STYLES.booked.fill} stopOpacity="0.05" />
+              <stop offset="100%" stopColor={PLOT_STATUS_STYLES.booked.fill} stopOpacity="0.01" />
             </linearGradient>
           </defs>
 
@@ -290,7 +291,7 @@ export default function InventoryOverviewChart({
           <path
             d={linePathBooked}
             fill="none"
-            stroke="#0f3b32"
+            stroke={PLOT_STATUS_STYLES.booked.fill}
             strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -298,7 +299,7 @@ export default function InventoryOverviewChart({
           <path
             d={linePathReserved}
             fill="none"
-            stroke="#d97706"
+            stroke={PLOT_STATUS_STYLES.reserved.stroke}
             strokeWidth="2.4"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -306,7 +307,7 @@ export default function InventoryOverviewChart({
           <path
             d={linePathAvailable}
             fill="none"
-            stroke="#059669"
+            stroke={PLOT_STATUS_STYLES.available.stroke}
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -319,7 +320,7 @@ export default function InventoryOverviewChart({
               cx={pt.x}
               cy={pt.y}
               r={hoveredIndex === i ? 5.5 : 3.8}
-              fill="#059669"
+              fill={PLOT_STATUS_STYLES.available.stroke}
               stroke="#ffffff"
               strokeWidth="1.5"
               className="transition-all duration-150"
@@ -333,7 +334,7 @@ export default function InventoryOverviewChart({
               cx={pt.x}
               cy={pt.y}
               r={hoveredIndex === i ? 5.5 : 3.8}
-              fill="#d97706"
+              fill={PLOT_STATUS_STYLES.reserved.stroke}
               stroke="#ffffff"
               strokeWidth="1.5"
               className="transition-all duration-150"
@@ -347,7 +348,7 @@ export default function InventoryOverviewChart({
               cx={pt.x}
               cy={pt.y}
               r={hoveredIndex === i ? 5.5 : 3.8}
-              fill="#0f3b32"
+              fill={PLOT_STATUS_STYLES.booked.fill}
               stroke="#ffffff"
               strokeWidth="1.5"
               className="transition-all duration-150"
