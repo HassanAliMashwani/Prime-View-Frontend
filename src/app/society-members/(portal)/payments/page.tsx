@@ -235,9 +235,10 @@ function PaymentsContent() {
       if (sched?.paymentType === 'one_time') {
         setFormAmount(String(sched.totalPrice || sched.paidAmount || ''));
       } else {
-        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
+        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
         if (nextPending?.amount) {
-          setFormAmount(String(nextPending.amount));
+          const outstanding = (Number(nextPending.amount) || 0) - (Number((nextPending as any).paidAmount) || 0);
+          setFormAmount(String(outstanding));
         }
       }
     }
@@ -670,14 +671,20 @@ function PaymentsContent() {
                   </button>
 
                   <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => openUploadModalWithPlot(activeSchedule.plotId)}
-                      className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Upload Receipt for Plot {activeSchedule.plotNumber}</span>
-                    </button>
+                    {(() => {
+                      const hasPending = activeSchedule.paymentType === 'one_time' || activeSchedule.schedule.some(i => i.status === 'pending' || i.status === 'overdue' || i.status === 'partially_paid');
+                      if (!hasPending) return null;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => openUploadModalWithPlot(activeSchedule.plotId)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center gap-1.5 shadow-xs cursor-pointer"
+                        >
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Upload Receipt for Plot {activeSchedule.plotNumber}</span>
+                        </button>
+                      );
+                    })()}
 
                     <div className="hidden sm:flex items-center gap-2 text-xs text-[#6B7462]">
                       <Building2 className="w-3.5 h-3.5 text-[#43612B]" />
@@ -992,12 +999,13 @@ function PaymentsContent() {
                       if (selected?.paymentType === 'one_time' && sched) {
                         setFormAmount(String(sched.totalPrice || sched.paidAmount || ''));
                       } else {
-                        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
+                        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
                         if (nextPending?.installmentNumber) {
                           setFormInstallmentNo(nextPending.installmentNumber);
                         }
                         if (nextPending?.amount) {
-                          setFormAmount(String(nextPending.amount));
+                          const outstanding = (Number(nextPending.amount) || 0) - (Number((nextPending as any).paidAmount) || 0);
+                          setFormAmount(String(outstanding));
                         }
                       }
                     }}
@@ -1037,18 +1045,25 @@ function PaymentsContent() {
                 {/* Installment Number */}
                 {formPaymentType === 'installment' && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                      Installment Number
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      max={24}
-                      value={formInstallmentNo}
-                      onChange={(e) => setFormInstallmentNo(Number(e.target.value))}
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
-                      required
-                    />
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                        Installment Number
+                      </label>
+                      <span className="text-[10px] text-[#6B7462]">Assigned automatically</span>
+                    </div>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg className="w-4 h-4 text-[#6B7462]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                      <input
+                        type="text"
+                        value={formInstallmentNo ? `Installment #${formInstallmentNo}` : 'Loading...'}
+                        disabled
+                        className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed"
+                      />
+                    </div>
                   </div>
                 )}
 
