@@ -14,12 +14,14 @@ import {
   Building2,
   RotateCcw,
   MapPin,
-  Lock
+  Lock,
+  Clock
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getReservations, updateReservationNote, confirmReservation, releaseReservation, ReservationWithConflict } from '@/lib/dal/reservations';
 import { bookPlot } from '@/lib/dal/adminPlots';
 import { AdminSession, Reservation } from '@/lib/mock/types';
+import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 
 import { getBlockDisplayName } from '@/lib/map/regionData';
 
@@ -367,6 +369,24 @@ export default function ReservationsPage() {
                           {new Date(r.validUntil).toLocaleDateString()}
                         </strong>
                       </span>
+                      {r.status === 'active' && (() => {
+                        const hold = formatRemainingHoldTime(r.validUntil);
+                        return (
+                          <>
+                            <span>•</span>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                              hold.isExpired
+                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                : hold.isUrgent
+                                ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}>
+                              <Clock className="w-3 h-3" />
+                              <span>{hold.text}</span>
+                            </span>
+                          </>
+                        );
+                      })()}
                       <span>•</span>
                       <span>Reserved By: <strong className="text-slate-700">{r.reservedByAdminName}</strong></span>
                     </div>

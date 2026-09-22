@@ -52,7 +52,7 @@ export async function getReservations(
           customerPhone: r.customerPhone || '',
           customerEmail: r.customerEmail || undefined,
           tokenFee: Number(r.tokenFee) || 50000,
-          validUntil: r.validUntil || new Date(Date.now() + 7 * 86400000).toISOString(),
+          validUntil: r.validUntil || new Date(Date.now() + 24 * 3600000).toISOString(),
           reservedByAdminId: r.reservedByAdminId || '',
           reservedByAdminName: r.reservedByAdminName || 'Admin Officer',
           status: (r.status || 'active') as ReservationStatus,

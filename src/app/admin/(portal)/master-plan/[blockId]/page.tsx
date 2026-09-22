@@ -43,6 +43,7 @@ import { Block, Plot, AdminSession, Reservation, PlotCategory, Customer, Booking
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
+import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 
 const CATEGORY_COLORS: Record<string, string> = {
   residential: 'bg-blue-100 text-blue-800 border-blue-300', // Residential in Blue per user specification
@@ -123,7 +124,7 @@ function BlockPlotsContent() {
     customerPhone: '',
     customerEmail: '',
     tokenFee: 50000,
-    validDays: 7,
+    validDays: 1,
     note: '',
   });
 
@@ -305,7 +306,7 @@ function BlockPlotsContent() {
       customerPhone: '',
       customerEmail: '',
       tokenFee: 50000,
-      validDays: 7,
+      validDays: 1,
       note: '',
     });
     setActionError(null);
@@ -391,7 +392,7 @@ function BlockPlotsContent() {
         customerPhone: reserveForm.customerPhone,
         customerEmail: reserveForm.customerEmail,
         tokenFee: Number(reserveForm.tokenFee) || 50000,
-        validDays: Number(reserveForm.validDays) || 7,
+        validDays: Number(reserveForm.validDays) || 1,
         note: reserveForm.note,
       });
 
@@ -1160,6 +1161,25 @@ function BlockPlotsContent() {
                         <div className="text-[11px] text-slate-600 font-mono mt-0.5">
                           Token: <strong className="text-slate-900 font-bold">PKR {res.tokenFee.toLocaleString()}</strong> • {res.customerPhone}
                         </div>
+                        {res.validUntil && (() => {
+                          const hold = formatRemainingHoldTime(res.validUntil);
+                          return (
+                            <div className="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-1.5 flex-wrap">
+                              <span>Hold: <strong className="text-slate-800">{new Date(res.validUntil).toLocaleDateString()}</strong></span>
+                              <span>•</span>
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border ${
+                                hold.isExpired
+                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                  : hold.isUrgent
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              }`}>
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>{hold.text}</span>
+                              </span>
+                            </div>
+                          );
+                        })()}
                         {res.resolutionNote && (
                           <div className="text-[10px] text-amber-900/90 italic mt-1.5 bg-white/90 px-2.5 py-1 rounded-lg border border-amber-200 leading-snug break-words">
                             Note: {res.resolutionNote}
@@ -1428,7 +1448,12 @@ function BlockPlotsContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-700 mb-1 font-semibold">Hold Duration (Days)</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-700 font-semibold">Hold Duration (Days)</label>
+                    <span className="text-[10px] text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      Default: 1 day (24h)
+                    </span>
+                  </div>
                   <input
                     type="number"
                     min="1"
