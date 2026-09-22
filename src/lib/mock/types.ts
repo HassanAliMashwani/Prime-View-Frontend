@@ -1,7 +1,7 @@
 export type AccountStatus = 'active' | 'suspended' | 'pending';
 export type PaymentType = 'installment' | 'one_time';
 export type PlotStatus = 'available' | 'reserved' | 'booked' | 'allotted' | 'disputed';
-export type PaymentStatus = 'paid' | 'pending' | 'overdue';
+export type PaymentStatus = 'paid' | 'pending' | 'overdue' | 'partially_paid';
 export type DocumentType =
   | 'booking_confirmation'
   | 'payment_receipt'
