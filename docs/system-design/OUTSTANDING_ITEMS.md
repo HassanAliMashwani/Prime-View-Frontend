@@ -1,4 +1,4 @@
-# Outstanding items (2026-09-24)
+# Outstanding items
 
 ## Later — cloud (do not implement until asked)
 - **OI-01** Live storage provider signed upload + provider-side MIME/size reject.
