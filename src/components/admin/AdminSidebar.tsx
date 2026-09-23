@@ -10,7 +10,6 @@ import {
   BookmarkCheck,
   LogOut,
   ShieldCheck,
-  ExternalLink,
   Layers,
   Users,
   UserPlus,
@@ -263,23 +262,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
               })}
             </>
           )}
-
-        <div className="pt-5 px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          External Portal
-        </div>
-        <Link
-          href="/society-members/dashboard"
-          className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all border border-slate-200/80 bg-slate-50/50"
-        >
-          <div className="flex items-center gap-2.5">
-            <ExternalLink className="w-3.5 h-3.5 text-teal-600" />
-            <span>Member Portal View</span>
-          </div>
-          <span className="text-[9px] bg-teal-50 text-teal-800 border border-teal-200 px-1.5 py-0.5 rounded-md font-mono font-bold">
-            Portal
-          </span>
-        </Link>
-      </nav>
+        </nav>
 
       {/* Admin Scope Panel */}
       <div className="p-3.5 border-t border-slate-100 bg-slate-50/50">

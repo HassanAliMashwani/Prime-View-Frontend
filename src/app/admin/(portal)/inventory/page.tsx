@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   Map, 
-  RefreshCw,
-  Search,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
-  ShieldAlert,
-  AlertTriangle
+  RefreshCw, 
+  CheckCircle2, 
+  Clock, 
+  ShieldCheck, 
+  ShieldAlert, 
+  AlertTriangle 
 } from 'lucide-react';
 import { getInventoryStats, InventoryStats } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
@@ -40,14 +39,14 @@ export default function InventoryOverviewPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await getInventoryStats(fromDate || undefined, toDate || undefined);
+      const data = await getInventoryStats(fromDate || undefined, toDate || undefined, undefined, session?.token);
       setStats(data);
     } catch (err: any) {
       setError(err.message || 'Failed to load inventory stats');
     } finally {
       setLoading(false);
     }
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, session?.token]);
 
   useEffect(() => {
     if (session && canAccess) {
@@ -57,7 +56,7 @@ export default function InventoryOverviewPage() {
 
   if (session && !canAccess) {
     return (
-      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
+      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-3xl border border-rose-200 p-8 shadow-sm text-center">
         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
           <ShieldAlert className="w-8 h-8" />
         </div>
@@ -67,7 +66,7 @@ export default function InventoryOverviewPage() {
         </p>
         <button
           onClick={() => router.push('/admin/dashboard')}
-          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-100 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
         >
           Return to Dashboard
         </button>
@@ -88,142 +87,146 @@ export default function InventoryOverviewPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-brand-400" />
+          <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 font-serif">
+            <Building2 className="w-6 h-6 text-emerald-700" />
             Inventory Status
           </h1>
-          <p className="text-brand-300/70 text-sm mt-1">
+          <p className="text-slate-500 text-sm mt-1">
             Real-time & historical plot availability and allocation metrics
           </p>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2 bg-brand-900/50 border border-brand-800 rounded-lg p-1">
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-1 shadow-xs">
             <input 
               type="date" 
-              className="bg-transparent border-none text-white text-sm focus:ring-0 w-36"
+              className="bg-transparent border-none text-slate-800 text-sm focus:ring-0 w-36"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
             />
-            <span className="text-brand-400">to</span>
+            <span className="text-slate-400 text-xs font-medium">to</span>
             <input 
               type="date" 
-              className="bg-transparent border-none text-white text-sm focus:ring-0 w-36"
+              className="bg-transparent border-none text-slate-800 text-sm focus:ring-0 w-36"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
             />
           </div>
           <button
             onClick={() => window.print()}
-            className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+            className="p-2 bg-emerald-600 hover:bg-emerald-700 text-emerald-50 rounded-xl transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
             title="Print Inventory"
           >
-            <span className="hidden sm:inline text-sm font-medium">Print</span>
+            <span className="hidden sm:inline text-xs font-bold px-1">Print</span>
           </button>
           <button
             onClick={loadStats}
             disabled={loading}
-            className="p-2 bg-brand-800 text-brand-300 rounded-lg hover:bg-brand-700 hover:text-white transition-colors"
+            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-200 shadow-xs cursor-pointer"
             title="Refresh Data"
           >
-            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-500/20 border border-red-500/50 text-red-300 p-4 rounded-xl flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 shrink-0" />
-          <p>{error}</p>
+        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-2xl flex items-center gap-3 shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
+          <p className="text-xs font-medium">{error}</p>
         </div>
       )}
 
-      {/* Aggregate Overview Cards */}
+      {/* Aggregate Overview Cards (Mint, Cream/Yellow, Blue, Lavender) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-gradient-to-br from-green-500/10 to-green-900/20 border border-green-500/20 rounded-2xl p-5">
+        {/* Available - Mint */}
+        <div className="bg-gradient-to-br from-green-500/10 to-green-900/10 border border-green-500/20 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
-              <CheckCircle2 className="w-5 h-5 text-green-400" />
+              <CheckCircle2 className="w-5 h-5 text-green-700" />
             </div>
-            <h3 className="text-green-100 font-medium">Available</h3>
+            <h3 className="text-green-800 font-bold text-sm">Available</h3>
           </div>
-          <div className="text-3xl font-bold text-green-400">{totalAvailable}</div>
-          <p className="text-xs text-green-300/60 mt-2">Ready to book</p>
+          <div className="text-3xl font-bold text-green-700">{totalAvailable}</div>
+          <p className="text-xs text-green-700/80 mt-2 font-medium">Ready to book</p>
         </div>
 
-        <div className="bg-gradient-to-br from-yellow-500/10 to-yellow-900/20 border border-yellow-500/20 rounded-2xl p-5">
+        {/* Reserved - Amber/Yellow */}
+        <div className="bg-gradient-to-br from-amber-500/10 to-amber-900/10 border border-amber-500/20 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-              <Clock className="w-5 h-5 text-yellow-400" />
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-amber-700" />
             </div>
-            <h3 className="text-yellow-100 font-medium">Reserved</h3>
+            <h3 className="text-amber-800 font-bold text-sm">Reserved</h3>
           </div>
-          <div className="text-3xl font-bold text-yellow-400">{totalReserved}</div>
-          <p className="text-xs text-yellow-300/60 mt-2">Held for 24 hours</p>
+          <div className="text-3xl font-bold text-amber-700">{totalReserved}</div>
+          <p className="text-xs text-amber-700/80 mt-2 font-medium">Held for 24 hours</p>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500/10 to-blue-900/20 border border-blue-500/20 rounded-2xl p-5">
+        {/* Booked - Blue */}
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-900/10 border border-blue-500/20 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-              <ShieldCheck className="w-5 h-5 text-blue-400" />
+              <ShieldCheck className="w-5 h-5 text-blue-700" />
             </div>
-            <h3 className="text-blue-100 font-medium">Booked</h3>
+            <h3 className="text-blue-800 font-bold text-sm">Booked</h3>
           </div>
-          <div className="text-3xl font-bold text-blue-400">{totalBooked}</div>
-          <p className="text-xs text-blue-300/60 mt-2">Installment plan active</p>
+          <div className="text-3xl font-bold text-blue-700">{totalBooked}</div>
+          <p className="text-xs text-blue-700/80 mt-2 font-medium">Installment plan active</p>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500/10 to-purple-900/20 border border-purple-500/20 rounded-2xl p-5">
+        {/* Allotted - Purple */}
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <Map className="w-5 h-5 text-purple-400" />
+              <Map className="w-5 h-5 text-purple-700" />
             </div>
-            <h3 className="text-purple-100 font-medium">Allotted</h3>
+            <h3 className="text-purple-800 font-bold text-sm">Allotted</h3>
           </div>
-          <div className="text-3xl font-bold text-purple-400">{totalAllotted}</div>
-          <p className="text-xs text-purple-300/60 mt-2">Paid in full (One-time)</p>
+          <div className="text-3xl font-bold text-purple-700">{totalAllotted}</div>
+          <p className="text-xs text-purple-700/80 mt-2 font-medium">Paid in full (One-time)</p>
         </div>
       </div>
 
       {/* Main Stats Table */}
-      <div className="bg-brand-900/50 border border-brand-800 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-brand-950/50 border-b border-brand-800 text-brand-400 text-sm">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-bold">
               <tr>
-                <th className="py-4 px-6 font-semibold">Block</th>
-                <th className="py-4 px-6 font-semibold">Available</th>
-                <th className="py-4 px-6 font-semibold">Reserved</th>
-                <th className="py-4 px-6 font-semibold">Booked</th>
-                <th className="py-4 px-6 font-semibold">Allotted</th>
-                <th className="py-4 px-6 font-semibold">Total (4 Core)</th>
+                <th className="py-4 px-6">Block</th>
+                <th className="py-4 px-6 text-green-800">Available</th>
+                <th className="py-4 px-6 text-amber-800">Reserved</th>
+                <th className="py-4 px-6 text-blue-800">Booked</th>
+                <th className="py-4 px-6 text-purple-800">Allotted</th>
+                <th className="py-4 px-6 text-slate-700">Total (4 Core)</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-brand-800/50">
+            <tbody className="divide-y divide-slate-100 text-sm">
               {loading && stats.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-brand-400">Loading...</td>
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">Loading inventory metrics...</td>
                 </tr>
               ) : stats.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-brand-400">No data available</td>
+                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">No data available</td>
                 </tr>
               ) : (
                 stats.map((s) => (
-                  <tr key={s.blockId} className="hover:bg-brand-800/20 transition-colors">
+                  <tr key={s.blockId} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-4 px-6">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-brand-800/50 flex items-center justify-center border border-brand-700/50">
-                          <Map className="w-4 h-4 text-brand-300" />
+                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+                          <Map className="w-4 h-4 text-slate-600" />
                         </div>
-                        <span className="text-white font-medium">{s.blockName}</span>
+                        <span className="text-slate-800 font-semibold">{s.blockName}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-green-300 font-medium">{s.available}</td>
-                    <td className="py-4 px-6 text-yellow-300 font-medium">{s.reserved}</td>
-                    <td className="py-4 px-6 text-blue-300 font-medium">{s.booked}</td>
-                    <td className="py-4 px-6 text-purple-300 font-medium">{s.allotted}</td>
-                    <td className="py-4 px-6 text-white font-semibold">
+                    <td className="py-4 px-6 text-green-700 font-semibold">{s.available}</td>
+                    <td className="py-4 px-6 text-amber-700 font-semibold">{s.reserved}</td>
+                    <td className="py-4 px-6 text-blue-700 font-semibold">{s.booked}</td>
+                    <td className="py-4 px-6 text-purple-700 font-semibold">{s.allotted}</td>
+                    <td className="py-4 px-6 text-slate-900 font-bold">
                       {s.available + s.reserved + s.booked + s.allotted}
                     </td>
                   </tr>
@@ -231,14 +234,14 @@ export default function InventoryOverviewPage() {
               )}
             </tbody>
             {!loading && stats.length > 0 && (
-              <tfoot className="bg-brand-950/50 border-t border-brand-800">
+              <tfoot className="bg-slate-50/80 border-t border-slate-200 text-sm">
                 <tr>
-                  <td className="py-4 px-6 text-white font-semibold">Total</td>
-                  <td className="py-4 px-6 text-green-400 font-bold">{totalAvailable}</td>
-                  <td className="py-4 px-6 text-yellow-400 font-bold">{totalReserved}</td>
-                  <td className="py-4 px-6 text-blue-400 font-bold">{totalBooked}</td>
-                  <td className="py-4 px-6 text-purple-400 font-bold">{totalAllotted}</td>
-                  <td className="py-4 px-6 text-white font-bold">{totalSellable}</td>
+                  <td className="py-4 px-6 text-slate-900 font-bold">Total</td>
+                  <td className="py-4 px-6 text-green-700 font-bold">{totalAvailable}</td>
+                  <td className="py-4 px-6 text-amber-700 font-bold">{totalReserved}</td>
+                  <td className="py-4 px-6 text-blue-700 font-bold">{totalBooked}</td>
+                  <td className="py-4 px-6 text-purple-700 font-bold">{totalAllotted}</td>
+                  <td className="py-4 px-6 text-slate-900 font-bold">{totalSellable}</td>
                 </tr>
               </tfoot>
             )}
@@ -247,7 +250,7 @@ export default function InventoryOverviewPage() {
       </div>
       
       {totalDisputed > 0 && (
-        <div className="text-sm text-brand-400 mt-2 italic px-2">
+        <div className="text-xs text-slate-500 mt-2 italic px-2">
           * + {totalDisputed} disputed plot(s) not included in the four counts (A-01 only today).
         </div>
       )}
