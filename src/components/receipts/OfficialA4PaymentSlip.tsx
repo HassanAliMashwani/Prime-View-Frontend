@@ -13,6 +13,12 @@ import {
   Lock,
 } from 'lucide-react';
 
+/** Stable public verify URL — uses NEXT_PUBLIC_APP_URL, never window.location.origin */
+function slipVerifyUrl(slipNumber: string): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://primeview.pk').replace(/\/$/, '');
+  return `${base}/verify/${slipNumber}`;
+}
+
 export function formatAmountInWords(amount: number): string {
   if (amount === 50000) return 'Fifty Thousand Rupees Only';
   if (amount === 100000) return 'One Hundred Thousand Rupees Only';
@@ -61,7 +67,7 @@ export function buildSlipDataFromSubmission(sub: ReceiptSubmission): SlipRenderM
     verifiedDate: sub.verifiedAt ? sub.verifiedAt.split('T')[0] : new Date().toISOString().split('T')[0],
     verifiedBy: sub.verifiedByAdminName || 'Society Secretariat / Finance Officer',
     securityHash: sub.slip?.securityHash || `PV-SEC-${sub.id.slice(-6).toUpperCase()}`,
-    qrPayload: sub.slip?.qrPayload || `PRIME-VIEW|${sub.membershipNo}|${sub.plotNumber}|${sub.amount}`,
+    qrPayload: slipVerifyUrl(sub.slip?.slipNumber || `PV-SLIP-${new Date().getFullYear()}-${sub.id.slice(-4)}`),
   };
 }
 
@@ -246,6 +252,28 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                     Hash: {slip.securityHash.slice(0, 16)}...
                   </div>
                 </div>
+
+                {/* Upper Half QR — same URL as lower, stable public origin */}
+                <div className="mt-3 pt-3 border-t border-black/10 flex items-center gap-3">
+                  <a
+                    href={slipVerifyUrl(slip.slipNumber)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-20 h-20 bg-white border-2 border-[#43612B] rounded-xl p-1 flex flex-col items-center justify-center shadow-xs shrink-0 hover:border-[#365222] transition-colors"
+                    title="Scan or click to verify this receipt"
+                  >
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(slipVerifyUrl(slip.slipNumber))}`}
+                      alt={`QR Code for ${slip.slipNumber}`}
+                      className="w-14 h-14 object-contain"
+                      onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                    />
+                    <span className="text-[8px] font-bold font-mono tracking-tighter text-[#43612B] mt-0.5">SCAN TO VERIFY</span>
+                  </a>
+                  <p className="text-[10px] text-[#6B7462] leading-tight">
+                    Society Archive Copy — scan or visit <span className="font-mono font-semibold text-[#43612B]">{slipVerifyUrl(slip.slipNumber)}</span>
+                  </p>
+                </div>
               </section>
 
               {/* ────────────────────────────────────────────────────────────────── */}
@@ -389,11 +417,7 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                   title="Click to test official public verification"
                 >
                   <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(
-                      typeof window !== 'undefined'
-                        ? `${window.location.origin}/verify/${slip.slipNumber}`
-                        : `https://primeview.pk/verify/${slip.slipNumber}`
-                    )}`}
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(slipVerifyUrl(slip.slipNumber))}`}
                     alt={`QR Code for ${slip.slipNumber}`}
                     className="w-16 h-16 object-contain"
                     onError={(e) => {
