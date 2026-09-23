@@ -197,6 +197,8 @@ export interface AdminPermissions {
   can_view_customers?: boolean;
   can_view_sales_reports?: boolean;
   can_view_sales_history?: boolean;
+  can_view_inventory?: boolean;
+  can_view_master_plan?: boolean;
 }
 
 export interface AdminUser {
@@ -338,6 +340,7 @@ export interface ReceiptSubmission {
     assignedAt: string;
     receiptId?: string;
   }>;
+  previewData?: any;
 }
 
 // ── Physical Customer Booking Documents (Change Request 05 §2) ──

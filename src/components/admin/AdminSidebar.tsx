@@ -51,6 +51,8 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
   const canViewSales = isSuper || Boolean(session?.permissions?.can_view_sales_reports || session?.permissions?.can_book || session?.permissions?.can_create_customer);
   const canEditContent = isSuper || Boolean(session?.permissions?.can_edit_content);
   const canVerifyReceipts = isSuper || Boolean(session?.permissions?.can_verify_receipts);
+  const canViewInventory = isSuper || Boolean(session?.permissions?.can_view_inventory);
+  const canViewMasterPlan = isSuper || Boolean(session?.permissions?.can_view_master_plan);
 
   const coreNavItems = [
     {
@@ -69,7 +71,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
       iconColor: 'text-indigo-600',
       activeColor: 'bg-indigo-50 text-indigo-950 border-indigo-600',
       active: pathname.startsWith('/admin/master-plan'),
-      visible: true,
+      visible: canViewMasterPlan,
     },
     {
       label: 'Inventory Overview',
@@ -78,7 +80,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
       iconColor: 'text-teal-600',
       activeColor: 'bg-teal-50 text-teal-950 border-teal-600',
       active: pathname === '/admin/inventory',
-      visible: true,
+      visible: canViewInventory,
     },
     {
       label: 'Sort Reservations',

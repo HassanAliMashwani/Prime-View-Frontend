@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   Building2, 
   Map, 
@@ -9,17 +10,32 @@ import {
   CheckCircle2,
   Clock,
   ShieldCheck,
+  ShieldAlert,
   AlertTriangle
 } from 'lucide-react';
 import { getInventoryStats, InventoryStats } from '@/lib/dal/inventory';
+import { getActiveAdminSession } from '@/lib/dal/adminAuth';
+import { AdminSession } from '@/lib/mock/types';
 
 export default function InventoryOverviewPage() {
+  const router = useRouter();
+  const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [stats, setStats] = useState<InventoryStats[]>([]);
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [error, setError] = useState<string>('');
   
+  useEffect(() => {
+    const s = getActiveAdminSession();
+    if (s) {
+      setSession(s);
+    }
+  }, []);
+
+  const isSuper = session?.role === 'super_admin';
+  const canAccess = isSuper || Boolean(session?.permissions?.can_view_inventory);
+
   const loadStats = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -34,8 +50,30 @@ export default function InventoryOverviewPage() {
   }, [fromDate, toDate]);
 
   useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+    if (session && canAccess) {
+      loadStats();
+    }
+  }, [session, canAccess, loadStats]);
+
+  if (session && !canAccess) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Inventory Overview</h2>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+          Your administrative account does not have permission to view inventory status. Contact a Super Administrator to adjust your privileges.
+        </p>
+        <button
+          onClick={() => router.push('/admin/dashboard')}
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   const totalBooked = stats.reduce((sum, s) => sum + s.booked, 0);
   const totalAllotted = stats.reduce((sum, s) => sum + s.allotted, 0);
