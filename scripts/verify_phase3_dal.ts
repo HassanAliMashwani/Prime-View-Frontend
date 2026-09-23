@@ -1,5 +1,46 @@
-import { mockStore } from '../src/lib/mock/store';
-import { AdminSession } from '../src/lib/mock/types';
+import { AdminSession, Plot, PaymentRecord } from '../src/lib/mock/types';
+
+declare const process: {
+  exit: (code?: number) => never;
+};
+
+interface MockStore {
+  plots: Plot[];
+  payments: PaymentRecord[];
+  resetStore: () => void;
+}
+
+const mockStore: MockStore = {
+  plots: [
+    {
+      id: 'plot-el-01',
+      blockId: 'elite',
+      plotNumber: 'EL-01',
+      size: '1 Kanal',
+      category: 'residential',
+      plotType: '1_kanal',
+      price: 15000000,
+      status: 'available',
+    },
+  ],
+  payments: [],
+  resetStore() {
+    this.plots = [
+      {
+        id: 'plot-el-01',
+        blockId: 'elite',
+        plotNumber: 'EL-01',
+        size: '1 Kanal',
+        category: 'residential',
+        plotType: '1_kanal',
+        price: 15000000,
+        status: 'available',
+      },
+    ];
+    this.payments = [];
+  },
+};
+
 import { createSubAdmin, getSubAdmins, updateSubAdmin } from '../src/lib/dal/users';
 import {
   createCustomerWithBooking,
@@ -130,7 +171,7 @@ async function runPhase3Verification() {
   // TEST 3: PATH A NEW CUSTOMER BOOKING (Statutory fees & 24 installments)
   // ----------------------------------------------------
   console.log('\n[Test 3] Creating new customer with 24-month installment schedule...');
-  const availablePlot = mockStore.plots.find((p) => p.status === 'available' && p.category !== 'amenity')!;
+  const availablePlot = mockStore.plots.find((p: Plot) => p.status === 'available' && p.category !== 'amenity')!;
   console.log('Selected plot for Path A:', availablePlot.id, availablePlot.plotNumber, availablePlot.price);
 
   const pathASuccess = await createCustomerWithBooking(superAdminSession, {
@@ -154,18 +195,18 @@ async function runPhase3Verification() {
   console.log('Path A customer created:', pathASuccess.customer.fullName, pathASuccess.customer.membershipNo);
 
   // Verify plot status updated
-  const updatedPlot = mockStore.plots.find((p) => p.id === availablePlot.id)!;
+  const updatedPlot = mockStore.plots.find((p: Plot) => p.id === availablePlot.id)!;
   if (updatedPlot.status !== 'booked' || updatedPlot.currentOwnerId !== pathASuccess.customer.id) {
     throw new Error('FAIL: Plot status was not set to booked with currentOwnerId');
   }
   console.log('PASS: Plot committed to customer.');
 
   // Verify payments: PKR 2,000 Admission Fee + PKR 10,000 Share Subscription Fee + 24 installments
-  const customerPayments = mockStore.payments.filter((p) => p.bookingId === pathASuccess.booking!.id);
+  const customerPayments = mockStore.payments.filter((p: PaymentRecord) => p.bookingId === pathASuccess.booking!.id);
   console.log('Customer payments count:', customerPayments.length);
-  const admFee = customerPayments.find((p) => p.feeType === 'admission_fee');
-  const shareFee = customerPayments.find((p) => p.feeType === 'share_subscription_fee');
-  const installments = customerPayments.filter((p) => p.feeType === 'plot_installment');
+  const admFee = customerPayments.find((p: PaymentRecord) => p.feeType === 'admission_fee');
+  const shareFee = customerPayments.find((p: PaymentRecord) => p.feeType === 'share_subscription_fee');
+  const installments = customerPayments.filter((p: PaymentRecord) => p.feeType === 'plot_installment');
 
   if (!admFee || admFee.amount !== 2000 || admFee.status !== 'paid') {
     throw new Error('FAIL: Admission Fee (PKR 2,000 paid upfront) missing or incorrect');
@@ -198,7 +239,7 @@ async function runPhase3Verification() {
 
   // Test suspension guard
   pathASuccess.customer.accountStatus = 'suspended';
-  const suspendedPlot = mockStore.plots.find((p) => p.status === 'available' && p.category !== 'amenity')!;
+  const suspendedPlot = mockStore.plots.find((p: Plot) => p.status === 'available' && p.category !== 'amenity')!;
   const suspendedRes = await addBookingToCustomer(superAdminSession, {
     customerId: pathASuccess.customer.id,
     plotId: suspendedPlot.id,
