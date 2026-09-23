@@ -6,7 +6,7 @@ import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { PaymentScheduleTable } from '@/components/member-portal/PaymentScheduleTable';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { PlotPaymentSchedule } from '@/lib/dal/payments';
-import { submitPaymentReceipt, getCustomerReceipts } from '@/lib/dal/receipts';
+import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview } from '@/lib/dal/receipts';
 import { ReceiptSubmission } from '@/lib/mock/types';
 import {
   OfficialA4PaymentSlip,
@@ -51,11 +51,14 @@ function PaymentsContent() {
   // Receipt form state
   const [formPlotId, setFormPlotId] = useState<string>('');
   const [formPaymentType, setFormPaymentType] = useState<'installment' | 'one_time'>('installment');
+  const [formPaymentKind, setFormPaymentKind] = useState<'regular' | 'balloon'>('regular');
   const [formInstallmentNo, setFormInstallmentNo] = useState<number>(1);
   const [formAmount, setFormAmount] = useState<string>('');
   const [formBankName, setFormBankName] = useState<string>('Meezan Bank');
   const [formTxnRef, setFormTxnRef] = useState<string>('');
   const [formDate, setFormDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [formFileName, setFormFileName] = useState<string>('');
   const [formFileUrl, setFormFileUrl] = useState<string>('');
   const [formNotes, setFormNotes] = useState<string>('');
@@ -101,6 +104,31 @@ function PaymentsContent() {
       return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue');
     });
   }, [plots, schedules, receipts]);
+
+  // Debounced preview fetch for balloon payments
+  useEffect(() => {
+    if (formPaymentType !== 'installment' || formPaymentKind !== 'balloon' || !formPlotId) {
+      setPreviewData(null);
+      return;
+    }
+    const numAmt = Number(formAmount);
+    if (isNaN(numAmt) || numAmt <= 0) {
+      setPreviewData(null);
+      return;
+    }
+
+    setIsPreviewLoading(true);
+    const t = setTimeout(async () => {
+      const res = await getBalloonPreview(formPlotId, numAmt);
+      if (res.ok && res.data) {
+        setPreviewData(res.data);
+      } else {
+        setPreviewData(null);
+      }
+      setIsPreviewLoading(false);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [formAmount, formPaymentKind, formPaymentType, formPlotId]);
 
   const loadReceipts = useCallback(async () => {
     if (profile?.id) {
@@ -297,6 +325,8 @@ function PaymentsContent() {
         receiptFileUrl: formFileUrl,
         receiptFileName: formFileName || 'deposit_receipt.jpg',
         notes: formNotes,
+        paymentKind: formPaymentKind,
+        previewData: previewData,
       });
 
       if (res.ok) {
@@ -1042,8 +1072,25 @@ function PaymentsContent() {
                   </select>
                 </div>
 
-                {/* Installment Number */}
+                {/* Payment Kind */}
                 {formPaymentType === 'installment' && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                      Payment Kind
+                    </label>
+                    <select
+                      value={formPaymentKind}
+                      onChange={(e) => setFormPaymentKind(e.target.value as 'regular' | 'balloon')}
+                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] cursor-pointer"
+                    >
+                      <option value="regular">Regular Installment</option>
+                      <option value="balloon">Balloon / Bulk Payment</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Installment Number */}
+                {formPaymentType === 'installment' && formPaymentKind === 'regular' && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
@@ -1080,7 +1127,35 @@ function PaymentsContent() {
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                     required
                   />
+                  {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (
+                    <div className="text-[10px] text-[#6B7462] mt-1 space-y-0.5 leading-snug">
+                      <p><strong>Note:</strong> Balloon payment allocations apply to oldest outstanding installments first.</p>
+                      <p>Customer ledger is updated only after admin verification.</p>
+                    </div>
+                  )}
                 </div>
+
+                {/* Preview UI */}
+                {formPaymentType === 'installment' && formPaymentKind === 'balloon' && previewData && (
+                  <div className="col-span-1 sm:col-span-2 space-y-2 p-3 sm:p-4 bg-[#EAF0E7]/60 border border-[#43612B]/20 rounded-xl">
+                    <h4 className="text-xs font-bold text-[#43612B] flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Balloon Allocation Preview
+                    </h4>
+                    {previewData.error ? (
+                      <p className="text-xs font-semibold text-rose-600">{previewData.error}</p>
+                    ) : (
+                      <div className="space-y-1 bg-white/50 rounded-lg p-2 border border-[#43612B]/10">
+                        {previewData.allocations.map((a: any, i: number) => (
+                          <div key={i} className="text-[11px] text-[#151914] flex justify-between border-b border-[#43612B]/10 py-1.5 last:border-0 font-medium">
+                            <span>Installment Alloc</span>
+                            <span className="font-mono text-[#43612B]">Rs. {a.amountApplied.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Bank Name */}
                 <div className="space-y-1.5">

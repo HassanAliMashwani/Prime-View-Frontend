@@ -50,6 +50,10 @@ export default function AdminReceiptsPage() {
   const [assignStrike, setAssignStrike] = useState(false);
   const [strikeReason, setStrikeReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // Drift modal state
+  const [driftReceipt, setDriftReceipt] = useState<ReceiptSubmission | null>(null);
+  const [driftNewPreview, setDriftNewPreview] = useState<any>(null);
 
   const loadData = useCallback(async (currentSession: AdminSession) => {
     const isSuper = currentSession.role === 'super_admin';
@@ -95,24 +99,34 @@ export default function AdminReceiptsPage() {
     }
   }, [feedback]);
 
-  const handleVerify = async (receiptId: string) => {
+  const handleVerify = async (receiptId: string, confirmPreviewDrift = false) => {
     if (!session) return;
     setIsProcessing(true);
     try {
-      const res = await verifyReceipt(session, receiptId);
+      const res = await verifyReceipt(session, receiptId, undefined, confirmPreviewDrift);
       if (res.ok && res.receipt) {
         setFeedback({
           type: 'success',
           message: `Receipt approved! Generated official Slip #${res.receipt.slip?.slipNumber}. Upper part secured in admin records; Lower part sent to customer.`,
         });
         await loadData(session);
+        setDriftReceipt(null);
+        setDriftNewPreview(null);
         // Automatically open the verified A4 slip preview for review/print
         setActiveSlip(res.receipt);
       } else {
-        setFeedback({
-          type: 'error',
-          message: res.message || res.error || 'Failed to verify receipt.',
-        });
+        if (res.error === 'PREVIEW_DRIFT') {
+          const rec = receipts.find(r => r.id === receiptId);
+          if (rec) {
+            setDriftReceipt(rec);
+            setDriftNewPreview(res.newPreview);
+          }
+        } else {
+          setFeedback({
+            type: 'error',
+            message: res.message || res.error || 'Failed to verify receipt.',
+          });
+        }
       }
     } catch {
       setFeedback({ type: 'error', message: 'An unexpected error occurred during verification.' });
@@ -394,6 +408,11 @@ export default function AdminReceiptsPage() {
                   {sub.paymentType === 'one_time' && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-200">
                       Record Only &bull; Settled
+                    </span>
+                  )}
+                  {(sub as any).paymentKind === 'balloon' && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200 shadow-sm">
+                      Balloon Payment
                     </span>
                   )}
 
@@ -743,6 +762,70 @@ export default function AdminReceiptsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* DRIFT CONFIRMATION MODAL                                      */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {driftReceipt && driftNewPreview && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="max-w-2xl w-full bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-6 h-6 text-amber-700" />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-xl text-slate-900">Schedule Drift Detected</h3>
+                <p className="text-xs text-slate-600 mt-1">
+                  The customer's ledger schedule has been altered since they submitted this receipt. The engine has recalculated the balloon allocations against the latest state.
+                </p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-2">
+                <h4 className="text-[10px] font-bold uppercase text-slate-500">Customer Preview (Drifted)</h4>
+                <div className="space-y-1">
+                  {driftReceipt.previewData?.allocations?.map((a: any, i: number) => (
+                    <div key={i} className="text-[11px] flex justify-between text-slate-700 border-b border-slate-200/50 pb-1 mb-1 last:border-0">
+                      <span>Inst. {a.paymentRecordId.split('_').pop()?.substring(0,8)}...</span>
+                      <span className="font-mono font-bold">Rs. {a.amountApplied.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 space-y-2">
+                <h4 className="text-[10px] font-bold uppercase text-emerald-700">New Engine Allocation</h4>
+                <div className="space-y-1">
+                  {driftNewPreview.allocations?.map((a: any, i: number) => (
+                    <div key={i} className="text-[11px] flex justify-between text-emerald-800 border-b border-emerald-200/50 pb-1 mb-1 last:border-0">
+                      <span>Inst. {a.paymentRecordId.split('_').pop()?.substring(0,8)}...</span>
+                      <span className="font-mono font-bold">Rs. {a.amountApplied.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => { setDriftReceipt(null); setDriftNewPreview(null); }}
+                className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel Verification
+              </button>
+              <button
+                type="button"
+                onClick={() => handleVerify(driftReceipt.id, true)}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer transition-all"
+              >
+                Confirm Re-calculated Allocations
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -13,6 +13,8 @@ export interface SubmitReceiptInput {
   receiptFileUrl: string;
   receiptFileName: string;
   notes?: string;
+  paymentKind?: 'regular' | 'balloon';
+  previewData?: any;
 }
 
 /**
@@ -37,6 +39,8 @@ export async function submitPaymentReceipt(
     receiptFileUrl: input.receiptFileUrl,
     receiptFileName: input.receiptFileName,
     notes: input.notes?.trim(),
+    paymentKind: input.paymentKind,
+    previewData: input.previewData,
   };
 
   const res = await apiPost<{ receipt: ReceiptSubmission }>('/receipts', payload, token || undefined);
@@ -51,6 +55,12 @@ export async function submitPaymentReceipt(
 
   const receipt = (res.data as any)?.receipt || res.data;
   return { ok: true, receipt };
+}
+
+export async function getBalloonPreview(plotId: string, amount: number) {
+  const token = getMemberToken();
+  const res = await apiGet<any>(`/receipts/balloon-preview?plotId=${plotId}&amount=${amount}`, token || undefined);
+  return res;
 }
 
 /**
@@ -99,11 +109,12 @@ export async function getAdminReceipts(
 export async function verifyReceipt(
   session: AdminSession,
   receiptId: string,
-  notes?: string
-): Promise<{ ok: boolean; receipt?: ReceiptSubmission; error?: string; message?: string }> {
+  notes?: string,
+  confirmPreviewDrift?: boolean
+): Promise<{ ok: boolean; receipt?: ReceiptSubmission; error?: string; message?: string; newPreview?: any }> {
   const res = await apiPost<{ receipt: ReceiptSubmission }>(
     `/receipts/${receiptId}/verify`,
-    { notes },
+    { notes, confirmPreviewDrift },
     session.token || getAdminToken() || undefined
   );
 
@@ -112,6 +123,7 @@ export async function verifyReceipt(
       ok: false,
       error: res.error || 'VERIFY_FAILED',
       message: res.message || 'Failed to verify payment slip.',
+      newPreview: res.details?.newPreview,
     };
   }
 

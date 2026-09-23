@@ -16,13 +16,16 @@ import {
   UserPlus,
   FileEdit,
   ScrollText,
-  FileCheck
+  FileCheck,
+  X,
 } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
 import { adminLogout } from '@/lib/dal/adminAuth';
 
 interface AdminSidebarProps {
   session: AdminSession | null;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const BLOCK_COLORS: Record<string, string> = {
@@ -36,7 +39,7 @@ const BLOCK_COLORS: Record<string, string> = {
   'npf-phase-2': 'bg-cyan-50 text-cyan-800 border-cyan-200',
 };
 
-export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
+export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onClose }) => {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -47,8 +50,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
 
   const isSuper = session?.role === 'super_admin';
   const canCreateCustomer = isSuper || Boolean(session?.permissions?.can_create_customer);
-  const canViewCustomers = isSuper || Boolean(session?.permissions?.can_view_customers || session?.permissions?.can_create_customer);
-  const canViewSales = isSuper || Boolean(session?.permissions?.can_view_sales_reports || session?.permissions?.can_book || session?.permissions?.can_create_customer);
+  const canViewCustomers = isSuper || Boolean(session?.permissions?.can_view_customers);
+  const canReserve = isSuper || Boolean(session?.permissions?.can_reserve || session?.permissions?.can_book);
+  const canViewSales = isSuper || Boolean(session?.permissions?.can_view_sales_history || session?.permissions?.can_view_sales_reports);
   const canEditContent = isSuper || Boolean(session?.permissions?.can_edit_content);
   const canVerifyReceipts = isSuper || Boolean(session?.permissions?.can_verify_receipts);
   const canViewInventory = isSuper || Boolean(session?.permissions?.can_view_inventory);
@@ -89,7 +93,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
       iconColor: 'text-amber-600',
       activeColor: 'bg-amber-50 text-amber-950 border-amber-600',
       active: pathname === '/admin/reservations',
-      visible: true,
+      visible: canReserve,
     },
     {
       label: 'Customer Directory',
@@ -160,81 +164,105 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
   ];
 
   return (
-    <aside className="w-64 bg-white text-slate-800 flex flex-col border-r border-slate-200/90 select-none h-screen sticky top-0 shrink-0 shadow-xs z-20">
-      {/* Brand Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] border border-[#234F3D] flex items-center justify-center text-[#D4AF37] font-serif font-bold text-xl shadow-md shrink-0">
-            PV
-          </div>
-          <div>
-            <div className="font-serif font-bold text-base tracking-tight text-[#10251E] leading-tight">
-              PRIME VIEW
-            </div>
-            <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-700 mt-0.5">
-              Admin Core • Management
-            </div>
-          </div>
-        </div>
-        {/* Right side logo badge */}
-        <div className="relative w-7 h-7 opacity-80 shrink-0">
-          <Image
-            src="/logo-trimmed.png"
-            alt="Logo"
-            width={28}
-            height={28}
-            className="object-contain"
-          />
-        </div>
-      </div>
+    <>
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-40 lg:hidden transition-opacity"
+        />
+      )}
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-          Core Operations
-        </div>
-        {coreNavItems.filter((i) => i.visible).map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                item.active
-                  ? `${item.activeColor} border-l-4 shadow-xs font-bold`
-                  : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-              }`}
+      <aside
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-white text-slate-800 flex flex-col border-r border-slate-200/90 select-none h-screen shadow-lg lg:shadow-xs transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Brand Header */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] border border-[#234F3D] flex items-center justify-center text-[#D4AF37] font-serif font-bold text-xl shadow-md shrink-0">
+              PV
+            </div>
+            <div>
+              <div className="font-serif font-bold text-base tracking-tight text-[#10251E] leading-tight">
+                PRIME VIEW
+              </div>
+              <div className="text-[10px] uppercase tracking-wider font-bold text-emerald-700 mt-0.5">
+                Admin Core • Management
+              </div>
+            </div>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="lg:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors cursor-pointer"
+              aria-label="Close sidebar"
             >
-              <Icon className={`w-4 h-4 ${item.active ? '' : item.iconColor}`} />
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+              <X className="w-5 h-5" />
+            </button>
+          )}
+          {/* Right side logo badge on desktop */}
+          <div className="hidden lg:block relative w-7 h-7 opacity-80 shrink-0">
+            <Image
+              src="/logo-trimmed.png"
+              alt="Logo"
+              width={28}
+              height={28}
+              className="object-contain"
+            />
+          </div>
+        </div>
 
-        {isSuper && (
-          <>
-            <div className="pt-5 px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
-              Governance & Audit
-            </div>
-            {adminNavItems.filter((i) => i.visible).map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                    item.active
-                      ? `${item.activeColor} border-l-4 shadow-xs font-bold`
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${item.active ? '' : item.iconColor}`} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </>
-        )}
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            Core Operations
+          </div>
+          {coreNavItems.filter((i) => i.visible).map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                  item.active
+                    ? `${item.activeColor} border-l-4 shadow-xs font-bold`
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${item.active ? '' : item.iconColor}`} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+
+          {isSuper && (
+            <>
+              <div className="pt-5 px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                Governance & Audit
+              </div>
+              {adminNavItems.filter((i) => i.visible).map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={onClose}
+                    className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
+                      item.active
+                        ? `${item.activeColor} border-l-4 shadow-xs font-bold`
+                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                    }`}
+                  >
+                    <Icon className={`w-4 h-4 ${item.active ? '' : item.iconColor}`} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </>
+          )}
 
         <div className="pt-5 px-3 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
           External Portal
@@ -312,5 +340,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session }) => {
         </button>
       </div>
     </aside>
+    </>
   );
 };

@@ -71,6 +71,7 @@ export interface ApiResponse<T> {
   error?: string;
   message?: string;
   status?: number;
+  details?: any;
 }
 
 /**
@@ -114,6 +115,7 @@ export async function apiPost<T>(path: string, bodyData: any, token?: string): P
         error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
         message: body?.message || body?.error,
         status: res.status,
+        details: body,
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };

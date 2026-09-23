@@ -16,6 +16,7 @@ export default function AdminPortalLayout({
   const pathname = usePathname();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const active = getActiveAdminSession();
@@ -79,11 +80,16 @@ export default function AdminPortalLayout({
   return (
     <div className="h-screen flex overflow-hidden bg-[#F8FAF9] text-slate-900 print:h-auto print:overflow-visible print:bg-white print:block">
       <div className="print:hidden shrink-0">
-        <AdminSidebar session={session} />
+        <AdminSidebar session={session} isOpen={mobileOpen} onClose={() => setMobileOpen(false)} />
       </div>
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden print:h-auto print:overflow-visible print:block">
         <div className="print:hidden">
-          <AdminHeader session={session} title={pageTitle} subtitle={pageSubtitle} />
+          <AdminHeader
+            session={session}
+            title={pageTitle}
+            subtitle={pageSubtitle}
+            onOpenMobileMenu={() => setMobileOpen(true)}
+          />
         </div>
         <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#F4F7F5] print:p-0 print:m-0 print:bg-white print:overflow-visible print:h-auto print:block">
           {children}
