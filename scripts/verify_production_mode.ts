@@ -54,7 +54,7 @@ async function main() {
     // -------------------------------------------------------------
     console.log('\n>>> TEST 1 (Production): Block Scoping (Marketing)...');
     const pageM = await browser.newPage();
-    await loginAs(pageM, 'marketing', 'password123');
+    await loginAs(pageM, 'marketing', 'TEST_PASSWORD_PLACEHOLDER');
     await pageM.goto(`${BASE_URL}/admin/master-plan`);
     await pageM.waitForFunction(() => document.body.innerText.includes('Accessible Blocks') || document.body.innerText.includes('Available'));
 
@@ -82,7 +82,7 @@ async function main() {
     // -------------------------------------------------------------
     console.log('\n>>> TEST 2 (Production): Block Scoping (Police)...');
     const pageP = await browser.newPage();
-    await loginAs(pageP, 'police', 'password123');
+    await loginAs(pageP, 'police', 'TEST_PASSWORD_PLACEHOLDER');
     await pageP.goto(`${BASE_URL}/admin/master-plan`);
     await pageP.waitForFunction(() => document.body.innerText.includes('Accessible Blocks') || document.body.innerText.includes('Available'));
 
@@ -111,12 +111,12 @@ async function main() {
     // -------------------------------------------------------------
     console.log('\n>>> TESTS 3, 4, 5 (Production): Two-Window Soft Lock Live & Commit...');
     const windowA = await browser.newPage();
-    await loginAs(windowA, 'admin', 'password123');
+    await loginAs(windowA, 'admin', 'TEST_PASSWORD_PLACEHOLDER');
     await windowA.goto(`${BASE_URL}/admin/master-plan/abbott`);
     await windowA.waitForFunction(() => document.body.innerText.includes('Visible Plots'));
 
     const windowB = await browser.newPage();
-    await loginAs(windowB, 'marketing', 'password123');
+    await loginAs(windowB, 'marketing', 'TEST_PASSWORD_PLACEHOLDER');
     await windowB.goto(`${BASE_URL}/admin/master-plan/abbott`);
     await windowB.waitForFunction(() => document.body.innerText.includes('Visible Plots'));
 
@@ -221,7 +221,7 @@ async function main() {
     pageAdminRes.on('dialog', async dialog => {
       await dialog.accept();
     });
-    await loginAs(pageAdminRes, 'admin', 'password123');
+    await loginAs(pageAdminRes, 'admin', 'TEST_PASSWORD_PLACEHOLDER');
     await pageAdminRes.goto(`${BASE_URL}/admin/reservations`);
     await pageAdminRes.waitForFunction(() => document.body.innerText.includes('R-08') || document.body.innerText.includes('Race Claim'));
 
@@ -253,7 +253,7 @@ async function main() {
     // -------------------------------------------------------------
     console.log('\n>>> TEST 7 (Production): Confirm Amenity Plots Non-Actionability...');
     const pageAmenity = await browser.newPage();
-    await loginAs(pageAmenity, 'admin', 'password123');
+    await loginAs(pageAmenity, 'admin', 'TEST_PASSWORD_PLACEHOLDER');
     await pageAmenity.goto(`${BASE_URL}/admin/master-plan/abbott`);
     await pageAmenity.waitForFunction(() => document.body.innerText.includes('AMN-H01'));
 

@@ -37,23 +37,9 @@ export default function AdminLoginPage() {
     }
   };
 
-  const handleQuickFill = async (u: string, p: string) => {
+  const handlePrefillUsername = (u: string) => {
     setUsername(u);
-    setPassword(p);
-    setLoading(true);
     setError(null);
-    try {
-      const res = await adminLogin(u, p);
-      if (res.ok) {
-        router.push('/admin/dashboard');
-      } else {
-        setError(res.error || 'Authentication failed.');
-      }
-    } catch {
-      setError('Authentication failed.');
-    } finally {
-      setLoading(false);
-    }
   };
 
   return (
@@ -143,15 +129,15 @@ export default function AdminLoginPage() {
             </button>
           </form>
 
-          {/* Quick Demo Switcher */}
+          {/* Role Username Selector */}
           <div className="mt-8 pt-5 border-t border-slate-100">
             <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 text-center">
-              Quick Switch Roles (One-Click Access)
+              Select Role (Prefill Username)
             </div>
             <div className="grid grid-cols-1 gap-2">
               <button
                 type="button"
-                onClick={() => handleQuickFill('admin', 'password123')}
+                onClick={() => handlePrefillUsername('admin')}
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
               >
                 <div>
@@ -163,7 +149,7 @@ export default function AdminLoginPage() {
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('marketing', 'password123')}
+                onClick={() => handlePrefillUsername('marketing')}
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
               >
                 <div>
@@ -175,7 +161,7 @@ export default function AdminLoginPage() {
 
               <button
                 type="button"
-                onClick={() => handleQuickFill('police', 'password123')}
+                onClick={() => handlePrefillUsername('police')}
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
               >
                 <div>

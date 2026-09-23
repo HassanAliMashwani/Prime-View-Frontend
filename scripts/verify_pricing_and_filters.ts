@@ -8,11 +8,11 @@ async function verifyAllRequirements() {
   mockStore.resetStore();
 
   // 1. Log in Super Admin and Sub Admin
-  const superLogin = await adminLogin('admin', 'password123');
+  const superLogin = await adminLogin('admin', 'TEST_PASSWORD_PLACEHOLDER');
   if (!superLogin.ok || !superLogin.session) throw new Error('Super Admin login failed');
   const superSession = superLogin.session;
 
-  const subLogin = await adminLogin('police', 'password123');
+  const subLogin = await adminLogin('police', 'TEST_PASSWORD_PLACEHOLDER');
   if (!subLogin.ok || !subLogin.session) throw new Error('Sub Admin login failed');
   const subSession = subLogin.session;
 

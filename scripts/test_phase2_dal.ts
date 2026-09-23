@@ -9,15 +9,15 @@ async function runTests() {
 
   // 1. Administrative Authentication
   console.log('1. Testing Admin Authentication...');
-  const superLogin = await adminLogin('admin', 'password123');
+  const superLogin = await adminLogin('admin', 'TEST_PASSWORD_PLACEHOLDER');
   if (!superLogin.ok || !superLogin.session) throw new Error('Super Admin login failed');
   console.log('  [PASS] Super Admin logged in:', superLogin.session.fullName, 'Role:', superLogin.session.role);
 
-  const mktLogin = await adminLogin('marketing', 'password123');
+  const mktLogin = await adminLogin('marketing', 'TEST_PASSWORD_PLACEHOLDER');
   if (!mktLogin.ok || !mktLogin.session) throw new Error('Marketing Sub-Admin login failed');
   console.log('  [PASS] Marketing Sub-Admin logged in:', mktLogin.session.fullName, 'Blocks:', mktLogin.session.assignedBlocks);
 
-  const policeLogin = await adminLogin('police', 'password123');
+  const policeLogin = await adminLogin('police', 'TEST_PASSWORD_PLACEHOLDER');
   if (!policeLogin.ok || !policeLogin.session) throw new Error('Police Sub-Admin login failed');
   console.log('  [PASS] Police Sub-Admin logged in:', policeLogin.session.fullName, 'Blocks:', policeLogin.session.assignedBlocks);
 

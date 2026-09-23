@@ -192,11 +192,8 @@ export default function InteractiveBlockMap({
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
         {/* Map Legend & Pills */}
         <div className="flex flex-col gap-2 pointer-events-auto items-start">
-          <div className="bg-slate-900/90 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-800 flex flex-wrap items-center gap-3 text-[11px] text-slate-300 shadow-lg">
-            <div className="flex items-center gap-1.5 font-bold font-serif text-slate-100 pr-2 border-r border-slate-700">
-              <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{blockName} Traced Map</span>
-            </div>
+          <div className="bg-slate-100/95 backdrop-blur-md px-3.5 py-2 rounded-2xl border border-slate-300/80 flex flex-wrap items-center gap-3 text-[11px] text-slate-700 shadow-md">
+            
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.available.fill }} />
               <span>Available</span>
@@ -210,7 +207,7 @@ export default function InteractiveBlockMap({
               <span>Booked</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border border-slate-600 shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.allotted.fill }} />
+              <span className="w-2.5 h-2.5 rounded-full border border-slate-400 shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.allotted.fill }} />
               <span>Allotted</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -221,10 +218,10 @@ export default function InteractiveBlockMap({
                   background: `repeating-linear-gradient(45deg, ${PLOT_STATUS_STYLES.disputed.stroke}, ${PLOT_STATUS_STYLES.disputed.stroke} 2px, #ffffff 2px, #ffffff 4px)`,
                 }}
               />
-              <span className="font-bold text-red-400">Disputed</span>
+              <span className="font-bold text-red-600">Disputed</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border border-slate-700 shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.commercialAvailable.fill }} />
+              <span className="w-2.5 h-2.5 rounded-full border border-slate-300 shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.commercialAvailable.fill }} />
               <span>Commercial</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -233,16 +230,13 @@ export default function InteractiveBlockMap({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs animate-pulse" style={{ backgroundColor: SPECIAL_PLOT_STYLES.adjustment.fill }} />
-              <span className="font-bold text-blue-400">Adjustment</span>
-            </div>
-            <div className="pl-2 border-l border-slate-700 text-[10.5px] text-amber-300 font-medium">
-              Color scale is not applicable to amenities
+              <span className="font-bold text-blue-600">Adjustment</span>
             </div>
           </div>
 
           {/* D1 Pill directly under Traced Map */}
-          <div className="bg-slate-900/90 backdrop-blur-md px-3 py-1 rounded-xl border border-slate-800 text-[11px] font-medium text-amber-300 shadow-md flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+          <div className="bg-slate-100/95 backdrop-blur-md px-3 py-1 rounded-xl border border-slate-300/80 text-[11px] font-medium text-amber-800 shadow-sm flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-600" />
             <span>Color scale is not applicable to amenities</span>
           </div>
         </div>

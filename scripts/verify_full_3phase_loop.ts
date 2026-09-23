@@ -283,7 +283,7 @@ async function runFull3PhaseLoop() {
 
     console.log('\n[OBSERVED CREDENTIALS GENERATED]');
     console.log('  - Username / Membership #:', credentialsInfo.username || newCustomer.membershipNo);
-    console.log('  - Initial Password:       ', credentialsInfo.password || 'password123');
+    console.log('  - Initial Password:       ', credentialsInfo.password || 'TEST_PASSWORD_PLACEHOLDER');
 
     // -------------------------------------------------------------------------
     // WINDOW B LIVE REACTION: ZERO-REFRESH STATUS CHANGE (Phase 2 live sync)
@@ -348,7 +348,7 @@ async function runFull3PhaseLoop() {
 
     console.log('Logging in with newly created customer credentials...');
     const loginIdentifier = newCustomer.membershipNo; // or newCustomer.cnic
-    const loginPassword = credentialsInfo.password || 'password123';
+    const loginPassword = credentialsInfo.password || 'TEST_PASSWORD_PLACEHOLDER';
     console.log(`Attempting login with Identifier: "${loginIdentifier}", Password: "${loginPassword}"`);
 
     // Type with Puppeteer native keystrokes so React 19 synthetic event handlers receive each change

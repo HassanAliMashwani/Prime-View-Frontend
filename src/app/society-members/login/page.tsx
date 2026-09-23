@@ -46,18 +46,12 @@ export default function MemberLoginPage() {
   const fillDemo = (demoId: string) => {
     if (demoId === 'tariq') {
       setIdentifier('PV-2024-001');
-      setPassword('password123');
     } else if (demoId === 'ayesha') {
       setIdentifier('PV-2024-002');
-      setPassword('password123');
     } else if (demoId === 'usman') {
       setIdentifier('PV-2024-003');
-      setPassword('password123');
-      // Terms agreement cannot be reset client-side with real backend.
-      // Assuming terms are persistent now.
     } else if (demoId === 'bilal') {
       setIdentifier('PV-2024-004');
-      setPassword('password123');
     }
     setErrorMessage(null);
   };

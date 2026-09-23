@@ -31,9 +31,9 @@ async function main() {
     // -------------------------------------------------------------
     // STEP 1: Confirm block scoping (Marketing)
     // -------------------------------------------------------------
-    console.log('>>> TEST 1: Block Scoping (Marketing: marketing / password123)...');
+    console.log('>>> TEST 1: Block Scoping (Marketing: marketing / TEST_PASSWORD_PLACEHOLDER)...');
     const pageM = await browser.newPage();
-    await loginAs(pageM, 'marketing', 'password123');
+    await loginAs(pageM, 'marketing', 'TEST_PASSWORD_PLACEHOLDER');
     await pageM.goto('http://localhost:3000/admin/master-plan');
     await pageM.waitForFunction(() => document.body.innerText.includes('Accessible Blocks') || document.body.innerText.includes('Available'));
 
@@ -68,9 +68,9 @@ async function main() {
     // -------------------------------------------------------------
     // STEP 2: Confirm block scoping (Police)
     // -------------------------------------------------------------
-    console.log('\n>>> TEST 2: Block Scoping (Police: police / password123)...');
+    console.log('\n>>> TEST 2: Block Scoping (Police: police / TEST_PASSWORD_PLACEHOLDER)...');
     const pageP = await browser.newPage();
-    await loginAs(pageP, 'police', 'password123');
+    await loginAs(pageP, 'police', 'TEST_PASSWORD_PLACEHOLDER');
     await pageP.goto('http://localhost:3000/admin/master-plan');
     await pageP.waitForFunction(() => document.body.innerText.includes('Accessible Blocks') || document.body.innerText.includes('Available'));
 
@@ -107,14 +107,14 @@ async function main() {
     // -------------------------------------------------------------
     console.log('\n>>> TEST 3: Soft Lock Live (Two Windows, Super Admin & Marketing)...');
     const windowA = await browser.newPage();
-    await loginAs(windowA, 'admin', 'password123');
+    await loginAs(windowA, 'admin', 'TEST_PASSWORD_PLACEHOLDER');
     await windowA.goto('http://localhost:3000/admin/master-plan/abbott');
     await windowA.waitForFunction(() => document.body.innerText.includes('Visible Plots'));
     console.log('Window A (Super Admin) opened Abbott Block master plan.');
 
     const windowB = await browser.newPage();
     windowB.on('console', msg => console.log('WINDOW B LOG:', msg.text()));
-    await loginAs(windowB, 'marketing', 'password123');
+    await loginAs(windowB, 'marketing', 'TEST_PASSWORD_PLACEHOLDER');
     await windowB.goto('http://localhost:3000/admin/master-plan/abbott');
     await windowB.waitForFunction(() => document.body.innerText.includes('Visible Plots'));
     console.log('Window B (Marketing) opened Abbott Block master plan.');
@@ -302,7 +302,7 @@ async function main() {
       console.log(`Auto-accepting dialog: "${dialog.message()}"`);
       await dialog.accept();
     });
-    await loginAs(pageAdminRes, 'admin', 'password123');
+    await loginAs(pageAdminRes, 'admin', 'TEST_PASSWORD_PLACEHOLDER');
     await pageAdminRes.goto('http://localhost:3000/admin/reservations');
     await pageAdminRes.waitForFunction(() => document.body.innerText.includes('R-08') || document.body.innerText.includes('Race Claim'));
     console.log('Loaded /admin/reservations. Race condition detected on Plot R-08.');
@@ -370,7 +370,7 @@ async function main() {
     // -------------------------------------------------------------
     console.log('\n>>> TEST 7: Confirm Amenity Plots Non-Actionability...');
     const pageAmenity = await browser.newPage();
-    await loginAs(pageAmenity, 'admin', 'password123');
+    await loginAs(pageAmenity, 'admin', 'TEST_PASSWORD_PLACEHOLDER');
     await pageAmenity.goto('http://localhost:3000/admin/master-plan/abbott');
     await pageAmenity.waitForFunction(() => document.body.innerText.includes('AMN-H01'));
 

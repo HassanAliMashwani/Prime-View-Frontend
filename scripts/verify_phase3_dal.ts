@@ -59,7 +59,7 @@ async function runPhase3Verification() {
     fullName: 'Hacker User',
     email: 'hacker@example.com',
     username: 'hacker',
-    password: 'password123',
+    password: 'TEST_PASSWORD_PLACEHOLDER',
     assignedBlocks: ['abbott'],
     permissions: { can_reserve: true },
   });
@@ -74,7 +74,7 @@ async function runPhase3Verification() {
     fullName: 'Zubair Khan',
     email: 'zubair@primeview.pk',
     username: 'zubair_ops',
-    password: 'password123',
+    password: 'TEST_PASSWORD_PLACEHOLDER',
     assignedBlocks: ['overseas', 'elite'],
     permissions: { can_reserve: true, can_book: true, can_create_customer: true, can_edit_content: false },
   });
@@ -88,7 +88,7 @@ async function runPhase3Verification() {
     fullName: 'Duplicate User',
     email: 'diff@example.com',
     username: 'zubair_ops',
-    password: 'password123',
+    password: 'TEST_PASSWORD_PLACEHOLDER',
     assignedBlocks: ['abbott'],
     permissions: {},
   });

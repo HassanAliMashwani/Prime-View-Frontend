@@ -75,9 +75,9 @@ async function runComprehensiveVerification() {
   console.log('\n--- PART 2: VERIFYING PHASE 2 ADMIN CORE ---');
 
   // Admin logins
-  const superLogin = await adminLogin('admin', 'password123');
-  const mktLogin = await adminLogin('marketing', 'password123');
-  const policeLogin = await adminLogin('police', 'password123');
+  const superLogin = await adminLogin('admin', 'TEST_PASSWORD_PLACEHOLDER');
+  const mktLogin = await adminLogin('marketing', 'TEST_PASSWORD_PLACEHOLDER');
+  const policeLogin = await adminLogin('police', 'TEST_PASSWORD_PLACEHOLDER');
   if (!superLogin.session || !mktLogin.session || !policeLogin.session) {
     throw new Error('Admin logins failed');
   }

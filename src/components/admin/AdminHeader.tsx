@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Radio, Users, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
-import { adminLogin } from '@/lib/dal/adminAuth';
+import { adminLogout } from '@/lib/dal/adminAuth';
 
 interface AdminHeaderProps {
   session: AdminSession | null;
@@ -70,12 +70,10 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
     setSwitching(true);
     setShowRoleMenu(false);
     try {
-      const res = await adminLogin(username, 'password123');
-      if (res.ok) {
-        window.location.reload();
-      }
+      await adminLogout();
+      router.push('/admin/login');
     } catch (err) {
-      console.error('Role switch failed:', err);
+      console.error('Role switch logout failed:', err);
     } finally {
       setSwitching(false);
     }
