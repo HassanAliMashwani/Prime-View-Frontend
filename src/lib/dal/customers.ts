@@ -8,7 +8,7 @@ import {
   InstallmentPlanConfig,
 } from '../mock/types';
 import { getActiveSession } from './auth';
-import { apiGet, apiPost } from '../api';
+import { apiGet, apiPost, apiPatch } from '../api';
 
 export interface CustomerDisambiguation {
   id: string;
@@ -334,35 +334,61 @@ export async function getCustomerProfile(): Promise<{
 }
 
 /**
- * Deferred per user requirement: customer self-service profile update.
+ * Customer self-service profile update.
  */
 export async function updateProfile(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _updates: Partial<Customer>
+  updates: Partial<Customer>
 ): Promise<{ ok: boolean; data?: Customer; error?: string; message?: string }> {
-  return {
-    ok: false,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Profile editing is deferred and not yet available on the backend.',
-  };
+  const session = getActiveSession();
+  if (!session || session.role !== 'customer') {
+    return {
+      ok: false,
+      error: 'UNAUTHORIZED',
+      message: 'You must be logged in as a member to update your profile.',
+    };
+  }
+
+  const res = await apiPatch<any>(
+    `/customers/${session.customerId}/profile`,
+    updates,
+    session.token
+  );
+
+  if (!res.ok) {
+    return { ok: false, error: res.error, message: res.message || res.error };
+  }
+
+  return { ok: true, data: res.data?.customer || res.data };
 }
 
 /**
- * Deferred per user requirement: customer password change.
+ * Customer password change.
  */
 export async function changeCustomerPassword(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _customerId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _currentPass: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _newPass: string
+  customerId: string,
+  currentPass: string,
+  newPass: string
 ): Promise<{ ok: boolean; error?: string; message?: string }> {
-  return {
-    ok: false,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Customer password change is deferred and not yet available.',
-  };
+  const session = getActiveSession();
+  if (!session) {
+    return {
+      ok: false,
+      error: 'UNAUTHORIZED',
+      message: 'You must be logged in to change your password.',
+    };
+  }
+
+  const res = await apiPost<{ ok: boolean; message?: string }>(
+    `/customers/${customerId}/change-password`,
+    { oldPassword: currentPass, newPassword: newPass },
+    session.token
+  );
+
+  if (!res.ok) {
+    return { ok: false, error: res.error, message: res.message || res.error };
+  }
+
+  return { ok: true, message: res.data?.message || 'Password changed successfully.' };
 }
 
 /**

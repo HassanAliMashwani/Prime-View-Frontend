@@ -1,4 +1,5 @@
 import { AdminSession, PlotCategory } from '../mock/types';
+import { API_BASE_URL } from '../api';
 
 export interface SalesReportFilters {
   datePreset?: 'today' | 'yesterday' | 'last_7_days' | 'last_30_days' | 'this_month' | 'all';
@@ -56,13 +57,11 @@ const emptyMetrics: SalesReportMetrics = {
 };
 
 /**
- * Deferred per user requirement: sales reports module.
+ * Retrieve sales history report from live NestJS backend.
  */
 export async function getSalesHistoryReport(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _session: AdminSession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _filters: SalesReportFilters = {}
+  session: AdminSession,
+  filters: SalesReportFilters = {}
 ): Promise<{
   ok: boolean;
   items: SalesReportItem[];
@@ -70,11 +69,50 @@ export async function getSalesHistoryReport(
   error?: string;
   message?: string;
 }> {
-  return {
-    ok: false,
-    items: [],
-    metrics: emptyMetrics,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Sales reports module is deferred and not yet available on the backend.',
-  };
+  try {
+    const params = new URLSearchParams();
+    if (filters.datePreset) params.append('datePreset', filters.datePreset);
+    if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters.adminId) params.append('adminId', filters.adminId);
+    if (filters.blockId) params.append('blockId', filters.blockId);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.paymentType) params.append('paymentType', filters.paymentType);
+    if (filters.search) params.append('search', filters.search);
+
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/sales/reports${queryString ? '?' + queryString : ''}`;
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.token}`,
+      },
+    });
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        items: [],
+        metrics: emptyMetrics,
+        error: `FETCH_FAILED_${res.status}`,
+      };
+    }
+
+    const data = await res.json();
+    return {
+      ok: true,
+      items: data.items || [],
+      metrics: data.metrics || emptyMetrics,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      items: [],
+      metrics: emptyMetrics,
+      error: 'NETWORK_ERROR',
+      message: err.message,
+    };
+  }
 }

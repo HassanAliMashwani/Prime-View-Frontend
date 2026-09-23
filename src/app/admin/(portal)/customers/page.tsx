@@ -122,7 +122,7 @@ function CustomersPageContent() {
     applicantPhotoUrl: '/media/placeholder-applicant.jpg',
     cnicCopyUrl: '/media/placeholder-cnic.jpg',
     nokCnicCopyUrl: '/media/placeholder-nok.jpg',
-    portalPassword: 'Password123!', // Default mock credential: in production, generated via secure cryptographic entropy
+    portalPassword: '',
     lockToken: queryLockToken || undefined,
   });
   const [pathASubmitting, setPathASubmitting] = useState(false);
@@ -657,7 +657,7 @@ function CustomersPageContent() {
         applicantPhotoUrl: '/media/placeholder-applicant.jpg',
         cnicCopyUrl: '/media/placeholder-cnic.jpg',
         nokCnicCopyUrl: '/media/placeholder-nok.jpg',
-        portalPassword: 'Password123!', // Default mock credential
+        portalPassword: '',
       });
       setSelectedPlotA(null);
     }
@@ -1355,7 +1355,7 @@ function CustomersPageContent() {
                         type="text"
                         required
                         minLength={8}
-                        placeholder="e.g. Password123!"
+                        placeholder="Enter member portal password"
                         value={pathAForm.portalPassword || ''}
                         onChange={(e) => setPathAForm({ ...pathAForm, portalPassword: e.target.value })}
                         className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"

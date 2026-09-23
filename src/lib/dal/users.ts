@@ -154,3 +154,40 @@ export async function updateSubAdmin(
     subAdmin: res.data.subAdmin,
   };
 }
+
+/**
+ * Reset password for a sub-administrator (Super Admin exclusive).
+ */
+export async function resetSubAdminPassword(
+  session: AdminSession,
+  adminId: string,
+  newPassword: string
+): Promise<{ ok: boolean; error?: string; message?: string }> {
+  if (session.role !== 'super_admin') {
+    return {
+      ok: false,
+      error: 'FORBIDDEN_SUPER_ADMIN_ONLY',
+      message: 'Sub Admin password reset is strictly restricted to Super Administrators.',
+    };
+  }
+
+  const res = await apiPost<{ ok: boolean; message: string }>(
+    `/admin/sub-admins/${adminId}/reset-password`,
+    { newPassword },
+    session?.token
+  );
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: res.error,
+      message: res.message || res.error || 'Failed to reset sub-admin password.',
+    };
+  }
+
+  return {
+    ok: true,
+    message: res.data?.message || 'Password reset successfully.',
+  };
+}
+

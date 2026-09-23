@@ -1,6 +1,6 @@
 import { AdminSession, Block, Plot, Booking, Customer, Reservation } from '../mock/types';
 import { canAccessBlock } from './adminAuth';
-import { apiGet, apiPost, apiDelete, API_BASE_URL } from '../api';
+import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from '../api';
 import { setRegisteredPlotsCache } from './customers';
 
 export interface BlockSummary extends Block {
@@ -465,24 +465,32 @@ export async function togglePlotAdjustment(
 }
 
 /**
- * Deferred per user requirement: Super Admin plot price update.
+ * Super Admin plot price update.
+ * PATCH /plots/:id/price
  */
 export async function updatePlotPrice(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _session: AdminSession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _plotId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _newPrice: number
+  session: AdminSession,
+  plotId: string,
+  newPrice: number
 ): Promise<{
   ok: boolean;
   plot?: Plot;
   error?: string;
   message?: string;
 }> {
-  return {
-    ok: false,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Plot price editing is deferred and not yet available on the backend.',
-  };
+  try {
+    const res = await apiPatch<any>(
+      `/plots/${plotId}/price`,
+      { price: newPrice },
+      session.token
+    );
+
+    if (!res.ok) {
+      return { ok: false, error: res.error, message: res.message || res.error };
+    }
+
+    return { ok: true, plot: res.data?.plot || res.data };
+  } catch (err: any) {
+    return { ok: false, error: 'PLOT_PRICE_UPDATE_FAILED', message: err.message };
+  }
 }
