@@ -23,6 +23,7 @@ export interface CreateSubAdminInput {
 
 export interface UpdateSubAdminInput {
   fullName?: string;
+  password?: string;
   status?: 'active' | 'suspended';
   assignedBlocks?: (BlockId | string)[];
   permissions?: {

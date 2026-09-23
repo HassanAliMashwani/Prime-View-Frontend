@@ -70,7 +70,7 @@ export default function AdminPortalLayout({
     pageTitle = 'Content CMS';
     pageSubtitle = 'Plans & Society Events';
   } else if (pathname.includes('/admin/sub-admins')) {
-    pageTitle = 'Sub-Administrators';
+    pageTitle = 'Teams & Access';
     pageSubtitle = 'Access Delegation & Sector Scopes';
   } else if (pathname.includes('/admin/audit-log')) {
     pageTitle = 'Audit Trail';

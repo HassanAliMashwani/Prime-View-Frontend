@@ -144,7 +144,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
 
   const adminNavItems = [
     {
-      label: 'Sub-Administrators',
+      label: 'Teams & Access',
       href: '/admin/sub-admins',
       icon: Users,
       iconColor: 'text-rose-600',
