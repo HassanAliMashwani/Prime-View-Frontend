@@ -486,30 +486,62 @@ export default function InteractiveBlockMap({
                 isPulsing = true;
               }
 
+              const status = plot?.status;
+              const visualStatus = plot ? (plot.displayStatus || plot.status) : null;
+              const isStatusAllotted = status === 'allotted' || visualStatus === 'allotted';
+              const labelClass = isStatusAllotted ? 'text-white fill-white font-bold' : '';
+
+              // Calculate centroid for plot label
+              const center = area.points.length > 0
+                ? area.points.reduce(
+                    (acc, pt) => ({ x: acc.x + pt.x / area.points.length, y: acc.y + pt.y / area.points.length }),
+                    { x: 0, y: 0 }
+                  )
+                : { x: 0, y: 0 };
+              const plotLabelNumber = area.plotNumber ? area.plotNumber.replace(/^[a-z]+-/i, '') : '';
+
               return (
-                <polygon
-                  key={`${area.slug}-${idx}`}
-                  data-slug={area.slug}
-                  data-plot-number={area.plotNumber || ''}
-                  data-grouped={isGrouped ? 'true' : 'false'}
-                  data-disputed={plot && ((plot.displayStatus || plot.status) === 'disputed' || plot.isDisputed || (plot.activeReservationCount ?? 0) > 1) ? 'true' : 'false'}
-                  data-highlighted={isHighlighted ? 'true' : 'false'}
-                  points={pointsStr}
-                  fill={fillColor}
-                  fillOpacity={fillOpacity}
-                  stroke={strokeColor}
-                  strokeWidth={strokeWidth}
-                  strokeDasharray={isGrouped ? '6,4' : undefined}
-                  className={`cursor-pointer transition-all duration-150 ${
-                    isPulsing ? 'animate-pulse' : ''
-                  }`}
-                  onMouseEnter={() => setHoveredArea(area)}
-                  onMouseLeave={() => setHoveredArea((cur) => (cur?.slug === area.slug ? null : cur))}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAreaClick(area);
-                  }}
-                />
+                <g key={`${area.slug}-${idx}`} className="select-none">
+                  <polygon
+                    data-slug={area.slug}
+                    data-plot-number={area.plotNumber || ''}
+                    data-grouped={isGrouped ? 'true' : 'false'}
+                    data-disputed={plot && ((plot.displayStatus || plot.status) === 'disputed' || plot.isDisputed || (plot.activeReservationCount ?? 0) > 1) ? 'true' : 'false'}
+                    data-highlighted={isHighlighted ? 'true' : 'false'}
+                    points={pointsStr}
+                    fill={fillColor}
+                    fillOpacity={fillOpacity}
+                    stroke={strokeColor}
+                    strokeWidth={strokeWidth}
+                    strokeDasharray={isGrouped ? '6,4' : undefined}
+                    className={`cursor-pointer transition-all duration-150 ${
+                      isPulsing ? 'animate-pulse' : ''
+                    }`}
+                    onMouseEnter={() => setHoveredArea(area)}
+                    onMouseLeave={() => setHoveredArea((cur) => (cur?.slug === area.slug ? null : cur))}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAreaClick(area);
+                    }}
+                  />
+                  {/* Allotted plot label: white text on black fill */}
+                  {isStatusAllotted && plotLabelNumber && (
+                    <text
+                      x={center.x}
+                      y={center.y}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={14}
+                      fill="#FFFFFF"
+                      className={`pointer-events-none select-none ${labelClass}`}
+                      data-plot-id={plot?.id || ''}
+                      data-plot-label={plotLabelNumber}
+                      data-status={visualStatus || status}
+                    >
+                      {plotLabelNumber}
+                    </text>
+                  )}
+                </g>
               );
             })}
           </svg>
