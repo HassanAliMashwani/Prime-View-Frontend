@@ -184,16 +184,28 @@ export async function rejectReceipt(
   return { ok: true, receipt, strikeAssigned };
 }
 
+export interface PublicSlipVerification {
+  exists: boolean;
+  status: 'verified' | 'pending' | 'rejected' | 'not_found';
+  slipNumber?: string;
+  memberDisplayName?: string;
+  installmentNumber?: number | null;
+  paymentDetails?: string;
+  amount?: number;
+  paymentDate?: string;
+}
+
 /**
  * Verifies a receipt publicly using its slip number.
  * Calls backend GET /receipts/verify/:slipNumber (PUBLIC).
  */
 export async function verifySlipPublic(
   slipNumber: string
-): Promise<{ exists: boolean; status: ReceiptStatus | 'not_found'; amount?: number; paymentDate?: string; customerContext?: string }> {
-  const res = await apiGet<{ exists: boolean; status: string; amount?: number; paymentDate?: string; customerContext?: string }>(`/receipts/verify/${slipNumber}`);
+): Promise<PublicSlipVerification> {
+  const res = await apiGet<PublicSlipVerification>(`/receipts/verify/${slipNumber}`);
   if (!res.ok || !res.data) {
     return { exists: false, status: 'not_found' };
   }
-  return res.data as any;
+  return res.data;
 }
+

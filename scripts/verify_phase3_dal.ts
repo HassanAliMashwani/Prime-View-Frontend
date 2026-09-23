@@ -72,7 +72,7 @@ async function runPhase3Verification() {
   // Super admin creates sub-admin
   const validSubAdmin = await createSubAdmin(superAdminSession, {
     fullName: 'Zubair Khan',
-    email: 'zubair@primeview.pk',
+    email: 'zubair@primeview.org',
     username: 'zubair_ops',
     password: 'TEST_PASSWORD_PLACEHOLDER',
     assignedBlocks: ['overseas', 'elite'],

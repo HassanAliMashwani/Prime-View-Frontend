@@ -47,7 +47,7 @@ function MemberPortalContent({ children }: { children: React.ReactNode }) {
             <div className="font-bold text-slate-800">Prime View Society Secretariat:</div>
             <div>📍 Main Boulevard, Sector B, Prime View Housing Society</div>
             <div>📞 (051) 111-PRIME / +92 51 9876543</div>
-            <div>✉️ secretariat@primeview.pk</div>
+            <div>✉️ secretariat@primeview.org</div>
           </div>
           <button
             type="button"

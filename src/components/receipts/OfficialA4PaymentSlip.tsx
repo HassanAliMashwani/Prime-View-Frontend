@@ -13,10 +13,11 @@ import {
   Lock,
 } from 'lucide-react';
 
-/** Stable public verify URL — uses NEXT_PUBLIC_APP_URL, never window.location.origin */
+/** Stable public verify URL — uses NEXT_PUBLIC_APP_URL or window.location.origin, never an invented domain */
 function slipVerifyUrl(slipNumber: string): string {
-  const base = (process.env.NEXT_PUBLIC_APP_URL || 'https://primeview.pk').replace(/\/$/, '');
-  return `${base}/verify/${slipNumber}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const base = (process.env.NEXT_PUBLIC_APP_URL || origin).replace(/\/$/, '');
+  return base ? `${base}/verify/${slipNumber}` : `/verify/${slipNumber}`;
 }
 
 export function formatAmountInWords(amount: number): string {
@@ -440,7 +441,7 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                   </div>
                   <p className="text-[10px] text-[#6B7462] leading-tight max-w-sm">
                     This security hash links directly to immutable ledger records. Scan the QR code or verify at{' '}
-                    <span className="font-mono font-semibold text-[#43612B]">primeview.pk/verify/{slip.slipNumber}</span>.
+                    <span className="font-mono font-semibold text-[#43612B]">{slipVerifyUrl(slip.slipNumber)}</span>.
                   </p>
                 </div>
               </div>

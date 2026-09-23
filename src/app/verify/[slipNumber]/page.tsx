@@ -31,10 +31,13 @@ export default function VerifySlipPage() {
   const [fetchError, setFetchError] = useState(false);
   const [submission, setSubmission] = useState<{
     exists: boolean;
-    status: ReceiptStatus | 'not_found';
+    status: 'verified' | 'pending' | 'rejected' | 'not_found';
+    slipNumber?: string;
+    memberDisplayName?: string;
+    installmentNumber?: number | null;
+    paymentDetails?: string;
     amount?: number;
     paymentDate?: string;
-    customerContext?: string;
   } | null>(null);
 
   useEffect(() => {
@@ -151,18 +154,29 @@ export default function VerifySlipPage() {
                     <Hash className="w-4 h-4 text-emerald-400" />
                     Verified Slip Number
                   </span>
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">{slipNumber}</span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
                 </div>
-                {submission.customerContext && (
+                {submission.memberDisplayName && (
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                       <User className="w-4 h-4 text-emerald-400" />
-                      Depositor
+                      Member Name
                     </span>
-                    <span className="font-semibold text-sm text-slate-200">{submission.customerContext}</span>
+                    <span className="font-semibold text-sm text-slate-200">{submission.memberDisplayName}</span>
                   </div>
                 )}
-                {submission.amount && (
+                {submission.paymentDetails && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-emerald-400" />
+                      Payment
+                    </span>
+                    <span className="font-semibold text-sm text-slate-200">
+                      {submission.paymentDetails}
+                    </span>
+                  </div>
+                )}
+                {submission.amount !== undefined && submission.amount !== null && (
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                     <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                       <CreditCard className="w-4 h-4 text-emerald-400" />
@@ -239,15 +253,61 @@ export default function VerifySlipPage() {
               </span>
             </div>
             <div className="p-6 md:p-8 space-y-6">
-              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-3">
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                     <Hash className="w-4 h-4 text-amber-400" />
                     Slip Reference
                   </span>
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">{slipNumber}</span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                {submission.memberDisplayName && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-amber-400" />
+                      Member Name
+                    </span>
+                    <span className="font-semibold text-sm text-slate-200">{submission.memberDisplayName}</span>
+                  </div>
+                )}
+                {submission.paymentDetails && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-amber-400" />
+                      Payment
+                    </span>
+                    <span className="font-semibold text-sm text-slate-200">
+                      {submission.paymentDetails}
+                    </span>
+                  </div>
+                )}
+                {submission.amount !== undefined && submission.amount !== null && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-amber-400" />
+                      Amount
+                    </span>
+                    <span className="font-mono font-bold text-sm text-amber-300">
+                      PKR {Number(submission.amount).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {submission.paymentDate && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-amber-400" />
+                      Payment Date
+                    </span>
+                    <span className="font-mono text-xs text-slate-200">
+                      {new Date(submission.paymentDate).toLocaleDateString('en-PK', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-slate-400 leading-relaxed pt-1">
                   This payment submission has been received and is awaiting review by the finance desk. It has{' '}
                   <strong className="text-amber-300">not yet been cleared or approved</strong>. Do not treat this as an
                   approved payment.
@@ -297,15 +357,61 @@ export default function VerifySlipPage() {
               </span>
             </div>
             <div className="p-6 md:p-8 space-y-6">
-              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-3">
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
                   <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
                     <Hash className="w-4 h-4 text-rose-400" />
                     Slip Reference
                   </span>
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">{slipNumber}</span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                {submission.memberDisplayName && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <User className="w-4 h-4 text-rose-400" />
+                      Member Name
+                    </span>
+                    <span className="font-semibold text-sm text-slate-200">{submission.memberDisplayName}</span>
+                  </div>
+                )}
+                {submission.paymentDetails && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-rose-400" />
+                      Payment
+                    </span>
+                    <span className="font-semibold text-sm text-slate-200">
+                      {submission.paymentDetails}
+                    </span>
+                  </div>
+                )}
+                {submission.amount !== undefined && submission.amount !== null && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <CreditCard className="w-4 h-4 text-rose-400" />
+                      Amount
+                    </span>
+                    <span className="font-mono font-bold text-sm text-rose-300">
+                      PKR {Number(submission.amount).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                {submission.paymentDate && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-rose-400" />
+                      Payment Date
+                    </span>
+                    <span className="font-mono text-xs text-slate-200">
+                      {new Date(submission.paymentDate).toLocaleDateString('en-PK', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-slate-400 leading-relaxed pt-1">
                   This payment submission was reviewed and{' '}
                   <strong className="text-rose-300">not accepted</strong> as a valid society payment record. If you
                   believe this is in error, contact the finance desk with your original deposit evidence.
@@ -337,6 +443,7 @@ export default function VerifySlipPage() {
               </div>
             </div>
           </div>
+
         ) : (
           /* ── STATE 4: NOT FOUND / UNRECOGNIZED ─────────────────────────── */
           <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">

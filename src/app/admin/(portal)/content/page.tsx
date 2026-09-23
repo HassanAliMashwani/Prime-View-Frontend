@@ -909,7 +909,7 @@ export default function ContentCMSPage() {
                         type="text"
                         value={editForm.website || ''}
                         onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
-                        placeholder="e.g. www.primeview.pk"
+                        placeholder="e.g. www.primeview.org"
                         className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
                       />
                     </div>

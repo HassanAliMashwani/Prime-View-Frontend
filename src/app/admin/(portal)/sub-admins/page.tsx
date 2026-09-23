@@ -707,7 +707,7 @@ export default function TeamsPage() {
                       required
                       value={createForm.email}
                       onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                      placeholder="e.g. farhan@primeview.pk"
+                      placeholder="e.g. farhan@primeview.org"
                       className="w-full pl-10 pr-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-slate-50/50"
                     />
                   </div>
