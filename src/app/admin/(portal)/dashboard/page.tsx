@@ -86,25 +86,6 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
-      {/* Scope Banner - Modern Executive Light Multi-Color Gradient */}
-      <div className="bg-gradient-to-r from-emerald-50/90 via-teal-50/50 to-white border-2 border-emerald-200/90 rounded-3xl p-6 sm:p-7 shadow-xs text-slate-900">
-        <div>
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs text-amber-800 font-mono font-bold bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-              Logged in as {session.fullName}
-            </span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-slate-900">
-            {session.role === 'super_admin'
-              ? 'Executive Society Portfolio'
-              : `Assigned Sectors: ${session.assignedBlocks.join(', ').toUpperCase()}`}
-          </h2>
-          <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-            Real-time synchronization active across all administrative terminals via BroadcastChannel.
-          </p>
-        </div>
-      </div>
-
       {/* Duplicate Conflict Alert Banner (If Any) */}
       {conflictsCount > 0 && (
         <div className="p-4 rounded-2xl bg-amber-50 border-2 border-amber-400 text-amber-950 flex items-start gap-3 shadow-xs">
