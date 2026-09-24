@@ -129,12 +129,6 @@ export const AdminDashboardSkeleton: React.FC = () => {
 export const AdminProfileSkeleton: React.FC = () => {
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12 select-none">
-      {/* Breadcrumb & active session */}
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-4 w-40 rounded-md" />
-        <Skeleton className="h-6 w-48 rounded-full" />
-      </div>
-
       {/* Hero Profile Identity Card Skeleton */}
       <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">

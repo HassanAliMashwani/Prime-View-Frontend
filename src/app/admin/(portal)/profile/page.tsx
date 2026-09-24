@@ -175,19 +175,6 @@ export default function AdminProfilePage() {
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
-      {/* Top Breadcrumb */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
-          <Link href="/admin/dashboard" className="hover:underline">Dashboard</Link>
-          <span className="text-slate-300">/</span>
-          <span className="text-slate-900">Admin Profile</span>
-        </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-mono font-bold text-emerald-800">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Active Authenticated Session</span>
-        </div>
-      </div>
-
       {/* Hero Profile Identity Card */}
       <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-emerald-50/70 via-teal-50/30 to-transparent rounded-full pointer-events-none -mr-20 -mt-20" />

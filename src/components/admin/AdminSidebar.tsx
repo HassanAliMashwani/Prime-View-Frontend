@@ -281,7 +281,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
             <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-transform group-hover:translate-x-0.5 shrink-0 mt-0.5" />
           </div>
 
-          <div className="flex items-center justify-between gap-1 mb-2">
+          <div className="mb-2">
             <span
               className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
                 isSuper
@@ -291,35 +291,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
             >
               {isSuper ? 'Super Administrator' : 'Administrator'}
             </span>
-            <span className="text-[10px] text-emerald-700 font-semibold group-hover:underline">
-              Profile →
-            </span>
           </div>
 
-          {/* Block Scope Info */}
-          <div className="text-[10px] text-slate-500 border-t border-slate-100 pt-2 mt-2">
-            <div className="flex items-center gap-1 font-semibold text-slate-600 mb-1">
-              <Layers className="w-3 h-3 text-slate-400" />
-              <span>Assigned Sectors:</span>
-            </div>
-            {isSuper ? (
-              <span className="text-emerald-800 text-[11px] font-bold">
-                Society-wide (All 8 Blocks)
-              </span>
-            ) : (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {session?.assignedBlocks?.map((b) => (
-                  <span
-                    key={b}
-                    className={`border text-[9px] px-1.5 py-0.5 rounded-md uppercase font-mono font-bold ${
-                      BLOCK_COLORS[b] || 'bg-slate-100 text-slate-800 border-slate-300'
-                    }`}
-                  >
-                    {b}
-                  </span>
-                ))}
-              </div>
-            )}
+          <div className="border-t border-slate-100 pt-2 mt-2">
+            <span className="text-[11px] text-emerald-700 font-semibold group-hover:underline inline-flex items-center gap-1">
+              <span>Profile</span>
+              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
+            </span>
           </div>
         </Link>
 
