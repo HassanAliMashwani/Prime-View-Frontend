@@ -202,7 +202,7 @@ export default function AdminReceiptsPage() {
           Access Restricted: Receipt Verification Authority Required
         </h2>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          Your administrative profile does not have the <strong>Receipt Verification Authority</strong> delegated by the Super Administrator. You cannot review customer deposit slips or generate official society slips.
+          Your administrative profile does not have the <strong>Receipt Verification Authority</strong>. You cannot review customer deposit slips or generate official society slips.
         </p>
         <button
           onClick={() => router.push('/admin/dashboard')}

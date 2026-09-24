@@ -161,7 +161,7 @@ export default function AdminLoginPage() {
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
               >
                 <div>
-                  <span className="font-bold text-[#10251E]">Marketing Sub-Admin</span>
+                  <span className="font-bold text-[#10251E]">Marketing Admin</span>
                   <div className="text-[11px] text-slate-500">marketing • Abbott + Royal Blocks</div>
                 </div>
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />
@@ -173,7 +173,7 @@ export default function AdminLoginPage() {
                 className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
               >
                 <div>
-                  <span className="font-bold text-[#10251E]">Police Sub-Admin</span>
+                  <span className="font-bold text-[#10251E]">Police Admin</span>
                   <div className="text-[11px] text-slate-500">police • Overseas + Elite + Chalet</div>
                 </div>
                 <CheckCircle2 className="w-4 h-4 text-emerald-600" />

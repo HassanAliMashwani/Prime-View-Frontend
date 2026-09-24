@@ -289,7 +289,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
                   : 'bg-blue-100 text-blue-900 border border-blue-300'
               }`}
             >
-              {isSuper ? 'Super Administrator' : 'Sub-Administrator'}
+              {isSuper ? 'Super Administrator' : 'Administrator'}
             </span>
             <span className="text-[10px] text-emerald-700 font-semibold group-hover:underline">
               Profile →

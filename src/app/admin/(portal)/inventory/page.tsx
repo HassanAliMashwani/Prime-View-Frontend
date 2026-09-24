@@ -62,7 +62,7 @@ export default function InventoryOverviewPage() {
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Inventory Overview</h2>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          Your administrative account does not have permission to view inventory status. Contact a Super Administrator to adjust your privileges.
+          Your administrative account does not have permission to view inventory status. Contact administration to adjust your privileges.
         </p>
         <button
           onClick={() => router.push('/admin/dashboard')}

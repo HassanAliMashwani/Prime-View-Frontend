@@ -150,7 +150,7 @@ function CustomersPageContent() {
   const [pathBSubmitting, setPathBSubmitting] = useState(false);
 
   // ----------------------------------------------------
-  // SUB ADMIN 3-FIELD QUICK BOOKING STATE (CR 07 §5)
+  // ADMIN 3-FIELD QUICK BOOKING STATE (CR 07 §5)
   // ----------------------------------------------------
   const [subAdminPlotId, setSubAdminPlotId] = useState(queryPlotId || '');
   const [subAdminForm, setSubAdminForm] = useState({
@@ -766,7 +766,7 @@ function CustomersPageContent() {
   };
 
   // ----------------------------------------------------
-  // SUBMIT SUB ADMIN QUICK BOOKING (CR 07 §5)
+  // SUBMIT ADMIN QUICK BOOKING (CR 07 §5)
   // ----------------------------------------------------
   const handleSubmitSubAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -870,7 +870,7 @@ function CustomersPageContent() {
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Customer Registration</h2>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          Your administrative account does not have permission to create customer records or attach plot bookings. Contact a Super Administrator to adjust your privileges.
+          Your administrative account does not have permission to create customer records or attach plot bookings. Contact administration to adjust your privileges.
         </p>
         <button
           onClick={() => router.push('/admin/dashboard')}
@@ -951,7 +951,7 @@ function CustomersPageContent() {
         </div>
       )}
 
-      {/* Sub Admin 3-Field Quick Booking Flow (CR 07 §5) */}
+      {/* Admin 3-Field Quick Booking Flow (CR 07 §5) */}
       {session?.role === 'sub_admin' ? (
         <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
@@ -960,10 +960,10 @@ function CustomersPageContent() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-slate-900 font-serif tracking-tight">
-                Quick Plot Booking (Sub Admin)
+                Quick Plot Booking (Admin)
               </h1>
               <p className="text-xs text-slate-500">
-                Streamlined 3-field quick booking flow. Statutory society fees and payment schedule will be finalized by Super Administration upon member registration.
+                Streamlined 3-field quick booking flow. Statutory society fees and payment schedule will be finalized upon formal member registration.
               </p>
             </div>
           </div>
@@ -1060,7 +1060,7 @@ function CustomersPageContent() {
             </div>
 
             <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-950 leading-relaxed">
-              ℹ️ <strong>Formalities Pending:</strong> Submitting this quick booking will secure the plot immediately as <strong>Booked (Pending Formalities)</strong> to prevent double-booking. Super Administration will execute member registration, issue membership credentials, and attach statutory fees in the Customer Directory.
+              ℹ️ <strong>Formalities Pending:</strong> Submitting this quick booking will secure the plot immediately as <strong>Booked (Pending Formalities)</strong> to prevent double-booking. Member registration, issuance of membership credentials, and attachment of statutory fees can be finalized in the Customer Directory.
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -1099,7 +1099,7 @@ function CustomersPageContent() {
                       Complete Member Registration
                     </span>
                     <span className="text-xs text-amber-900 font-bold">
-                      Sub-Admin Quick Booking Formalities
+                      Admin Quick Booking Formalities
                     </span>
                   </div>
                   <h1 className="text-lg font-bold text-slate-900 font-serif">

@@ -830,9 +830,9 @@ function CustomersDirectoryContent() {
                   <div className="flex items-center gap-2 text-amber-900">
                     <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
                     <div>
-                      <div className="font-bold text-xs">Sub-Admin Quick Booking — Formalities Incomplete</div>
+                      <div className="font-bold text-xs">Admin Quick Booking — Formalities Incomplete</div>
                       <div className="text-[11px] text-amber-800">
-                        This member was booked under the 3-field Sub Admin quick flow. Statutory fees, formal membership number, and portal credentials remain pending.
+                        This member was booked under the 3-field Admin quick flow. Statutory fees, formal membership number, and portal credentials remain pending.
                       </div>
                     </div>
                   </div>

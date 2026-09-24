@@ -126,7 +126,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
               {session?.fullName || session?.username || 'Administrator'}
             </div>
             <div className="text-[10px] text-slate-500 font-mono">
-              {session?.role === 'super_admin' ? 'Super Admin' : 'Sub-Admin'}
+              {session?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
             </div>
           </div>
         </Link>

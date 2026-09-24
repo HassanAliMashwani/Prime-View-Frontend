@@ -126,7 +126,7 @@ export default function ReservationsPage() {
       await loadData(session);
     } else {
       if (res.error === 'NOT_RESERVATION_OWNER') {
-        alert(`Access Denied: Only the original reserving officer (${r.reservedByAdminName}) or a Super Administrator can release this reservation.`);
+        alert(`Access Denied: Only the original reserving officer (${r.reservedByAdminName}) can release this reservation.`);
       } else {
         const errorMsg = res.error === 'RESERVATION_NOT_FOUND'
           ? 'Reservation record not found or already released.'
@@ -432,7 +432,7 @@ export default function ReservationsPage() {
                             ? 'Release your reservation back to society inventory'
                             : session.role === 'super_admin'
                             ? `Super Admin Override: Release ${r.reservedByAdminName}'s reservation`
-                            : `Only reserving admin (${r.reservedByAdminName}) or Super Admin can release`
+                            : `Only reserving admin (${r.reservedByAdminName}) can release`
                         }
                       >
                         {r.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (

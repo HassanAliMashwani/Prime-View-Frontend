@@ -534,7 +534,7 @@ export default function SalesHistoryPage() {
                           <span>{sale.sellerAdminName}</span>
                         </div>
                         <div className="text-[10px] print:text-[9px] text-slate-400 font-mono">
-                          {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Sub Admin'}
+                          {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
                         </div>
                       </td>
 

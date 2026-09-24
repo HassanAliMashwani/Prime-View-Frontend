@@ -111,7 +111,7 @@ function BlockPlotsContent() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
 
-  // Sub Admin 3-Field Quick Booking Form State (CR 07 §5)
+  // Admin 3-Field Quick Booking Form State (CR 07 §5)
   const [minimalForm, setMinimalForm] = useState({
     customerName: '',
     cnic: '',
@@ -334,7 +334,7 @@ function BlockPlotsContent() {
     if (session) await loadPlots(session);
   };
 
-  // Submit Sub Admin Minimal Quick Booking
+  // Submit Admin Minimal Quick Booking
   const handleMinimalBookSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session || !selectedPlot) return;
@@ -443,7 +443,7 @@ function BlockPlotsContent() {
         }
       } else {
         if (result.error === 'NOT_RESERVATION_OWNER') {
-          setActionError(`Access Denied: Only the original reserving officer (${res.reservedByAdminName}) or a Super Administrator can release this reservation.`);
+          setActionError(`Access Denied: Only the original reserving officer (${res.reservedByAdminName}) can release this reservation.`);
         } else {
           setActionError('Failed to release reservation. Please try again.');
         }
@@ -523,7 +523,7 @@ function BlockPlotsContent() {
       return;
     }
 
-    // Simplified Sub Admin Booking Flow (Change Request 07 §5)
+    // Simplified Admin Booking Flow (Change Request 07 §5)
     if (session.role === 'sub_admin') {
       setMinimalForm({
         customerName: prefillReservation?.customerName || '',
@@ -559,7 +559,7 @@ function BlockPlotsContent() {
           Administrative Access Denied
         </h2>
         <p className="text-xs text-slate-600 mb-6 leading-relaxed">
-          Access Restricted: Sector <strong className="text-slate-900 uppercase font-mono">{block?.name || blockId}</strong> is outside your assigned administrative authority. Sub-administrators may view and manage assigned sectors only.
+          Access Restricted: Sector <strong className="text-slate-900 uppercase font-mono">{block?.name || blockId}</strong> is outside your assigned administrative authority. Administrators may view and manage assigned sectors only.
         </p>
         <Link
           href="/admin/master-plan"
@@ -581,7 +581,7 @@ function BlockPlotsContent() {
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Master Plan</h2>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          Your administrative account does not have permission to view the society master plan. Contact a Super Administrator to adjust your privileges.
+          Your administrative account does not have permission to view the society master plan. Contact administration to adjust your privileges.
         </p>
         <button
           onClick={() => router.push('/admin/dashboard')}
@@ -1019,7 +1019,7 @@ function BlockPlotsContent() {
                     </span>
                   </div>
                   <p className="text-[11px] text-blue-800 leading-relaxed">
-                    This plot has been flagged by the Super Administration for town planning recalculation or boundary re-survey. 
+                    This plot has been flagged for town planning recalculation or boundary re-survey. 
                     <strong> New reservations and bookings are strictly prohibited.</strong>
                   </p>
                   {selectedPlot.adjustmentReason && (
@@ -1259,7 +1259,7 @@ function BlockPlotsContent() {
                                 ? 'Release your reservation back to society inventory'
                                 : session.role === 'super_admin'
                                 ? `Super Admin Override: Release ${res.reservedByAdminName}'s reservation`
-                                : `Only reserving admin (${res.reservedByAdminName}) or Super Admin can release`
+                                : `Only reserving admin (${res.reservedByAdminName}) can release`
                             }
                           >
                             {res.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
@@ -1598,7 +1598,7 @@ function BlockPlotsContent() {
               </div>
 
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-[11px] text-blue-900">
-                ℹ️ <strong>Authority:</strong> Only Super Admins can toggle this freeze. Sub Admins will see this plot marked in vibrant blue and will be prohibited from creating tokens or bookings.
+                ℹ️ <strong>Authority:</strong> Only Super Admins can toggle this freeze. Administrators will see this plot marked in vibrant blue and will be prohibited from creating tokens or bookings.
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
@@ -1622,7 +1622,7 @@ function BlockPlotsContent() {
         </div>
       )}
 
-      {/* Sub Admin Minimal Booking Modal (Change Request 07 §5) */}
+      {/* Admin Minimal Booking Modal (Change Request 07 §5) */}
       {isMinimalBookModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">

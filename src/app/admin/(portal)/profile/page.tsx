@@ -215,7 +215,7 @@ export default function AdminProfilePage() {
                       : 'bg-blue-100 text-blue-900 border-blue-300'
                   }`}
                 >
-                  {isSuper ? 'Super Administrator' : 'Sub-Administrator'}
+                  {isSuper ? 'Super Administrator' : 'Administrator'}
                 </span>
                 <span className="text-xs font-mono font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                   @{username}

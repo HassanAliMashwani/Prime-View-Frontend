@@ -228,7 +228,7 @@ export default function AuditLogPage() {
               <option value="booking">Bookings</option>
               <option value="reservation">Reservations</option>
               <option value="content">Content CMS</option>
-              <option value="sub_admin">Sub-Administrators</option>
+              <option value="sub_admin">Administrators</option>
               <option value="lock">Concurrency Locks</option>
             </select>
           </div>
