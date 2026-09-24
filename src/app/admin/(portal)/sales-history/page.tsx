@@ -31,8 +31,20 @@ import {
   SalesHistoryKpis, 
   SalesHistoryFilters 
 } from '@/lib/dal/salesHistory';
-import { AdminSession, PlotCategory } from '@/lib/mock/types';
 import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
+import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { AdminSession, PlotCategory } from '@/lib/mock/types';
+
+const SOCIETY_BLOCKS = [
+  { id: 'abbott', name: 'Abbott Block' },
+  { id: 'royal', name: 'Royal Block' },
+  { id: 'overseas', name: 'Overseas Block' },
+  { id: 'elite', name: 'Elite Block' },
+  { id: 'chalet', name: 'Chalet Block' },
+  { id: 'commercial', name: 'Commercial Block' },
+  { id: 'npf-phase-1', name: 'NPF Phase 1' },
+  { id: 'npf-phase-2', name: 'NPF Phase 2' },
+];
 
 export default function SalesHistoryPage() {
   const router = useRouter();
@@ -47,13 +59,12 @@ export default function SalesHistoryPage() {
     topCloser: null,
     salesByCategory: {},
   });
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Filter States
   const [datePreset, setDatePreset] = useState<SalesHistoryFilters['datePreset']>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
-  const [adminFilter, setAdminFilter] = useState<string>('all');
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
@@ -64,26 +75,24 @@ export default function SalesHistoryPage() {
         datePreset,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
-        adminId: adminFilter !== 'all' ? adminFilter : undefined,
         blockId: blockFilter !== 'all' ? blockFilter : undefined,
         category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
         search: search.trim() || undefined,
       });
 
       if (!res.ok) {
-        setError(res.message || res.error || 'Failed to load sales history report.');
+        setFeedback({ type: 'error', message: res.message || res.error || 'Failed to load sales history report.' });
       } else {
         setItems(res.items);
         setKpis(res.kpis);
-        setError(null);
       }
     } catch (err) {
       console.error('Failed to load sales report:', err);
-      setError('An error occurred while generating the sales report.');
+      setFeedback({ type: 'error', message: 'An error occurred while generating the sales report.' });
     } finally {
       setLoading(false);
     }
-  }, [datePreset, dateFrom, dateTo, adminFilter, blockFilter, categoryFilter, search]);
+  }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -94,6 +103,14 @@ export default function SalesHistoryPage() {
     setSession(cur);
     loadData(cur);
   }, [router, loadData]);
+
+  // Flash feedback auto-clear (8s)
+  useEffect(() => {
+    if (feedback) {
+      const timer = setTimeout(() => setFeedback(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   // Handle Preset change
   const handlePresetSelect = (preset: SalesHistoryFilters['datePreset']) => {
@@ -109,31 +126,46 @@ export default function SalesHistoryPage() {
     setDatePreset('all');
     setDateFrom('');
     setDateTo('');
-    setAdminFilter('all');
     setBlockFilter('all');
     setCategoryFilter('all');
     setSearch('');
   };
 
+  // Build block options:
+  // Super Admin: unique { blockId, blockName } from items plus the 8 society blocks
+  // Non-super-admin: only session.assignedBlocks
+  const blockOptions = React.useMemo(() => {
+    if (session?.role === 'super_admin') {
+      const map = new Map<string, string>();
+      for (const b of SOCIETY_BLOCKS) map.set(b.id, b.name);
+      for (const item of items) {
+        if (item.blockId) map.set(item.blockId, item.blockName || item.blockId);
+      }
+      return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+    }
+    const assigned = session?.assignedBlocks || [];
+    return assigned.map((id: string) => {
+      const found = SOCIETY_BLOCKS.find((b) => b.id === id);
+      return { id, name: found ? found.name : id.toUpperCase() };
+    });
+  }, [session, items]);
+
+  // Screen Pagination (20 rows)
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState<number>(1);
+  useEffect(() => {
+    setPage(1);
+  }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const from = items.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const to = Math.min(safePage * PAGE_SIZE, items.length);
+
   if (loading) {
     return <AdminSalesHistorySkeleton />;
   }
-
-  if (error) {
-    return (
-      <div className="p-8 max-w-2xl mx-auto">
-        <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900">
-          <div className="font-bold text-base mb-1">Access Restricted</div>
-          <p className="text-sm text-rose-700">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Extract distinct admins for filter dropdown
-  const adminOptions = Array.from(new Set(items.map((i) => JSON.stringify({ id: i.sellerAdminId, name: i.sellerAdminName })))).map(
-    (str) => JSON.parse(str) as { id: string; name: string }
-  );
 
   const totalContractSum = items.reduce((acc, curr) => acc + curr.price, 0);
 
@@ -301,18 +333,18 @@ export default function SalesHistoryPage() {
             />
           </div>
 
-          {/* Admin Filter */}
+          {/* Sold By Blocks Filter */}
           <div>
-            <label className="block text-[11px] font-bold text-slate-600 mb-1">Sold By Admin</label>
+            <label className="block text-[11px] font-bold text-slate-600 mb-1">Sold By Blocks</label>
             <select
-              value={adminFilter}
-              onChange={(e) => setAdminFilter(e.target.value)}
+              value={blockFilter}
+              onChange={(e) => setBlockFilter(e.target.value)}
               className="w-full p-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600 bg-white"
             >
-              <option value="all">All Administrators</option>
-              {adminOptions.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
+              <option value="all">All Blocks</option>
+              {blockOptions.map((b: { id: string; name: string }) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
                 </option>
               ))}
             </select>
@@ -461,7 +493,103 @@ export default function SalesHistoryPage() {
                 <th className="py-3 px-4 text-right print:hidden">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 print:divide-slate-300 text-xs print:text-[10px]">
+            {/* Screen-Only Paginated Table Rows */}
+            <tbody className="divide-y divide-slate-100 text-xs print:hidden">
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                    No plot bookings found for the selected date range or filter criteria.
+                  </td>
+                </tr>
+              ) : (
+                pageRows.map((sale, idx) => {
+                  const globalIdx = (safePage - 1) * PAGE_SIZE + idx + 1;
+                  return (
+                    <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Row Index */}
+                      <td className="py-3 px-3 text-center font-mono text-slate-400">
+                        {globalIdx}
+                      </td>
+
+                      {/* Date & Time */}
+                      <td className="py-3 px-4 font-mono">
+                        <div className="font-bold text-slate-900">{sale.dateStr}</div>
+                        <div className="text-[11px] text-slate-400">{sale.timeStr}</div>
+                      </td>
+
+                      {/* Property Allotted */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900 text-sm">
+                          Plot {sale.plotNumber}
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="px-1.5 py-0.5 rounded-sm bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-[10px]">
+                            {sale.blockName}
+                          </span>
+                          <span className="text-slate-500 text-[10px]">
+                            {sale.size} • {sale.category.toUpperCase()}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Customer Member */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900">{sale.customerName}</div>
+                        <div className="font-mono text-[11px] text-emerald-800 font-semibold">
+                          {sale.membershipNo}
+                        </div>
+                      </td>
+
+                      {/* Contract Price */}
+                      <td className="py-3 px-4">
+                        <div className="font-mono font-bold text-slate-900 text-sm">
+                          PKR {sale.price.toLocaleString()}
+                        </div>
+                        <div className="text-[10px] text-slate-400">Official Society Rate</div>
+                      </td>
+
+                      {/* Payment Scheme */}
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            sale.paymentType === 'one_time'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                          }`}
+                        >
+                          {sale.paymentType === 'one_time' ? 'Full Payment' : '24-Mo Installments'}
+                        </span>
+                      </td>
+
+                      {/* Sold By (Admin) */}
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{sale.sellerAdminName}</span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 font-mono">
+                          {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
+                        </div>
+                      </td>
+
+                      {/* Screen-Only Action */}
+                      <td className="py-3 px-4 text-right">
+                        <Link
+                          href={`/admin/master-plan/${sale.blockId}?focusPlot=${sale.plotId}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors"
+                        >
+                          <span>Locate Plot</span>
+                          <ExternalLink className="w-3 h-3 text-slate-400" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+
+            {/* Print-Only Unpaginated Table Rows */}
+            <tbody className="hidden print:table-row-group divide-y divide-slate-300 text-[10px]">
               {items.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400 print:border print:border-slate-300">
@@ -471,82 +599,54 @@ export default function SalesHistoryPage() {
               ) : (
                 items.map((sale, idx) => {
                   return (
-                    <tr key={sale.id} className="hover:bg-slate-50/80 print:hover:bg-transparent transition-colors print:break-inside-avoid">
-                      {/* Row Index */}
+                    <tr key={sale.id} className="hover:bg-transparent print:break-inside-avoid">
                       <td className="py-3 px-3 text-center font-mono text-slate-400 print:border print:border-slate-300">
                         {idx + 1}
                       </td>
-
-                      {/* Date & Time */}
                       <td className="py-3 px-4 font-mono print:border print:border-slate-300">
                         <div className="font-bold text-slate-900">{sale.dateStr}</div>
-                        <div className="text-[11px] print:text-[9px] text-slate-400">{sale.timeStr}</div>
+                        <div className="print:text-[9px] text-slate-400">{sale.timeStr}</div>
                       </td>
-
-                      {/* Property Allotted */}
                       <td className="py-3 px-4 print:border print:border-slate-300">
-                        <div className="font-bold text-slate-900 text-sm print:text-xs">
+                        <div className="font-bold text-slate-900 print:text-xs">
                           Plot {sale.plotNumber}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="px-1.5 py-0.5 rounded-sm bg-indigo-50 print:bg-slate-100 border border-indigo-200 print:border-slate-300 text-indigo-900 print:text-slate-800 font-semibold text-[10px] print:text-[9px]">
+                          <span className="px-1.5 py-0.5 rounded-sm print:bg-slate-100 print:border print:border-slate-300 print:text-slate-800 font-semibold print:text-[9px]">
                             {sale.blockName}
                           </span>
-                          <span className="text-slate-500 text-[10px] print:text-[9px]">
+                          <span className="text-slate-500 print:text-[9px]">
                             {sale.size} • {sale.category.toUpperCase()}
                           </span>
                         </div>
                       </td>
-
-                      {/* Customer Member */}
                       <td className="py-3 px-4 print:border print:border-slate-300">
                         <div className="font-bold text-slate-900">{sale.customerName}</div>
-                        <div className="font-mono text-[11px] print:text-[9px] text-emerald-800 print:text-slate-700 font-semibold">
+                        <div className="font-mono print:text-[9px] print:text-slate-700 font-semibold">
                           {sale.membershipNo}
                         </div>
                       </td>
-
-                      {/* Contract Price */}
                       <td className="py-3 px-4 print:border print:border-slate-300">
-                        <div className="font-mono font-bold text-slate-900 text-sm print:text-xs">
+                        <div className="font-mono font-bold text-slate-900 print:text-xs">
                           PKR {sale.price.toLocaleString()}
                         </div>
-                        <div className="text-[10px] print:text-[9px] text-slate-400">Official Society Rate</div>
+                        <div className="print:text-[9px] text-slate-400">Official Society Rate</div>
                       </td>
-
-                      {/* Payment Scheme */}
                       <td className="py-3 px-4 print:border print:border-slate-300">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] print:text-[9px] font-bold border ${
-                            sale.paymentType === 'one_time'
-                              ? 'bg-emerald-50 print:bg-slate-100 text-emerald-800 print:text-slate-800 border-emerald-200 print:border-slate-300'
-                              : 'bg-indigo-50 print:bg-slate-100 text-indigo-800 print:text-slate-800 border-indigo-200 print:border-slate-300'
-                          }`}
-                        >
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full print:text-[9px] font-bold border print:bg-slate-100 print:text-slate-800 print:border-slate-300">
                           {sale.paymentType === 'one_time' ? 'Full Payment' : '24-Mo Installments'}
                         </span>
                       </td>
-
-                      {/* Sold By */}
                       <td className="py-3 px-4 print:border print:border-slate-300">
-                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-400 print:hidden" />
-                          <span>{sale.sellerAdminName}</span>
+                        <div className="font-bold text-slate-900">
+                          {sale.sellerAdminName}
                         </div>
-                        <div className="text-[10px] print:text-[9px] text-slate-400 font-mono">
+                        <div className="print:text-[9px] text-slate-400 font-mono">
                           {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
                         </div>
                       </td>
-
-                      {/* Screen-Only Action */}
                       <td className="py-3 px-4 text-right print:hidden">
-                        <Link
-                          href={`/admin/master-plan/${sale.blockId}?focusPlot=${sale.plotId}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors"
-                        >
-                          <span>Locate Plot</span>
-                          <ExternalLink className="w-3 h-3 text-slate-400" />
-                        </Link>
+                        —
                       </td>
                     </tr>
                   );
@@ -573,6 +673,34 @@ export default function SalesHistoryPage() {
               </tfoot>
             )}
           </table>
+        </div>
+
+        {/* Screen-Only Pagination Footer */}
+        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 print:hidden">
+          <div>
+            Showing <span className="font-semibold text-slate-900">{from}–{to}</span> of <span className="font-semibold text-slate-900">{items.length}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Prev
+            </button>
+            <span className="text-xs font-medium text-slate-500">
+              Page {safePage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
         </div>
 
         {/* Print-Only Signatures and Audit Sign-Off Section */}
@@ -612,6 +740,9 @@ export default function SalesHistoryPage() {
           </div>
         </div>
       </div>
+
+      {/* Action Toast Feedback */}
+      <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
     </div>
   );
 }

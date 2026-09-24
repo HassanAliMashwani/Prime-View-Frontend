@@ -25,7 +25,10 @@ import {
   RefreshCw,
   ExternalLink,
   UserCheck,
-  FileText
+  FileText,
+  Trash2,
+  Copy,
+  Check
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
@@ -35,9 +38,11 @@ import {
   toggleCustomerSuspension, 
   resetCustomerPassword, 
   issuePortalCredentials, 
+  deleteCustomer,
   CustomerDirectoryEntry 
 } from '@/lib/dal/customers';
 import { AdminSession } from '@/lib/mock/types';
+import { AdminActionToast } from '@/components/admin/AdminActionToast';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
@@ -71,6 +76,16 @@ function CustomersDirectoryContent() {
     newPassword?: string;
   } | null>(null);
   const [resetSubmitting, setResetSubmitting] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
+
+  // Delete modal state
+  const [deleteCustomerTarget, setDeleteCustomerTarget] = useState<CustomerDirectoryEntry | null>(null);
+  const [deleteConfirmInput, setDeleteConfirmInput] = useState<string>('');
+  const [deleteSubmitting, setDeleteSubmitting] = useState<boolean>(false);
+
+  // Pagination state
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState<number>(1);
 
   // Helper to redirect to Customer Booking page to complete registration (CR 07 §5)
   const openCompleteRegistration = (cust: CustomerDirectoryEntry) => {
@@ -88,14 +103,28 @@ function CustomersDirectoryContent() {
     try {
       const res = await getCustomersDirectory(currentSession);
       if (!res.ok) {
-        setError(res.message || res.error || 'Failed to load customer directory.');
+        setCustomers((prev) => {
+          if (prev.length > 0) {
+            setFeedback({ type: 'error', message: res.message || res.error || 'Failed to refresh customer directory.' });
+            return prev;
+          }
+          setError(res.message || res.error || 'Failed to load customer directory.');
+          return prev;
+        });
       } else {
         setCustomers(res.customers);
         setError(null);
       }
     } catch (err) {
       console.error('Failed to load customer directory:', err);
-      setError('An unexpected error occurred while loading the directory.');
+      setCustomers((prev) => {
+        if (prev.length > 0) {
+          setFeedback({ type: 'error', message: 'Failed to refresh customer directory.' });
+          return prev;
+        }
+        setError('An unexpected error occurred while loading the directory.');
+        return prev;
+      });
     } finally {
       setLoading(false);
     }
@@ -120,10 +149,11 @@ function CustomersDirectoryContent() {
 
     return () => clearInterval(intervalId);
   }, [router, loadData]);
-  // Flash feedback auto-clear
+
+  // Flash feedback auto-clear (8s)
   useEffect(() => {
     if (feedback) {
-      const timer = setTimeout(() => setFeedback(null), 4000);
+      const timer = setTimeout(() => setFeedback(null), 8000);
       return () => clearTimeout(timer);
     }
   }, [feedback]);
@@ -189,7 +219,10 @@ function CustomersDirectoryContent() {
 
     if (!res.ok) {
       setFeedback({ type: 'error', message: res.message || res.error || 'Failed to reset password.' });
+    } else if (!res.newPassword) {
+      setFeedback({ type: 'error', message: 'Password reset returned empty credentials.' });
     } else {
+      setCopied(false);
       setResetModalData({
         customer: cust,
         newPassword: res.newPassword,
@@ -212,7 +245,10 @@ function CustomersDirectoryContent() {
 
     if (!res.ok) {
       setFeedback({ type: 'error', message: res.message || res.error || 'Failed to issue portal credentials.' });
+    } else if (!res.password) {
+      setFeedback({ type: 'error', message: 'Credential issuance returned empty credentials.' });
     } else {
+      setCopied(false);
       setResetModalData({
         customer: cust,
         newPassword: res.password,
@@ -247,6 +283,17 @@ function CustomersDirectoryContent() {
     return true;
   });
 
+  // Pagination logic
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = filteredCustomers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  const from = filteredCustomers.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const to = Math.min(safePage * PAGE_SIZE, filteredCustomers.length);
+
   // Metrics
   const totalCount = customers.length;
   const needsRegistrationCount = customers.filter((c) => c.registrationStatus === 'minimal').length;
@@ -258,7 +305,7 @@ function CustomersDirectoryContent() {
     return <AdminTableSkeleton rows={6} columns={6} />;
   }
 
-  if (error) {
+  if (error && customers.length === 0) {
     return (
       <div className="p-8 max-w-2xl mx-auto">
         <div className="p-6 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900">
@@ -266,7 +313,19 @@ function CustomersDirectoryContent() {
             <ShieldAlert className="w-5 h-5 text-rose-600" />
             <span>Access Restricted</span>
           </div>
-          <p className="text-sm text-rose-700">{error}</p>
+          <p className="text-sm text-rose-700 mb-4">{error}</p>
+          <button
+            type="button"
+            onClick={() => {
+              if (session) {
+                setLoading(true);
+                loadData(session);
+              }
+            }}
+            className="px-4 py-2 bg-rose-600 text-white rounded-xl text-xs font-bold hover:bg-rose-700 transition-colors cursor-pointer"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -307,29 +366,6 @@ function CustomersDirectoryContent() {
           )}
         </div>
       </div>
-
-      {/* Feedback Toast */}
-      {feedback && (
-        <div
-          className={`p-3.5 rounded-xl text-xs font-semibold flex items-center justify-between shadow-md transition-all ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border border-emerald-300'
-              : 'bg-rose-50 text-rose-900 border border-rose-300'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            {feedback.type === 'success' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            ) : (
-              <AlertTriangle className="w-4 h-4 text-rose-600" />
-            )}
-            <span>{feedback.message}</span>
-          </div>
-          <button onClick={() => setFeedback(null)} className="text-slate-400 hover:text-slate-600">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
@@ -466,7 +502,7 @@ function CustomersDirectoryContent() {
                   </td>
                 </tr>
               ) : (
-                filteredCustomers.map((c) => {
+                pageRows.map((c) => {
                   const hasStrikes = c.strikeCount > 0;
                   const isSuspended = c.accountStatus === 'suspended';
 
@@ -692,10 +728,23 @@ function CustomersDirectoryContent() {
                           <button
                             onClick={() => handleResetPassword(c)}
                             title="Reset Portal Password"
-                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                           >
                             <KeyRound className="w-4 h-4" />
                           </button>
+
+                          {session?.role === 'super_admin' && (
+                            <button
+                              onClick={() => {
+                                setDeleteCustomerTarget(c);
+                                setDeleteConfirmInput('');
+                              }}
+                              title="Delete Member"
+                              className="p-1.5 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -704,6 +753,34 @@ function CustomersDirectoryContent() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Footer */}
+        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
+          <div>
+            Showing <span className="font-semibold text-slate-900">{from}–{to}</span> of <span className="font-semibold text-slate-900">{filteredCustomers.length}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Prev
+            </button>
+            <span className="text-xs font-medium text-slate-500">
+              Page {safePage} of {totalPages}
+            </span>
+            <button
+              type="button"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
@@ -880,11 +957,25 @@ function CustomersDirectoryContent() {
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end">
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+              {session?.role === 'super_admin' ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteCustomerTarget(dossierCustomer);
+                    setDeleteConfirmInput('');
+                  }}
+                  className="px-3 py-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold flex items-center gap-1.5 cursor-pointer transition-colors text-xs"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Delete Member</span>
+                </button>
+              ) : <div />}
+
               <button
                 type="button"
                 onClick={() => setDossierCustomer(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Close Dossier
               </button>
@@ -1043,40 +1134,166 @@ function CustomersDirectoryContent() {
         </div>
       )}
 
-      {/* ── MODAL: PASSWORD RESET SUCCESS ── */}
+      {/* ── MODAL: PASSWORD RESET / CREDENTIALS SUCCESS ── */}
       {resetModalData && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-sm w-full border border-slate-200 shadow-2xl p-5 space-y-4 text-xs">
-            <div className="flex items-center gap-2.5 font-bold text-emerald-900">
-              <KeyRound className="w-5 h-5 text-emerald-600" />
-              <span>Portal Password Reset</span>
+            <div className="flex items-center justify-between font-bold text-slate-900">
+              <div className="flex items-center gap-2 text-emerald-900">
+                <KeyRound className="w-5 h-5 text-emerald-600" />
+                <span>Portal Credentials</span>
+              </div>
+              <button
+                onClick={() => setResetModalData(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <p className="text-slate-600">
-              A new administrative password has been generated for Member{' '}
-              <strong className="text-slate-900">{resetModalData.customer.fullName}</strong> ({resetModalData.customer.membershipNo}):
+              Administrative credentials generated for Member{' '}
+              <strong className="text-slate-900">{resetModalData.customer.fullName}</strong>:
             </p>
 
-            <div className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-center text-sm font-bold tracking-wider select-all">
-              {resetModalData.newPassword}
+            <div className="space-y-2">
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Username:</span>
+                <span className="font-mono font-bold text-slate-900 select-all">
+                  {resetModalData.customer.membershipNo}
+                </span>
+              </div>
+
+              <div>
+                <div className="text-[11px] text-slate-500 font-medium mb-1">Password:</div>
+                <div className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-center text-sm font-bold tracking-wider select-all break-all">
+                  {resetModalData.newPassword}
+                </div>
+              </div>
             </div>
 
-            <p className="text-[11px] text-slate-400">
-              Please relay these credentials directly to the customer. They will be prompted to update their password upon next login.
-            </p>
-
-            <div className="pt-2 flex justify-end">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const text = `Username: ${resetModalData.customer.membershipNo}\nPassword: ${resetModalData.newPassword}`;
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex-1 py-2 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-500" />
+                    <span>Copy Credentials</span>
+                  </>
+                )}
+              </button>
               <button
                 type="button"
                 onClick={() => setResetModalData(null)}
-                className="px-4 py-1.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Done
               </button>
             </div>
+
+            <p className="text-[11px] text-slate-500 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
+              There is no default password. This password is shown once. Give it to the member. They should change it after login.
+            </p>
           </div>
         </div>
       )}
+
+      {/* ── MODAL: CONFIRM DELETE MEMBER ── */}
+      {deleteCustomerTarget && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden text-xs">
+            <div className="p-5 border-b border-rose-100 flex items-center justify-between bg-rose-50/60 text-rose-900 font-bold">
+              <div className="flex items-center gap-2">
+                <Trash2 className="w-5 h-5 text-rose-600" />
+                <span className="text-sm">Delete Member Account</span>
+              </div>
+              <button
+                onClick={() => setDeleteCustomerTarget(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <p className="text-slate-600 leading-relaxed">
+                Warning: This action will permanently remove <strong className="text-slate-900">{deleteCustomerTarget.fullName}</strong> and their account records from Prime View.
+              </p>
+
+              <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 space-y-1">
+                <div className="font-bold">Required Conditions:</div>
+                <ul className="list-disc list-inside text-[11px] text-amber-800 space-y-0.5">
+                  <li>Member must not hold any active booked or allotted plots.</li>
+                  <li>Member must have zero payment ledger history (no paid installments or verified receipts).</li>
+                </ul>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  To confirm, please type membership number <span className="font-mono font-bold text-slate-900">{deleteCustomerTarget.membershipNo}</span>:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmInput}
+                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                  placeholder={deleteCustomerTarget.membershipNo}
+                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-hidden focus:border-rose-600 focus:ring-1 focus:ring-rose-600 text-xs"
+                />
+              </div>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setDeleteCustomerTarget(null)}
+                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={deleteConfirmInput.trim() !== deleteCustomerTarget.membershipNo || deleteSubmitting}
+                  onClick={async () => {
+                    if (!session || !deleteCustomerTarget) return;
+                    setDeleteSubmitting(true);
+                    const target = deleteCustomerTarget;
+                    const res = await deleteCustomer(session, target.id);
+                    setDeleteSubmitting(false);
+                    setDeleteCustomerTarget(null);
+                    if (!res.ok) {
+                      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to delete member.' });
+                    } else {
+                      setFeedback({ type: 'success', message: `Member ${target.fullName} (${target.membershipNo}) deleted successfully.` });
+                      if (dossierCustomer?.id === target.id) {
+                        setDossierCustomer(null);
+                      }
+                      loadData(session);
+                    }
+                  }}
+                  className="px-4 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  {deleteSubmitting ? 'Deleting...' : 'Delete Member'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Toast Feedback */}
+      <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
     </div>
   );
 }

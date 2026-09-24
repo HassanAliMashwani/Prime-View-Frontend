@@ -8,7 +8,7 @@ import {
   InstallmentPlanConfig,
 } from '../mock/types';
 import { getActiveSession } from './auth';
-import { apiGet, apiPost, apiPatch } from '../api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
 
 export interface CustomerDisambiguation {
   id: string;
@@ -409,21 +409,23 @@ export async function acceptTermsAndConditions(
   return { ok: true };
 }
 
-/**
- * Deferred per user requirement: admin password reset.
- */
 export async function resetCustomerPassword(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _session: AdminSession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _customerId: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _newPassword?: string
-): Promise<{ ok: boolean; newPassword?: string; error?: string; message?: string }> {
+  session: AdminSession,
+  customerId: string,
+  _newPassword?: string // ignore; server generates
+): Promise<{ ok: boolean; username?: string; newPassword?: string; error?: string; message?: string }> {
+  const res = await apiPost<{ ok: boolean; username?: string; newPassword?: string }>(
+    `/customers/${customerId}/reset-password`,
+    {},
+    session?.token
+  );
+  if (!res.ok) {
+    return { ok: false, error: res.error, message: res.message || res.error };
+  }
   return {
-    ok: false,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Customer password reset is deferred and not yet available.',
+    ok: true,
+    newPassword: (res.data as any)?.newPassword,
+    username: (res.data as any)?.username,
   };
 }
 
@@ -600,14 +602,9 @@ export async function toggleCustomerSuspension(
   };
 }
 
-/**
- * Standalone credential issuance (deferred).
- */
 export async function issuePortalCredentials(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _session: AdminSession,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  _customerId: string
+  session: AdminSession,
+  customerId: string
 ): Promise<{
   ok: boolean;
   username?: string;
@@ -617,11 +614,33 @@ export async function issuePortalCredentials(
   reason?: string;
   message?: string;
 }> {
+  const res = await apiPost<{ ok: boolean; username?: string; password?: string }>(
+    `/customers/${customerId}/issue-credentials`,
+    {},
+    session?.token
+  );
+  if (!res.ok) {
+    return { ok: false, error: res.error, message: res.message || res.error };
+  }
   return {
-    ok: false,
-    error: 'NOT_YET_IMPLEMENTED',
-    message: 'Portal credentials issuance is completed during registration completion.',
+    ok: true,
+    username: (res.data as any)?.username,
+    password: (res.data as any)?.password,
   };
+}
+
+export async function deleteCustomer(
+  session: AdminSession,
+  customerId: string
+): Promise<{ ok: boolean; error?: string; message?: string }> {
+  const res = await apiDelete<{ ok: boolean; deletedId?: string }>(
+    `/customers/${customerId}`,
+    session?.token
+  );
+  if (!res.ok) {
+    return { ok: false, error: res.error, message: res.message || res.error };
+  }
+  return { ok: true };
 }
 
 /**
