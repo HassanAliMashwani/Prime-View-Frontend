@@ -13,7 +13,8 @@ import {
   Layers,
   FileSpreadsheet,
   KeyRound,
-  ShieldAlert
+  ShieldAlert,
+  ShieldCheck
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
@@ -125,41 +126,41 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* 4 Distinct Colorful KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 1. Total Inventory - Blue Theme */}
-        <div className="bg-white border-2 border-blue-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all hover:border-blue-400">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Total Inventory</span>
-            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600">
-              <Building2 className="w-4 h-4" />
+      {/* Aggregate Overview Cards (Purple, Mint, Amber, Blue) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Total Inventory - Purple */}
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-purple-700" />
             </div>
+            <h3 className="text-purple-800 font-bold text-sm">Total Inventory</h3>
           </div>
-          <div className="text-3xl font-bold font-serif text-blue-950">{totalPlots}</div>
-          <div className="text-[11px] text-blue-700/80 mt-1 font-medium">Across {blocks.length} accessible blocks</div>
+          <div className="text-3xl font-bold text-purple-700">{totalPlots}</div>
+          <p className="text-xs text-purple-700/80 mt-2 font-medium">Across {blocks.length} accessible blocks</p>
         </div>
 
-        {/* 2. Available Plots - Emerald Theme */}
-        <div className="bg-white border-2 border-emerald-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all hover:border-emerald-400">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700">Available Plots</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
-              <CheckCircle2 className="w-4 h-4" />
+        {/* 2. Available Plots - Mint */}
+        <div className="bg-gradient-to-br from-green-500/10 to-green-900/10 border border-green-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-green-700" />
             </div>
+            <h3 className="text-green-800 font-bold text-sm">Available Plots</h3>
           </div>
-          <div className="text-3xl font-bold font-serif text-emerald-950">{availablePlots}</div>
-          <div className="text-[11px] text-emerald-700/80 mt-1 font-medium">Ready for immediate booking</div>
+          <div className="text-3xl font-bold text-green-700">{availablePlots}</div>
+          <p className="text-xs text-green-700/80 mt-2 font-medium">Ready for immediate booking</p>
         </div>
 
-        {/* 3. Active Reservations - Amber Theme */}
-        <div className="bg-white border-2 border-amber-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all hover:border-amber-400">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-800">Active Reservations</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-600">
-              <Clock className="w-4 h-4" />
+        {/* 3. Active Reservations - Amber */}
+        <div className="bg-gradient-to-br from-amber-500/10 to-amber-900/10 border border-amber-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-amber-700" />
             </div>
+            <h3 className="text-amber-800 font-bold text-sm">Active Reservations</h3>
           </div>
-          <div className="text-3xl font-bold font-serif text-amber-950 flex items-center gap-2">
+          <div className="text-3xl font-bold text-amber-700 flex items-center gap-2">
             {reservedPlots}
             {conflictsCount > 0 && (
               <span className="text-[10px] font-sans font-bold bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full">
@@ -167,19 +168,19 @@ export default function AdminDashboardPage() {
               </span>
             )}
           </div>
-          <div className="text-[11px] text-amber-800/80 mt-1 font-medium">Token deposits on hold</div>
+          <p className="text-xs text-amber-700/80 mt-2 font-medium">Token deposits on hold</p>
         </div>
 
-        {/* 4. Booked Plots - Purple Theme */}
-        <div className="bg-white border-2 border-purple-200/80 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all hover:border-purple-400">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Booked & Confirmed</span>
-            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-200 flex items-center justify-center text-purple-600">
-              <FileSpreadsheet className="w-4 h-4" />
+        {/* 4. Booked & Confirmed - Blue */}
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-900/10 border border-blue-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-blue-700" />
             </div>
+            <h3 className="text-blue-800 font-bold text-sm">Booked & Confirmed</h3>
           </div>
-          <div className="text-3xl font-bold font-serif text-purple-950">{bookedPlots}</div>
-          <div className="text-[11px] text-purple-700/80 mt-1 font-medium">Verified member allocations</div>
+          <div className="text-3xl font-bold text-blue-700">{bookedPlots}</div>
+          <p className="text-xs text-blue-700/80 mt-2 font-medium">Verified member allocations</p>
         </div>
       </div>
 
