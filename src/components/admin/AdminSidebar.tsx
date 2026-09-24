@@ -70,15 +70,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       visible: true,
     },
     {
-      label: 'Admin Profile',
-      href: '/admin/profile',
-      icon: User,
-      iconColor: 'text-sky-600',
-      activeColor: 'bg-sky-50 text-sky-950 border-sky-600',
-      active: pathname === '/admin/profile',
-      visible: true,
-    },
-    {
       label: 'Master Plan',
       href: '/admin/master-plan',
       icon: Map,

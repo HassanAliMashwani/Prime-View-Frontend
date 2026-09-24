@@ -28,6 +28,11 @@ import {
   Users,
   FileEdit,
   ScrollText,
+  FileBadge,
+  Building,
+  Info,
+  Phone,
+  Shield,
 } from 'lucide-react';
 import {
   getActiveAdminSession,
@@ -144,6 +149,13 @@ export default function AdminProfilePage() {
   const email = details?.email || `${username}@primeview.pk`;
   const assignedBlocks = details?.assignedBlocks || session.assignedBlocks || [];
   const permissions = details?.permissions || session.permissions || {};
+  const formattedDate = details?.createdDate
+    ? new Date(details.createdDate).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : '01 Jan 2026';
 
   const allBlocksList = [
     { id: 'abbott', name: 'Abbott Block', desc: 'Main Commercial Hub & 1 Kanal Villas' },
@@ -249,11 +261,128 @@ export default function AdminProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Read-Only System Identity 4-Grid (Exact match to Member Profile Section 2.8) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-100 relative z-10">
+          {/* Admin ID / System ID */}
+          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
+              <FileBadge className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Administrative ID</span>
+            </div>
+            <p className="font-mono font-bold text-sm text-[#151914]">
+              {details?.id || session.adminId || 'admin-1'}
+            </p>
+            <p className="text-[10px] text-[#6B7462]">Official administrative record</p>
+          </div>
+
+          {/* Portal Handle */}
+          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
+              <User className="w-3.5 h-3.5 text-[#43612B]" />
+              <span>Portal Handle</span>
+            </div>
+            <p className="font-mono font-bold text-sm text-[#151914]">
+              @{username}
+            </p>
+            <p className="text-[10px] text-[#6B7462]">Immutable auth identifier</p>
+          </div>
+
+          {/* Account Status */}
+          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
+              <ShieldCheck className="w-3.5 h-3.5 text-[#43612B]" />
+              <span>Standing &amp; Status</span>
+            </div>
+            <p className="font-bold text-sm text-emerald-800 capitalize">
+              {details?.status || 'Active'}
+            </p>
+            <p className="text-[10px] text-[#6B7462]">Verified executive authority</p>
+          </div>
+
+          {/* Appointed Date */}
+          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
+              <Calendar className="w-3.5 h-3.5 text-[#43612B]" />
+              <span>Charter Appointed</span>
+            </div>
+            <p className="font-medium text-sm text-[#151914]">
+              {formattedDate}
+            </p>
+            <p className="text-[10px] text-[#6B7462]">Original commission registry</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Assigned Sectors & Authority (2 Cols) */}
         <div className="lg:col-span-2 space-y-8">
+          {/* Administrative Particulars & Official Desk Card (Counterpart to Member Contact Particulars) */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200">
+                  <Building className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-lg text-slate-900 leading-tight">
+                    Administrative Particulars &amp; Official Secretariat Desk
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Official secretariat credentials and operational post designated for executive society governance.
+                  </p>
+                </div>
+              </div>
+              <span className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-mono font-bold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
+                Verified Dossier
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Executive Legal Name
+                </span>
+                <p className="font-bold text-sm text-slate-900">{fullName}</p>
+                <p className="text-[10px] text-slate-500">Registered appointment name</p>
+              </div>
+
+              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Official Email Address
+                </span>
+                <p className="font-mono font-bold text-sm text-slate-900">{email}</p>
+                <p className="text-[10px] text-slate-500">Official encrypted routing</p>
+              </div>
+
+              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Secretariat Direct Desk
+                </span>
+                <p className="font-medium text-xs text-slate-900">
+                  (051) 111-PRIME &bull; Ext: {isSuper ? '101 (CEO)' : '204 (Liaison)'}
+                </p>
+                <p className="text-[10px] text-slate-500">Direct administrative line</p>
+              </div>
+
+              <div className="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+                  Physical Secretariat Desk
+                </span>
+                <p className="font-medium text-xs text-slate-900">
+                  Suite {isSuper ? '401, Executive Wing' : '205, Operations Hub'}, Prime View Complex
+                </p>
+                <p className="text-[10px] text-slate-500">Main Boulevard, Sector B, Abbottabad</p>
+              </div>
+            </div>
+
+            <div className="bg-emerald-50/60 rounded-xl p-3.5 border border-emerald-200/80 flex items-start gap-2.5 text-xs text-emerald-950">
+              <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <span>
+                Administrative records and sector delegations are certified by the Prime View Executive Council. Any jurisdictional alterations require an official executive gazette notice.
+              </span>
+            </div>
+          </div>
           {/* Assigned Sectors Card */}
           <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">

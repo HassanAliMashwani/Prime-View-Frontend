@@ -160,9 +160,39 @@ export const AdminProfileSkeleton: React.FC = () => {
         </div>
       </div>
 
+      {/* 4-Card Metadata Grid Skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
+            <Skeleton className="h-3.5 w-28 rounded-md" />
+            <Skeleton className="h-6 w-24 rounded-lg" />
+            <Skeleton className="h-2.5 w-32 rounded-xs" />
+          </div>
+        ))}
+      </div>
+
       {/* 2-Column Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
+          {/* Administrative Particulars Card Skeleton */}
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+              <Skeleton className="w-10 h-10 rounded-xl" />
+              <div className="space-y-1">
+                <Skeleton className="h-5 w-56 rounded-md" />
+                <Skeleton className="h-3 w-72 rounded-md" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/70 space-y-2">
+                  <Skeleton className="h-3 w-28 rounded-md" />
+                  <Skeleton className="h-5 w-44 rounded-md" />
+                  <Skeleton className="h-2.5 w-32 rounded-xs" />
+                </div>
+              ))}
+            </div>
+          </div>
           {/* Assigned Sectors Skeleton */}
           <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-5">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
