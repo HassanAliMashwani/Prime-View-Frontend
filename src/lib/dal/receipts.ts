@@ -57,9 +57,13 @@ export async function submitPaymentReceipt(
   return { ok: true, receipt };
 }
 
-export async function getBalloonPreview(plotId: string, amount: number) {
+export async function getBalloonPreview(plotId: string, amount: number, bookingId?: string) {
   const token = getMemberToken();
-  const res = await apiGet<any>(`/receipts/balloon-preview?plotId=${plotId}&amount=${amount}`, token || undefined);
+  const params = new URLSearchParams();
+  if (plotId) params.set('plotId', plotId);
+  if (bookingId) params.set('bookingId', bookingId);
+  params.set('amount', String(amount));
+  const res = await apiGet<any>(`/receipts/balloon-preview?${params.toString()}`, token || undefined);
   return res;
 }
 

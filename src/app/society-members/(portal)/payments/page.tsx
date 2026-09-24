@@ -58,6 +58,7 @@ function PaymentsContent() {
   const [formTxnRef, setFormTxnRef] = useState<string>('');
   const [formDate, setFormDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [previewData, setPreviewData] = useState<any>(null);
+  const [balloonError, setBalloonError] = useState<string | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [formFileName, setFormFileName] = useState<string>('');
   const [formFileUrl, setFormFileUrl] = useState<string>('');
@@ -109,26 +110,32 @@ function PaymentsContent() {
   useEffect(() => {
     if (formPaymentType !== 'installment' || formPaymentKind !== 'balloon' || !formPlotId) {
       setPreviewData(null);
+      setBalloonError(null);
       return;
     }
     const numAmt = Number(formAmount);
     if (isNaN(numAmt) || numAmt <= 0) {
       setPreviewData(null);
+      setBalloonError(null);
       return;
     }
 
     setIsPreviewLoading(true);
     const t = setTimeout(async () => {
-      const res = await getBalloonPreview(formPlotId, numAmt);
+      const activeSched = schedules.find((s) => s.plotId === formPlotId);
+      const bookingId = (activeSched as any)?.bookingId || (activeSched as any)?.id;
+      const res = await getBalloonPreview(formPlotId, numAmt, bookingId);
       if (res.ok && res.data) {
         setPreviewData(res.data);
+        setBalloonError(null);
       } else {
         setPreviewData(null);
+        setBalloonError(res.message || res.error || 'Failed to calculate balloon preview.');
       }
       setIsPreviewLoading(false);
     }, 500);
     return () => clearTimeout(t);
-  }, [formAmount, formPaymentKind, formPaymentType, formPlotId]);
+  }, [formAmount, formPaymentKind, formPaymentType, formPlotId, schedules]);
 
   const loadReceipts = useCallback(async () => {
     if (profile?.id) {
@@ -273,6 +280,7 @@ function PaymentsContent() {
 
     setUploadError(null);
     setUploadSuccess(null);
+    setBalloonError(null);
     setShowUploadModal(true);
   };
 
@@ -1095,27 +1103,39 @@ function PaymentsContent() {
                       <p>Customer ledger is updated only after admin verification.</p>
                     </div>
                   )}
+                  {formPaymentType === 'installment' && formPaymentKind === 'balloon' && balloonError && (
+                    <p className="text-xs font-semibold text-rose-600 mt-1.5">{balloonError}</p>
+                  )}
                 </div>
 
                 {/* Preview UI */}
-                {formPaymentType === 'installment' && formPaymentKind === 'balloon' && previewData && (
+                {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (previewData || isPreviewLoading) && (
                   <div className="col-span-1 sm:col-span-2 space-y-2 p-3 sm:p-4 bg-[#EAF0E7]/60 border border-[#43612B]/20 rounded-xl">
                     <h4 className="text-xs font-bold text-[#43612B] flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Balloon Allocation Preview
                     </h4>
-                    {previewData.error ? (
-                      <p className="text-xs font-semibold text-rose-600">{previewData.error}</p>
-                    ) : (
-                      <div className="space-y-1 bg-white/50 rounded-lg p-2 border border-[#43612B]/10">
-                        {previewData.allocations.map((a: any, i: number) => (
-                          <div key={i} className="text-[11px] text-[#151914] flex justify-between border-b border-[#43612B]/10 py-1.5 last:border-0 font-medium">
-                            <span>Installment Alloc</span>
-                            <span className="font-mono text-[#43612B]">Rs. {a.amountApplied.toLocaleString()}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {isPreviewLoading ? (
+                      <p className="text-xs text-[#6B7462]">Calculating allocation preview...</p>
+                    ) : (() => {
+                      const rows = previewData?.allocations ?? previewData?.preview?.allocations ?? [];
+                      if (previewData?.error) {
+                        return <p className="text-xs font-semibold text-rose-600">{previewData.error}</p>;
+                      }
+                      if (rows.length === 0) {
+                        return <p className="text-xs text-[#6B7462]">No installment allocations available for this amount.</p>;
+                      }
+                      return (
+                        <div className="space-y-1 bg-white/50 rounded-lg p-2 border border-[#43612B]/10">
+                          {rows.map((a: any, i: number) => (
+                            <div key={i} className="text-[11px] text-[#151914] flex justify-between border-b border-[#43612B]/10 py-1.5 last:border-0 font-medium">
+                              <span>{a.installmentNumber ? `Installment #${a.installmentNumber}` : 'Installment Alloc'}</span>
+                              <span className="font-mono text-[#43612B]">Rs. {Number(a.amountApplied || 0).toLocaleString()}</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
