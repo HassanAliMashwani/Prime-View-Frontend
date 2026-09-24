@@ -9,6 +9,7 @@ import {
 } from '../mock/types';
 import { getActiveSession } from './auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
+import { computePlotLedger } from '../ledger/plotLedger';
 
 export interface CustomerDisambiguation {
   id: string;
@@ -490,16 +491,17 @@ export async function getCustomersDirectory(
     let totalOutstandingAmount = 0;
 
     for (const booking of customerBookings) {
+      const plot = visiblePlots.find((p) => p.plotId === booking.plotId);
+      const ledger = computePlotLedger(plot?.price || 0, booking.payments || []);
+      totalPaidAmount += ledger.totalPaidToDate;
+      totalOutstandingAmount += ledger.remainingBalance;
+
       for (const p of booking.payments || []) {
         if (p.feeType === 'plot_installment' && p.status === 'paid') {
           installmentsPaidCount++;
         }
-        if (p.feeType === 'plot_installment' && (p.status === 'pending' || p.status === 'overdue')) {
+        if (p.feeType === 'plot_installment' && (p.status === 'pending' || p.status === 'overdue' || p.status === 'partially_paid')) {
           installmentsDueCount++;
-        }
-        totalPaidAmount += Number(p.paidAmount || 0);
-        if (p.status !== 'paid') {
-          totalOutstandingAmount += Number(p.amount) - Number(p.paidAmount || 0);
         }
       }
     }

@@ -17,7 +17,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
 }) => {
   // Find upcoming payment or overdue payment
   const overdueInstallment = schedule.find((p) => p.status === 'overdue');
-  const nextPendingInstallment = schedule.find((p) => p.status === 'pending');
+  const nextPendingInstallment = schedule.find((p) => p.status === 'pending' || p.status === 'partially_paid');
 
   const formatPKR = (num: number) =>
     new Intl.NumberFormat('en-PK', {
@@ -56,10 +56,22 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
           <div className="space-y-1">
             <h4 className="font-bold text-sm text-[#151914]">
               Next Upcoming Due: Installment #{nextPendingInstallment.installmentNumber}
+              {nextPendingInstallment.status === 'partially_paid' && (
+                <span className="ml-2 text-xs font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">
+                  Partially Settled
+                </span>
+              )}
             </h4>
             <p className="text-xs text-[#6B7462] leading-relaxed">
-              Due Date: <span className="font-bold text-[#151914]">{cleanDate(nextPendingInstallment.dueDate)}</span> &bull; Amount:{' '}
-              <span className="font-bold text-[#43612B]">{formatPKR(nextPendingInstallment.amount)}</span>
+              Due Date: <span className="font-bold text-[#151914]">{cleanDate(nextPendingInstallment.dueDate)}</span> &bull; Remaining Due:{' '}
+              <span className="font-bold text-[#43612B]">
+                {formatPKR(nextPendingInstallment.amount - (nextPendingInstallment.paidAmount || 0))}
+              </span>
+              {nextPendingInstallment.status === 'partially_paid' && (
+                <span className="text-[11px] text-amber-700 font-semibold ml-1.5">
+                  ({formatPKR(nextPendingInstallment.paidAmount || 0)} of {formatPKR(nextPendingInstallment.amount)} paid)
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -99,20 +111,29 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
               {schedule.map((record) => {
                 let badgeClass = 'bg-black/5 text-[#6B7462] border-black/10';
                 let Icon = Clock;
+                let statusLabel: string = record.status;
 
                 if (record.status === 'paid') {
                   badgeClass = 'bg-[#EAF0E7] text-[#43612B] border-[#43612B]/20';
                   Icon = Check;
+                  statusLabel = 'Paid';
+                } else if (record.status === 'partially_paid') {
+                  badgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
+                  Icon = Clock;
+                  statusLabel = 'Partially Paid';
                 } else if (record.status === 'overdue') {
                   badgeClass = 'bg-red-50 text-red-700 border-red-200';
                   Icon = AlertCircle;
+                  statusLabel = 'Overdue';
+                } else {
+                  statusLabel = 'Pending';
                 }
 
                 return (
                   <tr
                     key={record.id}
                     className={`hover:bg-black/[0.01] transition-colors ${
-                      record.status === 'overdue' ? 'bg-red-50/40' : ''
+                      record.status === 'overdue' ? 'bg-red-50/40' : record.status === 'partially_paid' ? 'bg-amber-50/20' : ''
                     }`}
                   >
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
@@ -128,14 +149,19 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                       {cleanDate(record.dueDate)}
                     </td>
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
-                      {formatPKR(record.amount)}
+                      <div>{formatPKR(record.amount)}</div>
+                      {record.status === 'partially_paid' && (
+                        <div className="text-[10px] font-semibold text-amber-800 mt-0.5">
+                          Paid: {formatPKR(record.paidAmount || 0)} &bull; Left: {formatPKR(record.amount - (record.paidAmount || 0))}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${badgeClass}`}
                       >
                         <Icon className="w-3 h-3" />
-                        <span className="capitalize">{record.status}</span>
+                        <span className="capitalize">{statusLabel}</span>
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-[#6B7462]">

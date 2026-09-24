@@ -64,7 +64,7 @@ export function buildSlipDataFromSubmission(sub: ReceiptSubmission): SlipRenderM
     amountInWords: formatAmountInWords(sub.amount),
     bankName: sub.depositoryBank || sub.bankName || 'Meezan Bank Ltd',
     transactionRef: sub.transactionRef,
-    depositDate: sub.paymentDate,
+    depositDate: sub.paymentDate ? String(sub.paymentDate).split('T')[0] : '—',
     verifiedDate: sub.verifiedAt ? sub.verifiedAt.split('T')[0] : new Date().toISOString().split('T')[0],
     verifiedBy: sub.verifiedByAdminName || 'Society Secretariat / Finance Officer',
     securityHash: sub.slip?.securityHash || `PV-SEC-${sub.id.slice(-6).toUpperCase()}`,
@@ -229,7 +229,7 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                     <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                       Deposit Date
                     </span>
-                    <p className="font-medium text-[#151914]">{slip.depositDate}</p>
+                    <p className="font-medium text-[#151914]">{slip.depositDate ? String(slip.depositDate).split('T')[0] : '—'}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
@@ -401,7 +401,7 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                 <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                   Transaction Date
                 </span>
-                <p className="font-medium text-[#151914]">{slip.depositDate}</p>
+                <p className="font-medium text-[#151914]">{slip.depositDate ? String(slip.depositDate).split('T')[0] : '—'}</p>
               </div>
             </div>
 

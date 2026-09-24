@@ -54,7 +54,7 @@ export async function submitPaymentReceipt(
   }
 
   const receipt = (res.data as any)?.receipt || res.data;
-  return { ok: true, receipt };
+  return { ok: true, receipt: cleanReceiptDate(receipt) };
 }
 
 export async function getBalloonPreview(plotId: string, amount: number, bookingId?: string) {
@@ -65,6 +65,14 @@ export async function getBalloonPreview(plotId: string, amount: number, bookingI
   params.set('amount', String(amount));
   const res = await apiGet<any>(`/receipts/balloon-preview?${params.toString()}`, token || undefined);
   return res;
+}
+
+function cleanReceiptDate(r: any): any {
+  if (!r) return r;
+  return {
+    ...r,
+    paymentDate: r.paymentDate ? String(r.paymentDate).split('T')[0] : '',
+  };
 }
 
 /**
@@ -78,7 +86,7 @@ export async function getCustomerReceipts(_customerId?: string): Promise<Receipt
     return [];
   }
   const list = Array.isArray(res.data) ? res.data : (res.data as any).receipts || [];
-  return list;
+  return list.map(cleanReceiptDate);
 }
 
 /**
@@ -102,7 +110,7 @@ export async function getAdminReceipts(
   }
 
   const list = Array.isArray(res.data) ? res.data : (res.data as any)?.receipts || [];
-  return { ok: true, receipts: list };
+  return { ok: true, receipts: list.map(cleanReceiptDate) };
 }
 
 
@@ -132,7 +140,24 @@ export async function verifyReceipt(
   }
 
   const receipt = (res.data as any)?.receipt || res.data;
-  return { ok: true, receipt };
+
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'PAYMENT_RECORD_UPDATED',
+        receiptId,
+        customerId: (receipt as any)?.customerId,
+        bookingId: (receipt as any)?.bookingId,
+        plotId: (receipt as any)?.plotId,
+      });
+      channel.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  return { ok: true, receipt: cleanReceiptDate(receipt) };
 }
 
 export interface RejectReceiptOptions {

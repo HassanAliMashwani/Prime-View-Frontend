@@ -484,7 +484,7 @@ export default function AdminReceiptsPage() {
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                       Deposit Date
                     </span>
-                    <span className="text-slate-700">{sub.paymentDate}</span>
+                    <span className="text-slate-700">{sub.paymentDate ? String(sub.paymentDate).split('T')[0] : '—'}</span>
                   </div>
                 </div>
 

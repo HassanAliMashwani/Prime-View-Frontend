@@ -1,6 +1,7 @@
 import { PaymentRecord, PaymentStatus, PaymentType } from '../mock/types';
 import { requireMemberSession } from './auth';
 import { apiGet } from '../api';
+import { computePlotLedger } from '../ledger/plotLedger';
 
 export interface PlotPaymentSchedule {
   plotId: string;
@@ -12,6 +13,7 @@ export interface PlotPaymentSchedule {
   totalPrice: number;
   paidAmount: number;
   remainingBalance: number;
+  percentSettled?: number;
   admissionFee?: PaymentRecord;
   shareSubscriptionFee?: PaymentRecord;
   downpaymentFee?: PaymentRecord;
@@ -84,12 +86,10 @@ export async function getPaymentSchedule(
           p.feeType === 'plot_downpayment'
       );
 
-      const paidAmount = plotPricePayments
-        .filter((p) => p.status === 'paid')
-        .reduce((sum, p) => sum + p.paidAmount, 0);
-
-      const totalPrice = Number(plot.price) || 0;
-      const remainingBalance = Math.max(0, totalPrice - paidAmount);
+      const ledger = computePlotLedger(plot.price, bookingPayments);
+      const totalPrice = ledger.totalPlotPrice;
+      const paidAmount = ledger.totalPaidToDate;
+      const remainingBalance = ledger.remainingBalance;
 
       schedules.push({
         plotId: plot.id,
@@ -101,6 +101,7 @@ export async function getPaymentSchedule(
         totalPrice,
         paidAmount,
         remainingBalance,
+        percentSettled: ledger.percentSettled,
         admissionFee,
         shareSubscriptionFee,
         downpaymentFee,
@@ -155,7 +156,9 @@ export async function getPaymentHistory(
     const transactions: PaymentTransaction[] = [];
 
     for (const payment of payments) {
-      if (payment.status === 'paid' || payment.transactionRef) {
+      const isPaid = payment.status === 'paid';
+      const isPartial = payment.status === 'partially_paid' && Number(payment.paidAmount) > 0;
+      if (isPaid || isPartial || payment.transactionRef) {
         const plot = plotMap.get(payment.plotId);
         const plotNumber = plot ? plot.plotNumber : 'Plot';
 
@@ -174,14 +177,22 @@ export async function getPaymentHistory(
           desc = 'Plot Payment';
         }
 
+        if (isPartial) {
+          desc += ' (Partial)';
+        }
+
         const rawDate = payment.paidDate || payment.dueDate || new Date().toISOString();
+        const displayAmount = isPartial
+          ? Number(payment.paidAmount)
+          : Number(payment.paidAmount) || Number(payment.amount) || 0;
+
         transactions.push({
           id: payment.id,
           date: String(rawDate).split('T')[0],
           plotId: payment.plotId || '',
           plotNumber,
           description: desc,
-          amount: Number(payment.paidAmount) || Number(payment.amount) || 0,
+          amount: displayAmount,
           status: payment.status as PaymentStatus,
           transactionRef: payment.transactionRef,
         });

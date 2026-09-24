@@ -1,6 +1,7 @@
 import { Booking, PaymentType, Plot } from '../mock/types';
 import { requireMemberSession } from './auth';
 import { apiGet } from '../api';
+import { computePlotLedger } from '../ledger/plotLedger';
 
 export interface EnrichedPlot extends Plot {
   booking: Booking;
@@ -9,6 +10,7 @@ export interface EnrichedPlot extends Plot {
     totalAmount: number;
     paidAmount: number;
     remainingAmount: number;
+    percentSettled?: number;
     installmentProgress?: {
       paidCount: number;
       totalCount: number;
@@ -42,18 +44,7 @@ export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[];
         ? apiBooking.payments
         : [];
 
-      // All paid PaymentRecords (including statutory fees)
-      const allPaidAmount = bookingPayments
-        .filter((p: any) => p.status === 'paid')
-        .reduce((sum: number, p: any) => sum + (Number(p.paidAmount) || Number(p.amount) || 0), 0);
-
-      // Plot-only payments for remaining balance calculation
-      const plotPricePaid = bookingPayments
-        .filter((p: any) => p.status === 'paid' && (p.feeType === 'plot_installment' || p.feeType === 'plot_one_time' || p.feeType === 'plot_downpayment'))
-        .reduce((sum: number, p: any) => sum + (Number(p.paidAmount) || Number(p.amount) || 0), 0);
-
-      const totalAmount = Number(plot.price) || 0;
-      const remainingAmount = Math.max(0, totalAmount - plotPricePaid);
+      const ledger = computePlotLedger(plot.price, bookingPayments);
 
       let installmentProgress = undefined;
       if (booking.paymentType === 'installment') {
@@ -61,7 +52,7 @@ export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[];
         const paidCount = installments.filter((p: any) => p.status === 'paid').length;
         const totalCount = installments.length;
         const hasOverdue = installments.some((p: any) => p.status === 'overdue');
-        const nextPending = installments.find((p: any) => p.status === 'pending' || p.status === 'overdue');
+        const nextPending = installments.find((p: any) => p.status === 'pending' || p.status === 'overdue' || p.status === 'partially_paid');
 
         installmentProgress = {
           paidCount,
@@ -73,13 +64,14 @@ export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[];
 
       return {
         ...plot,
-        price: totalAmount,
+        price: ledger.totalPlotPrice,
         booking,
         paymentSummary: {
           paymentType: booking.paymentType,
-          totalAmount,
-          paidAmount: allPaidAmount,
-          remainingAmount,
+          totalAmount: ledger.totalPlotPrice,
+          paidAmount: ledger.totalPaidToDate,
+          remainingAmount: ledger.remainingBalance,
+          percentSettled: ledger.percentSettled,
           installmentProgress,
         },
       };

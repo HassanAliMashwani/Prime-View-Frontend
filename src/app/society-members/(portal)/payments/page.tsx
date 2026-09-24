@@ -39,7 +39,7 @@ function PaymentsContent() {
   const searchParams = useSearchParams();
   const initialPlotParam = searchParams.get('plot');
 
-  const { schedules, plots, profile, fetchPayments, fetchPlots, fetchProfile, isLoading } = useMemberStore();
+  const { schedules, plots, profile, fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
   const [activeTab, setActiveTab] = useState<'installment' | 'one_time'>('installment');
   const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
 
@@ -102,7 +102,7 @@ function PaymentsContent() {
         const alreadySubmitted = receipts.some((r) => r.plotId === opt.id);
         return !alreadySubmitted;
       }
-      return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue');
+      return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
     });
   }, [plots, schedules, receipts]);
 
@@ -153,6 +153,24 @@ function PaymentsContent() {
   useEffect(() => {
     loadReceipts();
   }, [loadReceipts]);
+
+  // Window focus & visibilitychange listener for instant sync
+  useEffect(() => {
+    const handleSyncRefresh = () => {
+      if (document.visibilityState === 'visible') {
+        fetchPayments();
+        fetchPlots();
+        fetchDashboardData();
+        loadReceipts();
+      }
+    };
+    window.addEventListener('focus', handleSyncRefresh);
+    document.addEventListener('visibilitychange', handleSyncRefresh);
+    return () => {
+      window.removeEventListener('focus', handleSyncRefresh);
+      document.removeEventListener('visibilitychange', handleSyncRefresh);
+    };
+  }, [fetchPayments, fetchPlots, fetchDashboardData, loadReceipts]);
 
   useEffect(() => {
     if (schedules.length > 0) {
@@ -342,11 +360,16 @@ function PaymentsContent() {
           'Payment receipt uploaded successfully! It has been dispatched to the society admin desk for verification.'
         );
         await loadReceipts();
+        fetchPayments();
+        fetchPlots();
+        fetchDashboardData();
         setFormTxnRef('');
         setFormAmount('');
         setFormNotes('');
         setFormFileName('');
         setFormFileUrl('');
+        setPreviewData(null);
+        setBalloonError(null);
         setTimeout(() => {
           setShowUploadModal(false);
           setUploadSuccess(null);
@@ -624,11 +647,11 @@ function PaymentsContent() {
 
                           {/* Dynamic Payment Progress Track */}
                           {(() => {
-                            const plotPct = isInstallment && totalCount > 0
-                              ? Math.min(100, Math.max(0, Math.round((paidCount / totalCount) * 100)))
-                              : plotSchedule.totalPrice > 0
-                              ? Math.min(100, Math.max(0, Math.round(((plotSchedule.totalPrice - plotSchedule.remainingBalance) / plotSchedule.totalPrice) * 100)))
-                              : 0;
+                            const plotPct = plotSchedule.percentSettled ?? (
+                              plotSchedule.totalPrice > 0
+                                ? Math.min(100, Math.max(0, Math.round((plotSchedule.paidAmount / plotSchedule.totalPrice) * 100)))
+                                : 0
+                            );
                             return (
                               <div className="pt-2 space-y-1">
                                 <div className="flex items-center justify-between text-[11px] font-semibold">
@@ -718,34 +741,86 @@ function PaymentsContent() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6">
-                      <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04]">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
-                          Total Plot Price
-                        </p>
-                        <p className="font-display font-bold text-xl sm:text-2xl text-[#151914] mt-1">
-                          {formatPKR(activeSchedule.totalPrice)}
-                        </p>
-                      </div>
+                    {(() => {
+                      const isBalloonTarget =
+                        formPaymentKind === 'balloon' &&
+                        formPlotId === activeSchedule.plotId &&
+                        Number(formAmount) > 0 &&
+                        Boolean(previewData) &&
+                        !balloonError;
+                      const balloonAmount = Number(formAmount) || 0;
+                      const previewPaid = activeSchedule.paidAmount + balloonAmount;
+                      const previewRemaining = Math.max(0, activeSchedule.remainingBalance - balloonAmount);
 
-                      <div className="bg-[#EAF0E7]/60 p-4 rounded-2xl border border-[#43612B]/15">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
-                          Total Paid to Date
-                        </p>
-                        <p className="font-display font-bold text-xl sm:text-2xl text-[#43612B] mt-1">
-                          {formatPKR(activeSchedule.paidAmount)}
-                        </p>
-                      </div>
+                      const pendingAmount = receipts
+                        .filter(
+                          (r) =>
+                            ((r as any).plotId === activeSchedule.plotId || (r as any).bookingId === (activeSchedule as any).bookingId) &&
+                            r.status === 'pending'
+                        )
+                        .reduce((sum, r) => sum + Number(r.amount), 0);
 
-                      <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04]">
-                        <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
-                          Remaining Balance
-                        </p>
-                        <p className="font-display font-bold text-xl sm:text-2xl text-[#151914] mt-1">
-                          {formatPKR(activeSchedule.remainingBalance)}
-                        </p>
-                      </div>
-                    </div>
+                      return (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6">
+                          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04]">
+                            <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
+                              Total Plot Price
+                            </p>
+                            <p className="font-display font-bold text-xl sm:text-2xl text-[#151914] mt-1">
+                              {formatPKR(activeSchedule.totalPrice)}
+                            </p>
+                          </div>
+
+                          <div className="bg-[#EAF0E7]/60 p-4 rounded-2xl border border-[#43612B]/15 flex flex-col justify-between">
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
+                                Total Paid to Date
+                              </p>
+                              <p className="font-display font-bold text-xl sm:text-2xl text-[#43612B] mt-1">
+                                {formatPKR(activeSchedule.paidAmount)}
+                              </p>
+                            </div>
+                            {isBalloonTarget ? (
+                              <div className="mt-3 pt-2.5 border-t border-[#43612B]/20">
+                                <div className="flex items-baseline justify-between text-xs font-bold text-[#43612B]">
+                                  <span>Preview Paid:</span>
+                                  <span className="font-mono text-sm text-[#151914]">{formatPKR(previewPaid)}</span>
+                                </div>
+                                <p className="text-[10px] text-[#43612B] font-medium mt-0.5">
+                                  Preview — applied after admin verifies this receipt
+                                </p>
+                              </div>
+                            ) : pendingAmount > 0 ? (
+                              <p className="text-[11px] text-amber-700 font-semibold mt-2">
+                                Rs {pendingAmount.toLocaleString()} pending verification
+                              </p>
+                            ) : null}
+                          </div>
+
+                          <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] flex flex-col justify-between">
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
+                                Remaining Balance
+                              </p>
+                              <p className="font-display font-bold text-xl sm:text-2xl text-[#151914] mt-1">
+                                {formatPKR(activeSchedule.remainingBalance)}
+                              </p>
+                            </div>
+                            {isBalloonTarget ? (
+                              <div className="mt-3 pt-2.5 border-t border-black/10">
+                                <div className="flex items-baseline justify-between text-xs font-bold text-slate-700">
+                                  <span>Preview Remaining:</span>
+                                  <span className="font-mono text-sm text-[#151914]">{formatPKR(previewRemaining)}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                                  Preview — applied after admin verifies this receipt
+                                </p>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Plot-specific schedule */}
@@ -841,22 +916,31 @@ function PaymentsContent() {
                 </div>
               ) : (
                 <div className="divide-y divide-black/[0.06]">
-                  {receipts.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/[0.01] px-2 rounded-xl transition-colors"
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-display font-bold text-sm text-[#151914]">
-                            Plot {sub.plotNumber} ({sub.blockName})
-                          </span>
-                          <span className="text-xs text-[#6B7462]">&bull;</span>
-                          <span className="text-xs font-semibold text-[#43612B]">
-                            {sub.paymentType === 'installment'
-                              ? `Installment #${sub.installmentNumber}`
-                              : 'Full Payment Settlement'}
-                          </span>
+                  {receipts.map((sub) => {
+                    const subPlot = plots.find((p) => p.id === (sub as any).plotId || p.plotNumber === sub.plotNumber);
+                    return (
+                      <div
+                        key={sub.id}
+                        className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/[0.01] px-2 rounded-xl transition-colors"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2 flex-wrap">
+                          {(() => {
+                            const blockTitle = sub.blockName || (subPlot as any)?.blockName || subPlot?.blockId || '';
+                            return (
+                              <span className="font-display font-bold text-sm text-[#151914]">
+                                Plot {sub.plotNumber || subPlot?.plotNumber || '—'} {blockTitle ? `(${blockTitle})` : ''}
+                              </span>
+                            );
+                          })()}
+                            <span className="text-xs text-[#6B7462]">&bull;</span>
+                            <span className="text-xs font-semibold text-[#43612B]">
+                              {(sub as any).paymentKind === 'balloon'
+                                ? 'Balloon Payment'
+                                : sub.paymentType === 'installment'
+                                ? `Installment #${sub.installmentNumber}`
+                                : 'Full Payment Settlement'}
+                            </span>
                           {sub.paymentType === 'one_time' && (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
                               Documentation Record
@@ -890,7 +974,7 @@ function PaymentsContent() {
                           <span>&bull;</span>
                           <span>Ref: <strong className="font-mono text-[#151914]">{sub.transactionRef}</strong></span>
                           <span>&bull;</span>
-                          <span>Deposited: {sub.paymentDate}</span>
+                          <span>Deposited: {sub.paymentDate ? String(sub.paymentDate).split('T')[0] : '—'}</span>
                         </div>
 
                         {sub.status === 'rejected' && sub.rejectionReason && (
@@ -926,7 +1010,8 @@ function PaymentsContent() {
                         )}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               )}
             </div>
