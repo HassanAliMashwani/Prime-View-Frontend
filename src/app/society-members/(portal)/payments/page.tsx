@@ -18,7 +18,6 @@ import {
   CreditCard,
   CheckCircle2,
   Layers,
-  ShieldAlert,
   ArrowRight,
   ArrowLeft,
   FileCheck,
@@ -442,41 +441,6 @@ function PaymentsContent() {
           </div>
         )}
 
-        {/* Payment Independence Rule Banner & Top Actions */}
-        <div className="bg-[#FAF9F7] rounded-2xl border border-black/[0.08] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0 mt-0.5">
-              <ShieldAlert className="w-5 h-5" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold text-[#151914] uppercase tracking-wider">
-                Independent Account Discipline
-              </h4>
-              <p className="text-xs text-[#6B7462] leading-relaxed">
-                Every plot operates on an isolated ledger. Deposit slips uploaded for a plot are reconciled exclusively against that plot file.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 flex-wrap shrink-0">
-            <button
-              type="button"
-              onClick={() => openUploadModalWithPlot(selectedPlotId || undefined)}
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white transition-all inline-flex items-center gap-2 shadow-xs cursor-pointer"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload Payment Receipt</span>
-            </button>
-
-            <Link
-              href="/society-members/payments/history"
-              className="px-4 py-2 rounded-xl text-xs font-bold bg-white hover:bg-black/5 text-[#151914] border border-black/10 transition-colors inline-flex items-center gap-1.5"
-            >
-              <span>Transaction History</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        </div>
 
         {isLoading ? (
           <MemberPaymentsSkeleton />

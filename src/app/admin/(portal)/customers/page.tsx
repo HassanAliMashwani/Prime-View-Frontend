@@ -49,6 +49,7 @@ import {
 import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
+import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
 
 function CustomersPageContent() {
   const router = useRouter();
@@ -337,6 +338,9 @@ function CustomersPageContent() {
     const remainder = financed - (baseInstallment * numberOfInstallments);
     const finalInstallment = baseInstallment + remainder;
 
+    const firstDueDate = nextFifthAfter(new Date());
+    const dueDates = calculateInstallmentDueDates(new Date(), numberOfInstallments, safeFreq);
+
     return {
       totalPayment: plotPrice,
       downpayment: safeDownpayment,
@@ -347,6 +351,9 @@ function CustomersPageContent() {
       baseInstallment,
       finalInstallment,
       remainder,
+      firstDueDate,
+      firstDueFormatted: formatDueOnFifth(firstDueDate),
+      dueDates,
     };
   };
 
@@ -1807,6 +1814,10 @@ function CustomersPageContent() {
                         ) : (
                           <span>1 Installment: PKR {planA.finalInstallment.toLocaleString()}</span>
                         )}
+                        <div className="text-[10px] text-emerald-800 font-semibold mt-1 flex items-center gap-1">
+                          <Calendar className="w-3 h-3 text-emerald-700" />
+                          <span>First Due: {planA.firstDueFormatted} (5th of each month)</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2542,6 +2553,10 @@ function CustomersPageContent() {
                           ) : (
                             <span>1 Installment: PKR {planB.finalInstallment.toLocaleString()}</span>
                           )}
+                          <div className="text-[10px] text-emerald-800 font-semibold mt-1 flex items-center gap-1">
+                            <Calendar className="w-3 h-3 text-emerald-700" />
+                            <span>First Due: {planB.firstDueFormatted} (5th of each month)</span>
+                          </div>
                         </div>
                       </div>
                     </div>

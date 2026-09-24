@@ -42,7 +42,8 @@ export default function MasterplanPage() {
 
         <div className="relative z-10 max-w-4xl mx-auto space-y-4">
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight font-bold leading-[1.05] uppercase drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)]">
-            LOP (Layout Plan)
+            Layout Plan
+            
           </h1>
           <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-2xl mx-auto leading-relaxed">
             PrimeView Cooperative Housing Society Abt Approved Final Master Plan &amp; Block Layout
