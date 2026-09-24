@@ -180,8 +180,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
         {/* Brand Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] border border-[#234F3D] flex items-center justify-center text-[#D4AF37] font-serif font-bold text-xl shadow-md shrink-0">
-              PV
+            <div className="relative w-11 h-11 rounded-2xl bg-white border border-slate-200/90 shadow-xs p-1 flex items-center justify-center shrink-0">
+              <Image
+                src="/logo-trimmed.png"
+                alt="Prime View Logo"
+                width={36}
+                height={36}
+                className="object-contain"
+                priority
+              />
             </div>
             <div>
               <div className="font-serif font-bold text-base tracking-tight text-[#10251E] leading-tight">
@@ -201,16 +208,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
               <X className="w-5 h-5" />
             </button>
           )}
-          {/* Right side logo badge on desktop */}
-          <div className="hidden lg:block relative w-7 h-7 opacity-80 shrink-0">
-            <Image
-              src="/logo-trimmed.png"
-              alt="Logo"
-              width={28}
-              height={28}
-              className="object-contain"
-            />
-          </div>
         </div>
 
         {/* Navigation */}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from '@/lib/dal/adminAuth';
@@ -50,8 +51,15 @@ export default function AdminLoginPage() {
       <div className="relative z-10 w-full max-w-md">
         {/* Header Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-[#10251E] to-[#18392C] border border-[#234F3D] shadow-xl text-[#D4AF37] font-serif font-bold text-3xl mb-4">
-            PV
+          <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-slate-200/90 shadow-xl p-2.5 mb-4">
+            <Image
+              src="/logo-trimmed.png"
+              alt="Prime View Logo"
+              width={64}
+              height={64}
+              className="object-contain"
+              priority
+            />
           </div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-[#10251E] tracking-tight">
             PRIME VIEW

@@ -80,8 +80,15 @@ export default function MemberLoginPage() {
         <div className="max-w-md w-full bg-white rounded-3xl border border-black/[0.08] shadow-[0_16px_50px_rgba(0,0,0,0.06)] p-8 sm:p-10 space-y-6">
           {/* Brand Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#EAF0E7] text-[#43612B] mb-1">
-              <Lock className="w-6 h-6" />
+            <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.06)] p-2 mb-1">
+              <Image
+                src="/logo-trimmed.png"
+                alt="Prime View Logo"
+                width={64}
+                height={64}
+                className="object-contain"
+                priority
+              />
             </div>
             <h1 className="font-display font-bold text-2xl sm:text-3xl text-[#151914]">
               Member Portal
