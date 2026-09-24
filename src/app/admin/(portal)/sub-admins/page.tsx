@@ -26,11 +26,12 @@ import {
   Clock,
   Sparkles,
   Info,
+  Trash2,
 } from 'lucide-react';
 import { AdminSession, AdminUser, BlockId } from '@/lib/mock/types';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getSubAdmins, createSubAdmin, updateSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
+import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
 
 const ALL_BLOCKS: { id: BlockId; name: string }[] = [
@@ -79,6 +80,8 @@ export default function TeamsPage() {
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
   const [confirmAdmin, setConfirmAdmin] = useState<AdminUser | null>(null);
   const [confirmProcessing, setConfirmProcessing] = useState(false);
+  const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
+  const [deleteProcessing, setDeleteProcessing] = useState(false);
 
   // Form states
   const [createForm, setCreateForm] = useState<CreateSubAdminInput>({
@@ -247,6 +250,29 @@ export default function TeamsPage() {
       setFeedback({
         type: 'error',
         message: res.error || res.message || 'Failed to update status.',
+      });
+    }
+  };
+
+  // Permanently Delete Sub-Admin
+  const handleDeleteSubAdmin = async () => {
+    if (!session || !deleteAdmin) return;
+    setDeleteProcessing(true);
+    const target = deleteAdmin;
+    const res = await deleteSubAdmin(session, target.id);
+    setDeleteProcessing(false);
+    setDeleteAdmin(null);
+
+    if (res.ok) {
+      setFeedback({
+        type: 'success',
+        message: res.message || `Sub-administrator "${target.fullName}" (@${target.username}) has been permanently deleted.`,
+      });
+      loadData(session);
+    } else {
+      setFeedback({
+        type: 'error',
+        message: res.error || res.message || 'Failed to delete sub-administrator.',
       });
     }
   };
@@ -594,6 +620,19 @@ export default function TeamsPage() {
                     title={isSelf ? 'Cannot suspend your own active account' : undefined}
                   >
                     {admin.status === 'active' ? 'Suspend' : 'Activate'}
+                  </button>
+
+                  <button
+                    onClick={() => setDeleteAdmin(admin)}
+                    disabled={isSelf}
+                    className={`p-2 text-xs font-bold rounded-xl border transition cursor-pointer ${
+                      isSelf
+                        ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
+                        : 'bg-white hover:bg-rose-50 text-rose-600 border-slate-200 hover:border-rose-200 shadow-xs'
+                    }`}
+                    title={isSelf ? 'Cannot delete your own active account' : 'Permanently Delete Sub-Admin'}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -1133,6 +1172,66 @@ export default function TeamsPage() {
           </div>
         </div>
       )}
+
+      {/* CONFIRM DELETE SUB-ADMIN DIALOG */}
+      {deleteAdmin && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl border border-rose-200 w-full max-w-md shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-rose-100 text-rose-700 border border-rose-200 shadow-inner">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-serif font-bold text-lg text-slate-900 leading-tight">
+                  Permanently Delete Sub-Admin?
+                </h3>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                  Are you sure you want to permanently delete <strong className="text-slate-800">{deleteAdmin.fullName}</strong> (<span className="text-slate-500 font-mono">@{deleteAdmin.username}</span>)?
+                </p>
+                <div className="mt-3 p-3 bg-rose-50/70 border border-rose-100 rounded-xl text-[11px] text-rose-800 space-y-1">
+                  <p className="font-bold flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    Warning: Irreversible Action
+                  </p>
+                  <p className="text-rose-700 leading-normal">
+                    This account, sector assignments, and module access permissions will be permanently expunged from the database.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setDeleteAdmin(null)}
+                disabled={deleteProcessing}
+                className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteSubAdmin}
+                disabled={deleteProcessing}
+                className="px-5 py-2.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-98 rounded-xl transition shadow-md shadow-rose-600/20 cursor-pointer flex items-center gap-2"
+              >
+                {deleteProcessing ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete Account</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

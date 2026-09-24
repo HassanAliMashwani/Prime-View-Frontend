@@ -1,5 +1,5 @@
 import { AdminSession, AdminUser, BlockId } from '../mock/types';
-import { apiGet, apiPost, apiPatch } from '../api';
+import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
 
 export interface CreateSubAdminInput {
   fullName: string;
@@ -188,6 +188,40 @@ export async function resetSubAdminPassword(
   return {
     ok: true,
     message: res.data?.message || 'Password reset successfully.',
+  };
+}
+
+/**
+ * Permanently delete a sub-administrator (Super Admin exclusive).
+ */
+export async function deleteSubAdmin(
+  session: AdminSession,
+  adminId: string
+): Promise<{ ok: boolean; error?: string; message?: string }> {
+  if (session.role !== 'super_admin') {
+    return {
+      ok: false,
+      error: 'FORBIDDEN_SUPER_ADMIN_ONLY',
+      message: 'Sub Admin deletion is strictly restricted to Super Administrators.',
+    };
+  }
+
+  const res = await apiDelete<{ ok: boolean; message: string }>(
+    `/admin/sub-admins/${adminId}`,
+    session?.token
+  );
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: res.error,
+      message: res.message || res.error || 'Failed to delete sub-admin.',
+    };
+  }
+
+  return {
+    ok: true,
+    message: res.data?.message || 'Sub-administrator deleted successfully.',
   };
 }
 
