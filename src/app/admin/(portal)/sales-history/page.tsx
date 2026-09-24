@@ -32,6 +32,7 @@ import {
   SalesHistoryFilters 
 } from '@/lib/dal/salesHistory';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
+import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
 
 export default function SalesHistoryPage() {
   const router = useRouter();
@@ -115,12 +116,7 @@ export default function SalesHistoryPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-20">
-        <RefreshCw className="w-6 h-6 animate-spin text-emerald-700" />
-        <span className="ml-3 text-sm font-medium text-slate-600">Generating sales history report...</span>
-      </div>
-    );
+    return <AdminSalesHistorySkeleton />;
   }
 
   if (error) {

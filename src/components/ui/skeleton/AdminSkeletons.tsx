@@ -463,3 +463,288 @@ export const AdminPortalLayoutSkeleton: React.FC = () => {
     </div>
   );
 };
+
+/**
+ * Skeleton Loader for Society Sales History Report
+ * Exact 1:1 replacement for "Generating sales history report..."
+ */
+export const AdminSalesHistorySkeleton: React.FC = () => {
+  return (
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 select-none animate-in fade-in duration-200">
+      {/* Screen-Only Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="w-9 h-9 rounded-xl shrink-0" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-64 rounded-md" />
+            <Skeleton className="h-3.5 w-96 rounded-md" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-28 rounded-xl" />
+          <Skeleton className="h-9 w-36 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Screen-Only KPI Cards (5 cards) */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
+          <Skeleton className="h-3 w-20 rounded-md" />
+          <Skeleton className="h-7 w-24 rounded-lg" />
+          <Skeleton className="h-3 w-28 rounded-md" />
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
+          <Skeleton className="h-3 w-28 rounded-md" />
+          <Skeleton className="h-7 w-20 rounded-lg" />
+          <Skeleton className="h-3 w-32 rounded-md" />
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs lg:col-span-2 space-y-2">
+          <Skeleton className="h-3 w-36 rounded-md" />
+          <Skeleton className="h-7 w-48 rounded-lg" />
+          <Skeleton className="h-3 w-64 rounded-md" />
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs space-y-2">
+          <Skeleton className="h-3 w-24 rounded-md" />
+          <Skeleton className="h-7 w-32 rounded-lg" />
+          <Skeleton className="h-3 w-20 rounded-md" />
+        </div>
+      </div>
+
+      {/* Filter Controls Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-xs space-y-3">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-24 rounded-lg" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
+          <Skeleton className="h-8 w-20 rounded-lg" />
+          <Skeleton className="h-8 w-24 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+        </div>
+      </div>
+
+      {/* Main Ledger Table */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-44 rounded-md" />
+            <Skeleton className="h-3 w-56 rounded-md" />
+          </div>
+          <Skeleton className="h-7 w-28 rounded-full" />
+        </div>
+        <div className="divide-y divide-slate-100">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="w-8 h-8 rounded-xl shrink-0" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-32 rounded-md" />
+                  <Skeleton className="h-2.5 w-24 rounded-md" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-20 rounded-md" />
+              <Skeleton className="h-4 w-28 rounded-md" />
+              <Skeleton className="h-4 w-24 rounded-md" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Skeleton Loader for Plans & Events Content CRM
+ * Exact 1:1 replacement for "Loading content CRM..."
+ */
+export const AdminContentCrmSkeleton: React.FC = () => {
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 select-none animate-in fade-in duration-200">
+      {/* Header & Section Tabs */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+            <div className="space-y-1.5">
+              <Skeleton className="h-6 w-56 rounded-md" />
+              <Skeleton className="h-3.5 w-80 rounded-md" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 gap-1">
+              <Skeleton className="h-8 w-36 rounded-lg" />
+              <Skeleton className="h-8 w-28 rounded-lg" />
+            </div>
+            <Skeleton className="h-9 w-32 rounded-xl" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content Blocks Grid (4 cards in 2 cols) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between"
+          >
+            <div className="p-6 space-y-4">
+              <div className="flex items-start justify-between gap-2">
+                <Skeleton className="h-6 w-24 rounded-full" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-3/4 rounded-md" />
+                <Skeleton className="h-3 w-1/2 rounded-md" />
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <Skeleton className="h-3.5 w-full rounded-md" />
+                <Skeleton className="h-3.5 w-5/6 rounded-md" />
+                <Skeleton className="h-3.5 w-2/3 rounded-md" />
+              </div>
+
+              <Skeleton className="h-40 w-full rounded-xl" />
+            </div>
+
+            <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between">
+              <Skeleton className="h-4 w-28 rounded-md" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-8 w-20 rounded-xl" />
+                <Skeleton className="h-8 w-20 rounded-xl" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Skeleton Loader for System Activity & Modification Trail
+ * Exact 1:1 replacement for "Loading audit trail..."
+ */
+export const AdminAuditLogSkeleton: React.FC = () => {
+  return (
+    <div className="max-w-7xl mx-auto space-y-6 select-none animate-in fade-in duration-200">
+      {/* Header Card */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-64 rounded-md" />
+            <Skeleton className="h-3.5 w-96 rounded-md" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-28 rounded-xl" />
+          <Skeleton className="h-8 w-8 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Filter Toolbar */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+          <Skeleton className="h-9 w-full rounded-xl" />
+        </div>
+      </div>
+
+      {/* Audit Log Table */}
+      <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs">
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="space-y-1">
+            <Skeleton className="h-5 w-44 rounded-md" />
+            <Skeleton className="h-3 w-56 rounded-md" />
+          </div>
+          <Skeleton className="h-7 w-24 rounded-full" />
+        </div>
+        <div className="divide-y divide-slate-100">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="p-4 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-[200px]">
+                <Skeleton className="w-9 h-9 rounded-xl shrink-0" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-4 w-28 rounded-md" />
+                  <Skeleton className="h-2.5 w-20 rounded-md" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="h-4 w-36 rounded-md hidden sm:block" />
+              <Skeleton className="h-3.5 w-28 rounded-md" />
+              <Skeleton className="h-8 w-16 rounded-xl" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Skeleton Loader for Customer Registration & Quick Booking
+ * Exact 1:1 replacement for "Loading booking portal..."
+ */
+export const AdminCustomerRegistrationSkeleton: React.FC = () => {
+  return (
+    <div className="max-w-5xl mx-auto space-y-6 select-none animate-in fade-in duration-200">
+      {/* Header & Mode Switcher */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-xl shrink-0" />
+          <div className="space-y-1.5">
+            <Skeleton className="h-6 w-60 rounded-md" />
+            <Skeleton className="h-3.5 w-80 rounded-md" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-9 w-32 rounded-xl" />
+          <Skeleton className="h-9 w-36 rounded-xl" />
+        </div>
+      </div>
+
+      {/* Stepper Progress Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
+        <div className="flex items-center justify-between gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex-1 flex items-center gap-2">
+              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+              <div className="space-y-1 flex-1 hidden sm:block">
+                <Skeleton className="h-3 w-20 rounded-md" />
+                <Skeleton className="h-2 w-14 rounded-xs" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Form Body */}
+      <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-xs space-y-6">
+        <div className="space-y-2 border-b border-slate-100 pb-4">
+          <Skeleton className="h-5 w-48 rounded-md" />
+          <Skeleton className="h-3.5 w-72 rounded-md" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3.5 w-28 rounded-md" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+          <Skeleton className="h-10 w-28 rounded-xl" />
+          <Skeleton className="h-10 w-36 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+};

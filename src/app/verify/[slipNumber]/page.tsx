@@ -98,9 +98,14 @@ export default function VerifySlipPage() {
       {/* Main Verification Card */}
       <main className="relative z-10 max-w-xl w-full mx-auto px-4 py-12 flex-1 flex flex-col justify-center">
         {isLoading ? (
-          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-8 text-center backdrop-blur-xl shadow-2xl">
-            <div className="w-12 h-12 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-slate-400 text-sm">Consulting Society Verification Ledger...</p>
+          <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-8 space-y-4 backdrop-blur-xl shadow-2xl animate-pulse select-none">
+            <div className="h-6 w-48 bg-slate-800 rounded-md mx-auto" />
+            <div className="h-3 w-64 bg-slate-800/60 rounded-md mx-auto" />
+            <div className="pt-4 space-y-3">
+              <div className="h-12 w-full bg-slate-900 rounded-xl border border-slate-800/60" />
+              <div className="h-12 w-full bg-slate-900 rounded-xl border border-slate-800/60" />
+              <div className="h-12 w-full bg-slate-900 rounded-xl border border-slate-800/60" />
+            </div>
           </div>
         ) : fetchError ? (
           /* Request Error */

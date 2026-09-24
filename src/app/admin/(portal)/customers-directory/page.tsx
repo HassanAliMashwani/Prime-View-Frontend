@@ -1083,7 +1083,7 @@ function CustomersDirectoryContent() {
 
 export default function CustomersDirectoryPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center p-20 text-slate-500">Loading customer directory...</div>}>
+    <Suspense fallback={<AdminTableSkeleton rows={6} columns={6} />}>
       <CustomersDirectoryContent />
     </Suspense>
   );

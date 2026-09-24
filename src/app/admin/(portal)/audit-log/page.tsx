@@ -22,6 +22,7 @@ import {
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
+import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
 
 const ACTION_COLORS: Record<string, string> = {
   PLOT_BOOKED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
@@ -141,12 +142,7 @@ export default function AuditLogPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16">
-        <RefreshCw className="w-6 h-6 animate-spin text-emerald-700" />
-        <span className="ml-3 text-sm font-medium text-slate-600">Loading audit trail...</span>
-      </div>
-    );
+    return <AdminAuditLogSkeleton />;
   }
 
   // Super Admin Exclusive Access Check

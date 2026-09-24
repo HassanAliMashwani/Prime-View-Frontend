@@ -37,6 +37,7 @@ import {
   createContentBlock,
   deleteContentBlock,
 } from '@/lib/dal/content';
+import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 
 export default function ContentCMSPage() {
   const router = useRouter();
@@ -354,12 +355,7 @@ export default function ContentCMSPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16">
-        <RefreshCw className="w-6 h-6 animate-spin text-emerald-700" />
-        <span className="ml-3 text-sm font-medium text-slate-600">Loading content CRM...</span>
-      </div>
-    );
+    return <AdminContentCrmSkeleton />;
   }
 
   // Permission Guard

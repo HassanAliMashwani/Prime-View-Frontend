@@ -48,6 +48,7 @@ import {
 } from '@/lib/dal/customers';
 import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
+import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
 
 function CustomersPageContent() {
   const router = useRouter();
@@ -856,12 +857,7 @@ function CustomersPageContent() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16">
-        <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-        <span className="ml-3 text-sm font-medium text-slate-600">Loading booking portal...</span>
-      </div>
-    );
+    return <AdminCustomerRegistrationSkeleton />;
   }
 
   // Permission Guard
@@ -3055,14 +3051,7 @@ function CustomersPageContent() {
 
 export default function CustomersPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center p-16">
-          <div className="w-6 h-6 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin" />
-          <span className="ml-3 text-sm font-medium text-slate-600">Loading booking portal...</span>
-        </div>
-      }
-    >
+    <Suspense fallback={<AdminCustomerRegistrationSkeleton />}>
       <CustomersPageContent />
     </Suspense>
   );
