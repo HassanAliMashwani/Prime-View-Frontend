@@ -24,6 +24,7 @@ import { AdminSession, Reservation } from '@/lib/mock/types';
 import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 
 import { getBlockDisplayName } from '@/lib/map/regionData';
+import { AdminTableSkeleton } from '@/components/ui/skeleton';
 
 const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
   abbott: { badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', border: 'border-emerald-200', accent: 'text-emerald-800' },
@@ -158,11 +159,7 @@ export default function ReservationsPage() {
   };
 
   if (loading || !session) {
-    return (
-      <div className="py-12 text-center text-emerald-800 animate-pulse font-medium">
-        Loading Reservations Ledger...
-      </div>
-    );
+    return <AdminTableSkeleton rows={6} columns={6} />;
   }
 
   const activeReservations = reservations.filter((r) => r.status === 'active');

@@ -24,6 +24,7 @@ import InteractiveOverviewMap from '@/components/admin/master-plan/InteractiveOv
 
 
 import { getBlockTheme } from '@/lib/map/regionData';
+import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
 
 export default function MasterPlanPage() {
   const router = useRouter();
@@ -73,11 +74,7 @@ export default function MasterPlanPage() {
   }, [loadBlocks]);
 
   if (loading || !session) {
-    return (
-      <div className="py-12 text-center text-emerald-800 animate-pulse font-medium">
-        Loading Society Master Plan...
-      </div>
-    );
+    return <AdminMasterPlanSkeleton />;
   }
 
   const isSuper = session.role === 'super_admin';

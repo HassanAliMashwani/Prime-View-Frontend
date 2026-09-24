@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   FileSpreadsheet,
 } from 'lucide-react';
+import { MemberHistorySkeleton } from '@/components/ui/skeleton';
 
 export default function PaymentHistoryPage() {
   const { transactions, plots, fetchPayments, profile, isLoading } = useMemberStore();
@@ -124,10 +125,7 @@ export default function PaymentHistoryPage() {
 
         {/* Transactions Table */}
         {isLoading ? (
-          <div className="bg-white rounded-2xl border border-black/[0.08] p-12 text-center space-y-3">
-            <div className="w-8 h-8 border-2 border-[#43612B]/20 border-t-[#43612B] rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-[#6B7462]">Fetching transaction history...</p>
-          </div>
+          <MemberHistorySkeleton />
         ) : transactions.length === 0 ? (
           <div className="bg-white rounded-3xl border border-black/[0.08] p-12 text-center space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">

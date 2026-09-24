@@ -28,6 +28,7 @@ import {
   Info,
 } from 'lucide-react';
 import { AdminSession, AdminUser, BlockId } from '@/lib/mock/types';
+import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getSubAdmins, createSubAdmin, updateSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
@@ -378,13 +379,7 @@ export default function TeamsPage() {
       </div>
 
       {/* Loading State */}
-      {loading && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs">
-          <RefreshCw className="w-8 h-8 animate-spin text-emerald-700 mx-auto mb-3" />
-          <div className="text-sm font-bold text-slate-800">Loading administrative team...</div>
-          <div className="text-xs text-slate-500 mt-1">Retrieving accounts and sector permissions</div>
-        </div>
-      )}
+      {loading && <AdminTableSkeleton rows={4} columns={5} />}
 
       {/* Error State */}
       {!loading && fetchError && (

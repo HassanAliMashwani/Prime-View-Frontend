@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Radio, Menu, ShieldCheck } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
 
@@ -113,18 +114,22 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           <span className="text-[11px] sm:hidden">Live</span>
         </div>
 
-        {/* Active Admin Badge */}
-        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl text-xs">
+        {/* Active Admin Badge (Links to Profile) */}
+        <Link
+          href="/admin/profile"
+          className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer group"
+          title="Open Administrator Profile"
+        >
           <ShieldCheck className={`w-4 h-4 ${session?.role === 'super_admin' ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
           <div className="hidden md:block text-left">
-            <div className="font-bold text-slate-900 leading-tight">
+            <div className="font-bold text-slate-900 group-hover:text-emerald-800 leading-tight transition-colors">
               {session?.fullName || session?.username || 'Administrator'}
             </div>
             <div className="text-[10px] text-slate-500 font-mono">
               {session?.role === 'super_admin' ? 'Super Admin' : 'Sub-Admin'}
             </div>
           </div>
-        </div>
+        </Link>
       </div>
     </header>
   );

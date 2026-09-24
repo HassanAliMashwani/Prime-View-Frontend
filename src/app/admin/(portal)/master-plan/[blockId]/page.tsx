@@ -25,6 +25,7 @@ import {
   ChevronDown,
   Check
 } from 'lucide-react';
+import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
   getAdminBlockPlots, 
@@ -593,11 +594,7 @@ function BlockPlotsContent() {
   }
 
   if (loading || !block || !session) {
-    return (
-      <div className="py-12 text-center text-emerald-800 animate-pulse font-medium">
-        Loading Sector Grid [{blockId}]...
-      </div>
-    );
+    return <AdminMasterPlanSkeleton />;
   }
 
   return (
@@ -1737,7 +1734,7 @@ function BlockPlotsContent() {
 
 export default function BlockPlotsPage() {
   return (
-    <Suspense fallback={<div className="py-12 text-center text-emerald-800 animate-pulse font-medium">Loading Block Master Plan...</div>}>
+    <Suspense fallback={<AdminMasterPlanSkeleton />}>
       <BlockPlotsContent />
     </Suspense>
   );

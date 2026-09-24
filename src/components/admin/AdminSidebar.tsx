@@ -17,6 +17,8 @@ import {
   ScrollText,
   FileCheck,
   X,
+  User,
+  ArrowRight,
 } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
 import { adminLogout } from '@/lib/dal/adminAuth';
@@ -65,6 +67,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       iconColor: 'text-emerald-600',
       activeColor: 'bg-emerald-50 text-emerald-950 border-emerald-600',
       active: pathname === '/admin/dashboard',
+      visible: true,
+    },
+    {
+      label: 'Admin Profile',
+      href: '/admin/profile',
+      icon: User,
+      iconColor: 'text-sky-600',
+      activeColor: 'bg-sky-50 text-sky-950 border-sky-600',
+      active: pathname === '/admin/profile',
       visible: true,
     },
     {
@@ -261,14 +272,22 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
           )}
         </nav>
 
-      {/* Admin Scope Panel */}
-      <div className="p-3.5 border-t border-slate-100 bg-slate-50/50">
-        <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <ShieldCheck className={`w-4 h-4 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
-            <div className="text-[12px] font-bold text-slate-900 truncate">
-              {session?.fullName || 'Administrator'}
+      {/* Admin Scope Panel (Clickable to /admin/profile) */}
+      <div className="p-3.5 border-t border-slate-100 bg-slate-50/50 shrink-0">
+        <Link
+          href="/admin/profile"
+          onClick={onClose}
+          className="block bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs hover:border-emerald-500 hover:shadow-md transition-all group cursor-pointer"
+          title="Open Admin Profile"
+        >
+          <div className="flex items-start justify-between gap-1.5 mb-2">
+            <div className="flex items-start gap-2 min-w-0">
+              <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
+              <div className="text-[12px] font-bold text-slate-900 leading-snug group-hover:text-emerald-800 transition-colors">
+                {session?.fullName || 'Administrator'}
+              </div>
             </div>
+            <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-transform group-hover:translate-x-0.5 shrink-0 mt-0.5" />
           </div>
 
           <div className="flex items-center justify-between gap-1 mb-2">
@@ -280,6 +299,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
               }`}
             >
               {isSuper ? 'Super Administrator' : 'Sub-Administrator'}
+            </span>
+            <span className="text-[10px] text-emerald-700 font-semibold group-hover:underline">
+              Profile →
             </span>
           </div>
 
@@ -308,7 +330,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
               </div>
             )}
           </div>
-        </div>
+        </Link>
 
         {/* Sign Out Button */}
         <button

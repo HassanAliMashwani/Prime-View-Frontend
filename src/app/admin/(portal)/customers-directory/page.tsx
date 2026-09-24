@@ -28,6 +28,7 @@ import {
   FileText
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
+import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { 
   getCustomersDirectory, 
   assignCustomerStrike, 
@@ -254,12 +255,7 @@ function CustomersDirectoryContent() {
   const withStrikesCount = customers.filter((c) => (c.strikeCount || 0) > 0).length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-20">
-        <RefreshCw className="w-6 h-6 animate-spin text-emerald-700" />
-        <span className="ml-3 text-sm font-medium text-slate-600">Loading customer directory...</span>
-      </div>
-    );
+    return <AdminTableSkeleton rows={6} columns={6} />;
   }
 
   if (error) {

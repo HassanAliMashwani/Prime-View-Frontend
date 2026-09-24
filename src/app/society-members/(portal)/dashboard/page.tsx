@@ -20,6 +20,7 @@ import {
   Bell,
   FileCheck,
 } from 'lucide-react';
+import { MemberDashboardSkeleton } from '@/components/ui/skeleton';
 
 export default function MemberDashboardPage() {
   const { profile, plots, schedules, fetchDashboardData, isLoading, openTermsModal } = useMemberStore();
@@ -103,6 +104,14 @@ export default function MemberDashboardPage() {
       currency: 'PKR',
       maximumFractionDigits: 0,
     }).format(amount);
+
+  if (isLoading && !profile) {
+    return (
+      <div className="p-6 sm:p-8 max-w-7xl w-full mx-auto">
+        <MemberDashboardSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col min-h-screen">
@@ -344,9 +353,21 @@ export default function MemberDashboardPage() {
           </div>
 
           {isLoading ? (
-            <div className="bg-white rounded-2xl border border-black/[0.08] p-8 text-center space-y-3">
-              <div className="w-8 h-8 border-2 border-[#43612B]/20 border-t-[#43612B] rounded-full animate-spin mx-auto" />
-              <p className="text-xs text-[#6B7462]">Loading your property records...</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="bg-white rounded-3xl border border-black/[0.08] p-6 shadow-xs space-y-5 animate-pulse">
+                  <div className="flex items-center justify-between">
+                    <div className="h-5 w-36 bg-slate-200/80 rounded-md" />
+                    <div className="h-6 w-20 bg-slate-200/80 rounded-full" />
+                  </div>
+                  <div className="h-3 w-full bg-slate-200/80 rounded-full" />
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                    <div className="h-8 bg-slate-200/80 rounded-lg" />
+                    <div className="h-8 bg-slate-200/80 rounded-lg" />
+                  </div>
+                  <div className="h-10 w-full bg-slate-200/80 rounded-xl" />
+                </div>
+              ))}
             </div>
           ) : plots.length === 0 ? (
             /* Friendly Empty State for Zero Plots (Exception 5.1) */

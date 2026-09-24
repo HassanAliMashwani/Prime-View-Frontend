@@ -23,6 +23,7 @@ import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getAuditLogs } from '@/lib/dal/audit';
 import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
 import { getBlockTheme } from '@/lib/map/regionData';
+import { AdminDashboardSkeleton } from '@/components/ui/skeleton';
 
 export default function AdminDashboardPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
@@ -70,11 +71,7 @@ export default function AdminDashboardPage() {
   }, [loadData]);
 
   if (loading || !session) {
-    return (
-      <div className="py-12 text-center text-emerald-800 animate-pulse font-medium">
-        Loading Administrative Metrics...
-      </div>
-    );
+    return <AdminDashboardSkeleton />;
   }
 
   // Computed metrics across accessible blocks

@@ -153,6 +153,13 @@ export default function InventoryOverviewChart({
   // Hover item details
   const activeItem = hoveredIndex !== null && rawData[hoveredIndex] ? rawData[hoveredIndex] : null;
   const activeX = hoveredIndex !== null && pointsAvailable[hoveredIndex] ? pointsAvailable[hoveredIndex].x : null;
+  const tooltipPercentX = activeX !== null ? (activeX / svgWidth) * 100 : 0;
+  const tooltipTransform =
+    tooltipPercentX > 70
+      ? 'translate(-95%, 0)'
+      : tooltipPercentX < 30
+      ? 'translate(-5%, 0)'
+      : 'translate(-50%, 0)';
 
   return (
     <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs">
@@ -217,7 +224,7 @@ export default function InventoryOverviewChart({
       </div>
 
       {/* Chart Canvas */}
-      <div className="relative w-full overflow-hidden select-none">
+      <div className="relative w-full select-none">
         <svg
           viewBox={`0 0 ${svgWidth} ${svgHeight}`}
           className="w-full h-auto overflow-visible"
@@ -398,10 +405,11 @@ export default function InventoryOverviewChart({
         {/* Rich Interactive Floating Tooltip */}
         {activeItem && hoveredIndex !== null && activeX !== null && (
           <div
-            className="absolute pointer-events-none transition-all duration-100 transform -translate-x-1/2 bg-slate-900 text-white rounded-xl py-2 px-3 shadow-xl text-xs z-10 border border-slate-800"
+            className="absolute pointer-events-none transition-all duration-100 bg-slate-900 text-white rounded-xl py-2 px-3 shadow-xl text-xs z-20 border border-slate-800"
             style={{
-              left: `${(activeX / svgWidth) * 100}%`,
+              left: `${tooltipPercentX}%`,
               top: '8px',
+              transform: tooltipTransform,
             }}
           >
             <div className="font-bold text-[11px] text-slate-300 border-b border-slate-800 pb-1 mb-1.5 flex items-center justify-between gap-4">

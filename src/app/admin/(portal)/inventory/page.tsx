@@ -204,9 +204,16 @@ export default function InventoryOverviewPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
               {loading && stats.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">Loading inventory metrics...</td>
-                </tr>
+                Array.from({ length: 6 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-4 px-6"><div className="h-4 w-32 bg-slate-200/80 rounded-md" /></td>
+                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                    <td className="py-4 px-6"><div className="h-4 w-16 bg-slate-200/80 rounded-md" /></td>
+                  </tr>
+                ))
               ) : stats.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">No data available</td>

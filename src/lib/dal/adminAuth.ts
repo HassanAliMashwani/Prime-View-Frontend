@@ -1,4 +1,5 @@
 import { AdminSession, AdminUser } from '../mock/types';
+export type { AdminSession, AdminUser };
 
 const SESSION_STORAGE_KEY = 'prime_view_admin_session';
 const COOKIE_KEY = 'pv_admin_session';
@@ -163,3 +164,73 @@ export function canAccessBlock(session: AdminSession, blockId: string): boolean 
   }
   return session.assignedBlocks.includes(blockId);
 }
+
+export interface AdminProfileDetails {
+  id: string;
+  username: string;
+  email: string;
+  fullName: string;
+  role: 'super_admin' | 'sub_admin';
+  status: string;
+  permissions: Record<string, boolean | undefined>;
+  assignedBlocks: string[];
+  createdDate?: string;
+  lastLogin?: string;
+}
+
+/**
+ * Fetch detailed administrator profile from backend
+ */
+export async function getAdminProfile(session: AdminSession): Promise<{
+  ok: boolean;
+  admin?: AdminProfileDetails;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/profile`, {
+      headers: {
+        Authorization: `Bearer ${session.token}`,
+      },
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      return { ok: false, error: err.message || 'Failed to fetch admin profile.' };
+    }
+
+    const data = await res.json();
+    return { ok: true, admin: data.admin };
+  } catch {
+    return { ok: false, error: 'Network error fetching admin profile.' };
+  }
+}
+
+/**
+ * Self-service password change for logged-in administrator
+ */
+export async function changeAdminPassword(
+  session: AdminSession,
+  oldPassword: string,
+  newPassword: string,
+): Promise<{ ok: boolean; message?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.token}`,
+      },
+      body: JSON.stringify({ oldPassword, newPassword }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: data.message || 'Password update failed.' };
+    }
+
+    return { ok: true, message: data.message || 'Password updated successfully.' };
+  } catch {
+    return { ok: false, error: 'Network error updating password.' };
+  }
+}
+

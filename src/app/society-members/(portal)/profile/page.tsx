@@ -163,6 +163,37 @@ export default function ProfilePage() {
     }
   };
 
+  if (!profile) {
+    return (
+      <div className="flex-1 flex flex-col min-h-screen">
+        <MemberHeader
+          title="Member Profile"
+          subtitle="Manage contact records & verified account details"
+        />
+        <main className="p-6 sm:p-8 max-w-4xl w-full mx-auto space-y-6 select-none animate-pulse">
+          <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-4 shadow-xs">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-slate-200/80 shrink-0" />
+              <div className="space-y-2 flex-1">
+                <div className="h-6 w-52 bg-slate-200/80 rounded-lg" />
+                <div className="h-3.5 w-36 bg-slate-200/80 rounded-md" />
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-5 shadow-xs">
+            <div className="h-5 w-40 bg-slate-200/80 rounded-md" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="h-11 bg-slate-200/80 rounded-xl" />
+              <div className="h-11 bg-slate-200/80 rounded-xl" />
+              <div className="h-11 bg-slate-200/80 rounded-xl" />
+              <div className="h-11 bg-slate-200/80 rounded-xl" />
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-screen">
       <MemberHeader

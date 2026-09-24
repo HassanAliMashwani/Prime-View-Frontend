@@ -4,6 +4,7 @@ import React, { useEffect, useState, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { PaymentScheduleTable } from '@/components/member-portal/PaymentScheduleTable';
+import { MemberPaymentsSkeleton } from '@/components/ui/skeleton';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { PlotPaymentSchedule } from '@/lib/dal/payments';
 import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview } from '@/lib/dal/receipts';
@@ -478,10 +479,7 @@ function PaymentsContent() {
         </div>
 
         {isLoading ? (
-          <div className="bg-white rounded-2xl border border-black/[0.08] p-12 text-center space-y-3">
-            <div className="w-8 h-8 border-2 border-[#43612B]/20 border-t-[#43612B] rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-[#6B7462]">Loading ledger schedules...</p>
-          </div>
+          <MemberPaymentsSkeleton />
         ) : schedules.length === 0 ? (
           /* Single unified empty state for zero-plot accounts */
           <div className="bg-white rounded-3xl border border-black/[0.08] p-12 text-center space-y-4 shadow-xs">

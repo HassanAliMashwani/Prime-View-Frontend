@@ -6,6 +6,7 @@ import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { PlotCard } from '@/components/member-portal/PlotCard';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { Home, ShieldCheck, MapPin, Building2 } from 'lucide-react';
+import { MemberPropertiesSkeleton } from '@/components/ui/skeleton';
 
 export default function PropertiesPage() {
   const { plots, fetchPlots, isLoading } = useMemberStore();
@@ -42,10 +43,7 @@ export default function PropertiesPage() {
 
         {/* Loading / Empty / Grid */}
         {isLoading ? (
-          <div className="bg-white rounded-2xl border border-black/[0.08] p-12 text-center space-y-3">
-            <div className="w-8 h-8 border-2 border-[#43612B]/20 border-t-[#43612B] rounded-full animate-spin mx-auto" />
-            <p className="text-xs text-[#6B7462]">Retrieving property records...</p>
-          </div>
+          <MemberPropertiesSkeleton />
         ) : plots.length === 0 ? (
           <div className="bg-white rounded-3xl border border-black/[0.08] p-10 sm:p-14 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">

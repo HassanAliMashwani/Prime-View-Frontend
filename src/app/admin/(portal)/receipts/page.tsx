@@ -27,6 +27,7 @@ import {
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminReceipts, verifyReceipt, rejectReceipt } from '@/lib/dal/receipts';
+import { AdminTableSkeleton } from '@/components/ui/skeleton';
 
 import {
   OfficialA4PaymentSlip,
@@ -184,14 +185,7 @@ export default function AdminReceiptsPage() {
     }).format(amount);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center p-16">
-        <RefreshCw className="w-6 h-6 animate-spin text-emerald-700" />
-        <span className="ml-3 text-sm font-medium text-slate-600">
-          Loading receipt verification queue...
-        </span>
-      </div>
-    );
+    return <AdminTableSkeleton rows={5} columns={6} />;
   }
 
   // Authorization Guard (Receipt Verification Authority)

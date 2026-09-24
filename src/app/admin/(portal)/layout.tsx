@@ -6,6 +6,7 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
+import { AdminPortalLayoutSkeleton } from '@/components/ui/skeleton';
 
 export default function AdminPortalLayout({
   children,
@@ -29,13 +30,7 @@ export default function AdminPortalLayout({
   }, [router]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAF9] flex items-center justify-center text-[#10251E]">
-        <div className="animate-pulse font-serif text-lg tracking-wide text-[#10251E] font-semibold">
-          Authenticating Administrator Session...
-        </div>
-      </div>
-    );
+    return <AdminPortalLayoutSkeleton />;
   }
 
   if (!session) {
