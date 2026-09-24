@@ -1680,19 +1680,28 @@ function CustomersPageContent() {
                       className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                     />
                     <div className="flex gap-1 mt-1.5">
-                      {[10, 20, 25, 50].map((pct) => (
-                        <button
-                          key={pct}
-                          type="button"
-                          onClick={() => {
-                            setDownpaymentA(Math.round(effectivePriceA * (pct / 100)));
-                            setDownpaymentCustomizedA(true);
-                          }}
-                          className="text-[10px] px-2 py-0.5 bg-white border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 rounded-md text-slate-600 hover:text-emerald-800 font-medium cursor-pointer"
-                        >
-                          {pct}%
-                        </button>
-                      ))}
+                      {[10, 20, 25, 50].map((pct) => {
+                        const isSelected =
+                          effectivePriceA > 0 &&
+                          downpaymentA === Math.round(effectivePriceA * (pct / 100));
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => {
+                              setDownpaymentA(Math.round(effectivePriceA * (pct / 100)));
+                              setDownpaymentCustomizedA(true);
+                            }}
+                            className={`text-[10px] px-2 py-0.5 rounded-md font-medium cursor-pointer transition-colors ${
+                              isSelected
+                                ? 'bg-emerald-700 text-white font-bold'
+                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                            }`}
+                          >
+                            {pct}%
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -2419,19 +2428,28 @@ function CustomersPageContent() {
                         className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                       />
                       <div className="flex gap-1 mt-1.5">
-                        {[10, 20, 25, 50].map((pct) => (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => {
-                              setDownpaymentB(Math.round(effectivePriceB * (pct / 100)));
-                              setDownpaymentCustomizedB(true);
-                            }}
-                            className="text-[10px] px-2 py-0.5 bg-white border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300 rounded-md text-slate-600 hover:text-emerald-800 font-medium cursor-pointer"
-                          >
-                            {pct}%
-                          </button>
-                        ))}
+                        {[10, 20, 25, 50].map((pct) => {
+                          const isSelected =
+                            effectivePriceB > 0 &&
+                            downpaymentB === Math.round(effectivePriceB * (pct / 100));
+                          return (
+                            <button
+                              key={pct}
+                              type="button"
+                              onClick={() => {
+                                setDownpaymentB(Math.round(effectivePriceB * (pct / 100)));
+                                setDownpaymentCustomizedB(true);
+                              }}
+                              className={`text-[10px] px-2 py-0.5 rounded-md font-medium cursor-pointer transition-colors ${
+                                isSelected
+                                  ? 'bg-emerald-700 text-white font-bold'
+                                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                              }`}
+                            >
+                              {pct}%
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 

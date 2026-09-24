@@ -157,7 +157,7 @@ export default function PaymentHistoryPage() {
                     <tr key={t.id} className="hover:bg-black/[0.01] transition-colors">
                       <td className="py-4 px-5 text-[#151914] font-medium flex items-center gap-2">
                         <Calendar className="w-3.5 h-3.5 text-[#6B7462]" />
-                        <span>{t.date}</span>
+                        <span>{t.date ? String(t.date).split('T')[0] : '—'}</span>
                       </td>
                       <td className="py-4 px-5 font-bold text-[#151914]">
                         Plot {t.plotNumber}

@@ -215,7 +215,7 @@ function PaymentsContent() {
           upcomingAlert = {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
-            dueDate: nextItem.dueDate,
+            dueDate: String(nextItem.dueDate).split('T')[0],
             amount: nextItem.amount,
             installmentNumber: nextItem.installmentNumber || 1,
             isOverdue: isItemOverdue,
@@ -415,7 +415,7 @@ function PaymentsContent() {
                   Installment #{upcomingAlert.installmentNumber} of{' '}
                   <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
                   {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
-                  <strong className="text-[#151914]">{upcomingAlert.dueDate}</strong>. Upload your bank deposit slip below once paid.
+                  <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit slip below once paid.
                 </p>
               </div>
             </div>
@@ -767,7 +767,7 @@ function PaymentsContent() {
                         <div className="py-3 flex justify-between">
                           <span className="text-[#6B7462]">Settlement Date</span>
                           <span className="font-bold text-[#151914]">
-                            {activeSchedule.schedule[0]?.paidDate || activeSchedule.schedule[0]?.dueDate}
+                            {String(activeSchedule.schedule[0]?.paidDate || activeSchedule.schedule[0]?.dueDate || '—').split('T')[0]}
                           </span>
                         </div>
                         <div className="py-3 flex justify-between">

@@ -63,8 +63,9 @@ export default function MemberDashboardPage() {
       if (prog.hasOverdue) hasOverdue = true;
       if (prog.nextDueDate) {
         upcomingCount += prog.totalCount - prog.paidCount;
-        if (!nearestDueDate || prog.nextDueDate < nearestDueDate) {
-          nearestDueDate = prog.nextDueDate;
+        const cleanDue = String(prog.nextDueDate).split('T')[0];
+        if (!nearestDueDate || cleanDue < nearestDueDate) {
+          nearestDueDate = cleanDue;
         }
       }
     }
@@ -88,7 +89,7 @@ export default function MemberDashboardPage() {
           upcomingAlert = {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
-            dueDate: nextItem.dueDate,
+            dueDate: String(nextItem.dueDate).split('T')[0],
             amount: nextItem.amount,
             installmentNumber: nextItem.installmentNumber || 1,
             isOverdue: isItemOverdue,
@@ -217,7 +218,7 @@ export default function MemberDashboardPage() {
                   Installment #{upcomingAlert.installmentNumber} of{' '}
                   <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
                   {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
-                  <strong className="text-[#151914]">{upcomingAlert.dueDate}</strong>. Upload your bank deposit receipt directly in the portal once paid to maintain good standing.
+                  <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit receipt directly in the portal once paid to maintain good standing.
                 </p>
               </div>
             </div>
@@ -269,7 +270,7 @@ export default function MemberDashboardPage() {
 
           <StatCard
             title="Upcoming Due"
-            value={nearestDueDate || 'None'}
+            value={nearestDueDate ? nearestDueDate.split('T')[0] : 'None'}
             subtitle={
               hasOverdue
                 ? 'Action Required'

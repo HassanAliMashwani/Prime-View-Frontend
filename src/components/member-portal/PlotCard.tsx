@@ -160,7 +160,7 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
                 Installment Overdue
               </span>
             ) : (
-              <span>Next Due: {progress.nextDueDate || 'All Paid'}</span>
+              <span>Next Due: {progress.nextDueDate ? String(progress.nextDueDate).split('T')[0] : 'All Paid'}</span>
             )
           ) : (
             <span>

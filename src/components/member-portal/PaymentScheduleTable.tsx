@@ -26,6 +26,8 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
       maximumFractionDigits: 0,
     }).format(num);
 
+  const cleanDate = (val?: string | null) => (val ? String(val).split('T')[0] : '');
+
   return (
     <div className="space-y-6">
       {/* Top Banner Alert for Overdue or Upcoming Installment */}
@@ -41,7 +43,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
             <p className="text-xs text-red-700 leading-relaxed">
               An installment of{' '}
               <span className="font-bold">{formatPKR(overdueInstallment.amount)}</span> was due on{' '}
-              <span className="font-bold">{overdueInstallment.dueDate}</span>. Please submit payment
+              <span className="font-bold">{cleanDate(overdueInstallment.dueDate)}</span>. Please submit payment
               to the society accounts office to avoid any surcharge.
             </p>
           </div>
@@ -56,7 +58,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
               Next Upcoming Due: Installment #{nextPendingInstallment.installmentNumber}
             </h4>
             <p className="text-xs text-[#6B7462] leading-relaxed">
-              Due Date: <span className="font-bold text-[#151914]">{nextPendingInstallment.dueDate}</span> &bull; Amount:{' '}
+              Due Date: <span className="font-bold text-[#151914]">{cleanDate(nextPendingInstallment.dueDate)}</span> &bull; Amount:{' '}
               <span className="font-bold text-[#43612B]">{formatPKR(nextPendingInstallment.amount)}</span>
             </p>
           </div>
@@ -123,7 +125,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-[#151914] font-medium">
-                      {record.dueDate}
+                      {cleanDate(record.dueDate)}
                     </td>
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
                       {formatPKR(record.amount)}
@@ -137,7 +139,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-[#6B7462]">
-                      {record.paidDate || '—'}
+                      {cleanDate(record.paidDate) || '—'}
                     </td>
                     <td className="py-3.5 px-4 font-mono text-[11px] text-[#6B7462]">
                       {record.transactionRef || '—'}

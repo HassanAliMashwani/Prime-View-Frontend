@@ -65,6 +65,8 @@ export async function getPaymentSchedule(
         .filter((p) => p.bookingId === booking.id || p.plotId === plot.id)
         .map((p) => ({
           ...p,
+          dueDate: p.dueDate ? String(p.dueDate).split('T')[0] : '',
+          paidDate: p.paidDate ? String(p.paidDate).split('T')[0] : undefined,
           amount: Number(p.amount) || 0,
           paidAmount: Number(p.paidAmount) || 0,
         }));
@@ -172,9 +174,10 @@ export async function getPaymentHistory(
           desc = 'Plot Payment';
         }
 
+        const rawDate = payment.paidDate || payment.dueDate || new Date().toISOString();
         transactions.push({
           id: payment.id,
-          date: payment.paidDate || payment.dueDate || new Date().toISOString(),
+          date: String(rawDate).split('T')[0],
           plotId: payment.plotId || '',
           plotNumber,
           description: desc,

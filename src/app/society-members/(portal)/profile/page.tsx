@@ -288,7 +288,7 @@ export default function ProfilePage() {
                 <span>Enrolled Date</span>
               </div>
               <p className="font-medium text-sm text-[#151914]">
-                {profile?.createdDate || '—'}
+                {profile?.createdDate ? String(profile.createdDate).split('T')[0] : '—'}
               </p>
               <p className="text-[10px] text-[#6B7462]">Original file registry</p>
             </div>
