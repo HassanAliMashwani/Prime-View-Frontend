@@ -530,8 +530,15 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                     {slip.securityHash}
                   </div>
                   <p className="text-[10px] text-[#6B7462] leading-tight max-w-sm">
-                    This security hash links directly to immutable ledger records. Scan the QR code or verify at{' '}
-                    <span className="font-mono font-semibold text-[#43612B]">{slipVerifyUrl(slip.slipNumber)}</span>.
+                    This security hash links directly to immutable ledger records. Scan the QR code or visit{' '}
+                    <a
+                      href={slipVerifyUrl(slip.slipNumber)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono font-semibold text-[#43612B] underline hover:text-[#365222]"
+                    >
+                      {slipVerifyUrl(slip.slipNumber)}
+                    </a>
                   </p>
                 </div>
               </div>

@@ -25,7 +25,7 @@ import {
 export default function VerifySlipPage() {
   const params = useParams();
   const rawSlipNumber = (params?.slipNumber as string) || '';
-  const slipNumber = decodeURIComponent(rawSlipNumber).trim();
+  const slipNumber = decodeURIComponent(rawSlipNumber).trim().replace(/[.,;:/\\]+$/, '');
 
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
