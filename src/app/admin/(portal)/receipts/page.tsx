@@ -829,7 +829,12 @@ export default function AdminReceiptsPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {activeSlip && (
         <OfficialA4PaymentSlip
-          slip={buildSlipDataFromSubmission(activeSlip)}
+          slip={buildSlipDataFromSubmission(activeSlip, {
+            customerName: activeSlip.customerName || (activeSlip as any).customer?.fullName,
+            membershipNo: activeSlip.membershipNo || (activeSlip as any).customer?.membershipNo,
+            plotNumber: activeSlip.plotNumber,
+            blockName: activeSlip.blockName,
+          })}
           submission={activeSlip}
           viewMode="full"
           onClose={() => setActiveSlip(null)}

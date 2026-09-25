@@ -1346,14 +1346,42 @@ function PaymentsContent() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* OFFICIAL A4 VERIFIED PAYMENT SLIP MODAL                       */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      {activeSlipSubmission && (
-        <OfficialA4PaymentSlip
-          slip={buildSlipDataFromSubmission(activeSlipSubmission)}
-          submission={activeSlipSubmission}
-          viewMode="customer"
-          onClose={() => setActiveSlipSubmission(null)}
-        />
-      )}
+      {activeSlipSubmission && (() => {
+        const matchedPlot = plots?.find(
+          (p) => p.id === activeSlipSubmission.plotId || p.plotNumber === activeSlipSubmission.plotNumber
+        ) || schedules?.find(
+          (s) => s.plotId === activeSlipSubmission.plotId || s.plotNumber === activeSlipSubmission.plotNumber
+        );
+        const resolvedPlotNumber = activeSlipSubmission.plotNumber || matchedPlot?.plotNumber;
+        const resolvedBlockName =
+          activeSlipSubmission.blockName ||
+          (matchedPlot as any)?.blockName ||
+          (matchedPlot as any)?.blockId;
+
+        const slipFallbacks = {
+          customerName: profile?.fullName,
+          membershipNo: profile?.membershipNo,
+          plotNumber: resolvedPlotNumber,
+          blockName: resolvedBlockName,
+        };
+
+        const enrichedSubmission: ReceiptSubmission = {
+          ...activeSlipSubmission,
+          customerName: activeSlipSubmission.customerName || profile?.fullName || '',
+          membershipNo: activeSlipSubmission.membershipNo || profile?.membershipNo || '',
+          plotNumber: resolvedPlotNumber || '',
+          blockName: resolvedBlockName || '',
+        };
+
+        return (
+          <OfficialA4PaymentSlip
+            slip={buildSlipDataFromSubmission(enrichedSubmission, slipFallbacks)}
+            submission={enrichedSubmission}
+            viewMode="customer"
+            onClose={() => setActiveSlipSubmission(null)}
+          />
+        );
+      })()}
     </div>
   );
 }

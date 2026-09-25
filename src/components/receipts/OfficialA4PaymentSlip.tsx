@@ -21,17 +21,26 @@ function slipVerifyUrl(slipNumber: string): string {
 }
 
 export function formatAmountInWords(amount: number): string {
-  if (amount === 50000) return 'Fifty Thousand Rupees Only';
-  if (amount === 100000) return 'One Hundred Thousand Rupees Only';
-  if (amount === 150000) return 'One Hundred Fifty Thousand Rupees Only';
-  if (amount === 200000) return 'Two Hundred Thousand Rupees Only';
-  if (amount === 250000) return 'Two Hundred Fifty Thousand Rupees Only';
-  if (amount === 300000) return 'Three Hundred Thousand Rupees Only';
-  if (amount === 500000) return 'Five Hundred Thousand Rupees Only';
-  if (amount === 1250000) return 'One Million Two Hundred Fifty Thousand Rupees Only';
-  if (amount === 1500000) return 'One Million Five Hundred Thousand Rupees Only';
-  if (amount === 2500000) return 'Two Million Five Hundred Thousand Rupees Only';
-  return `${amount.toLocaleString()} Rupees Only`;
+  const rounded = Math.round(Number(amount) || 0);
+  if (rounded <= 0) return 'Zero Rupees Only';
+
+  const units = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function toWords(n: number): string {
+    if (n === 0) return '';
+    if (n < 20) return units[n];
+    if (n < 100) return tens[Math.floor(n / 10)] + (n % 10 ? ' ' + units[n % 10] : '');
+    if (n < 1000) return units[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + toWords(n % 100) : '');
+    if (n < 1000000) return toWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + toWords(n % 1000) : '');
+    if (n < 1000000000) return toWords(Math.floor(n / 1000000)) + ' Million' + (n % 1000000 ? ' ' + toWords(n % 1000000) : '');
+    return toWords(Math.floor(n / 1000000000)) + ' Billion' + (n % 1000000000 ? ' ' + toWords(n % 1000000000) : '');
+  }
+
+  return `${toWords(rounded)} Rupees Only`;
 }
 
 export interface SlipRenderModel {
@@ -52,23 +61,63 @@ export interface SlipRenderModel {
   verifiedBy: string;
 }
 
-export function buildSlipDataFromSubmission(sub: ReceiptSubmission): SlipRenderModel {
+export function buildSlipDataFromSubmission(
+  sub: ReceiptSubmission,
+  fallbacks?: {
+    customerName?: string;
+    membershipNo?: string;
+    plotNumber?: string;
+    blockName?: string;
+  }
+): SlipRenderModel {
+  const customerName = (
+    sub.customerName ||
+    (sub as any).customer?.fullName ||
+    fallbacks?.customerName ||
+    '—'
+  ).trim();
+
+  const membershipNo = (
+    sub.membershipNo ||
+    (sub as any).customer?.membershipNo ||
+    fallbacks?.membershipNo ||
+    '—'
+  ).trim();
+
+  const plotNumber = (
+    sub.plotNumber ||
+    (sub as any).plot?.plotNumber ||
+    fallbacks?.plotNumber ||
+    '—'
+  ).trim();
+
+  const blockName = (
+    sub.blockName ||
+    (sub as any).plot?.blockName ||
+    (sub as any).plot?.block?.name ||
+    (sub as any).plot?.blockId ||
+    fallbacks?.blockName ||
+    ''
+  ).trim();
+
+  const slipNumber = sub.slip?.slipNumber || (sub as any).slipNumber || `PV-SLIP-${new Date().getFullYear()}-${sub.id.slice(-4)}`;
+
   return {
-    slipNumber: sub.slip?.slipNumber || `PV-SLIP-${new Date().getFullYear()}-${sub.id.slice(-4)}`,
-    customerName: sub.customerName,
-    membershipNo: sub.membershipNo,
-    plotNumber: sub.plotNumber,
-    blockName: sub.blockName,
+    slipNumber,
+    customerName,
+    membershipNo,
+    plotNumber,
+    blockName,
     installmentNumber: sub.installmentNumber,
     amount: sub.amount,
     amountInWords: formatAmountInWords(sub.amount),
     bankName: sub.depositoryBank || sub.bankName || 'Meezan Bank Ltd',
     transactionRef: sub.transactionRef,
     depositDate: sub.paymentDate ? String(sub.paymentDate).split('T')[0] : '—',
-    verifiedDate: sub.verifiedAt ? sub.verifiedAt.split('T')[0] : new Date().toISOString().split('T')[0],
-    verifiedBy: sub.verifiedByAdminName || 'Society Secretariat / Finance Officer',
-    securityHash: sub.slip?.securityHash || `PV-SEC-${sub.id.slice(-6).toUpperCase()}`,
-    qrPayload: slipVerifyUrl(sub.slip?.slipNumber || `PV-SLIP-${new Date().getFullYear()}-${sub.id.slice(-4)}`),
+    verifiedDate: sub.verifiedAt ? String(sub.verifiedAt).split('T')[0] : new Date().toISOString().split('T')[0],
+    verifiedBy: sub.verifiedByAdminName || (sub as any).verifiedBy || 'Society Secretariat / Finance Officer',
+    securityHash: sub.slip?.securityHash || (sub as any).securityHash || `PV-SEC-${sub.id.slice(-6).toUpperCase()}`,
+    qrPayload: slipVerifyUrl(slipNumber),
   };
 }
 
@@ -97,6 +146,51 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
     }).format(amount);
 
   const isCustomerView = viewMode === 'customer';
+
+  const displayCustomerName = (
+    slip.customerName?.trim() ||
+    submission?.customerName?.trim() ||
+    (submission as any)?.customer?.fullName?.trim() ||
+    '—'
+  );
+
+  const displayMembershipNo = (
+    slip.membershipNo?.trim() ||
+    submission?.membershipNo?.trim() ||
+    (submission as any)?.customer?.membershipNo?.trim() ||
+    '—'
+  );
+
+  const rawPlotNum = (
+    slip.plotNumber?.trim() ||
+    submission?.plotNumber?.trim() ||
+    (submission as any)?.plot?.plotNumber?.trim() ||
+    ''
+  );
+  const plotNumClean = rawPlotNum === '—' ? '' : rawPlotNum;
+
+  const rawBlockName = (
+    slip.blockName?.trim() ||
+    submission?.blockName?.trim() ||
+    (submission as any)?.plot?.blockName?.trim() ||
+    (submission as any)?.plot?.block?.name?.trim() ||
+    (submission as any)?.plot?.blockId?.trim() ||
+    ''
+  );
+  const blockNameClean = rawBlockName === '—' ? '' : rawBlockName;
+
+  let displayPlotUpper = '—';
+  let displayPlotLower = '—';
+  if (plotNumClean && blockNameClean) {
+    displayPlotUpper = `Plot ${plotNumClean} • ${blockNameClean}`;
+    displayPlotLower = `Plot ${plotNumClean} (${blockNameClean})`;
+  } else if (plotNumClean) {
+    displayPlotUpper = `Plot ${plotNumClean}`;
+    displayPlotLower = `Plot ${plotNumClean}`;
+  } else if (blockNameClean) {
+    displayPlotUpper = blockNameClean;
+    displayPlotLower = blockNameClean;
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto print:p-0 print:bg-white print:static print:inset-auto">
@@ -185,21 +279,19 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                     <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                       Member Name
                     </span>
-                    <p className="font-bold text-[#151914]">{slip.customerName}</p>
+                    <p className="font-bold text-[#151914]">{displayCustomerName}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                       Membership No
                     </span>
-                    <p className="font-mono font-bold text-[#151914]">{slip.membershipNo}</p>
+                    <p className="font-mono font-bold text-[#151914]">{displayMembershipNo}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                       Plot Allotment
                     </span>
-                    <p className="font-bold text-[#43612B]">
-                      Plot {slip.plotNumber} &bull; {slip.blockName}
-                    </p>
+                    <p className="font-bold text-[#43612B]">{displayPlotUpper}</p>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
@@ -337,21 +429,19 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                 <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                   Allotment Member
                 </span>
-                <p className="font-bold text-sm text-[#151914]">{slip.customerName}</p>
+                <p className="font-bold text-sm text-[#151914]">{displayCustomerName}</p>
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                   Membership No
                 </span>
-                <p className="font-mono font-bold text-sm text-[#43612B]">{slip.membershipNo}</p>
+                <p className="font-mono font-bold text-sm text-[#43612B]">{displayMembershipNo}</p>
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
                   Plot Designation
                 </span>
-                <p className="font-bold text-sm text-[#151914]">
-                  Plot {slip.plotNumber} ({slip.blockName})
-                </p>
+                <p className="font-bold text-sm text-[#151914]">{displayPlotLower}</p>
               </div>
               <div>
                 <span className="text-[10px] font-bold uppercase text-[#6B7462] block">
