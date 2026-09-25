@@ -5331,7 +5331,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
 export const eliteBlockConfig: BlockMapConfig = {
   blockId: 'elite',
   blockName: 'Elite Block',
-  imageSrc: '/master-plan/elite-block-map.png',
+  imageSrc: '/Maps/Elite/elite-block-map.png',
   naturalWidth: 2033,
   naturalHeight: 1637,
   areas: eliteBlockAreas,

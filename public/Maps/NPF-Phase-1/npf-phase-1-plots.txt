@@ -1,0 +1,17 @@
+SaleAble:
+	Residential: 1-44, 82-218, 220-233, 235-245, 248-253
+	Commercial:  46-73
+Amenities:
+	Commercial Park: 45
+	Apartment Block: 74
+	Community Park: 75
+	T-Plant: 76
+	School: 77
+	Playground: 78
+	Mosque: 79
+	Hospital: 80
+	Community Center: 81
+	Filtration Plant: 219
+	Open Garden: 234
+	Grid Station: 247
+	Graveyard: 4

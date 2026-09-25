@@ -9,6 +9,7 @@ import { Region } from '@/lib/map/types';
 import { AdminSession } from '@/lib/mock/types';
 import { BlockSummary } from '@/lib/dal/adminPlots';
 import { canAccessBlock } from '@/lib/dal/adminAuth';
+import { hasBlockMap } from '@/lib/map/blockRegistry';
 
 interface InteractiveOverviewMapProps {
   session: AdminSession | null;
@@ -175,10 +176,10 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                         style={{ backgroundColor: hoveredRegion.darkColor }}
                       />
                       <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">
-                        {hoveredRegion.blockId === 'elite' ? 'Interactive Traced Map' : 'Sector Map'}
+                        {hasBlockMap(hoveredRegion.blockId) ? 'Interactive Traced Map' : 'Sector Map'}
                       </span>
                     </div>
-                    {hoveredRegion.blockId === 'elite' && (
+                    {hasBlockMap(hoveredRegion.blockId) && (
                       <span className="text-[9px] font-bold uppercase bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
                         Level 2 Traced
                       </span>

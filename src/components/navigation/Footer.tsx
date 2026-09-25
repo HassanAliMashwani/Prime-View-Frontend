@@ -12,7 +12,11 @@ export const Footer: React.FC = () => {
   const pathname = usePathname();
 
   // Hide marketing footer on member portal and admin views
-  if (pathname.startsWith('/society-members/') || pathname.startsWith('/admin')) {
+  if (
+    pathname.startsWith('/society-members/') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/verify')
+  ) {
     return null;
   }
   return (

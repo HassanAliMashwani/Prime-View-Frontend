@@ -20,7 +20,11 @@ export const Header: React.FC = () => {
   // context is ready — bail out early to avoid a TypeError and also prevent
   // the header from flashing before the real path is known.
   if (!pathname) return null;
-  if (pathname.startsWith('/society-members/') || pathname.startsWith('/admin')) {
+  if (
+    pathname.startsWith('/society-members/') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/verify')
+  ) {
     return null;
   }
 
