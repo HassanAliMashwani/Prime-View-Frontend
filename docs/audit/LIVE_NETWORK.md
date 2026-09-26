@@ -162,3 +162,34 @@ Origin: http://localhost:3000
   }
 ]
 ```
+
+## Customers booking
+- Form on screen: 762 ms
+- Real results visible for "ab": 2592 ms
+- Request the results waited on: GET /plots?search=ab, 2273 ms
+- Clearing the input triggers 0 requests
+
+```json
+[
+  {
+    "name": "http://localhost:3001/admin/audit",
+    "start": 2061,
+    "total": 3033
+  }
+]
+```
+
+```json
+[
+  {
+    "name": "http://localhost:3001/admin/audit",
+    "start": 2083,
+    "total": 5866
+  },
+  {
+    "name": "http://localhost:3001/plots?search=ab",
+    "start": 6608,
+    "total": 2273
+  }
+]
+```
