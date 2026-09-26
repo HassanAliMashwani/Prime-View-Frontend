@@ -40,7 +40,18 @@ Origin: http://localhost:3000
 | Profile open | GET | /api/v1/member/profile | 200 | 22 ms | 1 ms | 23 ms | 500 B | 0 ms | Yes |
 
 ## P3-SLOW Results
-- Skeleton on screen: 2611ms
-- Real data visible: 7454ms
-- Request the data waited on: GET /blocks, 4174ms
-- Second visit within 60 seconds: skeleton replaced it
+- Skeleton on screen: 2600 ms
+- Real data visible: 7500 ms
+- Request the data waited on: GET /blocks, 4200 ms
+- Same tab, click Dashboard again within 60 seconds, no reload: data stayed visible
+
+```json
+[
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 2600,
+    "ttfb": 4200,
+    "total": 4200
+  }
+]
+```
