@@ -38,3 +38,9 @@ Origin: http://localhost:3000
 | Payments: switch away and return (<60s)| - | - | - | - | - | - | 0 requests | - | No |
 | Payments history open | GET | /api/v1/member/transactions | 200 | 38 ms | 3 ms | 41 ms | 2.5 KB | 0 ms | Yes |
 | Profile open | GET | /api/v1/member/profile | 200 | 22 ms | 1 ms | 23 ms | 500 B | 0 ms | Yes |
+
+## P3-SLOW Results
+- Skeleton on screen: 2611ms
+- Real data visible: 7454ms
+- Request the data waited on: GET /blocks, 4174ms
+- Second visit within 60 seconds: skeleton replaced it
