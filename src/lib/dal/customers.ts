@@ -427,6 +427,9 @@ export async function resetCustomerPassword(
     ok: true,
     newPassword: (res.data as any)?.newPassword,
     username: (res.data as any)?.username,
+  };
+}
+
 export async function getCustomersDirectory(
   session: AdminSession,
   params?: { page?: number; pageSize?: number; search?: string; status?: string }
