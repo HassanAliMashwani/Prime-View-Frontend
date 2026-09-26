@@ -427,15 +427,10 @@ export async function resetCustomerPassword(
     ok: true,
     newPassword: (res.data as any)?.newPassword,
     username: (res.data as any)?.username,
-  };
-}
-
-/**
- * Retrieve enriched Customers Directory.
- */
 export async function getCustomersDirectory(
-  session: AdminSession
-): Promise<{ ok: boolean; customers: CustomerDirectoryEntry[]; error?: string; message?: string }> {
+  session: AdminSession,
+  params?: { page?: number; pageSize?: number; search?: string; status?: string }
+): Promise<{ ok: boolean; customers: CustomerDirectoryEntry[]; total?: number; page?: number; pageSize?: number; error?: string; message?: string }> {
   const isSuper = session.role === 'super_admin';
   const hasViewPerm = Boolean(
     session.permissions?.can_view_customers || session.permissions?.can_create_customer
@@ -450,7 +445,14 @@ export async function getCustomersDirectory(
     };
   }
 
-  const res = await apiGet<any[]>('/customers', session?.token);
+  const queryParams = new URLSearchParams();
+  if (params?.page) queryParams.append('page', params.page.toString());
+  if (params?.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+  if (params?.search) queryParams.append('search', params.search);
+  if (params?.status) queryParams.append('status', params.status);
+
+  const path = `/customers?${queryParams.toString()}`;
+  const res = await apiGet<any>(path, session?.token);
   if (!res.ok || !res.data) {
     return {
       ok: false,
@@ -461,51 +463,9 @@ export async function getCustomersDirectory(
   }
 
   const enrichedList: CustomerDirectoryEntry[] = [];
+  const serverCustomers = res.data.customers || [];
 
-  for (const customer of res.data) {
-    const visiblePlots: CustomerDirectoryPlot[] = [];
-    const customerBookings = customer.bookings || [];
-
-    for (const booking of customerBookings) {
-      const plot = booking.plot;
-      if (!plot) continue;
-
-      visiblePlots.push({
-        bookingId: booking.id,
-        plotId: plot.id,
-        plotNumber: plot.plotNumber,
-        blockId: plot.blockId,
-        blockName: plot.block?.name || plot.blockId,
-        category: plot.category,
-        size: plot.size,
-        price: Number(plot.price),
-        paymentType: booking.paymentType,
-        bookingDate: booking.bookingDate,
-      });
-    }
-
-    // Calculate installment and financial stats from bookings
-    let installmentsPaidCount = 0;
-    let installmentsDueCount = 0;
-    let totalPaidAmount = 0;
-    let totalOutstandingAmount = 0;
-
-    for (const booking of customerBookings) {
-      const plot = visiblePlots.find((p) => p.plotId === booking.plotId);
-      const ledger = computePlotLedger(plot?.price || 0, booking.payments || []);
-      totalPaidAmount += ledger.totalPaidToDate;
-      totalOutstandingAmount += ledger.remainingBalance;
-
-      for (const p of booking.payments || []) {
-        if (p.feeType === 'plot_installment' && p.status === 'paid') {
-          installmentsPaidCount++;
-        }
-        if (p.feeType === 'plot_installment' && (p.status === 'pending' || p.status === 'overdue' || p.status === 'partially_paid')) {
-          installmentsDueCount++;
-        }
-      }
-    }
-
+  for (const customer of serverCustomers) {
     enrichedList.push({
       id: customer.id,
       membershipNo:
@@ -524,27 +484,26 @@ export async function getCustomersDirectory(
       accountStatus: customer.accountStatus || 'active',
       registrationStatus: customer.registrationStatus || 'complete',
       credentialsPending: Boolean(customer.credentialsPending),
-      createdDate: customer.createdAt || new Date().toISOString(),
+      createdDate: customer.createdDate || new Date().toISOString(),
       lastLogin: customer.lastLogin,
       strikeCount: customer.strikeCount || 0,
-      strikeHistory: (customer.strikes || []).map((s: any) => ({
-        id: s.id,
-        reason: s.reason,
-        assignedBy: s.assignedBy,
-        assignedAt: s.createdAt,
-        receiptId: s.receiptId,
-      })),
-      plots: visiblePlots,
-      plotsCount: visiblePlots.length,
-      installmentsPaidCount,
-      installmentsDueCount,
-      totalPaidAmount,
-      totalOutstandingAmount,
+      strikeHistory: [],
+      plots: [], // Not fetched in summary
+      plotsCount: customer.plotCount || 0,
+      installmentsPaidCount: 0, // Not fetched in summary
+      installmentsDueCount: 0, // Not fetched in summary
+      totalPaidAmount: customer.totalPaid || 0,
+      totalOutstandingAmount: customer.outstandingTotal || 0,
     });
   }
 
-  enrichedList.sort((a, b) => a.membershipNo.localeCompare(b.membershipNo));
-  return { ok: true, customers: enrichedList };
+  return { 
+    ok: true, 
+    customers: enrichedList,
+    total: res.data.total,
+    page: res.data.page,
+    pageSize: res.data.pageSize
+  };
 }
 
 /**

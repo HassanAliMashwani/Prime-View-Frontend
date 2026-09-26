@@ -10,6 +10,8 @@ export interface SalesHistoryFilters {
   category?: 'all' | PlotCategory;
   paymentType?: 'all' | 'one_time' | 'installment';
   search?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface SalesHistoryItem {
@@ -52,6 +54,9 @@ export interface SalesHistoryResult {
   ok: boolean;
   items: SalesHistoryItem[];
   kpis: SalesHistoryKpis;
+  total?: number;
+  page?: number;
+  pageSize?: number;
   error?: string;
   message?: string;
 }
@@ -79,6 +84,8 @@ export async function getSalesHistory(
     if (filters.category) params.append('category', filters.category);
     if (filters.paymentType) params.append('paymentType', filters.paymentType);
     if (filters.search) params.append('search', filters.search);
+    if (filters.page) params.append('page', filters.page.toString());
+    if (filters.pageSize) params.append('pageSize', filters.pageSize.toString());
 
     const queryString = params.toString();
     const url = `${API_BASE_URL}/sales/history${queryString ? '?' + queryString : ''}`;

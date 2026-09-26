@@ -43,6 +43,7 @@ import {
 } from '@/lib/dal/customers';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { getCache, setCache, generateCacheKey, clearCachePrefix } from '@/lib/dal/apiCache';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
@@ -60,6 +61,7 @@ function CustomersDirectoryContent() {
   // Filters
   const [search, setSearch] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needs_registration' | 'active' | 'suspended' | 'strikes'>('all');
+  const [totalRecords, setTotalRecords] = useState<number>(0);
 
   // Modals state
   const [dossierCustomer, setDossierCustomer] = useState<CustomerDirectoryEntry | null>(null);
@@ -85,7 +87,14 @@ function CustomersDirectoryContent() {
 
   // Pagination state
   const PAGE_SIZE = 20;
-  const [page, setPage] = useState<number>(1);
+  const [page, setPage] = useState<number>(parseInt(searchParams?.get('page') || '1', 10));
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', newPage.toString());
+    router.push(url.pathname + url.search);
+  };
 
   // Helper to redirect to Customer Booking page to complete registration (CR 07 §5)
   const openCompleteRegistration = (cust: CustomerDirectoryEntry) => {
@@ -99,9 +108,23 @@ function CustomersDirectoryContent() {
     }
   }, [queryCompleteCustId, router]);
 
-  const loadData = useCallback(async (currentSession: AdminSession) => {
+  const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, searchParam = '', statusParam = 'all', background = false) => {
+    const path = `/customers?page=${pageParam}&pageSize=${PAGE_SIZE}&search=${searchParam}&status=${statusParam}`;
+    const key = generateCacheKey('GET', path, currentSession.token);
+
+    if (!background) {
+      const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key);
+      if (cached) {
+        setCustomers(cached.customers);
+        setTotalRecords(cached.total);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+    }
+
     try {
-      const res = await getCustomersDirectory(currentSession);
+      const res = await getCustomersDirectory(currentSession, { page: pageParam, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
       if (!res.ok) {
         setCustomers((prev) => {
           if (prev.length > 0) {
@@ -113,6 +136,8 @@ function CustomersDirectoryContent() {
         });
       } else {
         setCustomers(res.customers);
+        setTotalRecords(res.total || 0);
+        setCache(key, { customers: res.customers, total: res.total || 0 });
         setError(null);
       }
     } catch (err) {
@@ -126,7 +151,7 @@ function CustomersDirectoryContent() {
         return prev;
       });
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, []);
 
@@ -137,18 +162,18 @@ function CustomersDirectoryContent() {
       return;
     }
     setSession(cur);
-    loadData(cur);
+    loadData(cur, page, search, statusFilter, false);
 
     // Auto-refresh customer directory every 30 seconds
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
       if (latestSession) {
-        loadData(latestSession);
+        loadData(latestSession, page, search, statusFilter, true);
       }
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [router, loadData]);
+  }, [router, loadData, page, search, statusFilter]);
 
   // Flash feedback auto-clear (8s)
   useEffect(() => {
@@ -179,7 +204,8 @@ function CustomersDirectoryContent() {
       });
       setStrikeCustomer(null);
       setStrikeReason('');
-      loadData(session);
+      clearCachePrefix('GET:/customers');
+      loadData(session, page, search, statusFilter, false);
     }
   };
 
@@ -205,7 +231,8 @@ function CustomersDirectoryContent() {
       });
       setSuspensionCustomer(null);
       setSuspensionReason('');
-      loadData(session);
+      clearCachePrefix('GET:/customers');
+      loadData(session, page, search, statusFilter, false);
     }
   };
 
@@ -288,18 +315,11 @@ function CustomersDirectoryContent() {
     setPage(1);
   }, [search, statusFilter]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageRows = filteredCustomers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const from = filteredCustomers.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const to = Math.min(safePage * PAGE_SIZE, filteredCustomers.length);
-
-  // Metrics
-  const totalCount = customers.length;
-  const needsRegistrationCount = customers.filter((c) => c.registrationStatus === 'minimal').length;
-  const activeCount = customers.filter((c) => c.accountStatus === 'active' && c.registrationStatus !== 'minimal').length;
-  const suspendedCount = customers.filter((c) => c.accountStatus === 'suspended').length;
-  const withStrikesCount = customers.filter((c) => (c.strikeCount || 0) > 0).length;
+  const pageRows = customers;
+  const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
   if (loading) {
     return <AdminTableSkeleton rows={6} columns={6} />;
@@ -367,38 +387,7 @@ function CustomersDirectoryContent() {
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-          <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Members</div>
-          <div className="mt-1 text-2xl font-bold font-serif text-slate-900">{totalCount}</div>
-          <div className="mt-1 text-[11px] text-slate-500">In assigned scope</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-amber-200 shadow-xs">
-          <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Needs Registration</div>
-          <div className="mt-1 text-2xl font-bold font-serif text-amber-800">{needsRegistrationCount}</div>
-          <div className="mt-1 text-[11px] text-amber-600">Pending formalities</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-          <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Active Portals</div>
-          <div className="mt-1 text-2xl font-bold font-serif text-emerald-800">{activeCount}</div>
-          <div className="mt-1 text-[11px] text-emerald-600">Full portal access</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-          <div className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Suspended Accounts</div>
-          <div className="mt-1 text-2xl font-bold font-serif text-rose-800">{suspendedCount}</div>
-          <div className="mt-1 text-[11px] text-rose-600">Login blocked</div>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-xs col-span-2 sm:col-span-1">
-          <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Members With Strikes</div>
-          <div className="mt-1 text-2xl font-bold font-serif text-amber-800">{withStrikesCount}</div>
-          <div className="mt-1 text-[11px] text-amber-600">Compliance holds active</div>
-        </div>
-      </div>
+      {/* KPI Cards removed as pagination applies server side */}
 
       {/* Filters Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-200 shadow-xs">
@@ -427,7 +416,7 @@ function CustomersDirectoryContent() {
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            All Members ({customers.length})
+            All Members ({statusFilter === 'all' ? totalRecords : '-'})
           </button>
           <button
             onClick={() => setStatusFilter('needs_registration')}
@@ -464,7 +453,7 @@ function CustomersDirectoryContent() {
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            Suspended ({suspendedCount})
+            Suspended ({statusFilter === 'suspended' ? totalRecords : '-'})
           </button>
           <button
             onClick={() => setStatusFilter('strikes')}
@@ -758,12 +747,12 @@ function CustomersDirectoryContent() {
         {/* Pagination Footer */}
         <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
           <div>
-            Showing <span className="font-semibold text-slate-900">{from}–{to}</span> of <span className="font-semibold text-slate-900">{filteredCustomers.length}</span>
+            Showing <span className="font-semibold text-slate-900">{from}–{to}</span> of <span className="font-semibold text-slate-900">{totalRecords}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
               disabled={safePage <= 1}
               className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
@@ -774,8 +763,8 @@ function CustomersDirectoryContent() {
             </span>
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
+              onClick={() => handlePageChange(Math.min(Math.ceil(totalRecords / PAGE_SIZE), page + 1))}
+              disabled={safePage >= Math.ceil(totalRecords / PAGE_SIZE)}
               className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               Next

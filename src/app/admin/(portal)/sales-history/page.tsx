@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ScrollText, 
   TrendingUp, 
@@ -34,6 +34,9 @@ import {
 import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
+import { getCache, setCache, generateCacheKey, clearCachePrefix } from '@/lib/dal/apiCache';
+
+const PAGE_SIZE = 20;
 
 const SOCIETY_BLOCKS = [
   { id: 'abbott', name: 'Abbott Block' },
@@ -46,8 +49,9 @@ const SOCIETY_BLOCKS = [
   { id: 'npf-phase-2', name: 'NPF Phase 2' },
 ];
 
-export default function SalesHistoryPage() {
+function SalesHistoryContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [session, setSession] = useState<AdminSession | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [items, setItems] = useState<SalesHistoryItem[]>([]);
@@ -68,29 +72,60 @@ export default function SalesHistoryPage() {
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const [page, setPage] = useState<number>(parseInt(searchParams?.get('page') || '1', 10));
 
-  const loadData = useCallback(async (currentSession: AdminSession) => {
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', newPage.toString());
+    router.push(url.pathname + url.search);
+  };
+  const [totalRecords, setTotalRecords] = useState<number>(0);
+
+  const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, background = false) => {
     try {
-      const res = await getSalesHistory(currentSession, {
+      const filters = {
         datePreset,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         blockId: blockFilter !== 'all' ? blockFilter : undefined,
         category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
         search: search.trim() || undefined,
-      });
+        page: pageParam,
+        pageSize: PAGE_SIZE
+      };
+
+      const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
+      const path = `/sales/history?${pathParams.toString()}`;
+      const key = generateCacheKey('GET', path, currentSession.token);
+
+      if (!background) {
+        const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key);
+        if (cached) {
+          setItems(cached.items);
+          setKpis(cached.kpis);
+          setTotalRecords(cached.total);
+          setLoading(false);
+        } else {
+          setLoading(true);
+        }
+      }
+
+      const res = await getSalesHistory(currentSession, filters);
 
       if (!res.ok) {
         setFeedback({ type: 'error', message: res.message || res.error || 'Failed to load sales history report.' });
       } else {
         setItems(res.items);
         setKpis(res.kpis);
+        setTotalRecords(res.total || 0);
+        setCache(key, { items: res.items, kpis: res.kpis, total: res.total || 0 });
       }
     } catch (err) {
       console.error('Failed to load sales report:', err);
       setFeedback({ type: 'error', message: 'An error occurred while generating the sales report.' });
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
   }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
 
@@ -101,8 +136,14 @@ export default function SalesHistoryPage() {
       return;
     }
     setSession(cur);
-    loadData(cur);
-  }, [router, loadData]);
+    loadData(cur, page, false);
+
+    const interval = setInterval(() => {
+      loadData(cur, page, true);
+    }, 60000);
+
+    return () => clearInterval(interval);
+  }, [router, loadData, page]);
 
   // Flash feedback auto-clear (8s)
   useEffect(() => {
@@ -129,6 +170,7 @@ export default function SalesHistoryPage() {
     setBlockFilter('all');
     setCategoryFilter('all');
     setSearch('');
+    setPage(1);
   };
 
   // Build block options:
@@ -150,24 +192,17 @@ export default function SalesHistoryPage() {
     });
   }, [session, items]);
 
-  // Screen Pagination (20 rows)
-  const PAGE_SIZE = 20;
-  const [page, setPage] = useState<number>(1);
-  useEffect(() => {
-    setPage(1);
-  }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
-
-  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageRows = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const from = items.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
-  const to = Math.min(safePage * PAGE_SIZE, items.length);
+  const pageRows = items;
+  const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
+  const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
   if (loading) {
     return <AdminSalesHistorySkeleton />;
   }
 
-  const totalContractSum = items.reduce((acc, curr) => acc + curr.price, 0);
+  const totalContractSum = kpis.totalRevenuePkr;
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
@@ -683,7 +718,7 @@ export default function SalesHistoryPage() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
               disabled={safePage <= 1}
               className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
@@ -694,7 +729,7 @@ export default function SalesHistoryPage() {
             </span>
             <button
               type="button"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
               disabled={safePage >= totalPages}
               className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
@@ -744,5 +779,13 @@ export default function SalesHistoryPage() {
       {/* Action Toast Feedback */}
       <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
     </div>
+  );
+}
+
+export default function SalesHistoryPage() {
+  return (
+    <Suspense fallback={<AdminSalesHistorySkeleton />}>
+      <SalesHistoryContent />
+    </Suspense>
   );
 }
