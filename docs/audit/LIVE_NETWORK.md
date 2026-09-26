@@ -55,3 +55,38 @@ Origin: http://localhost:3000
   }
 ]
 ```
+
+## Inventory
+- Skeleton on screen: 332 ms
+- Real block name visible: 5997 ms
+- Request the name waited on: GET /inventory/stats, 5639.6 ms
+- Click Inventory again in the same tab within 60 seconds, no reload: the block name stayed
+
+```json
+[
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1883.4,
+    "ttfb": -1883.4,
+    "total": 3079.2
+  },
+  {
+    "name": "http://localhost:3001/admin/audit",
+    "start": 1893.4,
+    "ttfb": -1893.4,
+    "total": 7508.8
+  },
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1906.9,
+    "ttfb": -1906.9,
+    "total": 6611.2
+  },
+  {
+    "name": "http://localhost:3001/inventory/stats",
+    "start": 3347.3,
+    "ttfb": -3347.3,
+    "total": 5639.6
+  }
+]
+```
