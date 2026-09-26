@@ -90,3 +90,44 @@ Origin: http://localhost:3000
   }
 ]
 ```
+
+## Master plan
+- Skeleton on screen: 321 ms
+- Real block name visible: 4492 ms
+- Request the name waited on: GET /blocks, 4169.8 ms
+- Click Master plan again in the same tab within 60 seconds, no reload: the name stayed
+
+```json
+[
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1697.2,
+    "ttfb": -1697.2,
+    "total": 1904.5
+  },
+  {
+    "name": "http://localhost:3001/admin/audit",
+    "start": 1700.6,
+    "ttfb": -1700.6,
+    "total": 2276.5
+  },
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1712.4,
+    "ttfb": -1712.4,
+    "total": 3783.3
+  },
+  {
+    "name": "http://localhost:3001/admin/audit",
+    "start": 1715.1,
+    "ttfb": -1715.1,
+    "total": 4791.3
+  },
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 3316.1,
+    "ttfb": -3316.1,
+    "total": 4169.8
+  }
+]
+```
