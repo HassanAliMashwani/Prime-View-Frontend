@@ -156,7 +156,7 @@ function PaymentsContent() {
 
   // Visibilitychange listener for instant sync with 60s throttle
   useEffect(() => {
-    let lastRefreshTime = 0;
+    let lastRefreshTime = Date.now();
     
     const handleSyncRefresh = () => {
       if (document.visibilityState === 'visible') {
@@ -164,9 +164,6 @@ function PaymentsContent() {
         if (now - lastRefreshTime > 60000) {
           lastRefreshTime = now;
           fetchPayments();
-          fetchPlots();
-          fetchDashboardData();
-          loadReceipts();
         }
       }
     };
@@ -174,7 +171,7 @@ function PaymentsContent() {
     return () => {
       document.removeEventListener('visibilitychange', handleSyncRefresh);
     };
-  }, [fetchPayments, fetchPlots, fetchDashboardData, loadReceipts]);
+  }, [fetchPayments]);
 
   useEffect(() => {
     if (schedules.length > 0) {
