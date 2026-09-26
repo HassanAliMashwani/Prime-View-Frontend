@@ -131,3 +131,34 @@ Origin: http://localhost:3000
   }
 ]
 ```
+
+## One block map
+- Skeleton on screen: 430 ms
+- Real plot number visible: 5448 ms
+- Request the number waited on: GET /plots?blockId=abbott, 2487.6 ms
+- Click the block map again in the same tab within 60 seconds, no reload: a skeleton replaced it
+
+```json
+[
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1733.3,
+    "total": 4747.3
+  },
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 6452.3,
+    "total": 2489.9
+  },
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 6459.1,
+    "total": 4574.5
+  },
+  {
+    "name": "http://localhost:3001/plots?blockId=abbott",
+    "start": 8943.7,
+    "total": 2487.6
+  }
+]
+```
