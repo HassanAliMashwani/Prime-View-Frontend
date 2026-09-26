@@ -38,13 +38,22 @@ import {
   deleteContentBlock,
 } from '@/lib/dal/content';
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 export default function ContentCMSPage() {
   const router = useRouter();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<ContentBlock[]>(`/content:plans:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!init);
   const [activeSection, setActiveSection] = useState<ContentSection>('plans');
-  const [blocks, setBlocks] = useState<ContentBlock[]>([]);
+  const [blocks, setBlocks] = useState<ContentBlock[]>(init || []);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Edit / Create Drawer state
@@ -87,6 +96,7 @@ export default function ContentCMSPage() {
     const res = await getContentBlocks(currentSession, section);
     if (res.ok) {
       setBlocks(res.blocks);
+      setCache(`/content:${section}:${currentSession.adminId}`, res.blocks);
     }
     setLoading(false);
   }, []);

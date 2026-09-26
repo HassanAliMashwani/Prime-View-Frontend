@@ -24,13 +24,22 @@ import { getAuditLogs } from '@/lib/dal/audit';
 import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminDashboardSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 export default function AdminDashboardPage() {
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<any>(`/dashboard:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [blocks, setBlocks] = useState<BlockSummary[]>([]);
-  const [reservations, setReservations] = useState<ReservationWithConflict[]>([]);
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [blocks, setBlocks] = useState<BlockSummary[]>(init?.blocks || []);
+  const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
+  const [auditLog, setAuditLog] = useState<AuditEntry[]>(init?.logs || []);
+  const [loading, setLoading] = useState<boolean>(!init);
 
   const loadData = useCallback(async (activeSession: AdminSession) => {
     try {
@@ -43,6 +52,12 @@ export default function AdminDashboardPage() {
       if (blockRes.ok) setBlocks(blockRes.blocks);
       if (resRes.ok) setReservations(resRes.reservations);
       if (auditRes.ok && auditRes.logs) setAuditLog(auditRes.logs.slice(0, 8));
+      
+      setCache(`/dashboard:${activeSession.adminId}`, {
+        blocks: blockRes.ok ? blockRes.blocks : [],
+        reservations: resRes.ok ? resRes.reservations : [],
+        logs: auditRes.ok && auditRes.logs ? auditRes.logs.slice(0, 8) : []
+      });
     } catch (err) {
       console.error('Failed loading dashboard data:', err);
     } finally {

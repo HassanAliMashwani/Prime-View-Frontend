@@ -15,12 +15,21 @@ import {
 import { getInventoryStats, InventoryStats } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 export default function InventoryOverviewPage() {
   const router = useRouter();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<InventoryStats[]>(`/inventory:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [stats, setStats] = useState<InventoryStats[]>([]);
+  const [loading, setLoading] = useState<boolean>(!init);
+  const [stats, setStats] = useState<InventoryStats[]>(init || []);
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -41,6 +50,9 @@ export default function InventoryOverviewPage() {
     try {
       const data = await getInventoryStats(fromDate || undefined, toDate || undefined, undefined, session?.token);
       setStats(data);
+      if (session && !fromDate && !toDate) {
+        setCache(`/inventory:${session.adminId}`, data);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to load inventory stats');
     } finally {

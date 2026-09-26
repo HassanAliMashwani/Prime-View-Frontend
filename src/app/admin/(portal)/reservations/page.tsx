@@ -25,6 +25,7 @@ import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 
 import { getBlockDisplayName } from '@/lib/map/regionData';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
   abbott: { badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', border: 'border-emerald-200', accent: 'text-emerald-800' },
@@ -38,12 +39,20 @@ const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: str
 };
 
 export default function ReservationsPage() {
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<ReservationWithConflict[]>(`/reservations:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [reservations, setReservations] = useState<ReservationWithConflict[]>([]);
+  const [reservations, setReservations] = useState<ReservationWithConflict[]>(init || []);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [search, setSearch] = useState<string>('');
   const [blockFilter, setBlockFilter] = useState<string>('all');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(!init);
 
   // Edit Note Modal State
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
@@ -62,6 +71,9 @@ export default function ReservationsPage() {
       if (res.ok) {
         console.log('RESERVATIONS LOADED:', res.reservations.length, res.reservations);
         setReservations(res.reservations);
+        if (search === '' && blockFilter === 'all' && activeTab === 'active') {
+          setCache(`/reservations:${s.adminId}`, res.reservations);
+        }
       }
     } catch (err) {
       console.error('Failed loading reservations:', err);

@@ -51,6 +51,73 @@ import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
 import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
 
+function PlotSelector({
+  value,
+  onChange,
+  onErrorClear,
+  session
+}: {
+  value: string;
+  onChange: (plotId: string) => void;
+  onErrorClear?: () => void;
+  session: AdminSession | null;
+}) {
+  const [search, setSearch] = useState('');
+  const [results, setResults] = useState<Plot[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  useEffect(() => {
+    if (debouncedSearch.length >= 2 && session) {
+      setLoading(true);
+      getAdminAllPlots(session, debouncedSearch).then(res => {
+        if (res.ok && res.plots) {
+          setResults(res.plots);
+        }
+        setLoading(false);
+      });
+    } else {
+      setResults([]);
+    }
+  }, [debouncedSearch, session]);
+
+  // If a value is selected but not in results (e.g. from state), we should add it? 
+  // It shouldn't happen often if we only pick from results.
+  
+  return (
+    <div className="flex flex-col gap-2">
+      <input 
+        type="text" 
+        placeholder="Search by plot number or size (min 2 chars)..."
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        className="w-full px-3.5 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-slate-50"
+      />
+      <select
+        value={value}
+        onChange={(e) => {
+           onChange(e.target.value);
+           if (onErrorClear) onErrorClear();
+        }}
+        required
+        className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
+      >
+        <option value="">{loading ? 'Searching...' : (results.length > 0 ? '-- Select Available Plot --' : '-- Type to search plots --')}</option>
+        {results.map((p) => (
+          <option key={p.id} value={p.id}>
+            {p.blockId.toUpperCase()} • Plot {p.plotNumber} ({p.size}) — PKR {p.price.toLocaleString()}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function CustomersPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -212,18 +279,8 @@ function CustomersPageContent() {
     }
     setSession(cur);
 
-    // Filter available sellable plots within admin scope via API
-    getAdminAllPlots(cur).then((res) => {
-      if (res.ok && res.plots) {
-        const sellable = res.plots.filter(p => {
-          if (p.category === 'amenity' || p.status === 'booked') return false;
-          if (cur.role === 'super_admin') return true;
-          return cur.assignedBlocks.includes(p.blockId);
-        });
-        setAvailablePlots(sellable);
-        setRegisteredPlotsCache(sellable);
-      }
-    });
+    // Fetching all plots on mount removed for lazy loading.
+    // Instead we rely on user search input.
 
     // Handle plot locking from Master Plan redirect
     if (queryPlotId) {
@@ -999,22 +1056,12 @@ function CustomersPageContent() {
                   </span>
                 </div>
               ) : (
-                <select
+                <PlotSelector
                   value={subAdminPlotId}
-                  onChange={(e) => {
-                    setSubAdminPlotId(e.target.value);
-                    setSubAdminPlotError(null);
-                  }}
-                  required
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
-                >
-                  <option value="">-- Select Available Plot in Assigned Sectors --</option>
-                  {availablePlots.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.blockId.toUpperCase()} • Plot {p.plotNumber} ({p.size}) — PKR {p.price.toLocaleString()}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSubAdminPlotId}
+                  onErrorClear={() => setSubAdminPlotError(null)}
+                  session={session}
+                />
               )}
               {subAdminPlotError && (
                 <p className="text-xs text-rose-600 mt-1 font-semibold">{subAdminPlotError}</p>
@@ -1435,32 +1482,11 @@ function CustomersPageContent() {
                     </p>
                   </div>
                 ) : (
-                  <>
-                    <select
-                      value={pathAForm.plotId}
-                      onChange={(e) => handleVerifyPlotA(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                    >
-                      <option value="">-- Choose from available registered plots --</option>
-                      {availablePlots.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.plotNumber} ({p.blockId.toUpperCase()}) - {p.size} ({p.category}) - PKR {p.price.toLocaleString()}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="mt-2 text-[11px] text-slate-500">
-                      Or enter Plot ID directly:
-                      <div className="flex gap-2 mt-1">
-                        <input
-                          type="text"
-                          placeholder="e.g. abbott-001"
-                          value={pathAForm.plotId}
-                          onChange={(e) => handleVerifyPlotA(e.target.value)}
-                          className="px-3 py-1.5 text-xs font-mono border border-slate-300 rounded-lg flex-1"
-                        />
-                      </div>
-                    </div>
-                  </>
+                  <PlotSelector
+                    value={pathAForm.plotId}
+                    onChange={handleVerifyPlotA}
+                    session={session}
+                  />
                 )}
               </div>
 
@@ -2236,18 +2262,11 @@ function CustomersPageContent() {
                       </p>
                     </div>
                   ) : (
-                    <select
+                    <PlotSelector
                       value={pathBPlotId}
-                      onChange={(e) => handleVerifyPlotB(e.target.value)}
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                    >
-                      <option value="">-- Choose from available registered plots --</option>
-                      {availablePlots.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.plotNumber} ({p.blockId.toUpperCase()}) - {p.size} ({p.category}) - PKR {p.price.toLocaleString()}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={handleVerifyPlotB}
+                      session={session}
+                    />
                   )}
                 </div>
 

@@ -23,6 +23,7 @@ import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
 import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 const ACTION_COLORS: Record<string, string> = {
   PLOT_BOOKED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
@@ -39,10 +40,18 @@ const ACTION_COLORS: Record<string, string> = {
 
 export default function AuditLogPage() {
   const router = useRouter();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<{logs: AuditEntry[], total: number}>(`/audit-logs:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [logs, setLogs] = useState<AuditEntry[]>([]);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [logs, setLogs] = useState<AuditEntry[]>(init?.logs || []);
+  const [totalCount, setTotalCount] = useState(init?.total || 0);
+  const [loading, setLoading] = useState(!init);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -76,6 +85,9 @@ export default function AuditLogPage() {
     if (res.ok) {
       setLogs(res.logs);
       setTotalCount(res.totalCount);
+      if (!search && actorFilter === 'all' && entityFilter === 'all' && !startDate && !endDate) {
+        setCache(`/audit-logs:${currentSession.adminId}`, { logs: res.logs || [], total: res.totalCount || 0 });
+      }
     }
     setLoading(false);
   }, [search, actorFilter, entityFilter, startDate, endDate]);

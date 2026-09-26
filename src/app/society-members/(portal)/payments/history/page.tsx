@@ -16,12 +16,12 @@ import {
 import { MemberHistorySkeleton } from '@/components/ui/skeleton';
 
 export default function PaymentHistoryPage() {
-  const { transactions, plots, fetchPayments, profile, isLoading } = useMemberStore();
+  const { transactions, plots, fetchPaymentHistory, profile, isLoading } = useMemberStore();
   const [selectedFilter, setSelectedFilter] = useState('all');
 
   useEffect(() => {
-    fetchPayments(selectedFilter);
-  }, [fetchPayments, selectedFilter]);
+    fetchPaymentHistory(selectedFilter);
+  }, [fetchPaymentHistory, selectedFilter]);
 
   const formatPKR = (val: number) =>
     new Intl.NumberFormat('en-PK', {

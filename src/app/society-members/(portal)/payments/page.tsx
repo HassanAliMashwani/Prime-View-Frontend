@@ -154,20 +154,24 @@ function PaymentsContent() {
     loadReceipts();
   }, [loadReceipts]);
 
-  // Window focus & visibilitychange listener for instant sync
+  // Visibilitychange listener for instant sync with 60s throttle
   useEffect(() => {
+    let lastRefreshTime = 0;
+    
     const handleSyncRefresh = () => {
       if (document.visibilityState === 'visible') {
-        fetchPayments();
-        fetchPlots();
-        fetchDashboardData();
-        loadReceipts();
+        const now = Date.now();
+        if (now - lastRefreshTime > 60000) {
+          lastRefreshTime = now;
+          fetchPayments();
+          fetchPlots();
+          fetchDashboardData();
+          loadReceipts();
+        }
       }
     };
-    window.addEventListener('focus', handleSyncRefresh);
     document.addEventListener('visibilitychange', handleSyncRefresh);
     return () => {
-      window.removeEventListener('focus', handleSyncRefresh);
       document.removeEventListener('visibilitychange', handleSyncRefresh);
     };
   }, [fetchPayments, fetchPlots, fetchDashboardData, loadReceipts]);

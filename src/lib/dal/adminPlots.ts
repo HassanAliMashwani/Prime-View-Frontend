@@ -60,12 +60,13 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
  * Level 2 Block detail with plot grid via real API (GET /plots?blockId=...).
  * Out-of-scope block requests are strictly rejected (Exception 5.4).
  */
-export async function getAdminAllPlots(session: AdminSession): Promise<{
+export async function getAdminAllPlots(session: AdminSession, search?: string): Promise<{
   ok: boolean;
   plots?: Plot[];
   error?: string;
 }> {
-  const apiRes = await apiGet<any[]>('/plots', session?.token);
+  const url = search ? `/plots?search=${encodeURIComponent(search)}` : '/plots';
+  const apiRes = await apiGet<any[]>(url, session?.token);
   if (!apiRes.ok || !Array.isArray(apiRes.data)) {
     return { ok: false, error: apiRes.error || 'Failed to fetch all plots' };
   }

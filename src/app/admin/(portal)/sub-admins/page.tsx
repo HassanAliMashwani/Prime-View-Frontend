@@ -33,6 +33,7 @@ import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 const ALL_BLOCKS: { id: BlockId; name: string }[] = [
   { id: 'abbott', name: 'Abbott Block' },
@@ -67,9 +68,17 @@ const getDefaultCreatePermissions = (): Record<string, boolean> => {
 
 export default function TeamsPage() {
   const router = useRouter();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<AdminUser[]>(`/sub-admins:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [subAdmins, setSubAdmins] = useState<AdminUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [subAdmins, setSubAdmins] = useState<AdminUser[]>(init || []);
+  const [loading, setLoading] = useState(!init);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,6 +120,7 @@ export default function TeamsPage() {
       const res = await getSubAdmins(currentSession);
       if (res.ok) {
         setSubAdmins(res.subAdmins);
+        setCache(`/sub-admins:${currentSession.adminId}`, res.subAdmins);
       } else {
         setFetchError(res.message || 'Failed to retrieve team members.');
       }

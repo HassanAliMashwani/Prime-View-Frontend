@@ -22,6 +22,7 @@ interface MemberState {
   closeTermsModal: () => void;
   fetchPlots: () => Promise<void>;
   fetchPayments: (filterPlotId?: string) => Promise<void>;
+  fetchPaymentHistory: (filterPlotId?: string) => Promise<void>;
   fetchDocuments: () => Promise<void>;
   reset: () => void;
   initSync: () => () => void;
@@ -79,7 +80,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   },
 
   fetchPayments: async (filterPlotId?: string) => {
-    set({ isLoading: true });
+    if (get().schedules.length === 0) {
+      set({ isLoading: true });
+    }
     try {
       const [schedRes, histRes, plotsRes, profileRes] = await Promise.all([
         getPaymentSchedule(filterPlotId),
@@ -96,6 +99,21 @@ export const useMemberStore = create<MemberState>((set, get) => ({
       });
     } catch (e) {
       set({ isLoading: false, error: 'Failed to load payments' });
+    }
+  },
+
+  fetchPaymentHistory: async (filterPlotId?: string) => {
+    if (get().transactions.length === 0) {
+      set({ isLoading: true });
+    }
+    try {
+      const histRes = await getPaymentHistory(filterPlotId);
+      set({
+        transactions: histRes.data || [],
+        isLoading: false,
+      });
+    } catch (e) {
+      set({ isLoading: false, error: 'Failed to load payment history' });
     }
   },
 

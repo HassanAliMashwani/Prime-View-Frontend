@@ -41,6 +41,7 @@ import {
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking } from '@/lib/dal/customers';
 import { Block, Plot, AdminSession, Reservation, PlotCategory, Customer, Booking } from '@/lib/mock/types';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
@@ -68,10 +69,18 @@ function BlockPlotsContent() {
   const blockId = params.blockId as string;
   const focusPlotId = searchParams?.get('focusPlot');
 
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<{block: Block, plots: Plot[]}>(`/master-plan/${blockId}:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [block, setBlock] = useState<Block | null>(null);
-  const [plots, setPlots] = useState<Plot[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [block, setBlock] = useState<Block | null>(init?.block || null);
+  const [plots, setPlots] = useState<Plot[]>(init?.plots || []);
+  const [loading, setLoading] = useState<boolean>(!init);
   const [outOfScope, setOutOfScope] = useState<boolean>(false);
   const [highlightedPlotId, setHighlightedPlotId] = useState<string | null>(null);
 
@@ -162,6 +171,9 @@ function BlockPlotsContent() {
       } else {
         setBlock(res.block || null);
         setPlots(res.plots || []);
+        if (res.block && res.plots) {
+          setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
+        }
       }
     } catch (err) {
       console.error('Failed loading plots:', err);

@@ -28,6 +28,7 @@ import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminReceipts, verifyReceipt, rejectReceipt } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 import {
   OfficialA4PaymentSlip,
@@ -36,9 +37,17 @@ import {
 
 export default function AdminReceiptsPage() {
   const router = useRouter();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<ReceiptSubmission[]>(`/receipts:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [receipts, setReceipts] = useState<ReceiptSubmission[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init || []);
+  const [loading, setLoading] = useState(!init);
   const [statusFilter, setStatusFilter] = useState<'all' | ReceiptStatus>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -68,6 +77,7 @@ export default function AdminReceiptsPage() {
     const res = await getAdminReceipts(currentSession);
     if (res.ok && res.receipts) {
       setReceipts(res.receipts);
+      setCache(`/receipts:${currentSession.adminId}`, res.receipts);
     }
     setLoading(false);
   }, []);

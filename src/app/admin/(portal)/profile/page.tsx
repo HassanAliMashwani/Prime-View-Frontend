@@ -32,9 +32,9 @@ import {
   getAdminProfile,
   changeAdminPassword,
   AdminSession,
-  AdminProfileDetails,
-} from '@/lib/dal/adminAuth';
+import { AdminProfileDetails } from '@/lib/dal/adminAuth';
 import { AdminProfileSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 const BLOCK_COLORS: Record<string, string> = {
   abbott: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   royal: 'bg-amber-50 text-amber-800 border-amber-200',
@@ -47,9 +47,17 @@ const BLOCK_COLORS: Record<string, string> = {
 };
 
 export default function AdminProfilePage() {
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<AdminProfileDetails>(`/profile:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [details, setDetails] = useState<AdminProfileDetails | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [details, setDetails] = useState<AdminProfileDetails | null>(init || null);
+  const [loading, setLoading] = useState(!init);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -69,6 +77,7 @@ export default function AdminProfilePage() {
         .then((res) => {
           if (res.ok && res.admin) {
             setDetails(res.admin);
+            setCache(`/profile:${s.adminId}`, res.admin);
           }
         })
         .finally(() => setLoading(false));

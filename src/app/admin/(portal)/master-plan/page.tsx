@@ -25,12 +25,21 @@ import InteractiveOverviewMap from '@/components/admin/master-plan/InteractiveOv
 
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 
 export default function MasterPlanPage() {
   const router = useRouter();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    return getCache<BlockSummary[]>(`/master-plan:${s.adminId}`);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [blocks, setBlocks] = useState<BlockSummary[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [blocks, setBlocks] = useState<BlockSummary[]>(init || []);
+  const [loading, setLoading] = useState<boolean>(!init);
   const [viewMode, setViewMode] = useState<'map' | 'cards'>('map');
 
   const loadBlocks = useCallback(async (s: AdminSession) => {
@@ -38,6 +47,7 @@ export default function MasterPlanPage() {
       const res = await getAdminMasterPlanBlocks(s);
       if (res.ok) {
         setBlocks(res.blocks);
+        setCache(`/master-plan:${s.adminId}`, res.blocks);
       }
     } catch (err) {
       console.error('Failed to load blocks:', err);
