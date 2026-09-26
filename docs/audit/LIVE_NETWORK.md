@@ -167,7 +167,7 @@ Origin: http://localhost:3000
 - Form on screen: 762 ms
 - Real results visible for "ab": 2592 ms
 - Request the results waited on: GET /plots?search=ab, 2273 ms
-- Clearing the input triggers 0 requests
+
 
 ```json
 [
@@ -190,6 +190,36 @@ Origin: http://localhost:3000
     "name": "http://localhost:3001/plots?search=ab",
     "start": 6608,
     "total": 2273
+  }
+]
+```
+
+## Customer directory
+- Skeleton on screen: ~0 ms (immediate)
+- Real data visible: 3539 ms
+- Request the data waited on: GET /customers?page=1&pageSize=20&status=all, 3134 ms
+
+```json
+[
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1444,
+    "total": 3499
+  },
+  {
+    "name": "http://localhost:3001/blocks",
+    "start": 1455,
+    "total": 5812
+  },
+  {
+    "name": "http://localhost:3001/admin/audit",
+    "start": 1460,
+    "total": 4737
+  },
+  {
+    "name": "http://localhost:3001/customers?page=1&pageSize=20&status=all",
+    "start": 4312,
+    "total": 3134
   }
 ]
 ```
