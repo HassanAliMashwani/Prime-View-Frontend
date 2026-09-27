@@ -1,7 +1,41 @@
 import puppeteer, { Browser, Page } from 'puppeteer';
-import { mockStore } from '../src/lib/mock/store';
 import { releaseReservation } from '../src/lib/dal/reservations';
-import { AdminSession } from '../src/lib/mock/types';
+import { eliteSeedPlots } from '../src/lib/map/eliteSeedPlots';
+import {
+  AdminSession,
+  Plot,
+  Reservation,
+  Booking,
+  PaymentRecord,
+  Customer,
+  AdminUser,
+  ContentBlock,
+  AuditEntry,
+} from '../src/lib/mock/types';
+
+interface MockStore {
+  plots: Plot[];
+  reservations: Reservation[];
+  bookings: Booking[];
+  payments: PaymentRecord[];
+  customers: Customer[];
+  adminUsers: AdminUser[];
+  contentBlocks: ContentBlock[];
+  auditLog: AuditEntry[];
+  saveToStorage: () => void;
+}
+
+const mockStore: MockStore = {
+  plots: [...eliteSeedPlots],
+  reservations: [],
+  bookings: [],
+  payments: [],
+  customers: [],
+  adminUsers: [],
+  contentBlocks: [],
+  auditLog: [],
+  saveToStorage: () => {},
+};
 
 const BASE_URL = 'http://localhost:3000';
 
@@ -90,11 +124,11 @@ async function run() {
     // SEEDING DISPUTED CONFLICT ON PLOT R-233 IN ELITE BLOCK
     // ----------------------------------------------------------------
     console.log('\n--- PREPARING DATA: Seeding 2 Competing Reservations on Plot 233 in Elite ---');
-    const plot233 = mockStore.plots.find((p) => p.blockId === 'elite' && (p.plotNumber === '233' || p.plotNumber === 'EL-233' || p.plotNumber === 'R-233'));
+    const plot233 = mockStore.plots.find((p: Plot) => p.blockId === 'elite' && (p.plotNumber === '233' || p.plotNumber === 'EL-233' || p.plotNumber === 'R-233'));
     if (!plot233) throw new Error('Plot 233 in Elite Block not found in mockStore!');
 
     // Reset reservations on plot 233
-    mockStore.reservations = mockStore.reservations.filter((r) => r.plotId !== plot233.id);
+    mockStore.reservations = mockStore.reservations.filter((r: Reservation) => r.plotId !== plot233.id);
 
     // Reservation 1: Created by Farhan Zaidi (admin-2)
     const res1 = {
@@ -329,8 +363,8 @@ async function run() {
       throw new Error(`Expected owner release to succeed with status='cancelled', got: ${JSON.stringify(ownerResult)}`);
     }
     // Verify plot is still reserved by Kamran, but conflict is resolved
-    const plotAfterOwnerRelease = mockStore.plots.find((p) => p.id === plot233.id);
-    const activeCountAfter = mockStore.reservations.filter((r) => r.plotId === plot233.id && r.status === 'active').length;
+    const plotAfterOwnerRelease = mockStore.plots.find((p: Plot) => p.id === plot233.id);
+    const activeCountAfter = mockStore.reservations.filter((r: Reservation) => r.plotId === plot233.id && r.status === 'active').length;
     console.log(`  Plot status: "${plotAfterOwnerRelease?.status}", remaining active claims: ${activeCountAfter}`);
     if (activeCountAfter !== 1 || plotAfterOwnerRelease?.status !== 'reserved') {
       throw new Error(`Plot should remain 'reserved' with exactly 1 active claim!`);
@@ -346,15 +380,15 @@ async function run() {
     }
 
     // Verify plot is now available
-    const plotAfterSuperRelease = mockStore.plots.find((p) => p.id === plot233.id);
-    const activeCountFinal = mockStore.reservations.filter((r) => r.plotId === plot233.id && r.status === 'active').length;
+    const plotAfterSuperRelease = mockStore.plots.find((p: Plot) => p.id === plot233.id);
+    const activeCountFinal = mockStore.reservations.filter((r: Reservation) => r.plotId === plot233.id && r.status === 'active').length;
     console.log(`  Plot status: "${plotAfterSuperRelease?.status}", active claims: ${activeCountFinal}`);
     if (activeCountFinal !== 0 || plotAfterSuperRelease?.status !== 'available') {
       throw new Error(`Plot should now be 'available' after all reservations released!`);
     }
 
     // Verify Audit Log entry for Super Admin override
-    const auditEntries = mockStore.auditLog.filter((a) => a.action === 'RESERVATION_RELEASED');
+    const auditEntries = mockStore.auditLog.filter((a: AuditEntry) => a.action === 'RESERVATION_RELEASED');
     const latestAudit = auditEntries[0]; // auditLog uses unshift(), so index 0 is the newest entry
     console.log('  Audit Log Entry for Super Admin Override:', latestAudit?.details);
     if (!latestAudit || !latestAudit.details.includes('overrode and released reservation') || !latestAudit.details.includes('originally reserved by Inspector Kamran Qureshi')) {
