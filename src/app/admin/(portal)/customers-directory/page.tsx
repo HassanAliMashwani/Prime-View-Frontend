@@ -351,6 +351,16 @@ function CustomersDirectoryContent() {
     );
   }
 
+  const needsRegistrationCount = (customers || []).filter(
+    (c) => c.registrationStatus === 'minimal'
+  ).length;
+  const activeCount = (customers || []).filter(
+    (c) => c.accountStatus === 'active'
+  ).length;
+  const withStrikesCount = (customers || []).filter(
+    (c) => (c.strikeCount ?? 0) > 0
+  ).length;
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}

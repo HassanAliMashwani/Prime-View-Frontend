@@ -32,6 +32,7 @@ import {
   getAdminProfile,
   changeAdminPassword,
   AdminSession,
+} from '@/lib/dal/adminAuth';
 import { AdminProfileDetails } from '@/lib/dal/adminAuth';
 import { AdminProfileSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache } from '@/lib/dal/apiCache';
