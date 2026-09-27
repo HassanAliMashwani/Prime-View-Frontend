@@ -10,6 +10,7 @@ import {
 import { getActiveSession } from './auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
+import { fetchWith60sCache } from './apiCache';
 
 export interface CustomerDisambiguation {
   id: string;
@@ -326,12 +327,14 @@ export async function getCustomerProfile(): Promise<{
     return { ok: false, error: 'UNAUTHORIZED' };
   }
 
-  const res = await apiGet<Customer>(`/customers/${session.customerId}`, session.token);
-  if (!res.ok || !res.data) {
-    return { ok: false, error: res.error || 'NOT_FOUND' };
-  }
-
-  return { ok: true, data: res.data };
+  const cacheKey = `/customers/${session.customerId}`;
+  return fetchWith60sCache(cacheKey, async () => {
+    const res = await apiGet<Customer>(`/customers/${session.customerId}`, session.token);
+    if (!res.ok || !res.data) {
+      return { ok: false, error: res.error || 'NOT_FOUND' };
+    }
+    return { ok: true, data: res.data };
+  });
 }
 
 /**

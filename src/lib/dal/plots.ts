@@ -2,6 +2,7 @@ import { Booking, PaymentType, Plot } from '../mock/types';
 import { requireMemberSession } from './auth';
 import { apiGet } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
+import { fetchWith60sCache } from './apiCache';
 
 export interface EnrichedPlot extends Plot {
   booking: Booking;
@@ -20,16 +21,20 @@ export interface EnrichedPlot extends Plot {
   };
 }
 
+export async function getMemberRawPlots(token: string, customerId: string): Promise<any[]> {
+  const cacheKey = `/me/plots:${customerId}`;
+  return fetchWith60sCache(cacheKey, async () => {
+    const apiRes = await apiGet<any[]>('/me/plots', token);
+    return Array.isArray(apiRes.data) ? apiRes.data : [];
+  });
+}
+
 export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[]; error?: string }> {
   try {
     const session = requireMemberSession();
-    const apiRes = await apiGet<any[]>('/me/plots', session.token);
+    const rawPlots = await getMemberRawPlots(session.token, session.customerId);
 
-    if (!apiRes.ok || !Array.isArray(apiRes.data)) {
-      return { ok: false, data: [], error: apiRes.error || 'FETCH_FAILED' };
-    }
-
-    const enrichedPlots: EnrichedPlot[] = apiRes.data.map((plot: any) => {
+    const enrichedPlots: EnrichedPlot[] = rawPlots.map((plot: any) => {
       const apiBooking = plot.bookings && plot.bookings.length > 0 ? plot.bookings[0] : null;
       const booking = apiBooking || {
         id: `book-${plot.id}`,

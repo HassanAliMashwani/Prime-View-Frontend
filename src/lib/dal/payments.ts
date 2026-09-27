@@ -2,6 +2,8 @@ import { PaymentRecord, PaymentStatus, PaymentType } from '../mock/types';
 import { requireMemberSession } from './auth';
 import { apiGet } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
+import { fetchWith60sCache } from './apiCache';
+import { getMemberRawPlots } from './plots';
 
 export interface PlotPaymentSchedule {
   plotId: string;
@@ -32,23 +34,27 @@ export interface PaymentTransaction {
   transactionRef?: string;
 }
 
+export async function getMemberRawPayments(token: string, customerId: string): Promise<any[]> {
+  const cacheKey = `/me/payments:${customerId}`;
+  return fetchWith60sCache(cacheKey, async () => {
+    const paymentsRes = await apiGet<any[]>('/me/payments', token);
+    return Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+  });
+}
+
 export async function getPaymentSchedule(
   plotId?: string
 ): Promise<{ ok: boolean; data: PlotPaymentSchedule[]; error?: string }> {
   try {
     const session = requireMemberSession();
 
-    const [plotsRes, paymentsRes] = await Promise.all([
-      apiGet<any[]>('/me/plots', session.token),
-      apiGet<any[]>('/me/payments', session.token),
+    const [plotsData, paymentsData] = await Promise.all([
+      getMemberRawPlots(session.token, session.customerId),
+      getMemberRawPayments(session.token, session.customerId),
     ]);
 
-    if (!plotsRes.ok || !Array.isArray(plotsRes.data)) {
-      return { ok: false, data: [], error: plotsRes.error || 'FETCH_PLOTS_FAILED' };
-    }
-
-    const allPayments: any[] = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
-    let plots = plotsRes.data;
+    const allPayments: any[] = Array.isArray(paymentsData) ? paymentsData : [];
+    let plots = Array.isArray(plotsData) ? plotsData : [];
 
     if (plotId && plotId !== 'all') {
       plots = plots.filter((p) => p.id === plotId || p.plotNumber === plotId);
@@ -132,19 +138,15 @@ export async function getPaymentHistory(
   try {
     const session = requireMemberSession();
 
-    const [plotsRes, paymentsRes] = await Promise.all([
-      apiGet<any[]>('/me/plots', session.token),
-      apiGet<any[]>('/me/payments', session.token),
+    const [plotsData, paymentsData] = await Promise.all([
+      getMemberRawPlots(session.token, session.customerId),
+      getMemberRawPayments(session.token, session.customerId),
     ]);
 
-    if (!paymentsRes.ok || !Array.isArray(paymentsRes.data)) {
-      return { ok: false, data: [], error: paymentsRes.error || 'FETCH_PAYMENTS_FAILED' };
-    }
-
-    const plots = Array.isArray(plotsRes.data) ? plotsRes.data : [];
+    const plots = Array.isArray(plotsData) ? plotsData : [];
     const plotMap = new Map<string, any>(plots.map((p) => [p.id, p]));
 
-    let payments = paymentsRes.data;
+    let payments = Array.isArray(paymentsData) ? paymentsData : [];
 
     if (filterPlotId && filterPlotId !== 'all') {
       payments = payments.filter((p) => {

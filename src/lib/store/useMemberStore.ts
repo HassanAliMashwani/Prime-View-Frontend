@@ -6,6 +6,8 @@ import { getPaymentSchedule, getPaymentHistory, PlotPaymentSchedule, PaymentTran
 import { getMyDocuments, PlotDocuments } from '../dal/documents';
 import { getActiveSession } from '../dal/auth';
 
+import { clearCachePrefix } from '../dal/apiCache';
+
 interface MemberState {
   profile: Customer | null;
   plots: EnrichedPlot[];
@@ -41,7 +43,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   closeTermsModal: () => set({ termsModalOpen: false }),
 
   fetchDashboardData: async () => {
-    set({ isLoading: true, error: null });
+    const hasData = get().plots.length > 0 && get().schedules.length > 0 && get().profile !== null;
+    if (!hasData) {
+      set({ isLoading: true, error: null });
+    }
     try {
       const [profileRes, plotsRes, schedulesRes] = await Promise.all([
         getCustomerProfile(),
@@ -73,9 +78,14 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   },
 
   fetchPlots: async () => {
+    if (get().plots.length === 0) {
+      set({ isLoading: true });
+    }
     const res = await getMyPlots();
     if (res.ok) {
-      set({ plots: res.data });
+      set({ plots: res.data, isLoading: false });
+    } else {
+      set({ isLoading: false });
     }
   },
 
@@ -84,17 +94,13 @@ export const useMemberStore = create<MemberState>((set, get) => ({
       set({ isLoading: true });
     }
     try {
-      const [schedRes, histRes, plotsRes, profileRes] = await Promise.all([
+      const [schedRes, histRes] = await Promise.all([
         getPaymentSchedule(filterPlotId),
         getPaymentHistory(filterPlotId),
-        getMyPlots(),
-        getCustomerProfile(),
       ]);
       set({
         schedules: schedRes.data || [],
         transactions: histRes.data || [],
-        plots: plotsRes.ok && plotsRes.data ? plotsRes.data : get().plots,
-        profile: profileRes.ok && profileRes.data ? profileRes.data : get().profile,
         isLoading: false,
       });
     } catch (e) {
@@ -118,7 +124,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   },
 
   fetchDocuments: async () => {
-    set({ isLoading: true });
+    if (get().documents.length === 0) {
+      set({ isLoading: true });
+    }
     try {
       const res = await getMyDocuments();
       set({ documents: res.data || [], isLoading: false });
@@ -128,6 +136,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   },
 
   reset: () => {
+    clearCachePrefix('/me/');
+    clearCachePrefix('/customers/');
     set({
       profile: null,
       plots: [],

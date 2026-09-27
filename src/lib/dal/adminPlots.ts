@@ -2,12 +2,14 @@ import { AdminSession, Block, Plot, Booking, Customer, Reservation } from '../mo
 import { canAccessBlock } from './adminAuth';
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from '../api';
 import { setRegisteredPlotsCache } from './customers';
+import { getCache, setCache } from './apiCache';
 
 export interface BlockSummary extends Block {
   totalCount: number;
   availableCount: number;
   reservedCount: number;
   bookedCount: number;
+  allottedCount?: number;
   amenityCount: number;
   disputedCount?: number;
 }
@@ -18,42 +20,66 @@ export interface PlotFilterOptions {
   category?: 'all' | 'residential' | 'commercial' | 'farm_house' | 'amenity';
 }
 
+const inFlightBlocks = new Map<string, Promise<{ ok: boolean; blocks: BlockSummary[]; error?: string }>>();
+
 /**
  * Level 1 Master Plan blocks view via real API (GET /blocks).
  * Super Admins see all blocks.
  * Sub Admins strictly see their assigned blocks (Exception 5.4).
+ * Cached for 60 seconds with in-flight request deduplication.
  */
 export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
   ok: boolean;
   blocks: BlockSummary[];
   error?: string;
 }> {
-  const apiRes = await apiGet<any[]>('/blocks', session?.token);
-  if (!apiRes.ok || !Array.isArray(apiRes.data)) {
-    return { ok: false, blocks: [], error: apiRes.error || 'Failed to fetch blocks' };
+  const cacheKey = `/blocks:${session?.adminId || 'anon'}`;
+  const cached = getCache<BlockSummary[]>(cacheKey);
+  if (cached) {
+    return { ok: true, blocks: cached };
   }
 
-  const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id));
-  const summaries: BlockSummary[] = accessibleBlocks.map((block: any) => {
-    return {
-      id: block.id,
-      name: block.name,
-      description: block.description || '',
-      totalPlots: block.totalPlots || 0,
-      amenities:
-        block.amenities && block.amenities.length > 0
-          ? block.amenities
-          : ['Central Park', 'Community Mosque'],
-      totalCount: typeof block.totalCount === 'number' ? block.totalCount : 0,
-      availableCount: typeof block.availableCount === 'number' ? block.availableCount : 0,
-      reservedCount: typeof block.reservedCount === 'number' ? block.reservedCount : 0,
-      bookedCount: typeof block.bookedCount === 'number' ? block.bookedCount : 0,
-      amenityCount: typeof block.amenityCount === 'number' ? block.amenityCount : 0,
-      disputedCount: typeof block.disputedCount === 'number' ? block.disputedCount : 0,
-    };
-  });
+  if (inFlightBlocks.has(cacheKey)) {
+    return inFlightBlocks.get(cacheKey)!;
+  }
 
-  return { ok: true, blocks: summaries };
+  const promise = (async () => {
+    try {
+      const apiRes = await apiGet<any[]>('/blocks', session?.token);
+      if (!apiRes.ok || !Array.isArray(apiRes.data)) {
+        return { ok: false, blocks: [], error: apiRes.error || 'Failed to fetch blocks' };
+      }
+
+      const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id));
+      const summaries: BlockSummary[] = accessibleBlocks.map((block: any) => {
+        return {
+          id: block.id,
+          name: block.name,
+          description: block.description || '',
+          totalPlots: block.totalPlots || 0,
+          amenities:
+            block.amenities && block.amenities.length > 0
+              ? block.amenities
+              : ['Central Park', 'Community Mosque'],
+          totalCount: typeof block.totalCount === 'number' ? block.totalCount : 0,
+          availableCount: typeof block.availableCount === 'number' ? block.availableCount : 0,
+          reservedCount: typeof block.reservedCount === 'number' ? block.reservedCount : 0,
+          bookedCount: typeof block.bookedCount === 'number' ? block.bookedCount : 0,
+          allottedCount: typeof block.allottedCount === 'number' ? block.allottedCount : 0,
+          amenityCount: typeof block.amenityCount === 'number' ? block.amenityCount : 0,
+          disputedCount: typeof block.disputedCount === 'number' ? block.disputedCount : 0,
+        };
+      });
+
+      setCache(cacheKey, summaries);
+      return { ok: true, blocks: summaries };
+    } finally {
+      inFlightBlocks.delete(cacheKey);
+    }
+  })();
+
+  inFlightBlocks.set(cacheKey, promise);
+  return promise;
 }
 
 /**
@@ -94,11 +120,11 @@ export async function getAdminBlockPlots(
     return { ok: false, error: 'OUT_OF_SCOPE' };
   }
 
-  // Fetch block info from /blocks
-  const blocksRes = await apiGet<any[]>('/blocks', session?.token);
+  // Fetch block info from getAdminMasterPlanBlocks (reusing 60s cache and in-flight promise)
+  const blocksRes = await getAdminMasterPlanBlocks(session);
   let block: Block | undefined = undefined;
-  if (blocksRes.ok && Array.isArray(blocksRes.data)) {
-    const rawBlock = blocksRes.data.find((b: any) => b.id === blockId);
+  if (blocksRes.ok && Array.isArray(blocksRes.blocks)) {
+    const rawBlock = blocksRes.blocks.find((b: any) => b.id === blockId);
     if (rawBlock) {
       block = {
         id: rawBlock.id,

@@ -19,8 +19,7 @@ import {
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
 import { getReservations, ReservationWithConflict } from '@/lib/dal/reservations';
-import { AdminSession, AuditEntry } from '@/lib/mock/types';
-import { getAuditLogs } from '@/lib/dal/audit';
+import { AdminSession } from '@/lib/mock/types';
 import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminDashboardSkeleton } from '@/components/ui/skeleton';
@@ -38,25 +37,21 @@ export default function AdminDashboardPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
   const [blocks, setBlocks] = useState<BlockSummary[]>(init?.blocks || []);
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
-  const [auditLog, setAuditLog] = useState<AuditEntry[]>(init?.logs || []);
   const [loading, setLoading] = useState<boolean>(!init);
 
   const loadData = useCallback(async (activeSession: AdminSession) => {
     try {
-      const [blockRes, resRes, auditRes] = await Promise.all([
+      const [blockRes, resRes] = await Promise.all([
         getAdminMasterPlanBlocks(activeSession),
         getReservations(activeSession),
-        getAuditLogs(activeSession)
       ]);
 
       if (blockRes.ok) setBlocks(blockRes.blocks);
       if (resRes.ok) setReservations(resRes.reservations);
-      if (auditRes.ok && auditRes.logs) setAuditLog(auditRes.logs.slice(0, 8));
       
       setCache(`/dashboard:${activeSession.adminId}`, {
         blocks: blockRes.ok ? blockRes.blocks : [],
         reservations: resRes.ok ? resRes.reservations : [],
-        logs: auditRes.ok && auditRes.logs ? auditRes.logs.slice(0, 8) : []
       });
     } catch (err) {
       console.error('Failed loading dashboard data:', err);
@@ -349,53 +344,31 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Live Society Audit Feed */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-emerald-600" />
-              <span>Administrative Audit Trail</span>
-            </h3>
-            <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-              Live Feed
-            </span>
+        {/* Administrative Audit Trail Link Card */}
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-emerald-600" />
+                <span>Administrative Audit Trail</span>
+              </h3>
+              <span className="text-[11px] font-mono font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                Ledger
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Complete society modification history, administrative actions, and authorization events are audited in the centralized audit log.
+            </p>
           </div>
-
-          <div className="space-y-2.5">
-            {auditLog.length === 0 ? (
-              <div className="text-xs text-slate-500 py-6 text-center">No recent actions logged.</div>
-            ) : (
-              auditLog.map((log) => {
-                let badgeColor = 'bg-slate-100 text-slate-700';
-                if (log.action.includes('LOCK')) badgeColor = 'bg-rose-100 text-rose-800';
-                else if (log.action.includes('BOOK')) badgeColor = 'bg-purple-100 text-purple-800';
-                else if (log.action.includes('RESERV')) badgeColor = 'bg-amber-100 text-amber-800';
-                else if (log.action.includes('LOGIN')) badgeColor = 'bg-blue-100 text-blue-800';
-
-                return (
-                  <div
-                    key={log.id}
-                    className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-xs flex items-start gap-2.5"
-                  >
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-600 mt-1 shrink-0" />
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className={`font-bold text-[10px] px-1.5 py-0.5 rounded-md ${badgeColor}`}>
-                          {String(log.action).replace(/_/g, ' ')}
-                        </span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-700 mt-1 font-medium">{log.details}</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">
-                        Actor: <strong className="text-slate-800">{log.actorName}</strong> ({String(log.actorRole).replace(/_/g, ' ')})
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div className="pt-4 mt-4 border-t border-slate-100 flex items-center justify-between">
+            <span className="text-xs font-medium text-slate-600">Access Activity Logs</span>
+            <Link
+              href="/admin/audit-log"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              <span>Open Audit Log</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
           </div>
         </div>
       </div>

@@ -30,6 +30,37 @@ export function clearCachePrefix(prefix: string) {
   }
 }
 
+const inFlightRequests = new Map<string, Promise<any>>();
+
+export async function fetchWith60sCache<T>(
+  key: string,
+  fetcher: () => Promise<T>
+): Promise<T> {
+  const cached = getCache<T>(key);
+  if (cached !== null) {
+    return cached;
+  }
+
+  if (inFlightRequests.has(key)) {
+    return inFlightRequests.get(key) as Promise<T>;
+  }
+
+  const promise = (async () => {
+    try {
+      const data = await fetcher();
+      if (data !== undefined && data !== null) {
+        setCache(key, data);
+      }
+      return data;
+    } finally {
+      inFlightRequests.delete(key);
+    }
+  })();
+
+  inFlightRequests.set(key, promise);
+  return promise;
+}
+
 export function generateCacheKey(method: string, path: string, subject: string) {
   return `${method}:${path}:${subject}`;
 }
