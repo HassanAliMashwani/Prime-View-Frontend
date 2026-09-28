@@ -17,6 +17,7 @@ export const WhatsAppButton: React.FC = () => {
 
   return (
     <a
+      id="global-whatsapp-fab"
       href={`https://wa.me/${siteConfig.whatsapp}`}
       target="_blank"
       rel="noopener noreferrer"

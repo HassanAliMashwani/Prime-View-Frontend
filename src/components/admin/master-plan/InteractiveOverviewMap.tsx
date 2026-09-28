@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Lock, ArrowRight, CheckCircle2, BookmarkCheck, Building2, ShieldAlert, AlertTriangle } from 'lucide-react';
@@ -18,6 +18,7 @@ interface InteractiveOverviewMapProps {
 
 export default function InteractiveOverviewMap({ session, blocks }: InteractiveOverviewMapProps) {
   const router = useRouter();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -26,7 +27,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = containerRef.current?.getBoundingClientRect() || e.currentTarget.getBoundingClientRect();
     setMousePos({
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
@@ -40,8 +41,30 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
     router.push(`/admin/master-plan/${region.blockId}`);
   };
 
+  const getTooltipStyle = () => {
+    const containerWidth = containerRef.current?.clientWidth || 850;
+    const containerHeight = containerRef.current?.clientHeight || 712;
+    const cardWidth = 300;
+    const cardHeight = 240;
+
+    let left = mousePos.x + 16;
+    if (left + cardWidth > containerWidth - 12) {
+      left = mousePos.x - cardWidth - 16;
+    }
+    left = Math.max(12, Math.min(left, containerWidth - cardWidth - 12));
+
+    let top = mousePos.y - 24;
+    if (top + cardHeight > containerHeight - 12) {
+      top = mousePos.y - cardHeight + 24;
+    }
+    top = Math.max(12, Math.min(top, containerHeight - cardHeight - 12));
+
+    return { left, top };
+  };
+
   return (
     <div
+      ref={containerRef}
       className="relative w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-slate-900 shadow-xl select-none"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredRegion(null)}
@@ -141,10 +164,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
         {hoveredRegion && (
           <div
             className="pointer-events-none absolute z-30 transition-all duration-75 ease-out"
-            style={{
-              left: Math.min(Math.max(mousePos.x + 16, 16), 560),
-              top: Math.min(Math.max(mousePos.y - 40, 16), 460),
-            }}
+            style={getTooltipStyle()}
           >
             {(() => {
               const isAccessible = session ? canAccessBlock(session, hoveredRegion.blockId) : true;

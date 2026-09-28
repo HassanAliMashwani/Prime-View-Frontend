@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display, Cormorant_Garamond, Outfit } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
@@ -19,6 +19,20 @@ const serifFont = Playfair_Display({
   display: "swap",
 });
 
+const cormorantFont = Cormorant_Garamond({
+  subsets: ["latin"],
+  variable: "--font-cormorant",
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
+const outfitFont = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  weight: ["300", "400", "500", "600", "700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
@@ -34,7 +48,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${sansFont.variable} ${serifFont.variable} scroll-smooth`}>
+    <html
+      lang="en"
+      className={`${sansFont.variable} ${serifFont.variable} ${cormorantFont.variable} ${outfitFont.variable} scroll-smooth`}
+    >
       <body className="font-sans antialiased bg-[#F8F7F5] text-[#151914] min-h-screen flex flex-col justify-between selection:bg-[#43612B] selection:text-white">
         <Header />
         <main className="flex-grow">{children}</main>

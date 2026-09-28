@@ -8,7 +8,7 @@ export interface TeamMemberProfile {
   name: string;
   title: string;
   role: string;
-  email: string;
+  email?: string;
   category: "Managing Committee" | "Marketing Partner" | "Legal Team" | "Society Members";
   photoPath: string | null;
   photoDiscovered: boolean;
@@ -19,6 +19,8 @@ export interface TeamMemberProfile {
   bioBullets?: string[];
   bioSections?: BioSection[];
 }
+
+export type LeadershipMember = TeamMemberProfile;
 
 export const executiveTeamProfiles: TeamMemberProfile[] = [
   // 1. Managing Committee & Owners (/owners)
