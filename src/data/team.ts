@@ -115,19 +115,22 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
         heading: "Executive Leadership & Business Profile",
         bullets: [
           "Chairman — Prime View Cooperative Housing Society Ltd.",
+          "Chairman — Perfect Concrete Solutions",
+          "Group Director — J7 Group",
           "CEO — Nexus Builders",
           "Built several residential and commercial projects with 26 years of experience in this field",
-          "Group Director — J7 Group",
-          "Chairman — Perfect Concrete Solutions",
+          
+          
         ],
       },
     ],
     bioBullets: [
       "Chairman — Prime View Cooperative Housing Society Ltd.",
+      "Chairman — Perfect Concrete Solutions",
+      "Group Director — J7 Group",
       "CEO — Nexus Builders",
       "Built several residential and commercial projects with 26 years of experience in this field",
-      "Group Director — J7 Group",
-      "Chairman — Perfect Concrete Solutions",
+      
     ],
   },
   {

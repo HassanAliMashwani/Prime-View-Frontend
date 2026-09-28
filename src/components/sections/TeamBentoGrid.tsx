@@ -15,6 +15,12 @@ import {
   Briefcase,
   Shield,
   Award,
+  Crown,
+  Factory,
+  BookOpen,
+  Newspaper,
+  GraduationCap,
+  CheckCircle2,
 } from "lucide-react";
 import { TeamMemberProfile, LeadershipMember } from "@/data/team";
 
@@ -234,66 +240,153 @@ const MountainBackdrop = ({ className = "" }: { className?: string }) => (
 );
 
 // Helper for highlight icons
-const getHighlightIcon = (text: string, index: number) => {
+const getHighlightIcon = (text: string, index: number, memberName?: string) => {
   const lower = text.toLowerCase();
+  const name = (memberName || "").toLowerCase();
   const iconProps = { className: "w-3.5 h-3.5 text-[#A6843D] stroke-[1.5]" };
 
-  if (lower.includes("medical professional") || lower.includes("doctor")) {
+  // 1. Doctor / Medical Icon — STRICTLY and ONLY for Dr. Roman Gul
+  const isDrRoman = name.includes("roman") || name.includes("gul");
+  if (
+    isDrRoman &&
+    (lower.includes("medical") ||
+      lower.includes("doctor") ||
+      lower.includes("curative") ||
+      lower.includes("health"))
+  ) {
     return <Stethoscope {...iconProps} />;
   }
+
+  // 2. Concrete, Construction Materials, Industry (Chaudhary Mohsin Azad — Chairman Perfect Concrete Solutions)
   if (
+    lower.includes("concrete") ||
+    lower.includes("material") ||
+    lower.includes("industry") ||
+    lower.includes("factory")
+  ) {
+    return <Factory {...iconProps} />;
+  }
+
+  // 3. Track Record, Years of Experience, Project Delivery (Chaudhary Mohsin Azad — 26 years of experience)
+  if (
+    lower.includes("experience") ||
+    lower.includes("built several") ||
+    lower.includes("projects with") ||
+    lower.includes("landmark") ||
+    lower.includes("award") ||
+    lower.includes("distinction")
+  ) {
+    return <Award {...iconProps} />;
+  }
+
+  // 4. Housing Society Chairman / President Leadership (e.g. Chairman — Prime View Housing Society)
+  if (
+    lower.includes("chairman — prime view") ||
+    lower.includes("president — prime view") ||
+    lower.includes("chairman") ||
+    lower.includes("president")
+  ) {
+    return <Crown {...iconProps} />;
+  }
+
+  // 5. Corporate Groups, Directors (Chaudhary Mohsin Azad — Group Director J7 Group)
+  if (
+    lower.includes("j7") ||
+    lower.includes("group director") ||
+    lower.includes("director")
+  ) {
+    return <Building2 {...iconProps} />;
+  }
+
+  // 6. CEO, Builders & Developers, Executive Business (Chaudhary Mohsin Azad — CEO Nexus Builders)
+  if (
+    lower.includes("ceo") ||
+    lower.includes("builder") ||
+    lower.includes("developer") ||
+    lower.includes("construction") ||
     lower.includes("managing director") ||
-    lower.includes("curative") ||
-    lower.includes("health") ||
     lower.includes("businessman")
   ) {
     return <Briefcase {...iconProps} />;
   }
+
+  // 7. Publications, News, Media, Education (Ahmed Nawaz Khan Jadoon)
+  if (lower.includes("publication") || lower.includes("dost") || lower.includes("book")) {
+    return <BookOpen {...iconProps} />;
+  }
+  if (
+    lower.includes("news") ||
+    lower.includes("newspaper") ||
+    lower.includes("publisher") ||
+    lower.includes("editor") ||
+    lower.includes("media")
+  ) {
+    return <Newspaper {...iconProps} />;
+  }
+  if (
+    lower.includes("school") ||
+    lower.includes("education") ||
+    lower.includes("academic") ||
+    lower.includes("university")
+  ) {
+    return <GraduationCap {...iconProps} />;
+  }
+
+  // 8. Secretary, Housing Society, Community, Social & Political Governance
   if (
     lower.includes("secretary") ||
     lower.includes("society") ||
     lower.includes("community") ||
-    lower.includes("social")
+    lower.includes("social") ||
+    lower.includes("party") ||
+    lower.includes("qwp") ||
+    lower.includes("candidate")
   ) {
     return <Users {...iconProps} />;
   }
-  if (
-    lower.includes("builder") ||
-    lower.includes("developer") ||
-    lower.includes("construction") ||
-    lower.includes("ceo")
-  ) {
-    return <Building2 {...iconProps} />;
-  }
+
+  // 9. Operations, Management, Planning (Qazi Safeer Hashmi Qureshi)
   if (
     lower.includes("governance") ||
     lower.includes("management") ||
-    lower.includes("operation")
+    lower.includes("operation") ||
+    lower.includes("planning")
   ) {
     return <Settings {...iconProps} />;
   }
+
+  // 10. Legal, Court, Counsel, Advocate, Justice (Legal team)
   if (
     lower.includes("legal") ||
     lower.includes("court") ||
     lower.includes("advocate") ||
-    lower.includes("counsel")
+    lower.includes("counsel") ||
+    lower.includes("justice") ||
+    lower.includes("judge") ||
+    lower.includes("law")
   ) {
     return <Scale {...iconProps} />;
   }
+
+  // 11. Tactical, Military, Sky Diver, Deep Sea Diver, Submarine (Liaqat Khan Jadoon)
   if (
     lower.includes("diver") ||
     lower.includes("sky") ||
-    lower.includes("special operations")
+    lower.includes("special operations") ||
+    lower.includes("submarine") ||
+    lower.includes("safeties") ||
+    lower.includes("damage control")
   ) {
     return <Shield {...iconProps} />;
   }
 
+  // Fallback icons — Notice: completely free of Stethoscope / doctor icons
   const fallbacks = [
-    <Users key="0" {...iconProps} />,
-    <Stethoscope key="1" {...iconProps} />,
-    <Building2 key="2" {...iconProps} />,
-    <Settings key="3" {...iconProps} />,
-    <Award key="4" {...iconProps} />,
+    <Briefcase key="0" {...iconProps} />,
+    <Building2 key="1" {...iconProps} />,
+    <Award key="2" {...iconProps} />,
+    <Users key="3" {...iconProps} />,
+    <CheckCircle2 key="4" {...iconProps} />,
   ];
   return fallbacks[index % fallbacks.length];
 };
@@ -352,13 +445,9 @@ const TeamCard = ({
       variants={cardVariants}
       className="w-full relative h-[250px] md:h-[220px] lg:h-[260px] group cursor-pointer flex items-center"
       onClick={() => onOpenBio(member)}
-      layoutId={`card-container-${member.id}`}
     >
       {/* Layer 1: Portrait */}
-      <motion.div
-        layoutId={`card-image-${member.id}`}
-        className="absolute left-0 w-[55%] h-full rounded-2xl md:rounded-[20px] overflow-hidden shadow-lg z-0"
-      >
+      <div className="absolute left-0 w-[55%] h-full rounded-2xl md:rounded-[20px] overflow-hidden shadow-lg z-0">
         <Image
           src={member.photoPath || "/assets/placeholder.jpg"}
           alt={member.name}
@@ -368,22 +457,18 @@ const TeamCard = ({
         />
         {/* Subtle gradient for contrast */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B2119]/50 via-transparent to-transparent opacity-40 transition-opacity duration-500 group-hover:opacity-20" />
-      </motion.div>
+      </div>
 
-      {/* Layer 2: Cream Editorial Information Panel */}
-      <motion.div
-        layoutId={`card-info-${member.id}`}
-        className="absolute right-0 top-1/2 -translate-y-1/2 w-[55%] bg-[#F6F3EA] rounded-xl md:rounded-[16px] p-5 md:p-6 shadow-xl border border-[#E4DCC8] z-10 transition-all duration-500 ease-out md:group-hover:translate-x-1.5 group-hover:shadow-2xl overflow-hidden"
+      {/* Layer 2: Cream Editorial Information Panel (Rock-solid vertical centering via box-model auto margins) */}
+      <div
+        className="absolute right-0 top-0 bottom-0 my-auto h-fit w-[55%] bg-[#F6F3EA] rounded-xl md:rounded-[16px] p-5 md:p-6 shadow-xl border border-[#E4DCC8] z-10 transition-transform duration-300 ease-out md:group-hover:translate-x-1.5 group-hover:shadow-2xl overflow-hidden"
       >
         {/* Decorative background element */}
         <div className="absolute right-0 bottom-0 text-[#C4A265] opacity-[0.05] pointer-events-none transform translate-x-6 translate-y-6">
           <GeometricFloralMark className="w-28 h-28" />
         </div>
 
-        <motion.div
-          layoutId={`card-content-${member.id}`}
-          className="relative z-10 h-full flex flex-col justify-center py-2"
-        >
+        <div className="relative z-10 h-full flex flex-col justify-center py-2">
           {/* Role / Title in Gold Outfit */}
           <p
             className="text-[9px] md:text-[10px] font-semibold tracking-[0.2em] uppercase text-[#A6843D]"
@@ -421,8 +506,8 @@ const TeamCard = ({
               </span>
             </span>
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </motion.div>
   );
 };
@@ -454,12 +539,19 @@ const BioExpanded = ({
   }, [onClose]);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       className="fixed inset-0 z-[99999] flex items-center justify-center p-3 sm:p-5 md:p-6 bg-black/65 backdrop-blur-sm cursor-pointer overflow-hidden"
       onClick={onClose}
     >
       <motion.div
-        layoutId={`card-container-${member.id}`}
+        initial={{ opacity: 0, scale: 0.94, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 16 }}
+        transition={{ type: "spring", damping: 25, stiffness: 320 }}
         className="relative w-full max-w-[780px] lg:max-w-[800px] bg-[#F6F3EA] rounded-[22px] border border-[#E4DCC8] shadow-[0_24px_60px_rgba(20,28,24,0.22)] overflow-hidden flex flex-col md:flex-row cursor-default z-10"
         onClick={(e) => e.stopPropagation()}
       >
@@ -473,8 +565,7 @@ const BioExpanded = ({
         </button>
 
         {/* ── LEFT COLUMN (Portrait: 38% desktop, full width mobile) ── */}
-        <motion.div
-          layoutId={`card-image-${member.id}`}
+        <div
           className="w-full md:w-[38%] relative self-stretch min-h-[280px] md:min-h-[440px] shrink-0 overflow-hidden border-b md:border-b-0 md:border-r border-[#C4A265] bg-[#F6F3EA]"
         >
           {/* Portrait Photo */}
@@ -507,11 +598,10 @@ const BioExpanded = ({
               </a>
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* ── RIGHT COLUMN (Text: 62% desktop) ── */}
-        <motion.div
-          layoutId={`card-info-${member.id}`}
+        <div
           className="w-full md:w-[62%] relative bg-[#F6F3EA] flex flex-col justify-between p-5 sm:p-6 md:p-[26px_30px] overflow-hidden"
         >
           {/* Real Photographic Mountain Landscape behind text blended into beige */}
@@ -533,10 +623,7 @@ const BioExpanded = ({
           </div>
 
           {/* Content Wrapper */}
-          <motion.div
-            layoutId={`card-content-${member.id}`}
-            className="relative z-10 flex flex-col justify-between h-full"
-          >
+          <div className="relative z-10 flex flex-col justify-between h-full">
             <div>
               {/* 1. Title in Outfit, 10.5px, uppercase, letter-spacing 0.22em, color #A6843D */}
               <p
@@ -596,7 +683,7 @@ const BioExpanded = ({
                   {highlights.map((highlight, idx) => (
                     <div key={idx} className="flex items-center gap-2.5">
                       <div className="w-[24px] h-[24px] min-w-[24px] min-h-[24px] rounded-full border border-[#C4A265] flex items-center justify-center text-[#A6843D] shrink-0">
-                        {getHighlightIcon(highlight, idx)}
+                        {getHighlightIcon(highlight, idx, member.name)}
                       </div>
                       <span
                         className="text-[12.5px] md:text-[13px] text-[#3E4A44] leading-snug"
@@ -629,10 +716,10 @@ const BioExpanded = ({
                 <span>CLOSE PROFILE</span>
               </button>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </motion.div>
-    </div>
+    </motion.div>
   );
 };
 

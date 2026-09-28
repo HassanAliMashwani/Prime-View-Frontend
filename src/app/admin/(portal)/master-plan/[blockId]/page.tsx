@@ -112,6 +112,19 @@ function BlockPlotsContent() {
   const [isLoadingPlotDetails, setIsLoadingPlotDetails] = useState<boolean>(false);
   const [plotReservations, setPlotReservations] = useState<Reservation[]>([]);
 
+  // Stable refs to prevent async race conditions & unwanted reopening of plot drawer
+  const activeSelectedPlotIdRef = useRef<string | null>(null);
+  const handledFocusPlotRef = useRef<string | null>(null);
+  const dismissedFocusPlotRef = useRef<string | null>(null);
+
+  // Clear tracking refs if URL param changes/clears
+  useEffect(() => {
+    if (!focusPlotId) {
+      handledFocusPlotRef.current = null;
+      dismissedFocusPlotRef.current = null;
+    }
+  }, [focusPlotId]);
+
   // Modals
   const [isReserveModalOpen, setIsReserveModalOpen] = useState<boolean>(false);
   const [isMinimalBookModalOpen, setIsMinimalBookModalOpen] = useState<boolean>(false);
@@ -229,15 +242,17 @@ function BlockPlotsContent() {
       const s = getActiveAdminSession();
       if (s) {
         loadPlots(s);
-        // Refresh selected plot if it is open
-        if (selectedPlot) {
-          getAdminPlotDetails(s, selectedPlot.id).then((res) => {
-             if (res.ok && res.plot) {
-                setSelectedPlot(res.plot);
-                if (res.reservations) setPlotReservations(res.reservations);
-                if (res.owner) setSelectedPlotOwner(res.owner);
-                if (res.booking) setSelectedPlotBooking(res.booking);
-             }
+        // Refresh selected plot only if it is still active and open
+        if (selectedPlot && activeSelectedPlotIdRef.current === selectedPlot.id) {
+          const targetPlotId = selectedPlot.id;
+          getAdminPlotDetails(s, targetPlotId).then((res) => {
+            if (activeSelectedPlotIdRef.current !== targetPlotId) return;
+            if (res.ok && res.plot) {
+              setSelectedPlot(res.plot);
+              if (res.reservations) setPlotReservations(res.reservations);
+              if (res.owner) setSelectedPlotOwner(res.owner);
+              if (res.booking) setSelectedPlotBooking(res.booking);
+            }
           });
         }
       }
@@ -246,26 +261,12 @@ function BlockPlotsContent() {
     return () => clearInterval(intervalId);
   }, [loadPlots, selectedPlot]);
 
-  // Deep-link auto-scroll and highlight for Card Grid mode
-  useEffect(() => {
-    if (!focusPlotId || plots.length === 0) return;
-    const target = plots.find((p) => p.id === focusPlotId);
-    if (!target) return;
-
-    if (!hasTraced || viewMode === 'grid') {
-      const el = document.getElementById(`plot-card-${focusPlotId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        setHighlightedPlotId(focusPlotId);
-        handleSelectPlot(target);
-        const timer = setTimeout(() => setHighlightedPlotId(null), 4500);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [focusPlotId, plots, hasTraced, viewMode]);
-
   // Close Plot Action Drawer and clean up deep-link query param if present
   const handleCloseDrawer = useCallback(() => {
+    activeSelectedPlotIdRef.current = null;
+    if (focusPlotId) {
+      dismissedFocusPlotRef.current = focusPlotId;
+    }
     setSelectedPlot(null);
     setActionError(null);
     setIsEditingPrice(false);
@@ -276,6 +277,7 @@ function BlockPlotsContent() {
 
   // Open Plot Action Drawer
   const handleSelectPlot = useCallback((plot: Plot) => {
+    activeSelectedPlotIdRef.current = plot.id;
     setSelectedPlot(plot);
     setActionError(null);
     setIsEditingPrice(false);
@@ -286,7 +288,12 @@ function BlockPlotsContent() {
     setIsLoadingPlotDetails(true);
     const s = getActiveAdminSession();
     if (s) {
-      getAdminPlotDetails(s, plot.id).then((res) => {
+      const targetPlotId = plot.id;
+      getAdminPlotDetails(s, targetPlotId).then((res) => {
+        // Drop response completely if the user closed the drawer or switched plots while fetch was in flight
+        if (activeSelectedPlotIdRef.current !== targetPlotId) {
+          return;
+        }
         if (res.ok) {
           if (res.plot) setSelectedPlot(res.plot);
           if (res.reservations) setPlotReservations(res.reservations);
@@ -294,11 +301,36 @@ function BlockPlotsContent() {
           if (res.booking) setSelectedPlotBooking(res.booking);
         }
         setIsLoadingPlotDetails(false);
+      }).catch(() => {
+        if (activeSelectedPlotIdRef.current === targetPlotId) {
+          setIsLoadingPlotDetails(false);
+        }
       });
     } else {
       setIsLoadingPlotDetails(false);
     }
   }, []);
+
+  // Deep-link auto-scroll and highlight for Card Grid mode
+  useEffect(() => {
+    if (!focusPlotId || plots.length === 0) return;
+    if (handledFocusPlotRef.current === focusPlotId || dismissedFocusPlotRef.current === focusPlotId) return;
+
+    const target = plots.find((p) => p.id === focusPlotId);
+    if (!target) return;
+
+    if (!hasTraced || viewMode === 'grid') {
+      handledFocusPlotRef.current = focusPlotId;
+      const el = document.getElementById(`plot-card-${focusPlotId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedPlotId(focusPlotId);
+        handleSelectPlot(target);
+        const timer = setTimeout(() => setHighlightedPlotId(null), 4500);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [focusPlotId, plots, hasTraced, viewMode, handleSelectPlot]);
 
   // Keyboard shortcut: Escape to close drawer
   useEffect(() => {
@@ -364,6 +396,7 @@ function BlockPlotsContent() {
 
       if (res.ok) {
         setIsMinimalBookModalOpen(false);
+        activeSelectedPlotIdRef.current = null;
         setSelectedPlot(null);
         await loadPlots(session);
       } else {
@@ -412,6 +445,7 @@ function BlockPlotsContent() {
 
       if (res.ok) {
         setIsReserveModalOpen(false);
+        activeSelectedPlotIdRef.current = null;
         setSelectedPlot(null);
         await loadPlots(session);
       } else {
@@ -819,7 +853,7 @@ function BlockPlotsContent() {
           searchFilter={search}
           statusFilter={statusFilter}
           categoryFilter={categoryFilter}
-          focusPlotId={focusPlotId}
+          focusPlotId={dismissedFocusPlotRef.current === focusPlotId ? null : focusPlotId}
         />
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
@@ -1061,6 +1095,7 @@ function BlockPlotsContent() {
                       onClick={async () => {
                         await releaseLock(session, selectedPlot.id);
                         await loadPlots(session);
+                        activeSelectedPlotIdRef.current = null;
                         setSelectedPlot(null);
                       }}
                       className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg shadow-xs"

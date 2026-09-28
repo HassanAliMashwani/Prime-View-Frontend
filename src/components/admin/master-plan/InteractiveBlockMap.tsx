@@ -60,6 +60,13 @@ export default function InteractiveBlockMap({
   // Track handled focusPlotId so auto-focus runs only once and does not fight modal close
   const handledFocusPlotRef = useRef<string | null>(null);
 
+  // Reset handled focus ref whenever focusPlotId is cleared or dismissed
+  useEffect(() => {
+    if (!focusPlotId) {
+      handledFocusPlotRef.current = null;
+    }
+  }, [focusPlotId]);
+
   // Auto pan/zoom and focus when focusPlotId is provided
   useEffect(() => {
     if (!focusPlotId || !config || plots.length === 0) return;
@@ -186,33 +193,38 @@ export default function InteractiveBlockMap({
     }
   };
 
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
   // Dynamically compute tooltip position so the detail card is always right beside the pointer
-  const getTooltipStyle = () => {
+  const getTooltipStyle = (): React.CSSProperties => {
     const containerWidth = containerRef.current?.clientWidth || 1000;
     const containerHeight = containerRef.current?.clientHeight || 800;
-    const cardWidth = hoveredArea?.isGroupedRange ? 260 : 280;
-    const cardHeight = hoveredArea?.isGroupedRange ? 140 : 250;
 
-    // Horizontally: position right beside pointer (+16px).
-    // If it would overflow past the right boundary of the container, flip to the left side (-cardWidth - 16px).
-    let left = mousePos.x + 16;
+    // Use measured dimensions if available, or compact realistic defaults
+    const cardWidth = tooltipRef.current?.offsetWidth || (hoveredArea?.isGroupedRange ? 260 : 270);
+    const cardHeight = tooltipRef.current?.offsetHeight || (hoveredArea?.isGroupedRange ? 110 : 120);
+
+    // 1. Horizontal: position slightly to the right of the pointer (+14px)
+    // If it would overflow past the right boundary, flip to the left side (-cardWidth - 14px)
+    let left = mousePos.x + 14;
     if (left + cardWidth > containerWidth - 12) {
-      left = mousePos.x - cardWidth - 16;
+      left = mousePos.x - cardWidth - 14;
     }
-    left = Math.max(12, Math.min(left, containerWidth - cardWidth - 12));
+    // Safety clamp within container
+    left = Math.max(10, Math.min(left, containerWidth - cardWidth - 10));
 
-    // Vertically: align near pointer (-24px).
-    // If close to bottom edge of container (like for bottom plots 07, 08, etc.),
-    // shift upward so the card remains right beside the cursor inside visible container bounds.
-    let top = mousePos.y - 24;
-    if (top + cardHeight > containerHeight - 12) {
-      top = mousePos.y - cardHeight + 24;
+    // 2. Vertical: position directly above the pointer (-cardHeight - 10px) so the card is right beside it
+    // If placed too close to the top (< 12px from container top), flip to sit directly below the pointer (+14px)
+    let top = mousePos.y - cardHeight - 10;
+    if (top < 12) {
+      top = mousePos.y + 14;
     }
-    top = Math.max(12, Math.min(top, containerHeight - cardHeight - 12));
+    // Safety clamp within container
+    top = Math.max(10, Math.min(top, containerHeight - cardHeight - 10));
 
     return {
-      left,
-      top,
+      left: `${left}px`,
+      top: `${top}px`,
     };
   };
 
@@ -514,6 +526,10 @@ export default function InteractiveBlockMap({
                 strokeWidth = 4.5;
                 fillOpacity = Math.max(fillOpacity, 0.85);
                 isPulsing = true;
+              } else if (isHovered && !isSelected) {
+                strokeColor = '#ffffff';
+                strokeWidth = 3;
+                fillOpacity = Math.min(fillOpacity + 0.25, 0.88);
               }
 
               const status = plot?.status;
@@ -598,7 +614,8 @@ export default function InteractiveBlockMap({
         {/* Hover Tooltip Overlay */}
         {hoveredArea && (
           <div
-            className="pointer-events-none absolute z-40 transition-all duration-75 ease-out"
+            ref={tooltipRef}
+            className="pointer-events-none absolute z-40 transition-opacity duration-150 ease-out"
             style={getTooltipStyle()}
           >
             {(() => {
@@ -645,10 +662,8 @@ export default function InteractiveBlockMap({
               );
               const isAmenity = plot.category === 'amenity';
 
-
-
               return (
-                <div className="w-68 rounded-2xl border border-slate-700 bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
+                <div className="w-[280px] rounded-2xl border border-slate-700 bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="font-mono font-bold text-base text-white">
                       Plot {plot.plotNumber}
