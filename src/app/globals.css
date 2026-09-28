@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,6 +40,22 @@ body {
 
 .font-sans {
   font-family: var(--font-sans), Plus Jakarta Sans, sans-serif;
+}
+
+.font-cormorant {
+  font-family: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-outfit {
+  font-family: var(--font-outfit), Outfit, sans-serif;
+}
+
+/* Hide WhatsApp FAB when modal popup is open */
+body.leadership-modal-open #global-whatsapp-fab,
+body.modal-open #global-whatsapp-fab {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Editorial Utilities */

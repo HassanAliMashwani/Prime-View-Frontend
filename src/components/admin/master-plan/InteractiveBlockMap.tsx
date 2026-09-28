@@ -186,6 +186,36 @@ export default function InteractiveBlockMap({
     }
   };
 
+  // Dynamically compute tooltip position so the detail card is always right beside the pointer
+  const getTooltipStyle = () => {
+    const containerWidth = containerRef.current?.clientWidth || 1000;
+    const containerHeight = containerRef.current?.clientHeight || 800;
+    const cardWidth = hoveredArea?.isGroupedRange ? 260 : 280;
+    const cardHeight = hoveredArea?.isGroupedRange ? 140 : 250;
+
+    // Horizontally: position right beside pointer (+16px).
+    // If it would overflow past the right boundary of the container, flip to the left side (-cardWidth - 16px).
+    let left = mousePos.x + 16;
+    if (left + cardWidth > containerWidth - 12) {
+      left = mousePos.x - cardWidth - 16;
+    }
+    left = Math.max(12, Math.min(left, containerWidth - cardWidth - 12));
+
+    // Vertically: align near pointer (-24px).
+    // If close to bottom edge of container (like for bottom plots 07, 08, etc.),
+    // shift upward so the card remains right beside the cursor inside visible container bounds.
+    let top = mousePos.y - 24;
+    if (top + cardHeight > containerHeight - 12) {
+      top = mousePos.y - cardHeight + 24;
+    }
+    top = Math.max(12, Math.min(top, containerHeight - cardHeight - 12));
+
+    return {
+      left,
+      top,
+    };
+  };
+
   return (
     <div className="relative w-full rounded-3xl border border-slate-200/90 bg-slate-950 overflow-hidden shadow-2xl select-none">
       {/* Map Header Controls Bar */}
@@ -517,7 +547,25 @@ export default function InteractiveBlockMap({
                     className={`cursor-pointer transition-all duration-150 ${
                       isPulsing ? 'animate-pulse' : ''
                     }`}
-                    onMouseEnter={() => setHoveredArea(area)}
+                    onMouseEnter={(e) => {
+                      setHoveredArea(area);
+                      const rect = containerRef.current?.getBoundingClientRect();
+                      if (rect) {
+                        setMousePos({
+                          x: e.clientX - rect.left,
+                          y: e.clientY - rect.top,
+                        });
+                      }
+                    }}
+                    onMouseMove={(e) => {
+                      const rect = containerRef.current?.getBoundingClientRect();
+                      if (rect) {
+                        setMousePos({
+                          x: e.clientX - rect.left,
+                          y: e.clientY - rect.top,
+                        });
+                      }
+                    }}
                     onMouseLeave={() => setHoveredArea((cur) => (cur?.slug === area.slug ? null : cur))}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -551,10 +599,7 @@ export default function InteractiveBlockMap({
         {hoveredArea && (
           <div
             className="pointer-events-none absolute z-40 transition-all duration-75 ease-out"
-            style={{
-              left: Math.min(Math.max(mousePos.x + 12, 12), 700),
-              top: Math.min(Math.max(mousePos.y - 30, 12), 480),
-            }}
+            style={getTooltipStyle()}
           >
             {(() => {
               if (hoveredArea.isGroupedRange) {

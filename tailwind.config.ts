@@ -35,6 +35,8 @@ const config: Config = {
         display: ["var(--font-serif)", "Playfair Display", "Georgia", "serif"],
         sans: ["var(--font-sans)", "Plus Jakarta Sans", "Manrope", "sans-serif"],
         heading: ["var(--font-heading)", "Plus Jakarta Sans", "sans-serif"],
+        cormorant: ["var(--font-cormorant)", "Cormorant Garamond", "Georgia", "serif"],
+        outfit: ["var(--font-outfit)", "Outfit", "sans-serif"],
       },
       aspectRatio: {
         "3/4": "3 / 4",
