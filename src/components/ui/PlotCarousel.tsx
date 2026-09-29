@@ -16,11 +16,11 @@ export interface PlotItem {
   dimensions: string;
   totalPrice: string;
   downPayment: string;
-  downPaymentPercent: string;
+  downPaymentPercent?: string;
   monthly: string;
-  monthlyCount: number;
+  monthlyCount?: number;
   halfYearly: string;
-  halfYearlyCount: number;
+  halfYearlyCount?: number;
   possession?: string;
   image: string;
 }
@@ -266,9 +266,9 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
                     {/* Payment Details with Dividers */}
                     <div className="space-y-0 text-[13px]">
                       {[
-                        { icon: <FileText className="w-4 h-4" />,     label: `Down Payment (${plot.downPaymentPercent || "25%"})`, value: plot.downPayment },
-                        { icon: <CalendarDays className="w-4 h-4" />,  label: `Monthly Installment (x${plot.monthlyCount})`,        value: plot.monthly    },
-                        { icon: <Clock className="w-4 h-4" />,         label: `Half Yearly (x${plot.halfYearlyCount})`,            value: plot.halfYearly  },
+                        { icon: <FileText className="w-4 h-4" />,     label: plot.downPaymentPercent ? `Down Payment (${plot.downPaymentPercent})` : "Down Payment", value: plot.downPayment },
+                        { icon: <CalendarDays className="w-4 h-4" />,  label: plot.monthlyCount ? `Monthly Installment (x${plot.monthlyCount})` : "Monthly Installment", value: plot.monthly },
+                        { icon: <Clock className="w-4 h-4" />,         label: plot.halfYearlyCount ? `Half Yearly (x${plot.halfYearlyCount})` : "Half Yearly", value: plot.halfYearly },
                         ...(plot.possession ? [{ icon: <KeyRound className="w-4 h-4" />, label: "At the Time of Possession", value: plot.possession }] : []),
                       ].map((row, i) => (
                         <div

@@ -45,71 +45,61 @@ export default function OurPlansPage() {
   const [cmsPlans, setCmsPlans] = useState<PlotItem[]>([]);
 
   useEffect(() => {
-    fetchPublicContent('plans').then((blocks) => {
-      const mapped: PlotItem[] = [];
-      for (const block of blocks) {
-        const m = (block.metadata || {}) as Record<string, any>;
-        const missing: string[] = [];
-        if (!block.title) missing.push('title');
-        if (!m.imageUrl) missing.push('image');
+    fetchPublicContent('plans')
+      .then((blocks) => {
+        if (!blocks || blocks.length === 0) return;
+        const mapped: PlotItem[] = [];
+        for (const block of blocks) {
+          const m = (block.metadata || {}) as Record<string, any>;
+          const missing: string[] = [];
+          if (!block.title) missing.push('title');
+          if (!m.imageUrl) missing.push('image');
 
-        if (missing.length > 0) {
-          console.warn(`[CMS Warning] Block ${block.id} in section plans is missing required field(s): ${missing.join(', ')}`);
-          continue;
+          if (missing.length > 0) {
+            console.warn(`[CMS Warning] Block ${block.id} in section plans is missing required field(s): ${missing.join(', ')}`);
+            continue;
+          }
+
+          // Map subtitle to dimension line when size has no parentheses; keep size as size label
+          const sizeMatch = String(m?.size || '').match(/^(.+?)\s*\((.+?)\)$/);
+          const dimensions = sizeMatch ? sizeMatch[1].trim() : (block.subtitle || '');
+          const size = sizeMatch ? sizeMatch[2].trim() : String(m?.size || block.title || '');
+
+          // Parse payment details without substituting 25, 39, or 8
+          const [downPayment, downPaymentPercent] = [String(m?.downPayment ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.downPayment ?? '').trim(), String(m?.downPayment ?? '').match(/\(([^)]+)\)/)?.[1] || ''];
+          const [monthly, monthlyCount] = [String(m?.monthly ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.monthly ?? '').trim(), String(m?.monthly ?? '').match(/x\s*(\d+)/i)?.[1] ? parseInt(String(m?.monthly ?? '').match(/x\s*(\d+)/i)![1], 10) : undefined];
+          const [halfYearly, halfYearlyCount] = [String(m?.halfYearly ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.halfYearly ?? '').trim(), String(m?.halfYearly ?? '').match(/x\s*(\d+)/i)?.[1] ? parseInt(String(m?.halfYearly ?? '').match(/x\s*(\d+)/i)![1], 10) : undefined];
+          const possession = m?.possession ? String(m.possession).replace(/PKR\s*/i, '').trim() : undefined;
+
+          // Format price number → "2,500,000"
+          const totalPrice = typeof m?.price === 'number'
+            ? m.price.toLocaleString('en-PK')
+            : String(m?.price || '');
+
+          const tag = m?.tags?.[0] || block.category || 'Residential';
+
+          mapped.push({
+            size,
+            tag,
+            dimensions,
+            totalPrice,
+            downPayment,
+            downPaymentPercent,
+            monthly,
+            monthlyCount,
+            halfYearly,
+            halfYearlyCount,
+            possession,
+            image: m.imageUrl,
+          });
         }
-
-        // Parse "25 x 50 (05 Marla)" → dimensions="25 x 50", size="05 Marla"
-        const sizeStr = String(m?.size || '');
-        const sizeMatch = sizeStr.match(/^(.+?)\s*\((.+?)\)$/);
-        const dimensions = sizeMatch ? sizeMatch[1].trim() : sizeStr;
-        const size = sizeMatch ? sizeMatch[2].trim() : block.title;
-
-        // Parse "PKR 625,000 (25%)" → downPayment="625,000", downPaymentPercent="25%"
-        const dpStr = String(m?.downPayment || '');
-        const dpMatch = dpStr.match(/PKR\s*([\d,]+)\s*\((\d+%)\)/);
-        const downPayment = dpMatch ? dpMatch[1] : dpStr.replace(/PKR\s*/i, '');
-        const downPaymentPercent = dpMatch ? dpMatch[2] : '25%';
-
-        // Parse "PKR 24,500 x 39" → monthly="24,500", monthlyCount=39
-        const moStr = String(m?.monthly || '');
-        const moMatch = moStr.match(/PKR\s*([\d,]+)\s*x\s*(\d+)/);
-        const monthly = moMatch ? moMatch[1] : moStr.replace(/PKR\s*/i, '');
-        const monthlyCount = moMatch ? parseInt(moMatch[2], 10) : 39;
-
-        // Parse "PKR 90,000 x 8" → halfYearly="90,000", halfYearlyCount=8
-        const hyStr = String(m?.halfYearly || '');
-        const hyMatch = hyStr.match(/PKR\s*([\d,]+)\s*x\s*(\d+)/);
-        const halfYearly = hyMatch ? hyMatch[1] : hyStr.replace(/PKR\s*/i, '');
-        const halfYearlyCount = hyMatch ? parseInt(hyMatch[2], 10) : 8;
-
-        // Parse "PKR 200,000" → possession="200,000"
-        const posStr = m?.possession ? String(m.possession) : undefined;
-        const possession = posStr ? posStr.replace(/PKR\s*/i, '').trim() : undefined;
-
-        // Format price number → "2,500,000"
-        const totalPrice = typeof m?.price === 'number'
-          ? m.price.toLocaleString('en-PK')
-          : String(m?.price || '');
-
-        const tag = m?.tags?.[0] || block.category || 'Residential';
-
-        mapped.push({
-          size,
-          tag,
-          dimensions,
-          totalPrice,
-          downPayment,
-          downPaymentPercent,
-          monthly,
-          monthlyCount,
-          halfYearly,
-          halfYearlyCount,
-          possession,
-          image: m!.imageUrl,
-        });
-      }
-      setCmsPlans(mapped);
-    });
+        if (mapped.length > 0) {
+          setCmsPlans(mapped);
+        }
+      })
+      .catch(() => {
+        // Leave existing cards on fetch failure
+      });
   }, []);
 
   return (
