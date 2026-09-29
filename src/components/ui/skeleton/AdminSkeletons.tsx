@@ -1,5 +1,6 @@
 import React from 'react';
 import { Skeleton, SkeletonText } from './Skeleton';
+import { Building2, CheckCircle2, Clock, ShieldCheck } from 'lucide-react';
 
 /**
  * Skeleton Loader for Admin Dashboard
@@ -14,26 +15,55 @@ export const AdminDashboardSkeleton: React.FC = () => {
         <Skeleton className="h-7 w-36 rounded-full" />
       </div>
 
-      {/* Aggregate Overview Cards (4 Metric Cards) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          'border-purple-200/60 bg-purple-50/30',
-          'border-emerald-200/60 bg-emerald-50/30',
-          'border-amber-200/60 bg-amber-50/30',
-          'border-blue-200/60 bg-blue-50/30',
-        ].map((bg, idx) => (
-          <div
-            key={idx}
-            className={`border rounded-3xl p-5 shadow-xs relative overflow-hidden space-y-3 ${bg}`}
-          >
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-3.5 w-24 rounded-md" />
-              <Skeleton className="w-9 h-9 rounded-2xl" />
+      {/* Aggregate Overview Cards (Preserved without removing card layout, just like Inventory Overview) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 1. Total Inventory - Purple */}
+        <div className="bg-gradient-to-br from-purple-500/10 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-purple-700" />
             </div>
-            <Skeleton className="h-9 w-20 rounded-xl" />
-            <Skeleton className="h-3 w-32 rounded-md" />
+            <h3 className="text-purple-800 font-bold text-sm">Total Inventory</h3>
           </div>
-        ))}
+          <Skeleton className="h-9 w-20 rounded-xl bg-purple-500/20" />
+          <p className="text-xs text-purple-700/80 mt-2 font-medium">Across accessible blocks</p>
+        </div>
+
+        {/* 2. Available Plots - Mint */}
+        <div className="bg-gradient-to-br from-green-500/10 to-green-900/10 border border-green-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+              <CheckCircle2 className="w-5 h-5 text-green-700" />
+            </div>
+            <h3 className="text-green-800 font-bold text-sm">Available Plots</h3>
+          </div>
+          <Skeleton className="h-9 w-20 rounded-xl bg-green-500/20" />
+          <p className="text-xs text-green-700/80 mt-2 font-medium">Ready for immediate booking</p>
+        </div>
+
+        {/* 3. Active Reservations - Amber */}
+        <div className="bg-gradient-to-br from-amber-500/10 to-amber-900/10 border border-amber-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-amber-700" />
+            </div>
+            <h3 className="text-amber-800 font-bold text-sm">Active Reservations</h3>
+          </div>
+          <Skeleton className="h-9 w-20 rounded-xl bg-amber-500/20" />
+          <p className="text-xs text-amber-700/80 mt-2 font-medium">Token deposits on hold</p>
+        </div>
+
+        {/* 4. Booked & Confirmed - Blue */}
+        <div className="bg-gradient-to-br from-blue-500/10 to-blue-900/10 border border-blue-500/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-blue-700" />
+            </div>
+            <h3 className="text-blue-800 font-bold text-sm">Booked & Confirmed</h3>
+          </div>
+          <Skeleton className="h-9 w-20 rounded-xl bg-blue-500/20" />
+          <p className="text-xs text-blue-700/80 mt-2 font-medium">Verified member allocations</p>
+        </div>
       </div>
 
       {/* Inventory Overview Trend Chart Skeleton */}

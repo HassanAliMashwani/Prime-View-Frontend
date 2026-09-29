@@ -32,7 +32,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Beneficial owner & Director",
     email: "president@primeview.org",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/president.jpeg",
+    photoPath: "/new assests/team/team new/president.png",
     photoDiscovered: true,
     bio: "Liaqat Khan Jadoon serves as President of Prime View Co-Operative Housing Society Ltd. With a distinguished background in specialized operations, advanced tactical instruction, and engineering discipline, he provides strategic direction and steadfast governance to ensure Prime View remains a symbol of integrity and excellence.",
     bioBullets: [
@@ -50,7 +50,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Medical Professional / Businessman",
     email: "secretary@primeview.org",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/secretary.jpeg",
+    photoPath: "/new assests/team/team new/secretary.png",
     photoDiscovered: true,
     bio: "Dr. Roman Gul is an accomplished Medical Professional and Businessman. Serving as the General Secretary of Prime View Cooperative Housing Society Abbottabad, he brings strong organizational governance across institutional healthcare and property development.",
     bioBullets: [
@@ -67,7 +67,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Businessman | Educationist | Media Professional | Political Leader",
     email: "vp@primeview.org",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/vice-president.jpg",
+    photoPath: "/new assests/team/team new/vice-president.jpeg",
     photoDiscovered: true,
     bio: "Ahmed Nawaz Khan Jadoon is a prominent Businessman, Educationist, Media Professional, and Political Leader serving as Vice President of Prime View Cooperative Housing Society, Abbottabad.",
     bioSections: [
@@ -107,7 +107,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "CEO Nexus Builders | Group Director J7",
     email: "Chairman@primeview.org",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/chairman.jpeg",
+    photoPath: "/new assests/team/team new/chairman.png",
     photoDiscovered: true,
     bio: "Chaudhary Mohsin Azad serves as Chairman of Prime View Co-Operative Housing Society Ltd. With over 26 years of distinguished leadership in the construction and real estate industry, he has successfully delivered multiple landmark residential and commercial projects across Pakistan.",
     bioSections: [
@@ -115,19 +115,22 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
         heading: "Executive Leadership & Business Profile",
         bullets: [
           "Chairman — Prime View Cooperative Housing Society Ltd.",
+          "Chairman — Perfect Concrete Solutions",
+          "Group Director — J7 Group",
           "CEO — Nexus Builders",
           "Built several residential and commercial projects with 26 years of experience in this field",
-          "Group Director — J7 Group",
-          "Chairman — Perfect Concrete Solutions",
+          
+          
         ],
       },
     ],
     bioBullets: [
       "Chairman — Prime View Cooperative Housing Society Ltd.",
+      "Chairman — Perfect Concrete Solutions",
+      "Group Director — J7 Group",
       "CEO — Nexus Builders",
       "Built several residential and commercial projects with 26 years of experience in this field",
-      "Group Director — J7 Group",
-      "Chairman — Perfect Concrete Solutions",
+      
     ],
   },
   {
@@ -137,8 +140,15 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Planning & operation",
     email: "info@primeview.org",
     category: "Managing Committee",
-    photoPath: "/new assests/team/team new/director.jpeg",
+    photoPath: "/new assests/team/team new/director.png",
     photoDiscovered: true,
+    bio: "Qazi Safeer Hashmi Qureshi serves as Director Management of Prime View Co-Operative Housing Society Ltd. He spearheads strategic operational planning, administrative oversight, and on-ground project management to uphold prime execution standards.",
+    bioBullets: [
+      "Director Management — Prime View Cooperative Housing Society Ltd.",
+      "Strategic Infrastructure Planning & Execution",
+      "Society Operations & Administrative Oversight",
+      "Liaison, Coordination & Corporate Governance",
+    ],
   },
 
   // 2. Marketing & Sales Partners (/marketing-sales-partner)
@@ -149,7 +159,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "CEO-Sign Marketing",
     email: "info@primeview.org",
     category: "Marketing Partner",
-    photoPath: "/new assests/team/team new/Muhammad aleem.jpeg",
+    photoPath: "/new assests/team/team new/Muhammad aleem.png",
     photoDiscovered: true,
   },
   {
@@ -159,7 +169,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Director-Sign Marketing",
     email: "info@primeview.org",
     category: "Marketing Partner",
-    photoPath: "/new assests/team/team new/Malik kamaran munir.jpeg",
+    photoPath: "/new assests/team/team new/Malik kamaran munir.png",
     photoDiscovered: true,
   },
   {
@@ -169,7 +179,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Hz markings SMC Pvt Ltd",
     email: "info@primeview.org",
     category: "Marketing Partner",
-    photoPath: "/new assests/team/team new/Huzaifa Zahid.jpeg",
+    photoPath: "/new assests/team/team new/Huzaifa Zahid.png",
     photoDiscovered: true,
   },
 
@@ -181,7 +191,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Legal Counsel & Director",
     email: "info@primeview.org",
     category: "Legal Team",
-    photoPath: "/new assests/team/team new/Justice (R) Arshad Manzoor Khan.jpeg",
+    photoPath: "/new assests/team/team new/Justice (R) Arshad Manzoor Khan.png",
     photoDiscovered: true,
   },
   {
@@ -191,7 +201,7 @@ export const executiveTeamProfiles: TeamMemberProfile[] = [
     role: "Advocate & Legal Counsel",
     email: "info@primeview.org",
     category: "Legal Team",
-    photoPath: "/new assests/team/team new/Advocate Raja Gulfam Kiani.jpeg",
+    photoPath: "/new assests/team/team new/Advocate Raja Gulfam Kiani.png",
     photoDiscovered: true,
   },
 ];
