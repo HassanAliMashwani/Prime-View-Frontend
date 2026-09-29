@@ -86,7 +86,7 @@ export default function AdminPortalLayout({
             onOpenMobileMenu={() => setMobileOpen(true)}
           />
         </div>
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 bg-[#F4F7F5] print:p-0 print:m-0 print:bg-white print:overflow-visible print:h-auto print:block">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-[#F4F7F5] print:p-0 print:m-0 print:bg-white print:overflow-visible print:h-auto print:block">
           {children}
         </main>
       </div>
