@@ -76,7 +76,7 @@ export const ScrollReveal: React.FC<ScrollRevealProps> = ({
         {words.map((word, index) => (
           <motion.span
             key={index}
-            className="inline-block mr-[0.25em]"
+            className={`inline-block ${index < words.length - 1 ? "mr-[0.25em]" : ""}`}
             initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
             animate={
               isInView

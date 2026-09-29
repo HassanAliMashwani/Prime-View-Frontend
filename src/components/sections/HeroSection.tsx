@@ -6,7 +6,7 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const HeroSection: React.FC = () => {
   return (
-    <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-start sm:justify-center items-center overflow-hidden pt-20 min-[390px]:pt-24 sm:pt-0">
+    <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
       {/* Full-bleed background — Abbottabad mountain landscape */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -28,13 +28,13 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Hero Content — Asymmetrical Editorial Layout */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-0 sm:pt-24 flex flex-col">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 flex flex-col items-center sm:items-stretch sm:pt-24">
 
         {/* Primary Headline */}
         <ScrollReveal
           variant="blur-word"
           delay={0.2}
-          className="font-display text-5xl min-[390px]:text-6xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.05] sm:leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20"
+          className="font-display text-5xl min-[390px]:text-6xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.05] sm:leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20 w-full"
         >
           Close to Heaven
         </ScrollReveal>
