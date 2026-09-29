@@ -98,7 +98,7 @@ export const LocationMapCard: React.FC = () => {
   return (
     <div className="w-full space-y-8 sm:space-y-10">
       {/* ── MAIN LOCATION CARD ── */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 lg:p-10 border border-[#E4EAE1] shadow-[0_12px_40px_rgba(0,0,0,0.06)] space-y-6 sm:space-y-8">
+      <div className="bg-white rounded-3xl p-4 sm:p-8 lg:p-10 border border-[#E4EAE1] shadow-[0_12px_40px_rgba(0,0,0,0.06)] space-y-6 sm:space-y-8">
         
         {/* Card Header: Title, Subtitle, and Get Directions Button */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#F0F3EE] pb-6">
@@ -319,24 +319,24 @@ export const LocationMapCard: React.FC = () => {
           </div>
         </div>
 
-        {/* 6 Landmark Cards */}
+        {/* 6 Landmark Cards - 2 column grid on mobile with equal height and pinned distance */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 pt-2">
           {landmarks.map((item, index) => {
             const Icon = item.icon;
             return (
               <div
                 key={index}
-                className="bg-[#FAFBF9] hover:bg-white rounded-2xl p-4 sm:p-5 border border-[#E4EAE1] hover:border-[#1C3E24]/30 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-between text-center min-h-[145px] group"
+                className="bg-[#FAFBF9] hover:bg-white rounded-2xl p-3.5 sm:p-5 border border-[#E4EAE1] hover:border-[#1C3E24]/30 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-between text-center min-h-[145px] h-full group"
               >
-                <div className="text-[#1C3E24] mb-2 group-hover:scale-110 transition-transform duration-200">
+                <div className="text-[#1C3E24] mb-2 group-hover:scale-110 transition-transform duration-200 shrink-0">
                   <Icon className="w-6 h-6" />
                 </div>
-                <div className="my-auto">
-                  <h4 className="font-bold text-xs sm:text-[13px] text-[#182315] leading-snug">
+                <div className="my-auto flex items-center justify-center min-h-[36px] w-full">
+                  <h4 className="font-bold text-xs sm:text-[13px] text-[#182315] leading-snug break-words">
                     {item.title}
                   </h4>
                 </div>
-                <span className="text-xs text-[#6B7566] font-medium mt-2">
+                <span className="text-xs text-[#6B7566] font-medium mt-auto pt-2">
                   {item.duration}
                 </span>
               </div>

@@ -52,21 +52,21 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
       </div>
 
       {/* Details Area — flex-col justify-between flex-1 ensures uniform stretch */}
-      <div className="p-6 sm:p-8 flex flex-col justify-between flex-1 z-10">
+      <div className="p-4 sm:p-6 md:p-8 flex flex-col justify-between flex-1 z-10">
 
-        <div className="flex flex-col">
-          {/* Date & Venue Badges */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex flex-col items-start">
+          {/* Date & Venue: icons share the same left x edge */}
+          <div className="flex flex-wrap items-center gap-4 mb-3 text-xs font-semibold text-[#43612B]">
             {event.date && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#EAF0E7] text-[#43612B] text-xs font-bold uppercase tracking-wider border border-[#43612B]/20">
-                <Calendar className="w-3.5 h-3.5" />
-                {event.date}
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-4 h-4 text-[#43612B] shrink-0" />
+                <span>{event.date}</span>
               </span>
             )}
             {event.venue && (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/5 text-[#556050] text-xs font-medium border border-black/[0.06]">
-                <MapPin className="w-3.5 h-3.5 text-[#43612B]" />
-                {event.venue.split(",")[0]}
+              <span className="flex items-center gap-1.5 text-[#556050]">
+                <MapPin className="w-4 h-4 text-[#43612B] shrink-0" />
+                <span>{event.venue.split(",")[0]}</span>
               </span>
             )}
           </div>
@@ -79,8 +79,11 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
             {event.title}
           </h3>
 
+          {/* Green accent line sharing same x */}
+          <div className="w-12 h-0.5 bg-[#43612B] rounded-full my-2" />
+
           {event.subtitle && (
-            <p className="font-sans text-xs sm:text-sm font-semibold text-[#43612B] tracking-wide mb-3 uppercase">
+            <p className="font-sans text-xs sm:text-sm font-semibold text-[#43612B] tracking-wide mb-2 uppercase">
               {event.subtitle}
             </p>
           )}
@@ -91,13 +94,13 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
         </div>
 
         <div className="flex flex-col mt-auto pt-2">
-          {/* Mini Gallery Preview (For Horizontal Cards) */}
+          {/* Mini Gallery Preview: thumbnails and +4 vertically centered in one row inside card */}
           {isHorizontal && event.gallery.length > 0 && (
-            <div className="flex items-center gap-2.5 mb-4">
+            <div className="flex items-center gap-2 sm:gap-2.5 mb-4 overflow-x-auto py-1">
               {event.gallery.slice(0, 4).map((img, idx) => (
                 <div
                   key={idx}
-                  className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0"
+                  className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0 self-center"
                 >
                   <Image
                     src={img}
@@ -109,7 +112,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
                 </div>
               ))}
               {event.gallery.length > 4 && (
-                <div className="w-14 h-10 sm:w-16 sm:h-11 rounded-lg bg-[#FAF9F5] border border-black/[0.08] flex items-center justify-center text-[#43612B] text-xs font-bold shrink-0">
+                <div className="w-14 h-10 sm:w-16 sm:h-11 rounded-lg bg-[#FAF9F5] border border-black/[0.08] flex items-center justify-center text-[#43612B] text-xs font-bold shrink-0 self-center">
                   +{event.gallery.length - 4}
                 </div>
               )}

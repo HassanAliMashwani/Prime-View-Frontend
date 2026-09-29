@@ -43,7 +43,7 @@ export default function LocationMapPage() {
         </div>
       </div>
 
-      <div className="pb-20 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10 -mt-6 sm:-mt-10">
+      <div className="pb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 -mt-6 sm:-mt-10">
         <LocationMapCard />
       </div>
     </div>

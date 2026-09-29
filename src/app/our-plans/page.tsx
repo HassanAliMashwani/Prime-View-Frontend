@@ -54,7 +54,7 @@ export default function OurPlansPage() {
       <div className="min-h-screen text-charcoal" style={{ background: '#F8F7F5' }}>
 
         {/* ── HERO HEADER ─────────────────────────── */}
-        <div className="relative pt-28 sm:pt-36 pb-36 sm:pb-52 lg:pb-64 px-6 sm:px-8 lg:px-12 text-center overflow-hidden">
+        <div className="relative pt-28 sm:pt-36 pb-36 sm:pb-52 lg:pb-64 px-4 sm:px-6 lg:px-8 text-center overflow-hidden">
           {/* Hero Background — Mountain Valley Landscape */}
           <div className="absolute inset-0 z-0">
             <Image
@@ -128,11 +128,11 @@ export default function OurPlansPage() {
               </div>
             </div>
 
-            {/* 3 Cards — Compact Pure HTML/CSS */}
+            {/* 3 Cards — Compact Pure HTML/CSS with aligned left edge */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-3.5">
               {/* Card 1: 10% Discount */}
-              <div className="rounded-[18px] p-4 sm:p-4.5 bg-[#FAF9F5] border border-black/[0.05] shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[160px]">
-                <div className="flex items-center gap-3">
+              <div className="rounded-[18px] p-4 sm:p-5 bg-[#FAF9F5] border border-black/[0.05] shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[170px]">
+                <div className="flex flex-col items-start gap-2.5">
                   <ScallopedBadge>
                     <Percent className="w-5 h-5 text-white stroke-[2.8]" />
                   </ScallopedBadge>
@@ -143,7 +143,7 @@ export default function OurPlansPage() {
                 </div>
 
                 {/* Accent line with center dot */}
-                <div className="flex items-center gap-1 my-2">
+                <div className="flex items-center gap-1 my-2.5">
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#A8BBA2]" />
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
@@ -155,8 +155,8 @@ export default function OurPlansPage() {
               </div>
 
               {/* Card 2: 10% Extra Charges */}
-              <div className="rounded-[18px] p-4 sm:p-4.5 bg-[#FAF9F5] border border-black/[0.05] shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[160px]">
-                <div className="flex items-center gap-3">
+              <div className="rounded-[18px] p-4 sm:p-5 bg-[#FAF9F5] border border-black/[0.05] shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[170px]">
+                <div className="flex flex-col items-start gap-2.5">
                   <ScallopedBadge>
                     <MapPin className="w-5 h-5 text-white stroke-[2.2]" />
                   </ScallopedBadge>
@@ -167,7 +167,7 @@ export default function OurPlansPage() {
                 </div>
 
                 {/* Accent line with center dot */}
-                <div className="flex items-center gap-1 my-2">
+                <div className="flex items-center gap-1 my-2.5">
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#A8BBA2]" />
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
@@ -179,8 +179,8 @@ export default function OurPlansPage() {
               </div>
 
               {/* Card 3: Installment Deadline */}
-              <div className="rounded-[18px] p-4 sm:p-4.5 bg-[#FAF9F5] border border-black/[0.05] shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[160px]">
-                <div className="flex items-center gap-3">
+              <div className="rounded-[18px] p-4 sm:p-5 bg-[#FAF9F5] border border-black/[0.05] shadow-xs hover:shadow-sm transition-all duration-200 flex flex-col justify-between min-h-[170px]">
+                <div className="flex flex-col items-start gap-2.5">
                   <ScallopedBadge>
                     <CalendarDays className="w-5 h-5 text-white stroke-[2.2]" />
                   </ScallopedBadge>
@@ -192,7 +192,7 @@ export default function OurPlansPage() {
                 </div>
 
                 {/* Accent line with center dot */}
-                <div className="flex items-center gap-1 my-2">
+                <div className="flex items-center gap-1 my-2.5">
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#A8BBA2]" />
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />

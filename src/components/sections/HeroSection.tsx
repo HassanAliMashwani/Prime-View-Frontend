@@ -32,13 +32,13 @@ export const HeroSection: React.FC = () => {
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-16 sm:pt-24 flex flex-col">
 
         {/* Primary Headline */}
-        <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-5xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.0] tracking-tight text-left sm:ml-8 lg:ml-20">
+        <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-4xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20">
           Close to Heaven
         </ScrollReveal>
 
         {/* Secondary Headline (Offset) */}
-        <div className="w-full flex justify-end mt-8 sm:mt-16">
-          <ScrollReveal variant="bounce" delay={0.8} className="font-sans text-lg sm:text-xl text-pure-white/90 max-w-sm text-right mr-4 sm:mr-16 lg:mr-32 border-r-2 border-[#43612B] pr-6 leading-relaxed">
+        <div className="w-full flex justify-center sm:justify-end mt-6 sm:mt-16">
+          <ScrollReveal variant="bounce" delay={0.8} className="font-sans text-base sm:text-lg sm:text-xl text-pure-white/90 max-w-sm text-center sm:text-right mx-auto sm:mx-0 sm:mr-16 lg:mr-32 border-b-2 sm:border-b-0 sm:border-r-2 border-[#43612B] pb-2 sm:pb-0 sm:pr-6 leading-relaxed">
             Get Your Dream House Today in Abbottabad
           </ScrollReveal>
         </div>

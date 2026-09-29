@@ -30,21 +30,21 @@ export const MapSection: React.FC = () => {
         />
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
           {/* Left Column: Context & Office Info */}
-          <div className="lg:col-span-5 space-y-6">
+          <div className="lg:col-span-5 space-y-6 text-center lg:text-left">
             <ScrollReveal variant="bounce">
-              <span className="kicker block text-xs font-semibold tracking-widest text-verified-green uppercase">
+              <span className="kicker block text-xs font-semibold tracking-widest text-verified-green uppercase text-center lg:text-left">
                 LOCATION &amp; ACCESSIBILITY
               </span>
             </ScrollReveal>
 
-            <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal tracking-tight leading-tight">
+            <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-3xl sm:text-4xl lg:text-5xl text-charcoal tracking-tight leading-tight text-center lg:text-left">
               Located Close to Heaven in Abbottabad
             </ScrollReveal>
 
-            <p className="font-sans text-sm sm:text-base text-charcoal/60 leading-relaxed">
+            <p className="font-sans text-sm sm:text-base text-charcoal/60 leading-relaxed text-center lg:text-left">
               Prime View offers a serene natural setting combined with seamless
               GT Road accessibility. Visit our Islamabad Marketing &amp; Booking
               Office or explore our site location map.
