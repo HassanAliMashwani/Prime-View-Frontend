@@ -28,19 +28,19 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Hero Content — Asymmetrical Editorial Layout */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-10 sm:pt-24 flex flex-col">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-16 sm:pt-24 flex flex-col">
 
-        {/* Primary Headline — Bigger on mobile to fill viewport gracefully without extra elements */}
+        {/* Primary Headline */}
         <ScrollReveal
           variant="blur-word"
           delay={0.2}
-          className="font-display text-6xl min-[390px]:text-7xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20"
+          className="font-display text-5xl min-[390px]:text-6xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.05] sm:leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20"
         >
           Close to Heaven
         </ScrollReveal>
 
         {/* Secondary Headline (Offset) */}
-        <div className="w-full flex justify-center sm:justify-end mt-4 sm:mt-16">
+        <div className="w-full flex justify-center sm:justify-end mt-5 sm:mt-16">
           <ScrollReveal
             variant="bounce"
             delay={0.8}
@@ -49,26 +49,26 @@ export const HeroSection: React.FC = () => {
             Get Your Dream House Today in Abbottabad
           </ScrollReveal>
         </div>
+      </div>
 
-        {/* Conversion Action Buttons — directly under headline on mobile, pinned to bottom on desktop */}
-        <div className="w-full z-10 mt-8 sm:mt-0 sm:absolute sm:bottom-16 sm:left-0 sm:right-0 sm:px-6">
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 max-w-2xl mx-auto">
-            <MagneticWrapper className="w-full sm:w-auto">
-              <Link
-                href="/contact"
-                className="w-full sm:w-auto inline-flex items-center justify-center bg-[#43612B] hover:bg-[#324920] text-white font-sans text-sm font-bold px-8 py-3.5 sm:py-4 rounded-xl tracking-wider uppercase shadow-[0_4px_20px_rgba(67,97,43,0.4)] transition-colors duration-200 animate-pulse"
-              >
-                Book Now
-              </Link>
-            </MagneticWrapper>
-
+      {/* Conversion Action Buttons — positioned below text, at bottom of section */}
+      <div className="absolute bottom-10 sm:bottom-16 w-full z-10 px-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 max-w-2xl mx-auto">
+          <MagneticWrapper className="w-full sm:w-auto">
             <Link
-              href="/our-plans"
-              className="w-full sm:w-auto inline-flex items-center justify-center bg-white/15 hover:bg-white/25 text-white font-sans text-sm font-semibold px-8 py-3.5 sm:py-4 rounded-xl tracking-wider uppercase border border-white/30 backdrop-blur-xs transition-colors duration-200"
+              href="/contact"
+              className="w-full sm:w-auto inline-flex items-center justify-center bg-[#43612B] hover:bg-[#324920] text-white font-sans text-sm font-bold px-8 py-3.5 sm:py-4 rounded-xl tracking-wider uppercase shadow-[0_4px_20px_rgba(67,97,43,0.4)] transition-colors duration-200 animate-pulse"
             >
-              Explore Properties
+              Book Now
             </Link>
-          </div>
+          </MagneticWrapper>
+
+          <Link
+            href="/our-plans"
+            className="w-full sm:w-auto inline-flex items-center justify-center bg-white/15 hover:bg-white/25 text-white font-sans text-sm font-semibold px-8 py-3.5 sm:py-4 rounded-xl tracking-wider uppercase border border-white/30 backdrop-blur-xs transition-colors duration-200"
+          >
+            Explore Properties
+          </Link>
         </div>
       </div>
     </section>
