@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { propertyPlans } from "@/data/properties";
-import { PlotCarousel } from "@/components/ui/PlotCarousel";
+import { PlotCarousel, PlotItem } from "@/components/ui/PlotCarousel";
+import { fetchPublicContent, ContentBlock } from "@/lib/dal/publicContent";
 import { Check, Calendar, ArrowUpRight, Star, Info, Percent, MapPin, CalendarDays, ShieldCheck, FileText, ChevronRight } from "lucide-react";
 
 // Static pre-calculated 12-lobed rosette points to prevent SSR/client hydration floating-point precision mismatches
@@ -41,6 +42,76 @@ function ScallopedBadge({ children }: { children: React.ReactNode }) {
 }
 
 export default function OurPlansPage() {
+  const [cmsPlans, setCmsPlans] = useState<PlotItem[]>([]);
+
+  useEffect(() => {
+    fetchPublicContent('plans').then((blocks) => {
+      const mapped: PlotItem[] = [];
+      for (const block of blocks) {
+        const m = (block.metadata || {}) as Record<string, any>;
+        const missing: string[] = [];
+        if (!block.title) missing.push('title');
+        if (!m.imageUrl) missing.push('image');
+
+        if (missing.length > 0) {
+          console.warn(`[CMS Warning] Block ${block.id} in section plans is missing required field(s): ${missing.join(', ')}`);
+          continue;
+        }
+
+        // Parse "25 x 50 (05 Marla)" → dimensions="25 x 50", size="05 Marla"
+        const sizeStr = String(m?.size || '');
+        const sizeMatch = sizeStr.match(/^(.+?)\s*\((.+?)\)$/);
+        const dimensions = sizeMatch ? sizeMatch[1].trim() : sizeStr;
+        const size = sizeMatch ? sizeMatch[2].trim() : block.title;
+
+        // Parse "PKR 625,000 (25%)" → downPayment="625,000", downPaymentPercent="25%"
+        const dpStr = String(m?.downPayment || '');
+        const dpMatch = dpStr.match(/PKR\s*([\d,]+)\s*\((\d+%)\)/);
+        const downPayment = dpMatch ? dpMatch[1] : dpStr.replace(/PKR\s*/i, '');
+        const downPaymentPercent = dpMatch ? dpMatch[2] : '25%';
+
+        // Parse "PKR 24,500 x 39" → monthly="24,500", monthlyCount=39
+        const moStr = String(m?.monthly || '');
+        const moMatch = moStr.match(/PKR\s*([\d,]+)\s*x\s*(\d+)/);
+        const monthly = moMatch ? moMatch[1] : moStr.replace(/PKR\s*/i, '');
+        const monthlyCount = moMatch ? parseInt(moMatch[2], 10) : 39;
+
+        // Parse "PKR 90,000 x 8" → halfYearly="90,000", halfYearlyCount=8
+        const hyStr = String(m?.halfYearly || '');
+        const hyMatch = hyStr.match(/PKR\s*([\d,]+)\s*x\s*(\d+)/);
+        const halfYearly = hyMatch ? hyMatch[1] : hyStr.replace(/PKR\s*/i, '');
+        const halfYearlyCount = hyMatch ? parseInt(hyMatch[2], 10) : 8;
+
+        // Parse "PKR 200,000" → possession="200,000"
+        const posStr = m?.possession ? String(m.possession) : undefined;
+        const possession = posStr ? posStr.replace(/PKR\s*/i, '').trim() : undefined;
+
+        // Format price number → "2,500,000"
+        const totalPrice = typeof m?.price === 'number'
+          ? m.price.toLocaleString('en-PK')
+          : String(m?.price || '');
+
+        const tag = m?.tags?.[0] || block.category || 'Residential';
+
+        mapped.push({
+          size,
+          tag,
+          dimensions,
+          totalPrice,
+          downPayment,
+          downPaymentPercent,
+          monthly,
+          monthlyCount,
+          halfYearly,
+          halfYearlyCount,
+          possession,
+          image: m!.imageUrl,
+        });
+      }
+      setCmsPlans(mapped);
+    });
+  }, []);
+
   return (
     <>
       <style>{`
@@ -99,7 +170,7 @@ export default function OurPlansPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 -mt-32 sm:-mt-44 lg:-mt-52 z-10">
 
           <div className="relative z-10">
-            <PlotCarousel />
+            <PlotCarousel items={cmsPlans} />
           </div>
 
           {/* Terms & Conditions Block — Compact Size (max-w-[860px]) */}

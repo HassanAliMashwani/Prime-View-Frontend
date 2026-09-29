@@ -10,7 +10,7 @@ const GREEN = "#43612B";
 const TEXT  = "#151914";
 const MUTED = "#6B7462";
 
-interface PlotItem {
+export interface PlotItem {
   size: string;
   tag: string;
   dimensions: string;
@@ -111,8 +111,10 @@ const plots: PlotItem[] = [
   },
 ];
 
-export function PlotCarousel() {
-  const [activeIndex, setActiveIndex] = useState(1);
+export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
+  // Use CMS items when provided and non-empty; otherwise fall back to the static array
+  const data = items && items.length > 0 ? items : plots;
+  const [activeIndex, setActiveIndex] = useState(data.length > 1 ? 1 : 0);
   const [isHovered, setIsHovered]     = useState(false);
   const [gap, setGap]                 = useState(380);
   const [cardWidth, setCardWidth]     = useState(360);
@@ -145,18 +147,18 @@ export function PlotCarousel() {
   useEffect(() => {
     if (isHovered) return;
     const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % plots.length);
+      setActiveIndex((prev) => (prev + 1) % data.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [isHovered]);
+   }, [isHovered, data.length]);
 
-  const handleNext = () => setActiveIndex((prev) => (prev + 1) % plots.length);
-  const handlePrev = () => setActiveIndex((prev) => (prev - 1 + plots.length) % plots.length);
+  const handleNext = () => setActiveIndex((prev) => (prev + 1) % data.length);
+  const handlePrev = () => setActiveIndex((prev) => (prev - 1 + data.length) % data.length);
 
   // True physical card offset styles — all cards exist in the DOM and glide horizontally
   const getPositionStyles = (index: number) => {
-    let offset = (index - activeIndex + plots.length) % plots.length;
-    if (offset > plots.length / 2) offset -= plots.length;
+    let offset = (index - activeIndex + data.length) % data.length;
+    if (offset > data.length / 2) offset -= data.length;
 
     const isActive = offset === 0;
     const isVisible = Math.abs(offset) <= (isMobile ? 0 : 1);
@@ -180,15 +182,15 @@ export function PlotCarousel() {
     >
       {/* 5-Card Physical Swapping Stage */}
       <div className="relative w-full max-w-6xl h-[670px] sm:h-[700px] mx-auto overflow-hidden">
-        {plots.map((plot, index) => {
+        {data.map((plot, index) => {
           let offset = index - activeIndex;
-          if (offset < -2) offset += plots.length;
-          if (offset > 2) offset -= plots.length;
+          if (offset < -2) offset += data.length;
+          if (offset > 2) offset -= data.length;
           const isActive = offset === 0;
 
           return (
             <div
-              key={plot.size}
+              key={`${plot.size}-${index}`}
               className="absolute top-1/2 left-1/2 cursor-pointer"
               style={{
                 width: `${cardWidth}px`,
@@ -326,7 +328,7 @@ export function PlotCarousel() {
 
           {/* Dot Indicators for all 5 Cards */}
           <div className="flex items-center gap-1.5">
-            {plots.map((_, i) => (
+            {data.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setActiveIndex(i)}

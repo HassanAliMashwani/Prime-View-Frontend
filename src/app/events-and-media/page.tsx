@@ -1,12 +1,45 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { EventsGrid } from "@/components/events/EventsGrid";
-
-export const metadata = {
-  title: "Events & Media - Prime View",
-  description: "Explore the latest events, galleries, and media highlights from Prime View Co-Operative Housing Society Ltd.",
-};
+import { EventData } from "@/data/events";
+import { fetchPublicContent } from "@/lib/dal/publicContent";
 
 export default function EventsAndMediaPage() {
+  const [cmsEvents, setCmsEvents] = useState<EventData[]>([]);
+
+  useEffect(() => {
+    fetchPublicContent('events').then((blocks) => {
+      const mapped: EventData[] = [];
+      for (const block of blocks) {
+        const m = (block.metadata || {}) as Record<string, any>;
+        const missing: string[] = [];
+        if (!block.title) missing.push('title');
+        if (!m.imageUrl) missing.push('image');
+
+        if (missing.length > 0) {
+          console.warn(`[CMS Warning] Block ${block.id} in section events is missing required field(s): ${missing.join(', ')}`);
+          continue;
+        }
+
+        mapped.push({
+          id: block.id,
+          title: block.title,
+          subtitle: block.subtitle || undefined,
+          date: m.date ? String(m.date) : '',
+          venue: m.location ? String(m.location) : undefined,
+          summary: block.content || '',
+          coverImage: String(m.imageUrl),
+          gallery: Array.isArray(m.galleryImages) ? m.galleryImages : [],
+          fullDescription: block.content || '',
+          videoPreview: m.videoUrl ? String(m.videoUrl) : undefined,
+        });
+      }
+      setCmsEvents(mapped);
+    });
+  }, []);
+
   return (
     <div className="bg-[#F8F7F5] text-[#151914] min-h-screen w-full relative">
       
@@ -46,7 +79,7 @@ export default function EventsAndMediaPage() {
 
       {/* Events Grid Section — Overlaps the hero bottom fade */}
       <div className="pb-24 relative z-10 -mt-12 sm:-mt-16">
-        <EventsGrid />
+        <EventsGrid events={cmsEvents} />
       </div>
 
     </div>
