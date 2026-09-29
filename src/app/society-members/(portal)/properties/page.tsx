@@ -22,9 +22,9 @@ export default function PropertiesPage() {
         subtitle="Verified allotment files &amp; plot portfolio"
       />
 
-      <main className="p-6 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+      <main className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
         {/* Header Intro Box */}
-        <div className="bg-white rounded-2xl border border-black/[0.08] p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="bg-white rounded-2xl border border-black/[0.08] p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
           <div className="space-y-1">
             <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
               Allocated Property Files ({plots.length})
@@ -42,7 +42,7 @@ export default function PropertiesPage() {
         </div>
 
         {/* Loading / Empty / Grid */}
-        {isLoading ? (
+        {isLoading && plots.length === 0 ? (
           <MemberPropertiesSkeleton />
         ) : plots.length === 0 ? (
           <div className="bg-white rounded-3xl border border-black/[0.08] p-10 sm:p-14 text-center space-y-4">
