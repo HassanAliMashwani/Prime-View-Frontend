@@ -68,7 +68,7 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
   const clampedPercent = Math.min(100, Math.max(0, percentPaid));
 
   return (
-    <div className="bg-white rounded-2xl border border-black/[0.08] p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)] transition-all">
+    <div className="bg-white rounded-2xl border border-black/[0.08] p-4 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)] transition-all">
       {/* Header Badges & Title */}
       <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-black/[0.06]">
         <div className="flex items-center gap-3">
@@ -104,8 +104,8 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
         </div>
       </div>
 
-      {/* Financial Overview Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 py-4">
+      {/* Financial Overview Grid (1 column under 640px) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
             Total Value
@@ -122,7 +122,7 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
             {formattedPaid}
           </p>
         </div>
-        <div className="col-span-2 sm:col-span-1">
+        <div>
           <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
             Remaining Balance
           </p>
@@ -174,7 +174,7 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
       {/* Expandable Details Section */}
       {isExpanded && (
         <div className="mt-4 pt-4 border-t border-black/[0.06] space-y-3 text-xs">
-          <div className="grid grid-cols-2 gap-3 bg-[#FAF9F5] p-3 rounded-xl border border-black/[0.04]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-[#FAF9F5] p-3 rounded-xl border border-black/[0.04]">
             <div>
               <span className="text-[#6B7462] block">Booking Reference:</span>
               <span className="font-mono font-bold text-[#151914]">{plot.booking.id}</span>
