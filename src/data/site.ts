@@ -24,6 +24,6 @@ export const siteConfig: SiteConfig = {
   whatsapp: "923129980707",
   email: "info@primeview.org",
   facebookUrl: "https://www.facebook.com/profile.php?id=61564242827062",
-  logoPath: "/new assests/updated Logo/prime_View__logo_page-0001-removebg-preview-removebg-preview.png",
+  logoPath: "/logo-trimmed.png",
   brochurePath: "/assets/hero/artboard-22x-100.webp",
 };

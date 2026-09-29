@@ -49,12 +49,12 @@ export const Header: React.FC = () => {
             className="pointer-events-auto flex items-center group shrink-0 transition-all duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             aria-label="Prime View Home"
           >
-            <div className="relative w-28 h-10 sm:w-36 sm:h-12 md:w-44 md:h-14 lg:w-52 lg:h-14 transition-transform duration-180 group-hover:scale-105 flex items-center">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform duration-180 group-hover:scale-105 flex items-center">
               <Image
                 src={siteConfig.logoPath}
                 alt="Prime View Emblem"
                 fill
-                className="object-contain object-left"
+                className="object-contain object-left drop-shadow-[0_2px_8px_rgba(255,255,255,0.6)]"
                 priority
               />
             </div>
