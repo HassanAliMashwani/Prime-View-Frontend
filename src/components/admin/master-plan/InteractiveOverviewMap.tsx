@@ -44,7 +44,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
   const getTooltipStyle = () => {
     const containerWidth = containerRef.current?.clientWidth || 850;
     const containerHeight = containerRef.current?.clientHeight || 712;
-    const cardWidth = 300;
+    const cardWidth = Math.min(288, Math.max(200, containerWidth - 24));
     const cardHeight = 240;
 
     let left = mousePos.x + 16;
@@ -55,11 +55,11 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
 
     let top = mousePos.y - 24;
     if (top + cardHeight > containerHeight - 12) {
-      top = mousePos.y - cardHeight + 24;
+      top = mousePos.y - cardHeight - 12;
     }
     top = Math.max(12, Math.min(top, containerHeight - cardHeight - 12));
 
-    return { left, top };
+    return { left, top, maxWidth: `calc(100% - 24px)` };
   };
 
   return (

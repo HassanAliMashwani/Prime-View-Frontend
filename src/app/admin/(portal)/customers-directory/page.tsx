@@ -478,9 +478,273 @@ function CustomersDirectoryContent() {
         </div>
       </div>
 
-      {/* Customers Table */}
+      {/* Mobile Stacked Cards (< 768px) */}
+      <div className="md:hidden space-y-3">
+        {filteredCustomers.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
+            No customers found matching the search or filter criteria.
+          </div>
+        ) : (
+          pageRows.map((c) => {
+            const hasStrikes = c.strikeCount > 0;
+            const isSuspended = c.accountStatus === 'suspended';
+
+            return (
+              <div key={c.id} className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+                {/* 1. Member Info */}
+                <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
+                      {c.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5 flex-wrap">
+                        <span>{c.fullName}</span>
+                        {c.registrationStatus === 'minimal' && (
+                          <span className="px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300">
+                            NEEDS REG
+                          </span>
+                        )}
+                        {isSuspended && (
+                          <span className="px-1.5 py-0.5 rounded-sm bg-rose-100 text-rose-800 text-[10px] font-bold">
+                            SUSPENDED
+                          </span>
+                        )}
+                      </div>
+                      {c.registrationStatus === 'minimal' ? (
+                        <div className="text-[11px] font-mono text-amber-700 font-bold">
+                          PENDING REGISTRATION
+                        </div>
+                      ) : (
+                        <div className="text-[11px] font-mono text-emerald-800 font-semibold">
+                          {c.membershipNo}
+                        </div>
+                      )}
+                      {c.city && (
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          City: {c.city}
+                        </div>
+                      )}
+                      {c.fatherOrHusbandName && (
+                        <div className="text-[10px] text-slate-400">
+                          S/O, D/O: {c.fatherOrHusbandName}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Contact Details */}
+                <div className="space-y-1 text-xs">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Contact Details</div>
+                  <div className="flex items-center gap-1.5 text-slate-700 font-mono text-xs">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{c.phone || 'Pending'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-500 text-xs">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{c.email || 'Pending'}</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500">
+                    CNIC: {c.cnic}
+                  </div>
+                </div>
+
+                {/* 3. Allotted Properties */}
+                <div className="space-y-1 text-xs border-t border-slate-100 pt-2.5">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Allotted Properties</div>
+                  {c.plots.length === 0 ? (
+                    <span className="text-xs text-slate-400 italic">No plots attached</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {c.plots.map((p) => (
+                        <span
+                          key={p.bookingId}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs"
+                        >
+                          <Building2 className="w-3 h-3 text-indigo-600 shrink-0" />
+                          <span>{p.blockName}: {p.plotNumber}</span>
+                          <span className="text-[10px] text-indigo-600/80">({p.size})</span>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. Installment Standing */}
+                <div className="space-y-1.5 text-xs border-t border-slate-100 pt-2.5">
+                  <div className="flex justify-between items-center text-xs font-semibold">
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Installments</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-emerald-700 font-bold">{c.installmentsPaidCount} Paid</span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-600">{c.installmentsDueCount} Due</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-2 rounded-full"
+                      style={{
+                        width: `${
+                          c.installmentsPaidCount + c.installmentsDueCount > 0
+                            ? Math.round(
+                                (c.installmentsPaidCount /
+                                  (c.installmentsPaidCount + c.installmentsDueCount)) *
+                                  100
+                              )
+                            : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 5. Financial Ledger */}
+                <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-2.5">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Total Paid</span>
+                    <span className="text-slate-900 font-bold font-mono text-sm">
+                      PKR {c.totalPaidAmount.toLocaleString()}
+                    </span>
+                  </div>
+                  {c.totalOutstandingAmount > 0 && (
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-amber-700 block tracking-wider">Outstanding</span>
+                      <span className="text-amber-800 font-bold font-mono text-sm">
+                        PKR {c.totalOutstandingAmount.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 6. Compliance Status */}
+                <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2.5">
+                  {c.registrationStatus === 'minimal' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
+                      <AlertTriangle className="w-3 h-3 text-amber-700" />
+                      <span>Needs Registration</span>
+                    </span>
+                  ) : (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                        isSuspended
+                          ? 'bg-rose-100 text-rose-800 border-rose-300'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}
+                    >
+                      {isSuspended ? (
+                        <Ban className="w-3 h-3 text-rose-600" />
+                      ) : (
+                        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      )}
+                      <span className="capitalize">{c.accountStatus}</span>
+                    </span>
+                  )}
+
+                  {c.credentialsPending && c.registrationStatus !== 'minimal' && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-bold">
+                      <KeyRound className="w-3 h-3 text-amber-700" />
+                      <span>Credentials Pending</span>
+                    </span>
+                  )}
+
+                  {hasStrikes ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold">
+                      <AlertTriangle className="w-3 h-3 text-amber-600" />
+                      <span>{c.strikeCount} Strike{c.strikeCount > 1 ? 's' : ''}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-slate-400">Clean Record</span>
+                  )}
+                </div>
+
+                {/* 7. Actions */}
+                <div className="flex items-center justify-end gap-1 border-t border-slate-100 pt-2.5 flex-wrap">
+                  {c.registrationStatus === 'minimal' && session?.role === 'super_admin' && (
+                    <button
+                      onClick={() => openCompleteRegistration(c)}
+                      title="Complete Member Registration (Super Admin)"
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-auto"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>Complete Reg</span>
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setDossierCustomer(c)}
+                    title="View Full Customer Dossier"
+                    className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setStrikeCustomer(c);
+                      setStrikeReason('');
+                    }}
+                    title="Assign Compliance Strike"
+                    className="p-2 text-slate-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+                  >
+                    <ShieldAlert className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setSuspensionCustomer(c);
+                      setSuspensionReason('');
+                    }}
+                    title={isSuspended ? 'Reactivate Customer Portal' : 'Suspend Customer Portal'}
+                    className={`p-2 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer ${
+                      isSuspended
+                        ? 'text-emerald-700 hover:bg-emerald-50'
+                        : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50'
+                    }`}
+                  >
+                    {isSuspended ? <RotateCcw className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                  </button>
+
+                  {c.credentialsPending && canIssueCredentials && (
+                    <button
+                      onClick={() => handleIssueCredentials(c)}
+                      title="Issue Customer Portal Credentials"
+                      className="p-2 text-amber-700 hover:text-amber-900 hover:bg-amber-100 rounded-lg transition-colors font-bold min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
+                    >
+                      <KeyRound className="w-4 h-4 text-amber-700" />
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => handleResetPassword(c)}
+                    title="Reset Portal Password"
+                    className="p-2 text-slate-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  >
+                    <KeyRound className="w-4 h-4" />
+                  </button>
+
+                  {session?.role === 'super_admin' && (
+                    <button
+                      onClick={() => {
+                        setDeleteCustomerTarget(c);
+                        setDeleteConfirmInput('');
+                      }}
+                      title="Delete Member"
+                      className="p-2 text-slate-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer min-w-[36px] min-h-[36px] flex items-center justify-center"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Customers Table (Desktop >= 768px) */}
       <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
@@ -785,9 +1049,9 @@ function CustomersDirectoryContent() {
 
       {/* ── MODAL: CUSTOMER DOSSIER ── */}
       {dossierCustomer && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-8">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto flex flex-col max-h-[100dvh]">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-900 text-[#D4AF37] font-bold flex items-center justify-center text-sm shadow-xs">
                   {dossierCustomer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
@@ -801,15 +1065,15 @@ function CustomersDirectoryContent() {
               </div>
               <button
                 onClick={() => setDossierCustomer(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-6 space-y-6 max-h-[75vh] overflow-y-auto text-xs">
+            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto text-xs flex-1">
               {/* Member & NOK Grid */}
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
                   <div className="font-bold text-slate-700 mb-2">Member Information</div>
                   <div className="space-y-1 text-slate-600">
@@ -956,7 +1220,7 @@ function CustomersDirectoryContent() {
               )}
             </div>
 
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between">
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
               {session?.role === 'super_admin' ? (
                 <button
                   type="button"
@@ -986,7 +1250,7 @@ function CustomersDirectoryContent() {
       {/* ── MODAL: ASSIGN STRIKE ── */}
       {strikeCustomer && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden max-h-[100dvh] overflow-y-auto">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-amber-50/50">
               <div className="flex items-center gap-2.5 text-amber-900 font-bold">
                 <ShieldAlert className="w-5 h-5 text-amber-600" />
@@ -1049,7 +1313,7 @@ function CustomersDirectoryContent() {
       {/* ── MODAL: SUSPEND / REACTIVATE ── */}
       {suspensionCustomer && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden max-h-[100dvh] overflow-y-auto">
             <div className={`p-5 border-b border-slate-100 flex items-center justify-between ${
               suspensionCustomer.accountStatus === 'suspended' ? 'bg-emerald-50/50 text-emerald-900' : 'bg-rose-50/50 text-rose-900'
             }`}>
@@ -1136,7 +1400,7 @@ function CustomersDirectoryContent() {
       {/* ── MODAL: PASSWORD RESET / CREDENTIALS SUCCESS ── */}
       {resetModalData && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full border border-slate-200 shadow-2xl p-5 space-y-4 text-xs">
+          <div className="bg-white rounded-2xl max-w-sm w-full border border-slate-200 shadow-2xl p-5 space-y-4 text-xs max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between font-bold text-slate-900">
               <div className="flex items-center gap-2 text-emerald-900">
                 <KeyRound className="w-5 h-5 text-emerald-600" />
@@ -1213,7 +1477,7 @@ function CustomersDirectoryContent() {
       {/* ── MODAL: CONFIRM DELETE MEMBER ── */}
       {deleteCustomerTarget && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden text-xs">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden text-xs max-h-[100dvh] overflow-y-auto">
             <div className="p-5 border-b border-rose-100 flex items-center justify-between bg-rose-50/60 text-rose-900 font-bold">
               <div className="flex items-center gap-2">
                 <Trash2 className="w-5 h-5 text-rose-600" />

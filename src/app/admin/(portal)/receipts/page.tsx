@@ -360,7 +360,7 @@ export default function AdminReceiptsPage() {
         </div>
 
         {/* Search */}
-        <div className="relative min-w-[240px]">
+        <div className="relative w-full sm:w-auto sm:min-w-[240px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
@@ -388,7 +388,7 @@ export default function AdminReceiptsPage() {
           filteredReceipts.map((sub) => (
             <div
               key={sub.id}
-              className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs hover:border-teal-600/30 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-6"
+              className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-xs hover:border-teal-600/30 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 overflow-hidden"
             >
               {/* Left Details */}
               <div className="space-y-3 flex-1">
@@ -542,13 +542,13 @@ export default function AdminReceiptsPage() {
               </div>
 
               {/* Right Action buttons */}
-              <div className="flex flex-col sm:flex-row lg:flex-col items-stretch lg:items-end gap-2 shrink-0">
+              <div className="flex flex-col sm:flex-row lg:flex-col items-stretch lg:items-end gap-2 w-full lg:w-auto shrink-0">
                 {/* View attached slip thumbnail */}
                 {sub.receiptFileUrl && (
                   <button
                     type="button"
                     onClick={() => setPreviewImage(sub.receiptFileUrl)}
-                    className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
                   >
                     <Eye className="w-3.5 h-3.5 text-slate-500" />
                     <span>View Bank Slip Image</span>
@@ -556,12 +556,12 @@ export default function AdminReceiptsPage() {
                 )}
 
                 {sub.status === 'pending' && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
                       disabled={isProcessing}
                       onClick={() => handleVerify(sub.id)}
-                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Approve &amp; Generate A4 Slip</span>
@@ -574,7 +574,7 @@ export default function AdminReceiptsPage() {
                         setRejectModalReceipt(sub);
                         setRejectionReason('');
                       }}
-                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer"
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[44px]"
                     >
                       <X className="w-3.5 h-3.5" />
                       <span>Decline</span>
@@ -639,7 +639,7 @@ export default function AdminReceiptsPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {rejectModalReceipt && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 space-y-4 border border-slate-200">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-6 space-y-4 border border-slate-200 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
                 <XCircle className="w-5 h-5" />
@@ -775,7 +775,7 @@ export default function AdminReceiptsPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {driftReceipt && driftNewPreview && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-2xl w-full bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6">
+          <div className="max-w-2xl w-full bg-white rounded-3xl border border-slate-200 shadow-2xl p-6 sm:p-8 space-y-6 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-6 h-6 text-amber-700" />

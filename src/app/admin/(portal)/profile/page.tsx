@@ -186,11 +186,11 @@ export default function AdminProfilePage() {
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
       {/* Hero Profile Identity Card */}
-      <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs relative overflow-hidden">
+      <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-4 sm:p-6 md:p-8 shadow-xs relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-emerald-50/70 via-teal-50/30 to-transparent rounded-full pointer-events-none -mr-20 -mt-20" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
             {/* Prime View Emblem Logo Container */}
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white border border-slate-200/90 shadow-md p-2 flex items-center justify-center shrink-0">
               <Image
@@ -203,7 +203,7 @@ export default function AdminProfilePage() {
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <span
                   className={`text-xs font-bold uppercase tracking-wider px-3 py-0.5 rounded-full border shadow-2xs ${
@@ -223,7 +223,7 @@ export default function AdminProfilePage() {
                 {fullName}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-600 font-medium">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-slate-600 font-medium">
                 <div className="flex items-center gap-1.5">
                   <Mail className="w-3.5 h-3.5 text-slate-400" />
                   <span>{email}</span>
