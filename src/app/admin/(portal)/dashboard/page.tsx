@@ -34,7 +34,10 @@ export default function AdminDashboardPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getActiveAdminSession();
+  });
   const [blocks, setBlocks] = useState<BlockSummary[]>(init?.blocks || []);
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
   const [loading, setLoading] = useState<boolean>(!init);
@@ -80,9 +83,30 @@ export default function AdminDashboardPage() {
     return () => clearInterval(intervalId);
   }, [loadData]);
 
-  if (loading || !session) {
-    return <AdminDashboardSkeleton />;
+  const isSuper = session?.role === 'super_admin';
+  const canAccess = !session || isSuper || Boolean(session.permissions?.can_view_master_plan);
+
+  if (session && !canAccess) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Master Plan</h2>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+          Your administrative account does not have permission to view the society master plan. Contact administration to adjust your privileges.
+        </p>
+        <button
+          onClick={() => setSession(getActiveAdminSession())}
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+        >
+          Retry Connection
+        </button>
+      </div>
+    );
   }
+
+  const isInitialLoading = loading && blocks.length === 0;
 
   // Computed metrics across accessible blocks
   const totalPlots = blocks.reduce((acc, b) => acc + b.totalCount, 0);
@@ -114,7 +138,7 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* Aggregate Overview Cards (Purple, Mint, Amber, Blue) */}
+      {/* Aggregate Overview Cards (Purple, Mint, Amber, Blue) - Preserved during skeleton loading just like Inventory Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Inventory - Purple */}
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 shadow-xs">
@@ -124,8 +148,18 @@ export default function AdminDashboardPage() {
             </div>
             <h3 className="text-purple-800 font-bold text-sm">Total Inventory</h3>
           </div>
-          <div className="text-3xl font-bold text-purple-700">{totalPlots}</div>
-          <p className="text-xs text-purple-700/80 mt-2 font-medium">Across {blocks.length} accessible blocks</p>
+          {isInitialLoading ? (
+            <div className="h-9 w-20 bg-purple-500/20 rounded-xl animate-pulse my-0.5" />
+          ) : (
+            <div className="text-3xl font-bold text-purple-700">{totalPlots}</div>
+          )}
+          <p className="text-xs text-purple-700/80 mt-2 font-medium">
+            {isInitialLoading ? (
+              <span className="inline-block h-3 w-32 bg-purple-500/20 rounded-md animate-pulse" />
+            ) : (
+              `Across ${blocks.length} accessible blocks`
+            )}
+          </p>
         </div>
 
         {/* 2. Available Plots - Mint */}
@@ -136,8 +170,18 @@ export default function AdminDashboardPage() {
             </div>
             <h3 className="text-green-800 font-bold text-sm">Available Plots</h3>
           </div>
-          <div className="text-3xl font-bold text-green-700">{availablePlots}</div>
-          <p className="text-xs text-green-700/80 mt-2 font-medium">Ready for immediate booking</p>
+          {isInitialLoading ? (
+            <div className="h-9 w-20 bg-green-500/20 rounded-xl animate-pulse my-0.5" />
+          ) : (
+            <div className="text-3xl font-bold text-green-700">{availablePlots}</div>
+          )}
+          <p className="text-xs text-green-700/80 mt-2 font-medium">
+            {isInitialLoading ? (
+              <span className="inline-block h-3 w-36 bg-green-500/20 rounded-md animate-pulse" />
+            ) : (
+              'Ready for immediate booking'
+            )}
+          </p>
         </div>
 
         {/* 3. Active Reservations - Amber */}
@@ -148,15 +192,25 @@ export default function AdminDashboardPage() {
             </div>
             <h3 className="text-amber-800 font-bold text-sm">Active Reservations</h3>
           </div>
-          <div className="text-3xl font-bold text-amber-700 flex items-center gap-2">
-            {reservedPlots}
-            {conflictsCount > 0 && (
-              <span className="text-[10px] font-sans font-bold bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full">
-                {conflictsCount} Disputed
-              </span>
+          {isInitialLoading ? (
+            <div className="h-9 w-20 bg-amber-500/20 rounded-xl animate-pulse my-0.5" />
+          ) : (
+            <div className="text-3xl font-bold text-amber-700 flex items-center gap-2">
+              {reservedPlots}
+              {conflictsCount > 0 && (
+                <span className="text-[10px] font-sans font-bold bg-rose-100 text-rose-800 border border-rose-300 px-2 py-0.5 rounded-full">
+                  {conflictsCount} Disputed
+                </span>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-amber-700/80 mt-2 font-medium">
+            {isInitialLoading ? (
+              <span className="inline-block h-3 w-28 bg-amber-500/20 rounded-md animate-pulse" />
+            ) : (
+              'Token deposits on hold'
             )}
-          </div>
-          <p className="text-xs text-amber-700/80 mt-2 font-medium">Token deposits on hold</p>
+          </p>
         </div>
 
         {/* 4. Booked & Confirmed - Blue */}
@@ -167,24 +221,63 @@ export default function AdminDashboardPage() {
             </div>
             <h3 className="text-blue-800 font-bold text-sm">Booked & Confirmed</h3>
           </div>
-          <div className="text-3xl font-bold text-blue-700">{bookedPlots}</div>
-          <p className="text-xs text-blue-700/80 mt-2 font-medium">Verified member allocations</p>
+          {isInitialLoading ? (
+            <div className="h-9 w-20 bg-blue-500/20 rounded-xl animate-pulse my-0.5" />
+          ) : (
+            <div className="text-3xl font-bold text-blue-700">{bookedPlots}</div>
+          )}
+          <p className="text-xs text-blue-700/80 mt-2 font-medium">
+            {isInitialLoading ? (
+              <span className="inline-block h-3 w-36 bg-blue-500/20 rounded-md animate-pulse" />
+            ) : (
+              'Verified member allocations'
+            )}
+          </p>
         </div>
       </div>
 
       {/* Inventory Overview Trend Chart */}
-      <InventoryOverviewChart
-        currentAvailable={availablePlots}
-        currentReserved={reservedPlots}
-        currentBooked={bookedPlots}
-      />
+      {isInitialLoading ? (
+        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1.5">
+              <div className="h-7 w-48 bg-slate-200/80 rounded-lg animate-pulse" />
+              <div className="h-3.5 w-64 bg-slate-200/60 rounded-md animate-pulse" />
+            </div>
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100/70 border border-slate-200/80 rounded-xl">
+              <div className="h-7 w-20 bg-slate-200/80 rounded-lg animate-pulse" />
+              <div className="h-7 w-16 bg-slate-200/80 rounded-lg animate-pulse" />
+              <div className="h-7 w-16 bg-slate-200/80 rounded-lg animate-pulse" />
+            </div>
+          </div>
+          <div className="h-64 sm:h-72 w-full bg-slate-50/70 border border-dashed border-slate-200 rounded-2xl p-6 flex flex-col justify-end space-y-4">
+            <div className="flex items-end justify-between gap-2 h-44 w-full">
+              {[45, 60, 52, 75, 68, 85, 92, 78, 65, 88, 95, 70].map((h, i) => (
+                <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                  <div
+                    className="w-full rounded-t-lg bg-slate-200/90 animate-pulse"
+                    style={{ height: `${h}%` }}
+                  />
+                  <div className="h-2.5 w-6 rounded-xs bg-slate-200/60 animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <InventoryOverviewChart
+          currentAvailable={availablePlots}
+          currentReserved={reservedPlots}
+          currentBooked={bookedPlots}
+        />
+      )}
 
       {/* Accessible Blocks Overview - Distinct Colored Sectors */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs">
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-serif font-bold text-lg text-slate-900">
-              Accessible Sectors ({blocks.length})
+              Accessible Sectors {isInitialLoading ? '' : `(${blocks.length})`}
             </h3>
             <p className="text-xs text-slate-500">
               Color-coded sector portfolios within your administrative authority.
@@ -200,83 +293,101 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {blocks.map((block) => {
-            const availPct = block.totalCount > 0 ? (block.availableCount / block.totalCount) * 100 : 0;
-            const resPct = block.totalCount > 0 ? (block.reservedCount / block.totalCount) * 100 : 0;
-            const bookPct = block.totalCount > 0 ? (block.bookedCount / block.totalCount) * 100 : 0;
-            const theme = getBlockTheme(block.id);
-
-            return (
-              <div
-                key={block.id}
-                style={theme.cardBorderStyle}
-                className="bg-slate-50/70 border-2 rounded-2xl p-5 hover:bg-white transition-all shadow-xs group flex flex-col justify-between"
-              >
-                <div>
-                  {/* Header: Sector Name & Plot Badge */}
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      style={theme.titleStyle}
-                      className="font-serif font-bold text-base tracking-tight group-hover:underline"
-                    >
-                      {block.name}
-                    </span>
-                    <span
-                      style={theme.badgeStyle}
-                      className="text-[11px] font-mono font-bold border px-2.5 py-1 rounded-lg leading-none inline-flex items-center shadow-2xs"
-                    >
-                      {block.totalCount} Plots
-                    </span>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div className="w-full h-2 rounded-full bg-slate-200/90 flex overflow-hidden mb-3.5 shadow-2xs">
-                    <div style={{ width: `${availPct}%` }} className="bg-emerald-500" title={`Available: ${block.availableCount}`} />
-                    <div style={{ width: `${resPct}%` }} className="bg-amber-400" title={`Reserved: ${block.reservedCount}`} />
-                    <div style={{ width: `${bookPct}%` }} className="bg-purple-500" title={`Booked: ${block.bookedCount}`} />
-                  </div>
-
-                  {/* 3 Metric Stat Tiles with Perfect Vertical & Horizontal Alignment */}
-                  <div className="grid grid-cols-3 gap-2.5 mb-4">
-                    <div className="bg-white border border-emerald-200/80 py-2.5 px-1 rounded-xl flex flex-col items-center justify-center text-center shadow-2xs">
-                      <span className="text-base font-bold font-mono text-emerald-700 leading-none">
-                        {block.availableCount}
-                      </span>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1.5 leading-none">
-                        Available
-                      </span>
-                    </div>
-                    <div className="bg-white border border-amber-200/80 py-2.5 px-1 rounded-xl flex flex-col items-center justify-center text-center shadow-2xs">
-                      <span className="text-base font-bold font-mono text-amber-700 leading-none">
-                        {block.reservedCount}
-                      </span>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1.5 leading-none">
-                        Reserved
-                      </span>
-                    </div>
-                    <div className="bg-white border border-purple-200/80 py-2.5 px-1 rounded-xl flex flex-col items-center justify-center text-center shadow-2xs">
-                      <span className="text-base font-bold font-mono text-purple-700 leading-none">
-                        {block.bookedCount}
-                      </span>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1.5 leading-none">
-                        Booked
-                      </span>
-                    </div>
-                  </div>
+          {isInitialLoading ? (
+            Array.from({ length: 6 }).map((_, idx) => (
+              <div key={idx} className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 space-y-4 animate-pulse">
+                <div className="flex items-center justify-between">
+                  <div className="h-5 w-32 bg-slate-200 rounded-md" />
+                  <div className="h-5 w-16 bg-slate-200 rounded-md" />
                 </div>
-
-                {/* Manage Block Grid Action Button */}
-                <Link
-                  href={`/admin/master-plan/${block.id}`}
-                  style={theme.btnStyle}
-                  className="w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 group/btn cursor-pointer"
-                >
-                  <span>Manage Block Grid</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
-                </Link>
+                <div className="h-2 w-full bg-slate-200 rounded-full" />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="h-12 bg-white rounded-xl border border-slate-200" />
+                  <div className="h-12 bg-white rounded-xl border border-slate-200" />
+                  <div className="h-12 bg-white rounded-xl border border-slate-200" />
+                </div>
+                <div className="h-9 w-full bg-slate-200 rounded-xl" />
               </div>
-            );
-          })}
+            ))
+          ) : (
+            blocks.map((block) => {
+              const availPct = block.totalCount > 0 ? (block.availableCount / block.totalCount) * 100 : 0;
+              const resPct = block.totalCount > 0 ? (block.reservedCount / block.totalCount) * 100 : 0;
+              const bookPct = block.totalCount > 0 ? (block.bookedCount / block.totalCount) * 100 : 0;
+              const theme = getBlockTheme(block.id);
+
+              return (
+                <div
+                  key={block.id}
+                  style={theme.cardBorderStyle}
+                  className="bg-slate-50/70 border-2 rounded-2xl p-5 hover:bg-white transition-all shadow-xs group flex flex-col justify-between"
+                >
+                  <div>
+                    {/* Header: Sector Name & Plot Badge */}
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <span
+                        style={theme.titleStyle}
+                        className="font-serif font-bold text-base tracking-tight group-hover:underline"
+                      >
+                        {block.name}
+                      </span>
+                      <span
+                        style={theme.badgeStyle}
+                        className="text-[11px] font-mono font-bold border px-2.5 py-1 rounded-lg leading-none inline-flex items-center shadow-2xs"
+                      >
+                        {block.totalCount} Plots
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-full h-2 rounded-full bg-slate-200/90 flex overflow-hidden mb-3.5 shadow-2xs">
+                      <div style={{ width: `${availPct}%` }} className="bg-emerald-500" title={`Available: ${block.availableCount}`} />
+                      <div style={{ width: `${resPct}%` }} className="bg-amber-400" title={`Reserved: ${block.reservedCount}`} />
+                      <div style={{ width: `${bookPct}%` }} className="bg-purple-500" title={`Booked: ${block.bookedCount}`} />
+                    </div>
+
+                    {/* 3 Metric Stat Tiles with Perfect Vertical & Horizontal Alignment */}
+                    <div className="grid grid-cols-3 gap-2.5 mb-4">
+                      <div className="bg-white border border-emerald-200/80 py-2.5 px-1 rounded-xl flex flex-col items-center justify-center text-center shadow-2xs">
+                        <span className="text-base font-bold font-mono text-emerald-700 leading-none">
+                          {block.availableCount}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1.5 leading-none">
+                          Available
+                        </span>
+                      </div>
+                      <div className="bg-white border border-amber-200/80 py-2.5 px-1 rounded-xl flex flex-col items-center justify-center text-center shadow-2xs">
+                        <span className="text-base font-bold font-mono text-amber-700 leading-none">
+                          {block.reservedCount}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1.5 leading-none">
+                          Reserved
+                        </span>
+                      </div>
+                      <div className="bg-white border border-purple-200/80 py-2.5 px-1 rounded-xl flex flex-col items-center justify-center text-center shadow-2xs">
+                        <span className="text-base font-bold font-mono text-purple-700 leading-none">
+                          {block.bookedCount}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 mt-1.5 leading-none">
+                          Booked
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Manage Block Grid Action Button */}
+                  <Link
+                    href={`/admin/master-plan/${block.id}`}
+                    style={theme.btnStyle}
+                    className="w-full py-2.5 px-4 text-xs font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 group/btn cursor-pointer"
+                  >
+                    <span>Manage Block Grid</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/btn:translate-x-1" />
+                  </Link>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -287,7 +398,7 @@ export default function AdminDashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
               <BookmarkCheck className="w-4 h-4 text-amber-600" />
-              <span>Active Reservations ({reservations.filter((r) => r.status === 'active').length})</span>
+              <span>Active Reservations {isInitialLoading ? '' : `(${reservations.filter((r) => r.status === 'active').length})`}</span>
             </h3>
             <Link
               href="/admin/reservations"
@@ -298,49 +409,63 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {reservations
-              .filter((r) => r.status === 'active')
-              .slice(0, 5)
-              .map((r) => {
-                const sectorTheme = getBlockTheme(r.blockId);
-                return (
-                  <div
-                    key={r.id}
-                    className={`p-3.5 rounded-2xl border transition-colors ${r.hasDuplicateConflict
-                        ? 'bg-amber-50/90 border-amber-300'
-                        : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
-                      } flex items-center justify-between gap-3`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-xs font-mono">{r.plotNumber}</span>
-                        <span
-                          style={sectorTheme.badgeStyle}
-                          className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border"
-                        >
-                          {r.blockId}
-                        </span>
-                        {r.hasDuplicateConflict && (
-                          <span className="text-[9px] bg-rose-100 text-rose-800 border border-rose-300 px-1.5 py-0.5 rounded font-bold">
-                            Conflict Claim
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-900 font-bold mt-0.5 truncate">{r.customerName}</div>
-                      <div className="text-[11px] text-slate-500 truncate">
-                        Token: <strong className="text-slate-800">PKR {r.tokenFee.toLocaleString()}</strong> • By {r.reservedByAdminName}
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/admin/reservations`}
-                      className="px-3.5 py-1.5 text-[11px] font-bold bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl transition-colors shadow-xs shrink-0 whitespace-nowrap inline-flex items-center justify-center min-w-[70px]"
-                    >
-                      Details
-                    </Link>
+            {isInitialLoading ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="p-3.5 rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-between gap-3 animate-pulse">
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 w-28 bg-slate-200 rounded-md" />
+                    <div className="h-3 w-40 bg-slate-200/70 rounded-md" />
                   </div>
-                );
-              })}
+                  <div className="h-7 w-16 bg-slate-200 rounded-xl" />
+                </div>
+              ))
+            ) : reservations.filter((r) => r.status === 'active').length === 0 ? (
+              <div className="py-6 text-center text-xs text-slate-400">No active reservations recorded</div>
+            ) : (
+              reservations
+                .filter((r) => r.status === 'active')
+                .slice(0, 5)
+                .map((r) => {
+                  const sectorTheme = getBlockTheme(r.blockId);
+                  return (
+                    <div
+                      key={r.id}
+                      className={`p-3.5 rounded-2xl border transition-colors ${r.hasDuplicateConflict
+                          ? 'bg-amber-50/90 border-amber-300'
+                          : 'bg-slate-50 border-slate-200 hover:bg-slate-100/70'
+                        } flex items-center justify-between gap-3`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-xs font-mono">{r.plotNumber}</span>
+                          <span
+                            style={sectorTheme.badgeStyle}
+                            className="text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded border"
+                          >
+                            {r.blockId}
+                          </span>
+                          {r.hasDuplicateConflict && (
+                            <span className="text-[9px] bg-rose-100 text-rose-800 border border-rose-300 px-1.5 py-0.5 rounded font-bold">
+                              Conflict Claim
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-900 font-bold mt-0.5 truncate">{r.customerName}</div>
+                        <div className="text-[11px] text-slate-500 truncate">
+                          Token: <strong className="text-slate-800">PKR {r.tokenFee.toLocaleString()}</strong> • By {r.reservedByAdminName}
+                        </div>
+                      </div>
+
+                      <Link
+                        href={`/admin/reservations`}
+                        className="px-3.5 py-1.5 text-[11px] font-bold bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl transition-colors shadow-xs shrink-0 whitespace-nowrap inline-flex items-center justify-center min-w-[70px]"
+                      >
+                        Details
+                      </Link>
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
 
