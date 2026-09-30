@@ -104,8 +104,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                   </div>
                 )}
                 
-                {/* Gallery Images with tailored aspect ratios and proper containment */}
-                {event.gallery.map((img, idx) => {
+                {/* Gallery Images with tailored aspect ratios and proper containment (Max 9) */}
+                {event.gallery.slice(0, 9).map((img, idx) => {
                   // Custom layout logic to fit each photo without any cropping
                   let colSpan = "col-span-1";
                   let aspect = "aspect-[3/4]";
@@ -138,13 +138,21 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                       onClick={() => setLightboxImage(img)}
                       className={`group relative ${colSpan} ${aspect} ${bg} rounded-2xl overflow-hidden border border-black/[0.08] shadow-xs cursor-pointer hover:shadow-xl transition-all duration-300 flex items-center justify-center`}
                     >
-                      <Image
-                        src={img}
-                        alt={`${event.title} Photo ${idx + 1}`}
-                        fill
-                        className={`${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 66vw, 50vw"
-                      />
+                      {img && (img.startsWith("http://") || img.startsWith("https://")) ? (
+                        <img
+                          src={img}
+                          alt={`${event.title} Photo ${idx + 1}`}
+                          className={`w-full h-full ${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
+                        />
+                      ) : (
+                        <Image
+                          src={img}
+                          alt={`${event.title} Photo ${idx + 1}`}
+                          fill
+                          className={`${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 66vw, 50vw"
+                        />
+                      )}
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                         <div className="w-10 h-10 rounded-full bg-white/95 backdrop-blur-xs flex items-center justify-center text-[#151914] shadow-md transform scale-90 group-hover:scale-100 transition-transform">
                           <Maximize2 className="w-4 h-4" />

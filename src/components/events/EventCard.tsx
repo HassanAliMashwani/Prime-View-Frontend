@@ -30,14 +30,22 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
             : "w-full h-56 sm:h-64"
         }`}
       >
-        <Image
-          src={event.coverImage}
-          alt={`${event.title} Cover`}
-          fill
-          className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
-          sizes="(max-width: 768px) 100vw, 50vw"
-          priority
-        />
+        {event.coverImage && (event.coverImage.startsWith("http://") || event.coverImage.startsWith("https://")) ? (
+          <img
+            src={event.coverImage}
+            alt={`${event.title} Cover`}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+          />
+        ) : (
+          <Image
+            src={event.coverImage}
+            alt={`${event.title} Cover`}
+            fill
+            className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+            sizes="(max-width: 768px) 100vw, 50vw"
+            priority
+          />
+        )}
         {/* Subtle Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-300" />
 
@@ -102,13 +110,21 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
                   key={idx}
                   className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0 self-center"
                 >
-                  <Image
-                    src={img}
-                    alt="Gallery Preview"
-                    fill
-                    className="object-cover group-hover/thumb:scale-110 transition-transform duration-300"
-                    sizes="64px"
-                  />
+                  {img && (img.startsWith("http://") || img.startsWith("https://")) ? (
+                    <img
+                      src={img}
+                      alt="Gallery Preview"
+                      className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300"
+                    />
+                  ) : (
+                    <Image
+                      src={img}
+                      alt="Gallery Preview"
+                      fill
+                      className="object-cover group-hover/thumb:scale-110 transition-transform duration-300"
+                      sizes="64px"
+                    />
+                  )}
                 </div>
               ))}
               {event.gallery.length > 4 && (

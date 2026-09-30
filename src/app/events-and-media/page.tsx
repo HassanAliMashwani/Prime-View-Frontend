@@ -14,13 +14,31 @@ export default function EventsAndMediaPage() {
       const mapped: EventData[] = [];
       for (const block of blocks) {
         const m = (block.metadata || {}) as Record<string, any>;
-        const missing: string[] = [];
-        if (!block.title) missing.push('title');
-        if (!m.imageUrl) missing.push('image');
-
-        if (missing.length > 0) {
-          console.warn(`[CMS Warning] Block ${block.id} in section events is missing required field(s): ${missing.join(', ')}`);
+        if (!block.title) {
+          console.warn(`[CMS Warning] Block ${block.id} in section events is missing required field: title`);
           continue;
+        }
+
+        const fallbackCover = '/new assests/Events and media/event1/banner.jpeg';
+        let coverImage = (m?.imageUrl && String(m.imageUrl).trim()) || fallbackCover;
+
+        // A page address such as unsplash.com/photos/... is not an image address. Leave the card up and console.warn the block id and image.
+        if (typeof m?.imageUrl === 'string' && /unsplash\.com\/photos\//i.test(m.imageUrl)) {
+          console.warn(`[CMS Warning] Block ${block.id} has invalid page URL as image: ${m.imageUrl}`);
+          coverImage = fallbackCover;
+        }
+
+        const rawGallery = Array.isArray(m.galleryImages) ? m.galleryImages : [];
+        const gallery: string[] = [];
+        for (const g of rawGallery) {
+          if (typeof g === 'string' && g.trim()) {
+            if (/unsplash\.com\/photos\//i.test(g)) {
+              console.warn(`[CMS Warning] Block ${block.id} has invalid page URL as gallery image: ${g}`);
+            } else {
+              gallery.push(g.trim());
+            }
+          }
+          if (gallery.length === 9) break;
         }
 
         mapped.push({
@@ -30,8 +48,8 @@ export default function EventsAndMediaPage() {
           date: m.date ? String(m.date) : '',
           venue: m.location ? String(m.location) : undefined,
           summary: block.content || '',
-          coverImage: String(m.imageUrl),
-          gallery: Array.isArray(m.galleryImages) ? m.galleryImages : [],
+          coverImage,
+          gallery,
           fullDescription: block.content || '',
           videoPreview: m.videoUrl ? String(m.videoUrl) : undefined,
         });

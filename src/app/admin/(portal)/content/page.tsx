@@ -75,6 +75,7 @@ export default function ContentCMSPage() {
     contact?: string;
     website?: string;
     imageUrl?: string;
+    galleryImages: string[];
     tagsString?: string;
     featured: boolean;
   }>({
@@ -82,8 +83,11 @@ export default function ContentCMSPage() {
     subtitle: '',
     category: '',
     content: '',
+    galleryImages: [],
     featured: false,
   });
+  const [newGalleryUrl, setNewGalleryUrl] = useState('');
+  const [galleryWarning, setGalleryWarning] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -139,10 +143,13 @@ export default function ContentCMSPage() {
 
     const updateTimer = () => {
       const now = Date.now();
-      const elapsedMs = now - (editingBlock.lockedAt || now);
+      const lockedAtMs = editingBlock.lockedAt
+        ? new Date(editingBlock.lockedAt).getTime()
+        : now;
+      const elapsedMs = isNaN(lockedAtMs) ? 0 : now - lockedAtMs;
       const remainingMs = Math.max(0, 30 * 60 * 1000 - elapsedMs);
       const remainingSecs = Math.floor(remainingMs / 1000);
-      setLockSecondsRemaining(remainingSecs);
+      setLockSecondsRemaining(isNaN(remainingSecs) ? 1800 : remainingSecs);
 
       if (remainingSecs <= 0) {
         if (timerRef.current) clearInterval(timerRef.current);
@@ -204,9 +211,14 @@ export default function ContentCMSPage() {
       contact: (locked.metadata.contact as string) || '',
       website: (locked.metadata.website as string) || '',
       imageUrl: locked.metadata.imageUrl || '',
+      galleryImages: Array.isArray(locked.metadata.galleryImages)
+        ? (locked.metadata.galleryImages as string[]).slice(0, 9)
+        : [],
       tagsString: Array.isArray(locked.metadata.tags) ? locked.metadata.tags.join(', ') : '',
       featured: Boolean(locked.metadata.featured),
     });
+    setNewGalleryUrl('');
+    setGalleryWarning(null);
     loadData(session, activeSection);
   };
 
@@ -232,9 +244,12 @@ export default function ContentCMSPage() {
       contact: '',
       website: '',
       imageUrl: '',
+      galleryImages: [],
       tagsString: '',
       featured: false,
     });
+    setNewGalleryUrl('');
+    setGalleryWarning(null);
   };
 
   // Close / Cancel modal
@@ -282,6 +297,14 @@ export default function ContentCMSPage() {
       if (editForm.location?.trim()) metadata.location = editForm.location.trim();
       if (editForm.contact?.trim()) metadata.contact = editForm.contact.trim();
       if (editForm.website?.trim()) metadata.website = editForm.website.trim();
+      if (editForm.galleryImages.length > 9) {
+        setEditError('The tenth gallery picture is refused. Maximum of 9 gallery pictures allowed.');
+        setSaving(false);
+        return;
+      }
+      if (editForm.galleryImages.length > 0) {
+        metadata.galleryImages = editForm.galleryImages.slice(0, 9);
+      }
     }
 
     if (isCreating) {
@@ -358,7 +381,7 @@ export default function ContentCMSPage() {
 
   // Format countdown seconds into mm:ss
   const formatCountdown = (totalSecs: number | null) => {
-    if (totalSecs === null) return '--:--';
+    if (totalSecs === null || isNaN(totalSecs)) return '--:--';
     const m = Math.floor(totalSecs / 60);
     const s = totalSecs % 60;
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -922,27 +945,121 @@ export default function ContentCMSPage() {
                   </>
                 )}
 
-                <div className="md:col-span-2">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Image URL or Asset Path
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.imageUrl || ''}
-                    onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                    placeholder="/new assests/our plan assests/card 1.png or /new assests/Events and media/event1/..."
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
-                  />
-                  {editForm.imageUrl && (
-                    <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
-                      <img
-                        src={editForm.imageUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
+                {activeSection === 'plans' ? (
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Plan Picture URL or Asset Path (One plan picture only)
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.imageUrl || ''}
+                      onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                      placeholder="/new assests/our plan assests/card 1.png or https://..."
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                    />
+                    {editForm.imageUrl && (
+                      <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                        <img
+                          src={editForm.imageUrl}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Event Cover Image URL or Asset Path (One cover only)
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.imageUrl || ''}
+                        onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                        placeholder="/new assests/Events and media/event1/banner.jpeg or https://..."
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                       />
+                      {editForm.imageUrl && (
+                        <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                          <img
+                            src={editForm.imageUrl}
+                            alt="Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+
+                    <div className="md:col-span-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-xs font-bold text-slate-700">
+                          Event Gallery Pictures (Up to 9 pictures)
+                        </label>
+                        <span className="text-[11px] font-mono font-semibold text-slate-500">
+                          {editForm.galleryImages.length} / 9
+                        </span>
+                      </div>
+
+                      {galleryWarning && (
+                        <p className="text-xs text-rose-600 font-medium mb-2">{galleryWarning}</p>
+                      )}
+
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={newGalleryUrl}
+                          onChange={(e) => setNewGalleryUrl(e.target.value)}
+                          placeholder="https://... or /new assests/Events and media/..."
+                          className="grow px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newGalleryUrl.trim()) return;
+                            if (editForm.galleryImages.length >= 9) {
+                              setGalleryWarning('The tenth gallery picture is refused. At most 9 gallery pictures are allowed.');
+                              return;
+                            }
+                            setGalleryWarning(null);
+                            setEditForm({
+                              ...editForm,
+                              galleryImages: [...editForm.galleryImages, newGalleryUrl.trim()],
+                            });
+                            setNewGalleryUrl('');
+                          }}
+                          className="px-3 py-2 text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 rounded-xl transition cursor-pointer shrink-0"
+                        >
+                          Add Picture
+                        </button>
+                      </div>
+
+                      {editForm.galleryImages.length > 0 && (
+                        <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-2">
+                          {editForm.galleryImages.map((url, idx) => (
+                            <div key={idx} className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-50 h-20">
+                              <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setGalleryWarning(null);
+                                  setEditForm({
+                                    ...editForm,
+                                    galleryImages: editForm.galleryImages.filter((_, i) => i !== idx),
+                                  });
+                                }}
+                                className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white p-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                                title="Remove picture"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
 
                 <div className="md:col-span-2">
                   <label className="block text-xs font-bold text-slate-700 mb-1">

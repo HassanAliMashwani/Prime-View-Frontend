@@ -217,13 +217,21 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
 
                 {/* Card Image */}
                 <div className="relative w-full overflow-hidden" style={{ height: "260px" }}>
-                  <Image
-                    src={plot.image}
-                    alt={`Prime View ${plot.size} plot`}
-                    fill
-                    className="object-cover object-center"
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                  />
+                  {plot.image && (plot.image.startsWith("http://") || plot.image.startsWith("https://")) ? (
+                    <img
+                      src={plot.image}
+                      alt={`Prime View ${plot.size} plot`}
+                      className="w-full h-full object-cover object-center"
+                    />
+                  ) : (
+                    <Image
+                      src={plot.image}
+                      alt={`Prime View ${plot.size} plot`}
+                      fill
+                      className="object-cover object-center"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
+                  )}
                 </div>
 
                 {/* Card Body */}
