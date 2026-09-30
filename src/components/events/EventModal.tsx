@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { X, Calendar, MapPin, Maximize2 } from "lucide-react";
+import { X, Calendar, MapPin, Maximize2, Play } from "lucide-react";
 import { EventData } from "@/data/events";
 
 interface EventModalProps {
@@ -14,6 +14,7 @@ interface EventModalProps {
 export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [mounted, setMounted] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -92,15 +93,49 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                {/* Video First if available */}
+                {/* Video First if available (Click opens embed and video plays; does not play by itself) */}
                 {event.videoPreview && (
-                  <div className="relative aspect-video sm:col-span-2 lg:col-span-3 rounded-2xl overflow-hidden bg-black/5 border border-white">
-                    <video
-                      src={event.videoPreview}
-                      controls
-                      playsInline
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="relative aspect-video sm:col-span-2 lg:col-span-3 rounded-2xl overflow-hidden bg-black border border-white/20 shadow-md">
+                    {isPlayingVideo ? (
+                      event.videoPreview.includes("youtube.com/embed") ? (
+                        <iframe
+                          src={`${event.videoPreview}${event.videoPreview.includes("?") ? "&" : "?"}autoplay=1`}
+                          title={event.title}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full border-0"
+                        />
+                      ) : (
+                        <video
+                          src={event.videoPreview}
+                          controls
+                          autoPlay
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      )
+                    ) : (
+                      <div
+                        onClick={() => setIsPlayingVideo(true)}
+                        className="relative w-full h-full flex items-center justify-center cursor-pointer group bg-black/80"
+                      >
+                        {event.coverImage && (
+                          <img
+                            src={event.coverImage}
+                            alt={`${event.title} Video Preview`}
+                            className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 transition-opacity"
+                          />
+                        )}
+                        <div className="relative z-10 flex flex-col items-center gap-2">
+                          <div className="w-16 h-16 rounded-full bg-red-600 group-hover:bg-red-700 text-white flex items-center justify-center shadow-2xl transition-transform duration-300 group-hover:scale-110">
+                            <Play className="w-7 h-7 ml-1 fill-white" />
+                          </div>
+                          <span className="text-white text-xs font-bold tracking-wide uppercase bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs">
+                            Click to Play Video
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 
