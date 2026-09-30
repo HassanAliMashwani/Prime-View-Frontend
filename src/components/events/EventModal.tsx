@@ -20,10 +20,23 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     setMounted(true);
     // Prevent background scrolling when modal is open
     document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (lightboxImage) {
+          setLightboxImage(null);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.body.style.overflow = "unset";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [lightboxImage, onClose]);
 
   if (!mounted) return null;
 

@@ -269,8 +269,8 @@ export default function ContentCMSPage() {
     setGalleryWarning(null);
   };
 
-  // Close / Cancel modal
-  const handleCancelModal = async () => {
+  // Close / Cancel modal instantaneously
+  const handleCancelModal = () => {
     if (isCreating) {
       setIsCreating(false);
       setEditError(null);
@@ -278,12 +278,28 @@ export default function ContentCMSPage() {
     }
 
     if (session && editingBlock) {
-      await releaseContentLock(session, editingBlock.id);
+      const blockId = editingBlock.id;
+      // Close IMMEDIATELY so the card closes with zero delay
       setEditingBlock(null);
       setEditError(null);
-      loadData(session, activeSection);
+
+      // Release lock in the background without blocking the UI
+      releaseContentLock(session, blockId).finally(() => {
+        loadData(session, activeSection);
+      });
     }
   };
+
+  // Close modal on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && (editingBlock || isCreating)) {
+        handleCancelModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [editingBlock, isCreating, session, activeSection]);
 
   // Save changes (Create or Update)
   const handleSubmitForm = async (e: React.FormEvent) => {
@@ -341,14 +357,18 @@ export default function ContentCMSPage() {
         content: editForm.content,
         metadata,
       });
-      setSaving(false);
 
       if (!res.ok) {
+        setSaving(false);
         setEditError(res.error || 'Failed to create content block.');
         return;
       }
 
+      if (res.block) {
+        setBlocks((prev) => [res.block as ContentBlock, ...prev]);
+      }
       setIsCreating(false);
+      setSaving(false);
       setFeedback({
         type: 'success',
         message: `${activeSection === 'plans' ? 'Plan card' : 'Event'} "${editForm.title}" published successfully.`,
@@ -358,21 +378,26 @@ export default function ContentCMSPage() {
     }
 
     if (editingBlock) {
-      const res = await saveContentBlock(session, editingBlock.id, {
+      const blockId = editingBlock.id;
+      const res = await saveContentBlock(session, blockId, {
         title: editForm.title,
         subtitle: editForm.subtitle,
         category: editForm.category,
         content: editForm.content,
         metadata,
       });
-      setSaving(false);
 
       if (!res.ok) {
+        setSaving(false);
         setEditError(res.error || 'Failed to save content block.');
         return;
       }
 
+      if (res.block) {
+        setBlocks((prev) => prev.map((b) => (b.id === blockId ? (res.block as ContentBlock) : b)));
+      }
       setEditingBlock(null);
+      setSaving(false);
       setFeedback({
         type: 'success',
         message: `Content block "${editForm.title}" updated and published successfully.`,
@@ -736,8 +761,16 @@ export default function ContentCMSPage() {
       {/* 30-MINUTE EDIT LOCK DRAWER / CREATE MODAL            */}
       {/* ==================================================== */}
       {(editingBlock || isCreating) && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-8 max-h-[90vh] flex flex-col">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCancelModal();
+          }}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-8 max-h-[90vh] flex flex-col cursor-default"
+          >
             {/* Modal Header */}
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
@@ -959,13 +992,25 @@ export default function ContentCMSPage() {
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Website Link
                       </label>
-                      <input
-                        type="text"
-                        value={editForm.website || ''}
-                        onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
-                        placeholder="e.g. www.primeview.org"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
-                      />
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={editForm.website || ''}
+                          onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                          placeholder="e.g. www.primeview.org"
+                          className="w-full px-3 py-2 pr-8 text-xs rounded-xl border border-slate-300"
+                        />
+                        {editForm.website && (
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({ ...editForm, website: '' })}
+                            className="absolute right-2 p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
+                            title="Remove website link"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </>
                 )}
@@ -975,21 +1020,41 @@ export default function ContentCMSPage() {
                     <label className="block text-xs font-bold text-slate-700 mb-1">
                       Plan Picture URL or Asset Path (One plan picture only)
                     </label>
-                    <input
-                      type="text"
-                      value={editForm.imageUrl || ''}
-                      onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                      onBlur={() => setEditForm({ ...editForm, imageUrl: normalizeImagePath(editForm.imageUrl) })}
-                      placeholder="/new assests/our plan assests/card 1.png or https://..."
-                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
-                    />
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={editForm.imageUrl || ''}
+                        onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                        onBlur={() => setEditForm({ ...editForm, imageUrl: normalizeImagePath(editForm.imageUrl) })}
+                        placeholder="/new assests/our plan assests/card 1.png or https://..."
+                        className="w-full px-3 py-2 pr-9 text-xs rounded-xl border border-slate-300 font-mono"
+                      />
+                      {editForm.imageUrl && (
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, imageUrl: '' })}
+                          className="absolute right-2.5 p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
+                          title="Remove picture link"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
                     {editForm.imageUrl?.trim() && (
-                      <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                      <div className="relative mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 group">
                         <img
                           src={normalizeImagePath(editForm.imageUrl.trim())}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setEditForm({ ...editForm, imageUrl: '' })}
+                          className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-rose-600 text-white p-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-xs"
+                          title="Remove picture"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     )}
                   </div>
@@ -999,21 +1064,41 @@ export default function ContentCMSPage() {
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Event Cover Image URL or Asset Path (One cover only)
                       </label>
-                      <input
-                        type="text"
-                        value={editForm.imageUrl || ''}
-                        onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                        onBlur={() => setEditForm({ ...editForm, imageUrl: normalizeImagePath(editForm.imageUrl) })}
-                        placeholder="/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg or https://..."
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
-                      />
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={editForm.imageUrl || ''}
+                          onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                          onBlur={() => setEditForm({ ...editForm, imageUrl: normalizeImagePath(editForm.imageUrl) })}
+                          placeholder="/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg or https://..."
+                          className="w-full px-3 py-2 pr-9 text-xs rounded-xl border border-slate-300 font-mono"
+                        />
+                        {editForm.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({ ...editForm, imageUrl: '' })}
+                            className="absolute right-2.5 p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
+                            title="Remove cover picture link"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                       {editForm.imageUrl?.trim() && (
-                        <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
+                        <div className="relative mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 group">
                           <img
                             src={normalizeImagePath(editForm.imageUrl.trim())}
                             alt="Preview"
                             className="w-full h-full object-cover"
                           />
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({ ...editForm, imageUrl: '' })}
+                            className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-rose-600 text-white p-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-xs"
+                            title="Remove cover picture"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1023,9 +1108,22 @@ export default function ContentCMSPage() {
                         <label className="block text-xs font-bold text-slate-700">
                           Event Gallery Pictures (Up to 9 pictures)
                         </label>
-                        <span className="text-[11px] font-mono font-semibold text-slate-500">
-                          {editForm.galleryImages.length} / 9
-                        </span>
+                        <div className="flex items-center gap-3">
+                          {editForm.galleryImages.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => setEditForm({ ...editForm, galleryImages: [] })}
+                              className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1 cursor-pointer transition"
+                              title="Delete all gallery pictures"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Clear All</span>
+                            </button>
+                          )}
+                          <span className="text-[11px] font-mono font-semibold text-slate-500">
+                            {editForm.galleryImages.length} / 9
+                          </span>
+                        </div>
                       </div>
 
                       {galleryWarning && (
@@ -1075,10 +1173,10 @@ export default function ContentCMSPage() {
                                     galleryImages: editForm.galleryImages.filter((_, i) => i !== idx),
                                   });
                                 }}
-                                className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white p-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                                className="absolute top-1 right-1 bg-black/75 hover:bg-rose-600 text-white p-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-xs"
                                 title="Remove picture"
                               >
-                                <X className="w-3 h-3" />
+                                <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           ))}
@@ -1090,17 +1188,38 @@ export default function ContentCMSPage() {
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         YouTube Video Link
                       </label>
-                      <input
-                        type="text"
-                        value={editForm.videoUrl || ''}
-                        onChange={(e) => setEditForm({ ...editForm, videoUrl: e.target.value })}
-                        placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/... or shorts"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
-                      />
+                      <div className="relative flex items-center">
+                        <input
+                          type="text"
+                          value={editForm.videoUrl || ''}
+                          onChange={(e) => setEditForm({ ...editForm, videoUrl: e.target.value })}
+                          placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/... or shorts"
+                          className="w-full px-3 py-2 pr-9 text-xs rounded-xl border border-slate-300 font-mono"
+                        />
+                        {editForm.videoUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({ ...editForm, videoUrl: '' })}
+                            className="absolute right-2.5 p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
+                            title="Remove video link"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
                       {editForm.videoUrl && formatYouTubeEmbedUrl(editForm.videoUrl) && (
-                        <p className="mt-1 text-[11px] text-emerald-700 font-mono font-medium">
-                          Saves as embed: {formatYouTubeEmbedUrl(editForm.videoUrl)}
-                        </p>
+                        <div className="mt-1 flex items-center justify-between text-[11px] text-emerald-700 font-mono font-medium">
+                          <span>Saves as embed: {formatYouTubeEmbedUrl(editForm.videoUrl)}</span>
+                          <button
+                            type="button"
+                            onClick={() => setEditForm({ ...editForm, videoUrl: '' })}
+                            className="text-rose-600 hover:text-rose-700 hover:underline flex items-center gap-1 font-sans cursor-pointer ml-2 shrink-0"
+                            title="Remove video link"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>Remove</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </>
