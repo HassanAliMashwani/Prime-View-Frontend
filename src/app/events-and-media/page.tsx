@@ -22,21 +22,11 @@ export default function EventsAndMediaPage() {
         const fallbackCover = '/new assests/Events and media/event1/banner.jpeg';
         let coverImage = (m?.imageUrl && String(m.imageUrl).trim()) || fallbackCover;
 
-        // A page address such as unsplash.com/photos/... is not an image address. Leave the card up and console.warn the block id and image.
-        if (typeof m?.imageUrl === 'string' && /unsplash\.com\/photos\//i.test(m.imageUrl)) {
-          console.warn(`[CMS Warning] Block ${block.id} has invalid page URL as image: ${m.imageUrl}`);
-          coverImage = fallbackCover;
-        }
-
         const rawGallery = Array.isArray(m.galleryImages) ? m.galleryImages : [];
         const gallery: string[] = [];
         for (const g of rawGallery) {
           if (typeof g === 'string' && g.trim()) {
-            if (/unsplash\.com\/photos\//i.test(g)) {
-              console.warn(`[CMS Warning] Block ${block.id} has invalid page URL as gallery image: ${g}`);
-            } else {
-              gallery.push(g.trim());
-            }
+            gallery.push(g.trim());
           }
           if (gallery.length === 9) break;
         }

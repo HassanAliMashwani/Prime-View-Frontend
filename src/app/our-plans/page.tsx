@@ -109,11 +109,6 @@ export default function OurPlansPage() {
           const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.png';
           let image = (m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage;
 
-          // A page address such as unsplash.com/photos/... is not an image address. Leave the card up and console.warn the block id and image.
-          if (typeof m?.imageUrl === 'string' && /unsplash\.com\/photos\//i.test(m.imageUrl)) {
-            console.warn(`[CMS Warning] Block ${block.id} has invalid page URL as image: ${m.imageUrl}`);
-            image = fallbackImage;
-          }
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label
           const sizeMatch = String(m?.size || '').match(/^(.+?)\s*\((.+?)\)$/);

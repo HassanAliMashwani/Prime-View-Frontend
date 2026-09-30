@@ -39,7 +39,7 @@ import {
 } from '@/lib/dal/content';
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache } from '@/lib/dal/apiCache';
-import { resolveImageLink, formatYouTubeEmbedUrl } from '@/lib/dal/resolveImage';
+import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
 
 export default function ContentCMSPage() {
   const router = useRouter();
@@ -91,40 +91,8 @@ export default function ContentCMSPage() {
   });
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
   const [galleryWarning, setGalleryWarning] = useState<string | null>(null);
-  const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState<string | null>(null);
-  const [imageLinkIsPage, setImageLinkIsPage] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
-
-  // Before preview and before save, turn the pasted address into a direct image address.
-  // If it cannot be resolved, leave the preview empty and show the words “This link is a page, not a picture.” Do not show a broken icon.
-  useEffect(() => {
-    let active = true;
-    const url = editForm.imageUrl?.trim();
-    if (!url) {
-      setResolvedPreviewUrl(null);
-      setImageLinkIsPage(false);
-      return;
-    }
-
-    resolveImageLink(url).then((res) => {
-      if (!active) return;
-      if (res.directUrl) {
-        setResolvedPreviewUrl(res.directUrl);
-        setImageLinkIsPage(false);
-      } else if (res.isPage) {
-        setResolvedPreviewUrl(null);
-        setImageLinkIsPage(true);
-      } else {
-        setResolvedPreviewUrl(null);
-        setImageLinkIsPage(false);
-      }
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [editForm.imageUrl]);
 
   // 30-minute lock countdown timer
   const [lockSecondsRemaining, setLockSecondsRemaining] = useState<number | null>(null);
@@ -316,18 +284,7 @@ export default function ContentCMSPage() {
       ? editForm.tagsString.split(',').map((t) => t.trim()).filter(Boolean)
       : undefined;
 
-    let finalImageUrl = editForm.imageUrl?.trim() || undefined;
-    if (finalImageUrl) {
-      const res = await resolveImageLink(finalImageUrl);
-      if (res.isPage) {
-        setEditError('This link is a page, not a picture.');
-        setSaving(false);
-        return;
-      }
-      if (res.directUrl) {
-        finalImageUrl = res.directUrl;
-      }
-    }
+    const finalImageUrl = editForm.imageUrl?.trim() || undefined;
 
     const metadata: Record<string, unknown> = {
       imageUrl: finalImageUrl,
@@ -356,16 +313,10 @@ export default function ContentCMSPage() {
         return;
       }
       if (editForm.galleryImages.length > 0) {
-        const resolvedGallery: string[] = [];
-        for (const img of editForm.galleryImages) {
-          const res = await resolveImageLink(img);
-          if (res.directUrl) {
-            resolvedGallery.push(res.directUrl);
-          } else if (!res.isPage) {
-            resolvedGallery.push(img.trim());
-          }
-        }
-        metadata.galleryImages = resolvedGallery.slice(0, 9);
+        metadata.galleryImages = editForm.galleryImages
+          .map((img) => img.trim())
+          .filter(Boolean)
+          .slice(0, 9);
       }
     }
 
@@ -1019,15 +970,10 @@ export default function ContentCMSPage() {
                       placeholder="/new assests/our plan assests/card 1.png or https://..."
                       className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                     />
-                    {imageLinkIsPage && (
-                      <p className="mt-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-                        This link is a page, not a picture.
-                      </p>
-                    )}
-                    {!imageLinkIsPage && resolvedPreviewUrl && (
+                    {editForm.imageUrl?.trim() && (
                       <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                         <img
-                          src={resolvedPreviewUrl}
+                          src={editForm.imageUrl.trim()}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
@@ -1047,15 +993,10 @@ export default function ContentCMSPage() {
                         placeholder="/new assests/Events and media/event1/banner.jpeg or https://..."
                         className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                       />
-                      {imageLinkIsPage && (
-                        <p className="mt-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
-                          This link is a page, not a picture.
-                        </p>
-                      )}
-                      {!imageLinkIsPage && resolvedPreviewUrl && (
+                      {editForm.imageUrl?.trim() && (
                         <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                           <img
-                            src={resolvedPreviewUrl}
+                            src={editForm.imageUrl.trim()}
                             alt="Preview"
                             className="w-full h-full object-cover"
                           />
@@ -1087,22 +1028,16 @@ export default function ContentCMSPage() {
                         />
                         <button
                           type="button"
-                          onClick={async () => {
+                          onClick={() => {
                             if (!newGalleryUrl.trim()) return;
                             if (editForm.galleryImages.length >= 9) {
                               setGalleryWarning('The tenth gallery picture is refused. At most 9 gallery pictures are allowed.');
                               return;
                             }
                             setGalleryWarning(null);
-                            const res = await resolveImageLink(newGalleryUrl.trim());
-                            if (res.isPage) {
-                              setGalleryWarning('This link is a page, not a picture.');
-                              return;
-                            }
-                            const finalUrl = res.directUrl || newGalleryUrl.trim();
                             setEditForm({
                               ...editForm,
-                              galleryImages: [...editForm.galleryImages, finalUrl],
+                              galleryImages: [...editForm.galleryImages, newGalleryUrl.trim()],
                             });
                             setNewGalleryUrl('');
                           }}

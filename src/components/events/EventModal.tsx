@@ -223,13 +223,21 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
             className="relative max-w-5xl max-h-[88vh] w-full h-[80vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={lightboxImage}
-              alt="Enlarged Preview"
-              fill
-              className="object-contain"
-              sizes="90vw"
-            />
+            {lightboxImage.startsWith("http://") || lightboxImage.startsWith("https://") ? (
+              <img
+                src={lightboxImage}
+                alt="Enlarged Preview"
+                className="max-w-full max-h-full object-contain"
+              />
+            ) : (
+              <Image
+                src={lightboxImage}
+                alt="Enlarged Preview"
+                fill
+                className="object-contain"
+                sizes="90vw"
+              />
+            )}
           </div>
         </div>
       )}
