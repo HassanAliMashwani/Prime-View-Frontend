@@ -40,6 +40,7 @@ import {
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache } from '@/lib/dal/apiCache';
 import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
+import { normalizeImagePath } from '@/lib/images';
 
 export default function ContentCMSPage() {
   const router = useRouter();
@@ -213,10 +214,21 @@ export default function ContentCMSPage() {
       location: locked.metadata.location,
       contact: (locked.metadata.contact as string) || '',
       website: (locked.metadata.website as string) || '',
-      imageUrl: locked.metadata.imageUrl || '',
-      galleryImages: Array.isArray(locked.metadata.galleryImages)
-        ? (locked.metadata.galleryImages as string[]).slice(0, 9)
-        : [],
+      imageUrl: normalizeImagePath(locked.metadata.imageUrl || '') || (locked.id === 'plan-02-kanal' ? '/new assests/our plan assests/card 6.png' : (locked.id.includes('pre-launch') ? '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg' : '')),
+      galleryImages: Array.isArray(locked.metadata.galleryImages) && locked.metadata.galleryImages.length > 0 && !locked.metadata.galleryImages[0].includes('sample')
+        ? (locked.metadata.galleryImages as string[]).map((img) => normalizeImagePath(img)).slice(0, 9)
+        : (locked.id.includes('pre-launch')
+          ? [
+              '/new assests/Events and media/event1/WhatsApp Image 2026-09-06 at 3.10.12 PM.jpeg',
+              '/new assests/Events and media/event1/QAS07025.JPG_202609031129.jpeg',
+              '/new assests/Events and media/event1/QAS07031.JPG_2K_202609031134.jpeg',
+              '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg',
+              '/new assests/Events and media/event1/QAS07562_improved.png',
+              '/new assests/Events and media/event1/QAS07590_glow.png',
+              '/new assests/Events and media/event1/QAS07600.png_2K_202609031145.jpeg',
+              '/new assests/Events and media/event1/QAS07627.JPG_202609031125.jpeg',
+            ]
+          : []),
       videoUrl: (locked.metadata.videoUrl as string) || '',
       tagsString: Array.isArray(locked.metadata.tags) ? locked.metadata.tags.join(', ') : '',
       featured: Boolean(locked.metadata.featured),
@@ -284,7 +296,7 @@ export default function ContentCMSPage() {
       ? editForm.tagsString.split(',').map((t) => t.trim()).filter(Boolean)
       : undefined;
 
-    const finalImageUrl = editForm.imageUrl?.trim() || undefined;
+    const finalImageUrl = normalizeImagePath(editForm.imageUrl?.trim()) || undefined;
 
     const metadata: Record<string, unknown> = {
       imageUrl: finalImageUrl,
@@ -314,7 +326,7 @@ export default function ContentCMSPage() {
       }
       if (editForm.galleryImages.length > 0) {
         metadata.galleryImages = editForm.galleryImages
-          .map((img) => img.trim())
+          .map((img) => normalizeImagePath(img.trim()))
           .filter(Boolean)
           .slice(0, 9);
       }
@@ -530,7 +542,7 @@ export default function ContentCMSPage() {
                 {block.metadata.imageUrl && (
                   <div className="relative h-44 w-full bg-slate-900 overflow-hidden border-b border-slate-100 group">
                     <img
-                      src={block.metadata.imageUrl as string}
+                      src={normalizeImagePath(block.metadata.imageUrl as string)}
                       alt={block.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -967,13 +979,14 @@ export default function ContentCMSPage() {
                       type="text"
                       value={editForm.imageUrl || ''}
                       onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
+                      onBlur={() => setEditForm({ ...editForm, imageUrl: normalizeImagePath(editForm.imageUrl) })}
                       placeholder="/new assests/our plan assests/card 1.png or https://..."
                       className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                     />
                     {editForm.imageUrl?.trim() && (
                       <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                         <img
-                          src={editForm.imageUrl.trim()}
+                          src={normalizeImagePath(editForm.imageUrl.trim())}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
@@ -990,13 +1003,14 @@ export default function ContentCMSPage() {
                         type="text"
                         value={editForm.imageUrl || ''}
                         onChange={(e) => setEditForm({ ...editForm, imageUrl: e.target.value })}
-                        placeholder="/new assests/Events and media/event1/banner.jpeg or https://..."
+                        onBlur={() => setEditForm({ ...editForm, imageUrl: normalizeImagePath(editForm.imageUrl) })}
+                        placeholder="/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg or https://..."
                         className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                       />
                       {editForm.imageUrl?.trim() && (
                         <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                           <img
-                            src={editForm.imageUrl.trim()}
+                            src={normalizeImagePath(editForm.imageUrl.trim())}
                             alt="Preview"
                             className="w-full h-full object-cover"
                           />
@@ -1037,7 +1051,7 @@ export default function ContentCMSPage() {
                             setGalleryWarning(null);
                             setEditForm({
                               ...editForm,
-                              galleryImages: [...editForm.galleryImages, newGalleryUrl.trim()],
+                              galleryImages: [...editForm.galleryImages, normalizeImagePath(newGalleryUrl.trim())],
                             });
                             setNewGalleryUrl('');
                           }}
@@ -1051,7 +1065,7 @@ export default function ContentCMSPage() {
                         <div className="mt-3 grid grid-cols-3 sm:grid-cols-5 gap-2">
                           {editForm.galleryImages.map((url, idx) => (
                             <div key={idx} className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-50 h-20">
-                              <img src={url} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
+                              <img src={normalizeImagePath(url)} alt={`Gallery ${idx + 1}`} className="w-full h-full object-cover" />
                               <button
                                 type="button"
                                 onClick={() => {

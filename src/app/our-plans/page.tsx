@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { propertyPlans } from "@/data/properties";
 import { PlotCarousel, PlotItem } from "@/components/ui/PlotCarousel";
 import { fetchPublicContent, ContentBlock } from "@/lib/dal/publicContent";
+import { normalizeImagePath } from "@/lib/images";
 import { Check, Calendar, ArrowUpRight, Star, Info, Percent, MapPin, CalendarDays, ShieldCheck, FileText, ChevronRight } from "lucide-react";
 
 // Static pre-calculated 12-lobed rosette points to prevent SSR/client hydration floating-point precision mismatches
@@ -107,7 +108,10 @@ export default function OurPlansPage() {
 
           const rank = getPlanSortRank(block);
           const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.png';
-          let image = (m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage;
+          let image = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage);
+          if ((rank === 5 || block.id === 'plan-02-kanal') && (image.includes('sample.jpg') || image.includes('cloudinary') || !m?.imageUrl)) {
+            image = '/new assests/our plan assests/card 6.png';
+          }
 
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label

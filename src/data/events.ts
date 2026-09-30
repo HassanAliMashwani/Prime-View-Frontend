@@ -19,7 +19,7 @@ export const eventsData: EventData[] = [
     date: "Monday, 17 August | 12:00 PM",
     venue: "Rosecliff Marquee, Main Margalla Road, E-11/1, Islamabad",
     summary: "You are cordially invited to the Pre-Launch Ceremony of Prime View Cooperative Housing Society Abbottabad at Rosecliff Marquee, Islamabad.",
-    coverImage: "/new assests/Events and media/event1/QAS07562_improved.png",
+    coverImage: "/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg",
     gallery: [
       "/new assests/Events and media/event1/WhatsApp Image 2026-09-06 at 3.10.12 PM.jpeg",
       "/new assests/Events and media/event1/QAS07025.JPG_202609031129.jpeg",

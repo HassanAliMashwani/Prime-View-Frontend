@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { EventsGrid } from "@/components/events/EventsGrid";
-import { EventData } from "@/data/events";
+import { EventData, eventsData } from "@/data/events";
 import { fetchPublicContent } from "@/lib/dal/publicContent";
+import { normalizeImagePath } from "@/lib/images";
 
 export default function EventsAndMediaPage() {
   const [cmsEvents, setCmsEvents] = useState<EventData[]>([]);
@@ -19,16 +20,27 @@ export default function EventsAndMediaPage() {
           continue;
         }
 
-        const fallbackCover = '/new assests/Events and media/event1/banner.jpeg';
-        let coverImage = (m?.imageUrl && String(m.imageUrl).trim()) || fallbackCover;
+        const fallbackCover = '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg';
+        let coverImage = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackCover);
+        if (coverImage.includes('sample.jpg') || (block.id.includes('pre-launch') && (!coverImage || coverImage.includes('banner') || coverImage.includes('QAS07562')))) {
+          coverImage = fallbackCover;
+        }
 
         const rawGallery = Array.isArray(m.galleryImages) ? m.galleryImages : [];
-        const gallery: string[] = [];
+        let gallery: string[] = [];
         for (const g of rawGallery) {
           if (typeof g === 'string' && g.trim()) {
-            gallery.push(g.trim());
+            const norm = normalizeImagePath(g.trim());
+            if (!norm.includes('cld-sample-3')) {
+              gallery.push(norm);
+            }
           }
           if (gallery.length === 9) break;
+        }
+
+        if (gallery.length === 0 && (block.id.includes('pre-launch') || block.id === 'event-pre-launch-ceremony')) {
+          const defaultEvent = eventsData.find((e) => e.id === 'pre-launch-ceremony');
+          gallery = defaultEvent ? defaultEvent.gallery : [];
         }
 
         mapped.push({
