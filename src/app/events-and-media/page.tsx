@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { EventsGrid } from "@/components/events/EventsGrid";
 import { EventData, eventsData } from "@/data/events";
@@ -10,7 +10,7 @@ import { normalizeImagePath } from "@/lib/images";
 export default function EventsAndMediaPage() {
   const [cmsEvents, setCmsEvents] = useState<EventData[]>([]);
 
-  useEffect(() => {
+  const loadEvents = useCallback(() => {
     fetchPublicContent('events').then((blocks) => {
       const mapped: EventData[] = [];
       for (const block of blocks) {
@@ -53,12 +53,52 @@ export default function EventsAndMediaPage() {
           coverImage,
           gallery,
           fullDescription: block.content || '',
-          videoPreview: m.videoUrl ? String(m.videoUrl) : undefined,
+          videoPreview: m.videoUrl && String(m.videoUrl).trim() ? String(m.videoUrl).trim() : undefined,
         });
       }
       setCmsEvents(mapped);
     });
   }, []);
+
+  useEffect(() => {
+    loadEvents();
+
+    const handleRefresh = () => {
+      loadEvents();
+    };
+
+    window.addEventListener('focus', handleRefresh);
+    window.addEventListener('cms-content-updated', handleRefresh);
+    window.addEventListener('storage', handleRefresh);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadEvents();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('cms_updates');
+      channel.onmessage = (e) => {
+        if (e.data?.type === 'CONTENT_UPDATED') {
+          loadEvents();
+        }
+      };
+    } catch {}
+
+    const interval = setInterval(loadEvents, 10000);
+
+    return () => {
+      window.removeEventListener('focus', handleRefresh);
+      window.removeEventListener('cms-content-updated', handleRefresh);
+      window.removeEventListener('storage', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
+      if (channel) channel.close();
+    };
+  }, [loadEvents]);
 
   return (
     <div className="bg-[#F8F7F5] text-[#151914] min-h-screen w-full relative">

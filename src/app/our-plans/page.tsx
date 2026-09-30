@@ -93,7 +93,7 @@ function getPlanSortRank(block: { id: string; title?: string; metadata?: any }):
 export default function OurPlansPage() {
   const [cmsPlans, setCmsPlans] = useState<PlotItem[]>([]);
 
-  useEffect(() => {
+  const loadPlans = React.useCallback(() => {
     fetchPublicContent('plans')
       .then((blocks) => {
         if (!blocks || blocks.length === 0) return;
@@ -112,7 +112,6 @@ export default function OurPlansPage() {
           if ((rank === 5 || block.id === 'plan-02-kanal') && (image.includes('sample.jpg') || image.includes('cloudinary') || !m?.imageUrl)) {
             image = '/new assests/our plan assests/card 6.png';
           }
-
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label
           const sizeMatch = String(m?.size || '').match(/^(.+?)\s*\((.+?)\)$/);
@@ -155,6 +154,46 @@ export default function OurPlansPage() {
         // Leave existing cards on fetch failure
       });
   }, []);
+
+  useEffect(() => {
+    loadPlans();
+
+    const handleRefresh = () => {
+      loadPlans();
+    };
+
+    window.addEventListener('focus', handleRefresh);
+    window.addEventListener('cms-content-updated', handleRefresh);
+    window.addEventListener('storage', handleRefresh);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        loadPlans();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('cms_updates');
+      channel.onmessage = (e) => {
+        if (e.data?.type === 'CONTENT_UPDATED') {
+          loadPlans();
+        }
+      };
+    } catch {}
+
+    const interval = setInterval(loadPlans, 10000);
+
+    return () => {
+      window.removeEventListener('focus', handleRefresh);
+      window.removeEventListener('cms-content-updated', handleRefresh);
+      window.removeEventListener('storage', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
+      if (channel) channel.close();
+    };
+  }, [loadPlans]);
 
   return (
     <>

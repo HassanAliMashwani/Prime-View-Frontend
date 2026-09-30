@@ -312,40 +312,39 @@ export default function ContentCMSPage() {
       ? editForm.tagsString.split(',').map((t) => t.trim()).filter(Boolean)
       : undefined;
 
-    const finalImageUrl = normalizeImagePath(editForm.imageUrl?.trim()) || undefined;
+    const finalImageUrl = normalizeImagePath(editForm.imageUrl?.trim()) || null;
 
     const metadata: Record<string, unknown> = {
       imageUrl: finalImageUrl,
       featured: editForm.featured,
-      tags,
+      tags: tags || [],
     };
 
     if (activeSection === 'plans') {
-      if (editForm.price !== undefined && !isNaN(editForm.price)) metadata.price = editForm.price;
-      if (editForm.size?.trim()) metadata.size = editForm.size.trim();
-      if (editForm.downPayment?.trim()) metadata.downPayment = editForm.downPayment.trim();
-      if (editForm.monthly?.trim()) metadata.monthly = editForm.monthly.trim();
-      if (editForm.halfYearly?.trim()) metadata.halfYearly = editForm.halfYearly.trim();
-      if (editForm.possession?.trim()) metadata.possession = editForm.possession.trim();
+      metadata.price = editForm.price !== undefined && !isNaN(editForm.price) ? editForm.price : null;
+      metadata.size = editForm.size?.trim() || null;
+      metadata.downPayment = editForm.downPayment?.trim() || null;
+      metadata.monthly = editForm.monthly?.trim() || null;
+      metadata.halfYearly = editForm.halfYearly?.trim() || null;
+      metadata.possession = editForm.possession?.trim() || null;
     } else {
-      if (editForm.date?.trim()) metadata.date = editForm.date.trim();
-      if (editForm.location?.trim()) metadata.location = editForm.location.trim();
-      if (editForm.contact?.trim()) metadata.contact = editForm.contact.trim();
-      if (editForm.website?.trim()) metadata.website = editForm.website.trim();
-      if (editForm.videoUrl?.trim()) {
-        metadata.videoUrl = formatYouTubeEmbedUrl(editForm.videoUrl) || editForm.videoUrl.trim();
-      }
+      metadata.date = editForm.date?.trim() || null;
+      metadata.location = editForm.location?.trim() || null;
+      metadata.contact = editForm.contact?.trim() || null;
+      metadata.website = editForm.website?.trim() || null;
+      metadata.videoUrl = editForm.videoUrl?.trim()
+        ? formatYouTubeEmbedUrl(editForm.videoUrl) || editForm.videoUrl.trim()
+        : null;
+
       if (editForm.galleryImages.length > 9) {
         setEditError('The tenth gallery picture is refused. Maximum of 9 gallery pictures allowed.');
         setSaving(false);
         return;
       }
-      if (editForm.galleryImages.length > 0) {
-        metadata.galleryImages = editForm.galleryImages
-          .map((img) => normalizeImagePath(img.trim()))
-          .filter(Boolean)
-          .slice(0, 9);
-      }
+      metadata.galleryImages = editForm.galleryImages
+        .map((img) => normalizeImagePath(img.trim()))
+        .filter(Boolean)
+        .slice(0, 9);
     }
 
     if (isCreating) {
@@ -373,6 +372,18 @@ export default function ContentCMSPage() {
         type: 'success',
         message: `${activeSection === 'plans' ? 'Plan card' : 'Event'} "${editForm.title}" published successfully.`,
       });
+
+      // Broadcast update for automatic real-time UI refresh across tabs and pages
+      window.dispatchEvent(new CustomEvent('cms-content-updated', { detail: { section: activeSection } }));
+      try {
+        const ch = new BroadcastChannel('cms_updates');
+        ch.postMessage({ type: 'CONTENT_UPDATED', section: activeSection });
+        ch.close();
+      } catch {}
+      try {
+        localStorage.setItem('cms_last_update', Date.now().toString());
+      } catch {}
+
       loadData(session, activeSection);
       return;
     }
@@ -402,6 +413,18 @@ export default function ContentCMSPage() {
         type: 'success',
         message: `Content block "${editForm.title}" updated and published successfully.`,
       });
+
+      // Broadcast update for automatic real-time UI refresh across tabs and pages
+      window.dispatchEvent(new CustomEvent('cms-content-updated', { detail: { section: activeSection, blockId } }));
+      try {
+        const ch = new BroadcastChannel('cms_updates');
+        ch.postMessage({ type: 'CONTENT_UPDATED', section: activeSection, blockId });
+        ch.close();
+      } catch {}
+      try {
+        localStorage.setItem('cms_last_update', Date.now().toString());
+      } catch {}
+
       loadData(session, activeSection);
     }
   };
