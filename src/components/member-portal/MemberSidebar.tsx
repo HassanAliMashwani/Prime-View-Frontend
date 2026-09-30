@@ -75,7 +75,7 @@ export const MemberSidebar: React.FC<MemberSidebarProps> = ({ isOpen, onClose })
           {onClose && (
             <button
               onClick={onClose}
-              className="lg:hidden p-1.5 rounded-lg text-[#6B7462] hover:text-[#151914] hover:bg-black/5 transition-colors"
+              className="lg:hidden w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl text-[#6B7462] hover:text-[#151914] hover:bg-black/5 transition-colors"
               aria-label="Close sidebar"
             >
               <X className="w-5 h-5" />

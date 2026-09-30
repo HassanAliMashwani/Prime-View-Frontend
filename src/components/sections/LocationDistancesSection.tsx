@@ -41,19 +41,21 @@ export const LocationDistancesSection: React.FC = () => {
     <section className="pt-8 sm:pt-12 pb-4 sm:pb-8 bg-soft-white relative overflow-hidden border-t border-stone">
 
       {/* Header Area */}
-      <div className="max-w-[1200px] mx-auto px-6 sm:px-8 mb-8 sm:mb-10 text-center relative z-20">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 mb-8 sm:mb-10 text-center relative z-20">
         <ScrollReveal
           variant="blur-word"
           className="font-display text-4xl sm:text-5xl lg:text-6xl font-black text-charcoal tracking-tight"
         >
-          Where Convenience Meets Home        </ScrollReveal>
+          Where Convenience Meets Home
+        </ScrollReveal>
         <p className="mt-4 font-sans text-sm sm:text-base text-charcoal/60 max-w-2xl mx-auto">
           Just minutes away from the Motorway, Railway Station, and major city hubs.
         </p>
       </div>
 
-      {/* Map Diagram Area - Reduced Height */}
-      <div className="relative w-full max-w-[1300px] mx-auto h-[500px] sm:h-[600px] bg-[#FAF9F7] rounded-3xl sm:rounded-[2.5rem] overflow-hidden border border-black/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
+      {/* Map Diagram Area - Reduced Height with matching side inset */}
+      <div className="px-4 sm:px-6 lg:px-8 max-w-[1300px] mx-auto">
+        <div className="relative w-full h-[500px] sm:h-[600px] bg-[#FAF9F7] rounded-3xl sm:rounded-[2.5rem] overflow-hidden border border-black/[0.08] shadow-[0_8px_30px_rgba(0,0,0,0.04)]">
 
         {/* Abstract City Map Background */}
         <div className="absolute inset-0 pointer-events-none">
@@ -156,6 +158,7 @@ export const LocationDistancesSection: React.FC = () => {
           </motion.div>
         ))}
 
+        </div>
       </div>
     </section>
   );

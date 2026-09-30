@@ -693,7 +693,7 @@ function BlockPlotsContent() {
         {/* Filter Groups & View Mode */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Status Filter */}
-          <div className="flex items-center gap-0.5 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 shrink-0">
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100/90 p-1 rounded-xl border border-slate-200/60 max-w-full">
             {(['all', 'available', 'reserved', 'booked', 'allotted', 'disputed', 'adjustment'] as const).map((st) => {
               let activeColor = 'bg-slate-900 text-white shadow-xs';
               if (st === 'available') activeColor = 'bg-emerald-600 text-white shadow-xs';
@@ -1014,11 +1014,11 @@ function BlockPlotsContent() {
           }}
         >
           <div 
-            className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 cursor-default"
+            className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 cursor-default flex flex-col max-h-[100dvh] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-mono uppercase font-bold text-emerald-800">
@@ -1044,7 +1044,7 @@ function BlockPlotsContent() {
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 space-y-5 text-xs text-slate-700">
+            <div className="p-4 sm:p-6 space-y-5 text-xs text-slate-700 overflow-y-auto">
               {actionError && (
                 <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
@@ -1481,7 +1481,7 @@ function BlockPlotsContent() {
       {/* Reserve Plot Modal */}
       {isReserveModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <BookmarkCheck className="w-4 h-4 text-amber-600" />
@@ -1605,7 +1605,7 @@ function BlockPlotsContent() {
       {/* Town Planning / Boundary Re-survey Freeze Modal (Super Admin Only) */}
       {isAdjustmentModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-blue-600" />
@@ -1672,7 +1672,7 @@ function BlockPlotsContent() {
       {/* Admin Minimal Booking Modal (Change Request 07 §5) */}
       {isMinimalBookModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-emerald-600" />

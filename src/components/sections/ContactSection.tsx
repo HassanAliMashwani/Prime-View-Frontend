@@ -53,32 +53,32 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
                 </div>
 
                 {/* Contact Details Overlay */}
-                <div className="flex flex-col gap-5 sm:gap-6">
-                  <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-4 sm:gap-5">
+                  <div className="flex items-start gap-3.5 sm:gap-4">
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg">
                       <MapPin className="w-4 h-4 text-white drop-shadow-md" />
                     </div>
-                    <div className="text-white drop-shadow-lg">
+                    <div className="text-white drop-shadow-lg min-w-0 flex-1">
                       <p className="text-[11px] uppercase tracking-wider font-extrabold text-white/90 drop-shadow-md">Office</p>
                       <p className="text-sm lg:text-base font-bold leading-tight mt-1 max-w-[240px]">{siteConfig.address}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3.5 sm:gap-4">
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg">
                       <Phone className="w-4 h-4 text-white drop-shadow-md" />
                     </div>
-                    <div className="text-white drop-shadow-lg">
+                    <div className="text-white drop-shadow-lg min-w-0 flex-1">
                       <p className="text-[11px] uppercase tracking-wider font-extrabold text-white/90 drop-shadow-md">Call Us</p>
                       <p className="text-sm lg:text-base font-bold leading-tight mt-1">{siteConfig.phone}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-3.5 sm:gap-4">
                     <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg">
                       <Mail className="w-4 h-4 text-white drop-shadow-md" />
                     </div>
-                    <div className="text-white drop-shadow-lg">
+                    <div className="text-white drop-shadow-lg min-w-0 flex-1">
                       <p className="text-[11px] uppercase tracking-wider font-extrabold text-white/90 drop-shadow-md">Email</p>
                       <p className="text-sm lg:text-base font-bold leading-tight mt-1">{siteConfig.email}</p>
                     </div>
@@ -136,32 +136,32 @@ export const ContactSection: React.FC<ContactSectionProps> = ({
           </div>
 
           {/* Contact Details Overlay */}
-          <div className="flex flex-col gap-6">
-            <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-4 sm:gap-5">
+            <div className="flex items-start gap-3.5 sm:gap-4">
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg">
                 <MapPin className="w-4 h-4 text-white drop-shadow-md" />
               </div>
-              <div className="text-white drop-shadow-lg">
+              <div className="text-white drop-shadow-lg min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-wider font-extrabold text-white/90 drop-shadow-md">Office</p>
                 <p className="text-sm lg:text-base font-bold leading-tight mt-1 max-w-[240px]">{siteConfig.address}</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3.5 sm:gap-4">
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg">
                 <Phone className="w-4 h-4 text-white drop-shadow-md" />
               </div>
-              <div className="text-white drop-shadow-lg">
+              <div className="text-white drop-shadow-lg min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-wider font-extrabold text-white/90 drop-shadow-md">Call Us</p>
                 <p className="text-sm lg:text-base font-bold leading-tight mt-1">{siteConfig.phone}</p>
               </div>
             </div>
 
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3.5 sm:gap-4">
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/40 shadow-lg">
                 <Mail className="w-4 h-4 text-white drop-shadow-md" />
               </div>
-              <div className="text-white drop-shadow-lg">
+              <div className="text-white drop-shadow-lg min-w-0 flex-1">
                 <p className="text-[11px] uppercase tracking-wider font-extrabold text-white/90 drop-shadow-md">Email</p>
                 <p className="text-sm lg:text-base font-bold leading-tight mt-1">{siteConfig.email}</p>
               </div>

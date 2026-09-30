@@ -477,16 +477,16 @@ const TeamMemberFullCard = ({
           </>
         )}
 
-        {/* Email Pill: white/ivory pill centered across bottom */}
+        {/* Email Pill: white/ivory pill centered across bottom edge */}
         {member.email && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center z-20 px-3 pointer-events-none">
+          <div className="absolute bottom-3 sm:bottom-4 left-0 right-0 flex justify-center z-20 px-3 pointer-events-none">
             <a
               href={`mailto:${member.email}`}
-              className="pointer-events-auto inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-sm border-[1.5px] border-[#C4A265] shadow-md hover:bg-white hover:shadow-lg transition-all group/mail shrink-0"
+              className="pointer-events-auto inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-white/95 backdrop-blur-sm border-[1.5px] border-[#C4A265] shadow-md hover:bg-white hover:shadow-lg transition-all group/mail shrink-0 max-w-[90%]"
               style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}
             >
               <Mail className="w-3.5 h-3.5 text-[#A6843D] shrink-0 stroke-[1.8] group-hover/mail:scale-110 transition-transform" />
-              <span className="text-[11.5px] sm:text-[12px] font-medium text-[#1C3D32] leading-none tracking-tight whitespace-nowrap">
+              <span className="text-[11px] sm:text-[12px] font-medium text-[#1C3D32] leading-none tracking-tight truncate">
                 {member.email}
               </span>
             </a>
@@ -495,7 +495,7 @@ const TeamMemberFullCard = ({
       </div>
 
       {/* ── RIGHT COLUMN (Text: 62% desktop) ── */}
-      <div className="w-full md:w-[62%] relative bg-[#F6F3EA] flex flex-col justify-between p-6 sm:p-7 md:p-[28px_34px] overflow-hidden">
+      <div className="w-full md:w-[62%] relative bg-[#F6F3EA] flex flex-col justify-between p-5 sm:p-7 md:p-[28px_34px] overflow-hidden">
         {/* Real Photographic Mountain Landscape behind text blended into beige */}
         <div className="absolute right-0 bottom-0 w-full h-[85%] pointer-events-none select-none overflow-hidden z-0">
           <Image
@@ -528,14 +528,14 @@ const TeamMemberFullCard = ({
               {member.title}
             </p>
 
-            {/* 2. Name in Cormorant Garamond, weight 600, line-height 1.05, color #1C3D32 */}
+            {/* 2. Name in Cormorant Garamond, weight 600, even line-height, color #1C3D32 */}
             <h2
-              className="text-[28px] sm:text-[32px] md:text-[35px] font-semibold text-[#1C3D32] mt-1 mb-2 tracking-tight leading-[1.05]"
+              className="text-[26px] sm:text-[32px] md:text-[35px] font-semibold text-[#1C3D32] mt-1 mb-2 tracking-tight leading-tight sm:leading-[1.12]"
               style={{
                 fontFamily:
                   "var(--font-cormorant), 'Cormorant Garamond', Georgia, serif",
                 fontWeight: 600,
-                lineHeight: 1.05,
+                lineHeight: 1.15,
               }}
             >
               {member.name}
@@ -573,15 +573,15 @@ const TeamMemberFullCard = ({
                   </h3>
                 </div>
 
-                {/* 5. Member’s highlights: 24px circle, 1px #C4A265 outline, simple line icon, Outfit 13px, #3E4A44 */}
+                {/* 5. Member’s highlights: items-start so wrapped text starts under words, not icon */}
                 <div className="space-y-[9px] mb-2">
                   {highlights.map((highlight, idx) => (
-                    <div key={idx} className="flex items-center gap-2.5">
-                      <div className="w-[24px] h-[24px] min-w-[24px] min-h-[24px] rounded-full border border-[#C4A265] flex items-center justify-center text-[#A6843D] shrink-0 bg-white/40">
+                    <div key={idx} className="flex items-start gap-2.5">
+                      <div className="w-[24px] h-[24px] min-w-[24px] min-h-[24px] rounded-full border border-[#C4A265] flex items-center justify-center text-[#A6843D] shrink-0 bg-white/40 mt-0.5">
                         {getHighlightIcon(highlight, idx, member.name)}
                       </div>
                       <span
-                        className="text-[12.5px] md:text-[13px] text-[#3E4A44] leading-snug"
+                        className="text-[12.5px] md:text-[13px] text-[#3E4A44] leading-snug flex-1"
                         style={{
                           fontFamily: "var(--font-outfit), Outfit, sans-serif",
                         }}

@@ -474,7 +474,7 @@ function PaymentsContent() {
         )}
 
 
-        {isLoading ? (
+        {isLoading && schedules.length === 0 ? (
           <MemberPaymentsSkeleton />
         ) : schedules.length === 0 ? (
           /* Single unified empty state for zero-plot accounts */
@@ -1024,8 +1024,8 @@ function PaymentsContent() {
       {/* RECEIPT UPLOAD MODAL DIALOG                                   */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-xl w-full bg-white rounded-3xl border border-black/10 shadow-2xl p-6 sm:p-8 space-y-5 my-auto animate-scale-in">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-xl w-full bg-white rounded-3xl border border-black/10 shadow-2xl p-4 sm:p-6 md:p-8 space-y-5 my-auto animate-scale-in max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start justify-between pb-4 border-b border-black/[0.06]">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center">

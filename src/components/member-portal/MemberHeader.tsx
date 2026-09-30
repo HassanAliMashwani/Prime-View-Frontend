@@ -24,11 +24,11 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
   const handleOpenMenu = onOpenMobileMenu || portal.openMobileMenu;
 
   return (
-    <header className="bg-[#FAF9F7] border-b border-black/[0.08] px-6 py-4 sticky top-0 z-30 flex items-center justify-between">
-      <div className="flex items-center gap-4">
+    <header className="bg-[#FAF9F7] border-b border-black/[0.08] px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-30 flex items-center justify-between">
+      <div className="flex items-center gap-3 sm:gap-4">
         <button
           onClick={handleOpenMenu}
-          className="lg:hidden p-2 rounded-xl border border-black/10 bg-white text-[#151914] hover:bg-black/5 transition-colors"
+          className="lg:hidden w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#151914] hover:bg-black/5 transition-colors"
           aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" />

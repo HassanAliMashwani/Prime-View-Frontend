@@ -3,8 +3,8 @@
  * Phase 1 read-side swap — Doc 09 §6.
  */
 
-import { API_BASE_URL } from './apiBase';
-export { API_BASE_URL };
+import { API_BASE_URL, getApiBaseUrl } from './apiBase';
+export { API_BASE_URL, getApiBaseUrl };
 
 const ADMIN_SESSION_KEY = 'prime_view_admin_session';
 const MEMBER_SESSION_KEY = 'prime_view_member_session';

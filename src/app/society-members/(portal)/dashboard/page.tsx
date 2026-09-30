@@ -108,7 +108,7 @@ export default function MemberDashboardPage() {
 
   if (isLoading && !profile) {
     return (
-      <div className="p-6 sm:p-8 max-w-7xl w-full mx-auto">
+      <div className="p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
         <MemberDashboardSkeleton />
       </div>
     );
@@ -121,7 +121,7 @@ export default function MemberDashboardPage() {
         subtitle={`Welcome back, ${profile?.fullName || 'Member'}`}
       />
 
-      <main className="p-6 sm:p-8 max-w-7xl w-full mx-auto space-y-8">
+      <main className="p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 sm:space-y-8">
         {/* Welcome Hero Banner */}
         <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-7 border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.03)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-0.5">

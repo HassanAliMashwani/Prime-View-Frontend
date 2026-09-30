@@ -77,74 +77,80 @@ export const Footer: React.FC = () => {
       {/* ================================================================= */}
       <div className="pt-10 pb-8 px-4 sm:px-6 lg:px-8" style={{ background: '#F8F7F5' }}>
         <div className="max-w-[1050px] mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-6 lg:gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-6">
 
-            {/* Brand & Socials (Col 1: Span 4) */}
-            <div className="lg:col-span-4 flex flex-col items-start pr-4">
-              <div className="flex items-center gap-1 -ml-4 -mt-4">
-                <div className="relative w-24 h-24 sm:w-32 sm:h-32">
+            {/* Brand & Socials (Col 1: Span 5) */}
+            <div className="lg:col-span-5 flex flex-col items-start">
+              {/* Crest and Prime View vertically centered on one line */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="relative w-10 h-10 sm:w-11 sm:h-11 shrink-0">
                   <Image
                     src={siteConfig.logoPath}
                     alt={siteConfig.name}
                     fill
-                    className="object-contain object-left"
+                    className="object-contain"
                   />
                 </div>
                 <span
-                  className="font-display text-2xl sm:text-3xl font-bold tracking-tight -ml-2"
+                  className="font-display text-2xl sm:text-3xl font-bold tracking-tight leading-none"
                   style={{ color: '#43612B' }}
                 >
                   Prime View
                 </span>
               </div>
 
-              {/* Contact Details */}
-              <div className="space-y-2 mt-2 mb-4">
+              {/* Contact Details sharing icon column and text edge */}
+              <div className="space-y-2.5 mb-4">
                 <a
                   href={`https://wa.me/${siteConfig.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 hover:opacity-70 transition-opacity text-[13px] font-sans font-bold"
+                  className="flex items-center gap-2.5 hover:opacity-70 transition-opacity text-sm font-sans font-bold"
                   style={{ color: '#151914' }}
                 >
-                  <Phone className="w-4 h-4" />
+                  <div className="w-5 shrink-0 flex items-center justify-center">
+                    <Phone className="w-4 h-4" />
+                  </div>
                   <span>WhatsApp: {siteConfig.phone}</span>
                 </a>
                 <a
                   href={`mailto:${siteConfig.email}`}
-                  className="flex items-center gap-2 hover:opacity-70 transition-opacity text-[13px] font-sans font-bold"
+                  className="flex items-center gap-2.5 hover:opacity-70 transition-opacity text-sm font-sans font-bold"
                   style={{ color: '#151914' }}
                 >
-                  <Mail className="w-4 h-4" />
+                  <div className="w-5 shrink-0 flex items-center justify-center">
+                    <Mail className="w-4 h-4" />
+                  </div>
                   <span>{siteConfig.email}</span>
                 </a>
               </div>
 
-              <div className="flex items-center gap-4 mt-2">
-                <a href="https://x.com/PrimeViewHousingHazara" target="_blank" rel="noopener noreferrer" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="X (formerly Twitter)">
-                  <Image src="/new assests/logos/x-formerly-twitter.svg" alt="X" width={16} height={16} className="w-4 h-4 object-contain invert" />
+              {/* Social icons starting on that text edge (pl-[30px]), one row, equal gaps, 44px each */}
+              <div className="flex items-center gap-2.5 pl-[30px] mt-1">
+                <a href="https://x.com/PrimeViewHousingHazara" target="_blank" rel="noopener noreferrer" className="social-hover-btn flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full" aria-label="X (formerly Twitter)">
+                  <Image src="/new assests/logos/x-formerly-twitter.svg" alt="X" width={18} height={18} className="w-4 h-4 object-contain invert" />
                 </a>
-                <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="Instagram">
-                  <Image src="/new assests/logos/instagram.svg" alt="Instagram" width={16} height={16} className="w-4 h-4 object-contain" />
+                <a href="#" className="social-hover-btn flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full" aria-label="Instagram">
+                  <Image src="/new assests/logos/instagram.svg" alt="Instagram" width={18} height={18} className="w-4 h-4 object-contain" />
                 </a>
-                <a href="#" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="YouTube">
-                  <Image src="/new assests/logos/youtube.svg" alt="YouTube" width={16} height={16} className="w-4 h-4 object-contain" />
+                <a href="#" className="social-hover-btn flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full" aria-label="YouTube">
+                  <Image src="/new assests/logos/youtube.svg" alt="YouTube" width={18} height={18} className="w-4 h-4 object-contain" />
                 </a>
-                <a href="https://facebook.com/PrimeviewAbbottabad" target="_blank" rel="noopener noreferrer" className="social-hover-btn flex items-center justify-center w-9 h-9 rounded-full" aria-label="Facebook">
-                  <Image src="/new assests/logos/facebook.svg" alt="Facebook" width={16} height={16} className="w-4 h-4 object-contain" />
+                <a href="https://facebook.com/PrimeviewAbbottabad" target="_blank" rel="noopener noreferrer" className="social-hover-btn flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full" aria-label="Facebook">
+                  <Image src="/new assests/logos/facebook.svg" alt="Facebook" width={18} height={18} className="w-4 h-4 object-contain" />
                 </a>
               </div>
             </div>
 
-            {/* Product / Quick Links (Col 2: Span 3) */}
-            <div className="lg:col-span-3 lg:ml-8">
+            {/* Product / Quick Links (Col 2: Span 2) */}
+            <div className="lg:col-span-2">
               <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Product</h4>
               <ul className="space-y-2.5">
                 {footerNavigation.quickLinks.map((item) => (
                   <li key={item.title}>
                     <Link
                       href={item.href}
-                      className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70"
+                      className="font-sans text-sm font-bold transition-opacity hover:opacity-70"
                       style={{ color: '#151914' }}
                     >
                       {item.title}
@@ -154,15 +160,15 @@ export const Footer: React.FC = () => {
               </ul>
             </div>
 
-            {/* Resources / Maps & Info (Col 3: Span 3) */}
-            <div className="lg:col-span-3">
+            {/* Resources / Maps & Info (Col 3: Span 2) */}
+            <div className="lg:col-span-2">
               <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Resources</h4>
               <ul className="space-y-2.5">
                 {footerNavigation.mapsAndPlans.map((item) => (
                   <li key={item.title}>
                     <Link
                       href={item.href}
-                      className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70"
+                      className="font-sans text-sm font-bold transition-opacity hover:opacity-70"
                       style={{ color: '#151914' }}
                     >
                       {item.title}
@@ -172,29 +178,29 @@ export const Footer: React.FC = () => {
               </ul>
             </div>
 
-            {/* Legal (Col 4: Span 2) */}
-            <div className="lg:col-span-2">
+            {/* Legal (Col 4: Span 3) */}
+            <div className="lg:col-span-3">
               <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Legal</h4>
               <ul className="space-y-2.5">
                 <li>
-                  <Link href="#" className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                  <Link href="#" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                  <Link href="#" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
                     Privacy Policy / GDPR
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                  <Link href="#" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
                     Cookie Policy
                   </Link>
                 </li>
                 <li>
                   <Link
                     href="/admin/login"
-                    className="font-sans text-[13px] font-bold transition-opacity hover:opacity-70 flex items-center gap-1.5"
+                    className="font-sans text-sm font-bold transition-opacity hover:opacity-70 flex items-center gap-1.5"
                     style={{ color: '#43612B' }}
                   >
                     <span>Admin Portal</span>
@@ -204,23 +210,19 @@ export const Footer: React.FC = () => {
               </ul>
 
               {/* Project of Roman Builders */}
-              <div className="mt-7 sm:mt-8 pt-1">
+              <div className="mt-6 pt-1">
                 <a
                   href="https://roman-builders.vercel.app/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-sans text-[13px] sm:text-sm font-extrabold whitespace-nowrap tracking-tight hover:opacity-85 transition-opacity"
+                  className="inline-flex items-center gap-1 font-sans text-sm font-extrabold whitespace-nowrap tracking-tight hover:opacity-85 transition-opacity"
                   style={{ color: '#70c729ff' }}
                 >
                   <span>Project of Roman Builders</span>
                   <span className="text-[11px]">↗</span>
                 </a>
               </div>
-
-
             </div>
-
-
 
           </div>
         </div>

@@ -654,7 +654,7 @@ export default function TeamsPage() {
       {/* CREATE SUB-ADMIN MODAL */}
       {isCreateOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-8 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-auto max-h-[100dvh] flex flex-col">
             <div className="p-6 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-700 shadow-xs">
@@ -902,7 +902,7 @@ export default function TeamsPage() {
       {/* EDIT SUB-ADMIN MODAL */}
       {editingAdmin && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-8 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-auto max-h-[100dvh] flex flex-col">
             <div className="p-6 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-700 shadow-xs">
@@ -1125,7 +1125,7 @@ export default function TeamsPage() {
       {/* CONFIRM STATUS TOGGLE DIALOG */}
       {confirmAdmin && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md shadow-2xl p-6 sm:p-7 space-y-5">
+          <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md shadow-2xl p-6 sm:p-7 space-y-5 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start gap-4">
               <div
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
@@ -1186,7 +1186,7 @@ export default function TeamsPage() {
       {/* CONFIRM DELETE SUB-ADMIN DIALOG */}
       {deleteAdmin && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl border border-rose-200 w-full max-w-md shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-3xl border border-rose-200 w-full max-w-md shadow-2xl p-6 sm:p-7 space-y-5 animate-in zoom-in-95 duration-200 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-rose-100 text-rose-700 border border-rose-200 shadow-inner">
                 <Trash2 className="w-6 h-6" />

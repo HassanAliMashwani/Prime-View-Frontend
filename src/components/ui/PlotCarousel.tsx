@@ -10,17 +10,17 @@ const GREEN = "#43612B";
 const TEXT  = "#151914";
 const MUTED = "#6B7462";
 
-interface PlotItem {
+export interface PlotItem {
   size: string;
   tag: string;
   dimensions: string;
   totalPrice: string;
   downPayment: string;
-  downPaymentPercent: string;
+  downPaymentPercent?: string;
   monthly: string;
-  monthlyCount: number;
+  monthlyCount?: number;
   halfYearly: string;
-  halfYearlyCount: number;
+  halfYearlyCount?: number;
   possession?: string;
   image: string;
 }
@@ -111,8 +111,10 @@ const plots: PlotItem[] = [
   },
 ];
 
-export function PlotCarousel() {
-  const [activeIndex, setActiveIndex] = useState(1);
+export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
+  // Use CMS items when provided and non-empty; otherwise fall back to the static array
+  const data = items && items.length > 0 ? items : plots;
+  const [activeIndex, setActiveIndex] = useState(data.length > 1 ? 1 : 0);
   const [isHovered, setIsHovered]     = useState(false);
   const [gap, setGap]                 = useState(380);
   const [cardWidth, setCardWidth]     = useState(360);
@@ -145,18 +147,18 @@ export function PlotCarousel() {
   useEffect(() => {
     if (isHovered) return;
     const interval = setInterval(() => {
-      setActiveIndex((prev) => (prev + 1) % plots.length);
+      setActiveIndex((prev) => (prev + 1) % data.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [isHovered]);
+   }, [isHovered, data.length]);
 
-  const handleNext = () => setActiveIndex((prev) => (prev + 1) % plots.length);
-  const handlePrev = () => setActiveIndex((prev) => (prev - 1 + plots.length) % plots.length);
+  const handleNext = () => setActiveIndex((prev) => (prev + 1) % data.length);
+  const handlePrev = () => setActiveIndex((prev) => (prev - 1 + data.length) % data.length);
 
   // True physical card offset styles — all cards exist in the DOM and glide horizontally
   const getPositionStyles = (index: number) => {
-    let offset = (index - activeIndex + plots.length) % plots.length;
-    if (offset > plots.length / 2) offset -= plots.length;
+    let offset = (index - activeIndex + data.length) % data.length;
+    if (offset > data.length / 2) offset -= data.length;
 
     const isActive = offset === 0;
     const isVisible = Math.abs(offset) <= (isMobile ? 0 : 1);
@@ -180,15 +182,15 @@ export function PlotCarousel() {
     >
       {/* 5-Card Physical Swapping Stage */}
       <div className="relative w-full max-w-6xl h-[670px] sm:h-[700px] mx-auto overflow-hidden">
-        {plots.map((plot, index) => {
+        {data.map((plot, index) => {
           let offset = index - activeIndex;
-          if (offset < -2) offset += plots.length;
-          if (offset > 2) offset -= plots.length;
+          if (offset < -2) offset += data.length;
+          if (offset > 2) offset -= data.length;
           const isActive = offset === 0;
 
           return (
             <div
-              key={plot.size}
+              key={`${plot.size}-${index}`}
               className="absolute top-1/2 left-1/2 cursor-pointer"
               style={{
                 width: `${cardWidth}px`,
@@ -261,104 +263,104 @@ export function PlotCarousel() {
                     </p>
                   </div>
 
-                  {/* Payment Details with Dividers */}
-                  <div className="space-y-0 text-[13px]">
-                    {[
-                      { icon: <FileText className="w-4 h-4" />,     label: `Down Payment (${plot.downPaymentPercent || "25%"})`, value: plot.downPayment },
-                      { icon: <CalendarDays className="w-4 h-4" />,  label: `Monthly Installment (x${plot.monthlyCount})`,        value: plot.monthly    },
-                      { icon: <Clock className="w-4 h-4" />,         label: `Half Yearly (x${plot.halfYearlyCount})`,            value: plot.halfYearly  },
-                      ...(plot.possession ? [{ icon: <KeyRound className="w-4 h-4" />, label: "At the Time of Possession", value: plot.possession }] : []),
-                    ].map((row, i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between py-2 sm:py-2.5"
-                        style={{ borderTop: "1px solid rgba(0,0,0,0.07)" }}
-                      >
-                        <span className="flex items-center gap-2 font-normal" style={{ color: MUTED }}>
-                          <span style={{ color: "#8E9A80" }} className="shrink-0">{row.icon}</span>
-                          {row.label}
-                        </span>
-                        <span className="font-bold whitespace-nowrap ml-3" style={{ color: TEXT }}>
-                          Rs {row.value}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                    {/* Payment Details with Dividers */}
+                    <div className="space-y-0 text-[13px]">
+                      {[
+                        { icon: <FileText className="w-4 h-4" />,     label: plot.downPaymentPercent ? `Down Payment (${plot.downPaymentPercent})` : "Down Payment", value: plot.downPayment },
+                        { icon: <CalendarDays className="w-4 h-4" />,  label: plot.monthlyCount ? `Monthly Installment (x${plot.monthlyCount})` : "Monthly Installment", value: plot.monthly },
+                        { icon: <Clock className="w-4 h-4" />,         label: plot.halfYearlyCount ? `Half Yearly (x${plot.halfYearlyCount})` : "Half Yearly", value: plot.halfYearly },
+                        ...(plot.possession ? [{ icon: <KeyRound className="w-4 h-4" />, label: "At the Time of Possession", value: plot.possession }] : []),
+                      ].map((row, i) => (
+                        <div
+                          key={i}
+                          className="flex items-start justify-between py-2 sm:py-2.5 gap-2"
+                          style={{ borderTop: "1px solid rgba(0,0,0,0.07)" }}
+                        >
+                          <span className="flex items-start gap-2 font-normal min-w-0" style={{ color: MUTED }}>
+                            <span style={{ color: "#8E9A80" }} className="shrink-0 mt-0.5">{row.icon}</span>
+                            <span className="leading-snug">{row.label}</span>
+                          </span>
+                          <span className="font-bold whitespace-nowrap ml-2 sm:ml-3 shrink-0 text-right leading-snug" style={{ color: TEXT }}>
+                            Rs {row.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
 
-                  {/* Contact Us Button with High Contrast */}
-                  <Link
-                    href="/contact"
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-full mt-4 py-2.5 sm:py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-1.5 transition-all duration-200 shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] active:scale-[0.98] group/btn"
-                    style={{ background: GREEN }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2F441E"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = GREEN; }}
-                  >
-                    <span>Contact Us</span>
-                    <ArrowUpRight className="w-4 h-4 stroke-[2.5] transition-transform duration-200 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
-                  </Link>
+                    {/* Contact Us Button with High Contrast */}
+                    <Link
+                      href="/contact"
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full mt-4 py-2.5 sm:py-3 px-4 rounded-xl font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-1.5 transition-all duration-200 shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] active:scale-[0.98] group/btn min-h-[44px]"
+                      style={{ background: GREEN }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = "#2F441E"; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = GREEN; }}
+                    >
+                      <span>Contact Us</span>
+                      <ArrowUpRight className="w-4 h-4 stroke-[2.5] transition-transform duration-200 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
+                    </Link>
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Navigation Controls */}
-      <div className="flex items-center justify-center gap-4 pb-4 mt-2">
-        <button
-          type="button"
-          onClick={handlePrev}
-          aria-label="Previous plot plan"
-          className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 active:scale-90 cursor-pointer border"
-          style={{ background: "#FAF9F7", color: GREEN, borderColor: `${GREEN}33` }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = GREEN;
-            (e.currentTarget as HTMLButtonElement).style.color = "#fff";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "#FAF9F7";
-            (e.currentTarget as HTMLButtonElement).style.color = GREEN;
-          }}
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        {/* Dot Indicators for all 5 Cards */}
-        <div className="flex items-center gap-1.5">
-          {plots.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveIndex(i)}
-              aria-label={`Plot ${i + 1}`}
-              className="rounded-full transition-all duration-300 cursor-pointer"
-              style={{
-                width:      i === activeIndex ? "24px" : "8px",
-                height:     "8px",
-                background: i === activeIndex ? GREEN : `${GREEN}40`,
-              }}
-            />
-          ))}
+            );
+          })}
         </div>
 
-        <button
-          type="button"
-          onClick={handleNext}
-          aria-label="Next plot plan"
-          className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm transition-all duration-200 active:scale-90 cursor-pointer border"
-          style={{ background: "#FAF9F7", color: GREEN, borderColor: `${GREEN}33` }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = GREEN;
-            (e.currentTarget as HTMLButtonElement).style.color = "#fff";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "#FAF9F7";
-            (e.currentTarget as HTMLButtonElement).style.color = GREEN;
-          }}
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </div>
+        {/* Navigation Controls - 44px tap targets */}
+        <div className="flex items-center justify-center gap-4 pb-4 mt-2">
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous plot plan"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center shadow-sm transition-all duration-200 active:scale-90 cursor-pointer border"
+            style={{ background: "#FAF9F7", color: GREEN, borderColor: `${GREEN}33` }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = GREEN;
+              (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "#FAF9F7";
+              (e.currentTarget as HTMLButtonElement).style.color = GREEN;
+            }}
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          {/* Dot Indicators for all 5 Cards */}
+          <div className="flex items-center gap-1.5">
+            {data.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveIndex(i)}
+                aria-label={`Plot ${i + 1}`}
+                className="rounded-full transition-all duration-300 cursor-pointer"
+                style={{
+                  width:      i === activeIndex ? "24px" : "8px",
+                  height:     "8px",
+                  background: i === activeIndex ? GREEN : `${GREEN}40`,
+                }}
+              />
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next plot plan"
+            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full flex items-center justify-center shadow-sm transition-all duration-200 active:scale-90 cursor-pointer border"
+            style={{ background: "#FAF9F7", color: GREEN, borderColor: `${GREEN}33` }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = GREEN;
+              (e.currentTarget as HTMLButtonElement).style.color = "#fff";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "#FAF9F7";
+              (e.currentTarget as HTMLButtonElement).style.color = GREEN;
+            }}
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
     </div>
   );
 }

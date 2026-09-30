@@ -72,9 +72,9 @@ export default function PaymentHistoryPage() {
         subtitle="Consolidated society transaction ledger &amp; receipts"
       />
 
-      <main className="p-6 sm:p-8 max-w-7xl w-full mx-auto space-y-6">
+      <main className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
         {/* Top Control Bar */}
-        <div className="bg-white rounded-2xl border border-black/[0.08] p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="bg-white rounded-2xl border border-black/[0.08] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
           <div className="flex items-center gap-3">
             <Link
               href="/society-members/payments"
@@ -115,7 +115,7 @@ export default function PaymentHistoryPage() {
             <button
               onClick={downloadStatement}
               disabled={transactions.length === 0}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white flex items-center gap-2 shadow-xs transition-colors"
+              className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Download Statement</span>
@@ -124,7 +124,7 @@ export default function PaymentHistoryPage() {
         </div>
 
         {/* Transactions Table */}
-        {isLoading ? (
+        {isLoading && transactions.length === 0 ? (
           <MemberHistorySkeleton />
         ) : transactions.length === 0 ? (
           <div className="bg-white rounded-3xl border border-black/[0.08] p-12 text-center space-y-3">
@@ -140,7 +140,51 @@ export default function PaymentHistoryPage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-black/[0.08] overflow-hidden shadow-xs">
-            <div className="overflow-x-auto">
+            {/* Mobile Stacked Cards (< 768px) */}
+            <div className="md:hidden space-y-3 p-4">
+              {transactions.map((t) => (
+                <div key={t.id} className="bg-white rounded-2xl border border-black/[0.08] p-4 shadow-2xs space-y-2.5 text-xs">
+                  {/* Date & Status */}
+                  <div className="flex items-center justify-between border-b border-black/[0.05] pb-2">
+                    <div className="flex items-center gap-1.5 text-[#151914] font-medium">
+                      <Calendar className="w-3.5 h-3.5 text-[#6B7462]" />
+                      <span>{t.date ? String(t.date).split('T')[0] : '—'}</span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20">
+                      <CheckCircle2 className="w-3 h-3" />
+                      <span className="capitalize">{t.status}</span>
+                    </span>
+                  </div>
+
+                  {/* Plot & Amount */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Plot</span>
+                      <span className="font-bold text-sm text-[#151914]">Plot {t.plotNumber}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Amount</span>
+                      <span className="font-bold text-sm text-[#43612B]">{formatPKR(t.amount)}</span>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div className="border-t border-black/[0.05] pt-2 text-[#151914]">
+                    <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Description</span>
+                    <span className="mt-0.5 block">{t.description}</span>
+                  </div>
+
+                  {/* Receipt Ref */}
+                  <div className="border-t border-black/[0.05] pt-2 flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold text-[#6B7462] tracking-wider">Receipt Ref</span>
+                    <span className="font-mono text-[11px] text-[#6B7462] font-semibold">{t.transactionRef || 'TXN-PV-VERIFIED'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-[#FAF9F5] border-b border-black/[0.06] text-[#6B7462] font-semibold uppercase tracking-wider text-[11px]">

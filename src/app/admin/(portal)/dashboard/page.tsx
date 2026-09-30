@@ -139,7 +139,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* Aggregate Overview Cards (Purple, Mint, Amber, Blue) - Preserved during skeleton loading just like Inventory Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* 1. Total Inventory - Purple */}
         <div className="bg-gradient-to-br from-purple-500/10 to-purple-900/10 border border-purple-500/20 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center gap-3 mb-3">

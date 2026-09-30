@@ -188,7 +188,7 @@ export const AmenitiesSection: React.FC = () => {
       {/* Background ambient lighting */}
       <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-full max-w-7xl h-96 bg-emerald-500/5 blur-[140px] pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* FIX: Removed items-start from grid so the columns stretch, allowing sticky to work */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
           {/* ========================================================================= */}
@@ -197,13 +197,13 @@ export const AmenitiesSection: React.FC = () => {
           <div className="lg:col-span-4 relative h-full">
             <div className="lg:sticky lg:top-32 z-20 space-y-6 self-start pb-10">
               {/* Main Section Kicker — Bold */}
-              <span className="kicker block text-verified-green font-black text-xs sm:text-sm tracking-widest uppercase font-sans">
+              <span className="kicker block text-verified-green font-black text-xs sm:text-sm tracking-widest uppercase font-sans text-center lg:text-left">
                 MODERN FACILITIES
               </span>
 
               {/* Dynamic Step Header */}
               <div className="space-y-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center lg:justify-start gap-3">
                   <AnimatePresence mode="wait">
                     <motion.span
                       key={current.stepNumber}
@@ -238,7 +238,7 @@ export const AmenitiesSection: React.FC = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={shouldReduceMotion ? undefined : { opacity: 0, y: -8 }}
                     transition={{ duration: 0.3, ease: "easeOut" }}
-                    className="space-y-2"
+                    className="space-y-2 text-center lg:text-left"
                   >
                     <h2 className="font-display text-3xl sm:text-4xl text-charcoal font-bold tracking-tight leading-tight">
                       {current.title}
@@ -360,11 +360,11 @@ export const AmenitiesSection: React.FC = () => {
 
                         {/* Crisp Title Footer */}
                         <div className="p-4 flex flex-col items-center text-center justify-center relative mt-4">
-                          {/* Floating Icon Badge */}
-                          <div className="absolute -top-9 w-12 h-12 rounded-2xl bg-[#F0F5F2] border border-[#2E6A4F]/20 flex items-center justify-center shadow-md shadow-[#2E6A4F]/5 pop-in-element">
+                          {/* Floating Icon Badge centered horizontally */}
+                          <div className="absolute -top-9 left-1/2 -translate-x-1/2 w-12 h-12 rounded-2xl bg-[#F0F5F2] border border-[#2E6A4F]/20 flex items-center justify-center shadow-md shadow-[#2E6A4F]/5 pop-in-element">
                             <card.icon className="w-6 h-6 text-[#2E6A4F]" strokeWidth={1.5} />
                           </div>
-                          <h4 className="font-display text-sm sm:text-base text-charcoal font-semibold tracking-tight group-hover:text-[#2E6A4F] transition-colors duration-200 mt-2">
+                          <h4 className="font-display text-sm sm:text-base text-charcoal font-semibold tracking-tight group-hover:text-[#2E6A4F] transition-colors duration-200 mt-2 text-center">
                             {card.title}
                           </h4>
                         </div>

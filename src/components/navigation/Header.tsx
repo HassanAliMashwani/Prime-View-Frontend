@@ -36,25 +36,25 @@ export const Header: React.FC = () => {
   };
 
   return (
-    <header className="absolute top-3 left-0 right-0 z-50 w-full pt-4 sm:pt-6 pb-2 pl-2 sm:pl-4 lg:pl-6 pr-4 sm:pr-6 lg:pr-10 bg-transparent pointer-events-none transition-none">
+    <header className="absolute top-1 sm:top-3 left-0 right-0 z-50 w-full pt-2 sm:pt-4 pb-2 px-3 sm:px-6 lg:px-8 bg-transparent pointer-events-none transition-none">
       {/* 3-Pill Floating Container with High-Contrast Smoky Glass on Any Background */}
-      <div className="w-full mx-auto flex items-center justify-between relative h-[50px]">
+      <div className="w-full mx-auto flex items-center justify-between relative h-11 sm:h-[50px]">
 
         {/* ========================================================================= */}
         {/* 1. LEFT PILL: Brand Logo (Extreme Left Corner) */}
         {/* ========================================================================= */}
-        <div className="flex items-center h-[50px] shrink-0">
+        <div className="flex items-center h-11 sm:h-[50px] shrink-0">
           <Link
             href="/"
             className="pointer-events-auto flex items-center group shrink-0 transition-all duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
             aria-label="Prime View Home"
           >
-            <div className="relative w-36 h-36 sm:w-44 sm:h-44 md:w-52 md:h-52 lg:w-60 lg:h-60 -ml-2 sm:-ml-4 translate-y-[10px] transition-transform duration-180 group-hover:scale-105">
+            <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform duration-180 group-hover:scale-105 flex items-center">
               <Image
                 src={siteConfig.logoPath}
                 alt="Prime View Emblem"
                 fill
-                className="object-contain object-left"
+                className="object-contain object-left drop-shadow-[0_2px_8px_rgba(255,255,255,0.6)]"
                 priority
               />
             </div>
@@ -150,11 +150,11 @@ export const Header: React.FC = () => {
         {/* ========================================================================= */}
         {/* 3. RIGHT PILL: “Book Now ↗” Peach Pill */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-2.5 shrink-0 h-[50px]">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 h-11 sm:h-[50px]">
           <MagneticWrapper className="pointer-events-auto">
             <Link
               href="/contact"
-              className="inline-flex items-center justify-center gap-1.5 h-[50px] px-6 sm:px-7 rounded-full bg-[#43612B] hover:bg-[#365222] text-white text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(67,97,43,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#43612B] animate-pulse"
+              className="hidden min-[360px]:inline-flex items-center justify-center gap-1.5 h-11 sm:h-[50px] px-4 sm:px-6 rounded-full bg-[#43612B] hover:bg-[#365222] text-white text-xs sm:text-[13.5px] font-semibold tracking-normal shadow-[0_4px_16px_rgba(67,97,43,0.4)] transition-all duration-180 ease-out hover:-translate-y-[1px] whitespace-nowrap focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#43612B] animate-pulse"
               aria-label="Book Now"
             >
               <span>Book Now</span>
@@ -162,10 +162,10 @@ export const Header: React.FC = () => {
             </Link>
           </MagneticWrapper>
 
-          {/* Mobile Menu Smoky Pill Toggle (< 768px) */}
+          {/* Mobile Menu Smoky Pill Toggle (< 768px) - 44px tap target */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="pointer-events-auto md:hidden flex items-center justify-center w-[50px] h-[50px] rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm text-charcoal hover:bg-white/90 transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black"
+            className="pointer-events-auto md:hidden flex items-center justify-center w-11 h-11 min-w-[44px] min-h-[44px] rounded-full bg-white/70 backdrop-blur-md border border-white/40 shadow-sm text-charcoal hover:bg-white/90 transition-colors duration-180 focus-visible:outline focus-visible:outline-2 focus-visible:outline-black"
             aria-label="Toggle navigation menu"
             aria-expanded={mobileMenuOpen}
           >
@@ -178,8 +178,19 @@ export const Header: React.FC = () => {
       {/* 4. MOBILE MENU DRAWER */}
       {/* ========================================================================= */}
       {mobileMenuOpen && (
-        <div className="pointer-events-auto max-w-[1240px] mx-auto mt-2 md:hidden bg-white/90 backdrop-blur-xl border border-white/50 rounded-3xl p-5 space-y-3 shadow-2xl">
+        <div className="pointer-events-auto max-w-[1240px] mx-auto mt-2 md:hidden bg-white/90 backdrop-blur-xl border border-white/50 rounded-3xl p-4 sm:p-5 space-y-3 shadow-2xl">
           <nav aria-label="Mobile Navigation" className="space-y-1">
+            {/* If screen is under 360px, show Book Now at top of drawer */}
+            <div className="pb-2.5 mb-2 border-b border-black/10 min-[360px]:hidden">
+              <Link
+                href="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-1.5 w-full h-11 px-4 rounded-full bg-[#43612B] text-white text-xs font-semibold shadow-md"
+              >
+                <span>Book Now</span>
+                <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              </Link>
+            </div>
             {mainNavigation.map((item) => {
               const active = isLinkActive(item);
 

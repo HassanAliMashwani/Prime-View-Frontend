@@ -1514,7 +1514,7 @@ function CustomersPageContent() {
                         {selectedPlotA.blockId}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-emerald-200/70 text-[11px]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-2 border-t border-emerald-200/70 text-[11px]">
                       <div>
                         <span className="text-emerald-700">Plot Number:</span>{' '}
                         <strong className="text-emerald-950 font-mono">{selectedPlotA.plotNumber}</strong>
@@ -1523,7 +1523,7 @@ function CustomersPageContent() {
                         <span className="text-emerald-700">Category:</span>{' '}
                         <strong className="text-emerald-950 capitalize">{selectedPlotA.category} ({selectedPlotA.size})</strong>
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-1 sm:col-span-2">
                         <span className="text-emerald-700">Plot Purchase Price:</span>{' '}
                         <strong className="text-emerald-950 font-mono text-sm">PKR {selectedPlotA.price.toLocaleString()}</strong>
                       </div>
@@ -1638,7 +1638,7 @@ function CustomersPageContent() {
                   <span className="text-[11px] text-slate-500 font-medium">Customizable duration and payment frequency</span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Field 1: Total Payment */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
@@ -2379,7 +2379,7 @@ function CustomersPageContent() {
                     <span className="text-[11px] text-slate-500 font-medium">Auto-calculated schedule with remainder absorption</span>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Total Payment */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
@@ -2868,7 +2868,7 @@ function CustomersPageContent() {
             }
           }}
         >
-          <div id="pv-booking-agreement-printable" className="bg-white rounded-2xl border border-slate-300 w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[92vh] print:border-none print:shadow-none print:my-0 print:max-w-none print:max-h-none print:h-auto print:overflow-visible">
+          <div id="pv-booking-agreement-printable" className="bg-white rounded-2xl border border-slate-300 w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[100dvh] print:border-none print:shadow-none print:my-0 print:max-w-none print:max-h-none print:h-auto print:overflow-visible">
             {/* Modal Actions Bar (Sticky/Anchored at top, hidden on print) */}
             <div className="px-4 py-3 sm:px-5 sm:py-3.5 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800 shadow-xs print:hidden">
               <div className="flex items-center gap-2">
@@ -3073,7 +3073,7 @@ function CustomersPageContent() {
                 </div>
 
                 {/* Signatures */}
-                <div className="pt-5 sm:pt-6 border-t border-slate-300 grid grid-cols-3 gap-4 sm:gap-6 text-center text-xs">
+                <div className="pt-5 sm:pt-6 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center text-xs">
                   <div>
                     <div className="h-9 sm:h-11 border-b border-dashed border-slate-400 mb-1.5 sm:mb-2" />
                     <div className="font-bold text-slate-800 text-[11px] sm:text-xs">Applicant Signature</div>

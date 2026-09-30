@@ -63,18 +63,20 @@ export default function MasterplanPage() {
         </div>
       </div>
 
-      <div className="pb-16 max-w-6xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10 relative z-10 -mt-10 sm:-mt-16">
+      <div className="pb-20 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10 relative z-10 -mt-10 sm:-mt-16">
         {/* Master Plan Display Box */}
         <div className="relative w-full overflow-hidden rounded-3xl border border-black/[0.08] bg-[#FAF9F7] shadow-lg p-2 sm:p-4">
-          <div className="relative w-full h-full bg-white rounded-2xl overflow-hidden border border-black/[0.06] flex items-center justify-center">
-            <Image
-              src={masterplanWebp}
-              alt="Prime View Abbottabad Final Master Plan"
-              width={4768}
-              height={3368}
-              className="w-full h-auto object-contain rounded-xl max-h-[85vh]"
-              priority
-            />
+          <div className="relative w-full h-full bg-white rounded-2xl overflow-x-auto overflow-y-hidden border border-black/[0.06] overscroll-x-contain">
+            <div className="min-w-[650px] md:min-w-full">
+              <Image
+                src={masterplanWebp}
+                alt="Prime View Abbottabad Final Master Plan"
+                width={4768}
+                height={3368}
+                className="w-full h-auto object-contain rounded-xl max-h-[85vh]"
+                priority
+              />
+            </div>
           </div>
         </div>
       </div>

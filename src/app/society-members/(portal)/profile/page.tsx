@@ -201,7 +201,7 @@ export default function ProfilePage() {
         subtitle="Manage contact records &amp; verified account details"
       />
 
-      <main className="p-6 sm:p-8 max-w-4xl w-full mx-auto space-y-8">
+      <main className="p-4 md:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6 sm:space-y-8">
         {/* Toast Notification */}
         {toastMessage && (
           <div
@@ -221,7 +221,7 @@ export default function ProfilePage() {
         )}
 
         {/* Read-Only System Identity Box (Section 2.8) */}
-        <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-6 shadow-xs">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-4 sm:p-6 md:p-8 space-y-6 shadow-xs">
           <div className="flex items-center gap-4 pb-5 border-b border-black/[0.06]">
             <div className="w-14 h-14 rounded-2xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center font-bold text-xl">
               <User className="w-7 h-7" />

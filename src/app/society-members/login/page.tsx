@@ -59,7 +59,7 @@ export default function MemberLoginPage() {
   return (
     <div className="min-h-screen bg-[#F8F7F5] flex flex-col justify-between selection:bg-[#43612B] selection:text-white">
       {/* Top Bar */}
-      <div className="p-6 max-w-6xl w-full mx-auto flex items-center justify-between">
+      <div className="p-4 sm:p-6 max-w-6xl w-full mx-auto flex flex-col min-[380px]:flex-row items-start min-[380px]:items-center justify-between gap-2.5">
         <Link
           href="/society-members"
           className="inline-flex items-center gap-2 text-xs font-semibold text-[#6B7462] hover:text-[#151914] transition-colors"
@@ -196,34 +196,34 @@ export default function MemberLoginPage() {
               <button
                 type="button"
                 onClick={() => fillDemo('tariq')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors"
+                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
               >
-                <span className="font-bold block text-[#151914]">Tariq Mehmood</span>
-                <span className="text-[#6B7462] text-[10px]">1 Plot (Full Payment)</span>
+                <span className="font-bold block text-[#151914] leading-tight">Tariq Mehmood</span>
+                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">1 Plot (Full Payment)</span>
               </button>
               <button
                 type="button"
                 onClick={() => fillDemo('ayesha')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors"
+                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
               >
-                <span className="font-bold block text-[#151914]">Dr. Ayesha</span>
-                <span className="text-[#6B7462] text-[10px]">1 Plot (Installment)</span>
+                <span className="font-bold block text-[#151914] leading-tight">Dr. Ayesha</span>
+                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">1 Plot (Installment)</span>
               </button>
               <button
                 type="button"
                 onClick={() => fillDemo('usman')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors"
+                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
               >
-                <span className="font-bold block text-[#151914]">Malik Usman</span>
-                <span className="text-[#6B7462] text-[10px]">2 Plots (Mixed)</span>
+                <span className="font-bold block text-[#151914] leading-tight">Malik Usman</span>
+                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">2 Plots (Mixed)</span>
               </button>
               <button
                 type="button"
                 onClick={() => fillDemo('bilal')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors"
+                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
               >
-                <span className="font-bold block text-[#151914]">Bilal Ahmed</span>
-                <span className="text-[#6B7462] text-[10px]">0 Plots (Empty State)</span>
+                <span className="font-bold block text-[#151914] leading-tight">Bilal Ahmed</span>
+                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">0 Plots (Empty State)</span>
               </button>
             </div>
           </div>

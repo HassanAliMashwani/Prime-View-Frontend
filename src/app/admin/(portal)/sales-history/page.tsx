@@ -513,8 +513,103 @@ function SalesHistoryContent() {
           </div>
         </div>
 
-        {/* Ledger Data Table */}
-        <div className="overflow-x-auto print:overflow-visible">
+        {/* Mobile Stacked Cards (< 768px, print:hidden) */}
+        <div className="md:hidden print:hidden space-y-3 p-4">
+          {items.length === 0 ? (
+            <div className="py-12 text-center text-slate-400">
+              No plot bookings found for the selected date range or filter criteria.
+            </div>
+          ) : (
+            pageRows.map((sale, idx) => {
+              const globalIdx = (safePage - 1) * PAGE_SIZE + idx + 1;
+              return (
+                <div key={sale.id} className="bg-slate-50/50 rounded-xl border border-slate-200 p-4 space-y-3 text-xs">
+                  {/* Row Index & Date */}
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <span className="font-mono text-slate-400 text-xs font-bold">#{globalIdx}</span>
+                    <div className="text-right font-mono">
+                      <span className="font-bold text-slate-900">{sale.dateStr}</span>
+                      <span className="text-[11px] text-slate-400 ml-1.5">{sale.timeStr}</span>
+                    </div>
+                  </div>
+
+                  {/* Property Allotted */}
+                  <div className="space-y-1">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Property Allotted</div>
+                    <div className="font-bold text-slate-900 text-sm">
+                      Plot {sale.plotNumber}
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="px-1.5 py-0.5 rounded-sm bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-[10px]">
+                        {sale.blockName}
+                      </span>
+                      <span className="text-slate-500 text-[10px]">
+                        {sale.size} • {sale.category.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Customer Member */}
+                  <div className="space-y-0.5 border-t border-slate-100 pt-2">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Customer Member</div>
+                    <div className="font-bold text-slate-900">{sale.customerName}</div>
+                    <div className="font-mono text-[11px] text-emerald-800 font-semibold">
+                      {sale.membershipNo}
+                    </div>
+                  </div>
+
+                  {/* Contract Price & Payment Scheme */}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Contract Price</div>
+                      <div className="font-mono font-bold text-slate-900 text-sm">
+                        PKR {sale.price.toLocaleString()}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Scheme</div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border mt-0.5 ${
+                          sale.paymentType === 'one_time'
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            : 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                        }`}
+                      >
+                        {sale.paymentType === 'one_time' ? 'Full Payment' : '24-Mo Installments'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sold By (Admin) & Action */}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-2">
+                    <div>
+                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Sold By</div>
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{sale.sellerAdminName}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono">
+                        {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
+                      </div>
+                    </div>
+                    <div>
+                      <Link
+                        href={`/admin/master-plan/${sale.blockId}?focusPlot=${sale.plotId}`}
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors min-h-[44px]"
+                      >
+                        <span>Locate Plot</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Ledger Data Table (Desktop >= 768px, print:block) */}
+        <div className="hidden md:block print:block overflow-x-auto print:overflow-visible">
           <table className="w-full text-left border-collapse print:text-[10px] print:border print:border-slate-300">
             <thead>
               <tr className="border-b border-slate-200 bg-slate-50/80 print:bg-slate-100 text-[11px] print:text-[10px] font-bold text-slate-700 uppercase tracking-wider">

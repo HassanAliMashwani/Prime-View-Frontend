@@ -1,13 +1,12 @@
 import React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ShieldCheck, MapPin } from "lucide-react";
 import { MagneticWrapper } from "@/components/ui/MagneticWrapper";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const HeroSection: React.FC = () => {
   return (
-    <section className="relative w-full h-dvh min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
+    <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
       {/* Full-bleed background — Abbottabad mountain landscape */}
       <div className="absolute inset-0 z-0">
         <Image
@@ -29,28 +28,36 @@ export const HeroSection: React.FC = () => {
       </div>
 
       {/* Hero Content — Asymmetrical Editorial Layout */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 pt-16 sm:pt-24 flex flex-col">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 flex flex-col items-center sm:items-stretch sm:pt-24">
 
         {/* Primary Headline */}
-        <ScrollReveal variant="blur-word" delay={0.2} className="font-display text-5xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.0] tracking-tight text-left sm:ml-8 lg:ml-20">
+        <ScrollReveal
+          variant="blur-word"
+          delay={0.2}
+          className="font-display text-5xl min-[390px]:text-6xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.05] sm:leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20 w-full"
+        >
           Close to Heaven
         </ScrollReveal>
 
         {/* Secondary Headline (Offset) */}
-        <div className="w-full flex justify-end mt-8 sm:mt-16">
-          <ScrollReveal variant="bounce" delay={0.8} className="font-sans text-lg sm:text-xl text-pure-white/90 max-w-sm text-right mr-4 sm:mr-16 lg:mr-32 border-r-2 border-[#43612B] pr-6 leading-relaxed">
+        <div className="w-full flex justify-center sm:justify-end mt-4 sm:mt-16">
+          <ScrollReveal
+            variant="bounce"
+            delay={0.8}
+            className="font-sans text-base sm:text-lg sm:text-xl text-pure-white/90 max-w-sm w-fit text-center sm:text-right mx-auto sm:mx-0 sm:mr-16 lg:mr-32 border-r-2 border-[#C4A265] pr-4 sm:pr-6 leading-relaxed"
+          >
             Get Your Dream House Today in Abbottabad
           </ScrollReveal>
         </div>
       </div>
 
-      {/* Conversion Action Buttons (Moved to bottom) */}
-      <div className="absolute bottom-12 sm:bottom-16 w-full z-10 px-6">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-2xl mx-auto">
+      {/* Conversion Action Buttons — positioned below text, at bottom of section */}
+      <div className="absolute bottom-10 sm:bottom-16 w-full z-10 px-6">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 sm:gap-4 max-w-2xl mx-auto">
           <MagneticWrapper className="w-full sm:w-auto">
             <Link
               href="/contact"
-              className="w-full sm:w-auto inline-flex items-center justify-center bg-[#43612B] hover:bg-[#324920] text-white font-sans text-sm font-bold px-8 py-4 rounded-xl tracking-wider uppercase shadow-[0_4px_20px_rgba(67,97,43,0.4)] transition-colors duration-200 animate-pulse"
+              className="w-full sm:w-auto inline-flex items-center justify-center bg-[#43612B] hover:bg-[#324920] text-white font-sans text-sm font-bold px-8 py-3.5 sm:py-4 rounded-xl tracking-wider uppercase shadow-[0_4px_20px_rgba(67,97,43,0.4)] transition-colors duration-200 animate-pulse"
             >
               Book Now
             </Link>
@@ -58,7 +65,7 @@ export const HeroSection: React.FC = () => {
 
           <Link
             href="/our-plans"
-            className="w-full sm:w-auto inline-flex items-center justify-center bg-white/15 hover:bg-white/25 text-white font-sans text-sm font-semibold px-8 py-4 rounded-xl tracking-wider uppercase border border-white/30 backdrop-blur-xs transition-colors duration-200"
+            className="w-full sm:w-auto inline-flex items-center justify-center bg-white/15 hover:bg-white/25 text-white font-sans text-sm font-semibold px-8 py-3.5 sm:py-4 rounded-xl tracking-wider uppercase border border-white/30 backdrop-blur-xs transition-colors duration-200"
           >
             Explore Properties
           </Link>

@@ -71,7 +71,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
         {onOpenMobileMenu && (
           <button
             onClick={onOpenMobileMenu}
-            className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+            className="lg:hidden w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
             aria-label="Open navigation sidebar"
           >
             <Menu className="w-5 h-5 text-slate-700" />

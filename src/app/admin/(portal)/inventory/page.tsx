@@ -108,37 +108,39 @@ export default function InventoryOverviewPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl p-1 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white border border-slate-200 rounded-xl p-2 sm:p-1 shadow-xs w-full sm:w-auto">
             <input 
               type="date" 
-              className="bg-transparent border-none text-slate-800 text-sm focus:ring-0 w-36"
+              className="bg-transparent border border-slate-200 sm:border-none rounded-lg sm:rounded-none px-2 py-1.5 sm:p-0 text-slate-800 text-sm focus:ring-0 w-full sm:w-36"
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
             />
-            <span className="text-slate-400 text-xs font-medium">to</span>
+            <span className="text-slate-400 text-xs font-medium text-center">to</span>
             <input 
               type="date" 
-              className="bg-transparent border-none text-slate-800 text-sm focus:ring-0 w-36"
+              className="bg-transparent border border-slate-200 sm:border-none rounded-lg sm:rounded-none px-2 py-1.5 sm:p-0 text-slate-800 text-sm focus:ring-0 w-full sm:w-36"
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
             />
           </div>
-          <button
-            onClick={() => window.print()}
-            className="p-2 bg-emerald-600 hover:bg-emerald-700 text-emerald-50 rounded-xl transition-colors flex items-center gap-2 shadow-xs cursor-pointer"
-            title="Print Inventory"
-          >
-            <span className="hidden sm:inline text-xs font-bold px-1">Print</span>
-          </button>
-          <button
-            onClick={loadStats}
-            disabled={loading}
-            className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-200 shadow-xs cursor-pointer"
-            title="Refresh Data"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => window.print()}
+              className="flex-1 sm:flex-initial p-2.5 sm:p-2 bg-emerald-600 hover:bg-emerald-700 text-emerald-50 rounded-xl transition-colors flex items-center justify-center gap-2 shadow-xs cursor-pointer min-h-[44px]"
+              title="Print Inventory"
+            >
+              <span className="text-xs font-bold px-1">Print</span>
+            </button>
+            <button
+              onClick={loadStats}
+              disabled={loading}
+              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-200 shadow-xs cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
+              title="Refresh Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -149,8 +151,8 @@ export default function InventoryOverviewPage() {
         </div>
       )}
 
-      {/* Aggregate Overview Cards (Mint, Cream/Yellow, Blue, Lavender) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Aggregate Overview Cards (Mint, Cream/Yellow, Blue, Lavender) - 1 col under 640px */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Available - Mint */}
         <div className="bg-gradient-to-br from-green-500/10 to-green-900/10 border border-green-500/20 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center gap-3 mb-3">
@@ -200,8 +202,64 @@ export default function InventoryOverviewPage() {
         </div>
       </div>
 
-      {/* Main Stats Table */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+      {/* Mobile Stacked Cards (< 768px) */}
+      <div className="md:hidden space-y-3">
+        {loading && stats.length === 0 ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 animate-pulse">
+              <div className="h-5 w-32 bg-slate-200 rounded-md" />
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <div className="h-4 bg-slate-200 rounded" />
+                <div className="h-4 bg-slate-200 rounded" />
+                <div className="h-4 bg-slate-200 rounded" />
+                <div className="h-4 bg-slate-200 rounded" />
+              </div>
+            </div>
+          ))
+        ) : stats.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 text-center text-slate-400 font-medium">
+            No data available
+          </div>
+        ) : (
+          stats.map((s) => (
+            <div key={s.blockId} className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+                    <Map className="w-4 h-4 text-slate-600" />
+                  </div>
+                  <span className="text-slate-900 font-bold text-sm">{s.blockName}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block">Total (4 Core)</span>
+                  <span className="text-slate-900 font-bold text-sm">{s.available + s.reserved + s.booked + s.allotted}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="bg-emerald-50/60 border border-emerald-100 p-2.5 rounded-xl flex items-center justify-between">
+                  <span className="text-emerald-800 font-medium">Available:</span>
+                  <span className="text-emerald-700 font-bold">{s.available}</span>
+                </div>
+                <div className="bg-amber-50/60 border border-amber-100 p-2.5 rounded-xl flex items-center justify-between">
+                  <span className="text-amber-800 font-medium">Reserved:</span>
+                  <span className="text-amber-700 font-bold">{s.reserved}</span>
+                </div>
+                <div className="bg-blue-50/60 border border-blue-100 p-2.5 rounded-xl flex items-center justify-between">
+                  <span className="text-blue-800 font-medium">Booked:</span>
+                  <span className="text-blue-700 font-bold">{s.booked}</span>
+                </div>
+                <div className="bg-purple-50/60 border border-purple-100 p-2.5 rounded-xl flex items-center justify-between">
+                  <span className="text-purple-800 font-medium">Allotted:</span>
+                  <span className="text-purple-700 font-bold">{s.allotted}</span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Main Stats Table (Desktop >= 768px) */}
+      <div className="hidden md:block bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-bold">

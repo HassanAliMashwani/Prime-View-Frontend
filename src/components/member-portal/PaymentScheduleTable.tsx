@@ -95,7 +95,94 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
           </span>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile Stacked Cards (< 768px) */}
+        <div className="md:hidden space-y-3 p-4">
+          {schedule.map((record) => {
+            let badgeClass = 'bg-black/5 text-[#6B7462] border-black/10';
+            let Icon = Clock;
+            let statusLabel: string = record.status;
+
+            if (record.status === 'paid') {
+              badgeClass = 'bg-[#EAF0E7] text-[#43612B] border-[#43612B]/20';
+              Icon = Check;
+              statusLabel = 'Paid';
+            } else if (record.status === 'partially_paid') {
+              badgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
+              Icon = Clock;
+              statusLabel = 'Partially Paid';
+            } else if (record.status === 'overdue') {
+              badgeClass = 'bg-red-50 text-red-700 border-red-200';
+              Icon = AlertCircle;
+              statusLabel = 'Overdue';
+            } else {
+              statusLabel = 'Pending';
+            }
+
+            return (
+              <div
+                key={record.id}
+                className={`rounded-2xl border border-black/[0.08] p-4 space-y-2.5 bg-white shadow-2xs ${
+                  record.status === 'overdue'
+                    ? 'border-red-200 bg-red-50/20'
+                    : record.status === 'partially_paid'
+                    ? 'border-amber-200 bg-amber-50/10'
+                    : ''
+                }`}
+              >
+                {/* 1. Inst. # & 4. Status */}
+                <div className="flex items-center justify-between border-b border-black/[0.05] pb-2">
+                  <div className="font-bold text-[#151914] text-sm">
+                    {record.feeType === 'plot_downpayment' ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+                        Downpayment
+                      </span>
+                    ) : (
+                      `Installment #${record.installmentNumber || '1'}`
+                    )}
+                  </div>
+                  <span
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${badgeClass}`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    <span className="capitalize">{statusLabel}</span>
+                  </span>
+                </div>
+
+                {/* 2. Due Date & 3. Amount */}
+                <div className="flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Due Date</span>
+                    <span className="text-[#151914] font-medium mt-0.5 block">{cleanDate(record.dueDate)}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Amount</span>
+                    <div className="font-bold text-sm text-[#151914] mt-0.5">{formatPKR(record.amount)}</div>
+                    {record.status === 'partially_paid' && (
+                      <div className="text-[10px] font-semibold text-amber-800 mt-0.5">
+                        Paid: {formatPKR(record.paidAmount || 0)} • Left: {formatPKR(record.amount - (record.paidAmount || 0))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5. Paid Date & 6. Receipt Ref */}
+                <div className="flex items-center justify-between text-xs border-t border-black/[0.05] pt-2 text-[#6B7462]">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Paid Date</span>
+                    <span className="text-[#151914] font-medium">{cleanDate(record.paidDate) || '—'}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Receipt Ref</span>
+                    <span className="font-mono text-[11px] text-[#151914] font-semibold">{record.transactionRef || '—'}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Desktop Table (>= 768px) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-[#FAF9F5] border-b border-black/[0.06] text-[#6B7462] font-semibold uppercase tracking-wider text-[11px]">

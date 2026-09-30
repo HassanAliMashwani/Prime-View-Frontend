@@ -47,25 +47,20 @@ export default function SocietyMembersPage() {
         </div>
       </div>
 
-      <div className="pb-20 max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 space-y-10 relative z-10 -mt-12 sm:-mt-18 lg:-mt-24">
+      <div className="pb-20 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8 sm:space-y-10 relative z-10 -mt-12 sm:-mt-18 lg:-mt-24">
 
         {/* Main Content Container */}
-        <div className="bg-[#FAF9F7] rounded-[2rem] border border-black/[0.08] p-6 sm:p-8 space-y-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
-          {/* Search Section */}
-
-
-
-
+        <div className="bg-[#FAF9F7] rounded-3xl sm:rounded-[2rem] border border-black/[0.08] p-4 sm:p-6 md:p-8 space-y-6 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
 
           {/* Verbatim Eligibility Bullet Points */}
           <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between border-b border-black/[0.06] pb-2">
-              <h3 className="font-display text-lg font-bold text-[#151914]">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-black/[0.06] pb-3">
+              <h3 className="font-display text-lg font-bold text-[#151914] w-full md:w-auto">
                 Membership Eligibility Criteria
               </h3>
               <Link
                 href="/society-members/login"
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-[#43612B] hover:bg-[#344d21] text-white font-semibold text-xs tracking-wide shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all hover:scale-105"
+                className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-[#43612B] hover:bg-[#344d21] text-white font-semibold text-xs tracking-wide shadow-[0_4px_20px_rgba(0,0,0,0.15)] transition-all min-h-[44px]"
               >
                 <LogIn className="w-3.5 h-3.5" />
                 <span>Member Portal Login</span>
@@ -93,8 +88,8 @@ export default function SocietyMembersPage() {
           </div>
         </div>
 
-        {/* Bylaws Regulatory Footer Box */}
-        <div className="bg-[#FAF9F7] rounded-2xl border border-black/[0.06] p-5 text-xs text-[#6B7462] space-y-1">
+        {/* Bylaws Regulatory Footer Box - same inset, radius, and border as criteria card */}
+        <div className="bg-[#FAF9F7] rounded-3xl sm:rounded-[2rem] border border-black/[0.08] p-4 sm:p-6 md:p-8 text-xs text-[#6B7462] space-y-1 shadow-[0_12px_40px_rgba(0,0,0,0.06)]">
           <p className="font-bold text-[#151914] font-sans uppercase tracking-wider text-[11px]">
             PrimeView Cooperative Housing Society Abt
           </p>
