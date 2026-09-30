@@ -25,7 +25,7 @@ export interface PlotItem {
   image: string;
 }
 
-const plots: PlotItem[] = [
+export const plots: PlotItem[] = [
   {
     size: "05 Marla",
     tag: "Residential",

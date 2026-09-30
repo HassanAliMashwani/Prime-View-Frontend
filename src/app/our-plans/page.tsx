@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { propertyPlans } from "@/data/properties";
-import { PlotCarousel, PlotItem } from "@/components/ui/PlotCarousel";
+import { PlotCarousel, PlotItem, plots } from "@/components/ui/PlotCarousel";
 import { fetchPublicContent, ContentBlock } from "@/lib/dal/publicContent";
 import { normalizeImagePath } from "@/lib/images";
 import { Check, Calendar, ArrowUpRight, Star, Info, Percent, MapPin, CalendarDays, ShieldCheck, FileText, ChevronRight } from "lucide-react";
@@ -90,14 +89,43 @@ function getPlanSortRank(block: { id: string; title?: string; metadata?: any }):
   return 100;
 }
 
+function PlansSkeleton() {
+  return (
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex justify-center items-center gap-6 overflow-hidden py-4">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className={`w-[320px] sm:w-[360px] h-[540px] rounded-[32px] bg-white border border-black/[0.08] p-6 animate-pulse flex flex-col justify-between shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.06)] ${
+              i === 1 ? 'scale-105 opacity-100 z-10' : 'opacity-70 hidden sm:flex'
+            }`}
+          >
+            <div className="space-y-4">
+              <div className="h-44 w-full bg-black/[0.06] rounded-2xl" />
+              <div className="h-5 w-1/2 bg-black/[0.06] rounded-md" />
+              <div className="h-8 w-3/4 bg-black/[0.06] rounded-lg" />
+              <div className="space-y-2.5 pt-4">
+                <div className="h-4 w-full bg-black/[0.06] rounded-md" />
+                <div className="h-4 w-5/6 bg-black/[0.06] rounded-md" />
+                <div className="h-4 w-4/6 bg-black/[0.06] rounded-md" />
+              </div>
+            </div>
+            <div className="h-11 w-full bg-black/[0.06] rounded-full mt-6" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function OurPlansPage() {
+  const [loading, setLoading] = useState(true);
   const [cmsPlans, setCmsPlans] = useState<PlotItem[]>([]);
 
   const loadPlans = React.useCallback(() => {
     fetchPublicContent('plans')
       .then((blocks) => {
-        if (!blocks || blocks.length === 0) return;
-        const sortedBlocks = [...blocks].sort((a, b) => getPlanSortRank(a) - getPlanSortRank(b));
+        const sortedBlocks = (blocks || []).sort((a, b) => getPlanSortRank(a) - getPlanSortRank(b));
         const mapped: PlotItem[] = [];
         for (const block of sortedBlocks) {
           const m = (block.metadata || {}) as Record<string, any>;
@@ -108,10 +136,7 @@ export default function OurPlansPage() {
 
           const rank = getPlanSortRank(block);
           const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.png';
-          let image = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage);
-          if ((rank === 5 || block.id === 'plan-02-kanal') && (image.includes('sample.jpg') || image.includes('cloudinary') || !m?.imageUrl)) {
-            image = '/new assests/our plan assests/card 6.png';
-          }
+          const image = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage);
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label
           const sizeMatch = String(m?.size || '').match(/^(.+?)\s*\((.+?)\)$/);
@@ -119,9 +144,18 @@ export default function OurPlansPage() {
           const size = sizeMatch ? sizeMatch[2].trim() : String(m?.size || block.title || '');
 
           // Parse payment details without substituting 25, 39, or 8
-          const [downPayment, downPaymentPercent] = [String(m?.downPayment ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.downPayment ?? '').trim(), String(m?.downPayment ?? '').match(/\(([^)]+)\)/)?.[1] || ''];
-          const [monthly, monthlyCount] = [String(m?.monthly ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.monthly ?? '').trim(), String(m?.monthly ?? '').match(/x\s*(\d+)/i)?.[1] ? parseInt(String(m?.monthly ?? '').match(/x\s*(\d+)/i)![1], 10) : undefined];
-          const [halfYearly, halfYearlyCount] = [String(m?.halfYearly ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.halfYearly ?? '').trim(), String(m?.halfYearly ?? '').match(/x\s*(\d+)/i)?.[1] ? parseInt(String(m?.halfYearly ?? '').match(/x\s*(\d+)/i)![1], 10) : undefined];
+          const [downPayment, downPaymentPercent] = [
+            String(m?.downPayment ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.downPayment ?? '').trim(),
+            String(m?.downPayment ?? '').match(/\(([^)]+)\)/)?.[1] || ''
+          ];
+          const [monthly, monthlyCount] = [
+            String(m?.monthly ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.monthly ?? '').trim(),
+            String(m?.monthly ?? '').match(/x\s*(\d+)/i)?.[1] ? parseInt(String(m?.monthly ?? '').match(/x\s*(\d+)/i)![1], 10) : undefined
+          ];
+          const [halfYearly, halfYearlyCount] = [
+            String(m?.halfYearly ?? '').match(/(?:PKR\s*)?([\d,]+)/i)?.[1] || String(m?.halfYearly ?? '').trim(),
+            String(m?.halfYearly ?? '').match(/x\s*(\d+)/i)?.[1] ? parseInt(String(m?.halfYearly ?? '').match(/x\s*(\d+)/i)![1], 10) : undefined
+          ];
           const possession = m?.possession ? String(m.possession).replace(/PKR\s*/i, '').trim() : undefined;
 
           // Format price number → "2,500,000"
@@ -148,10 +182,16 @@ export default function OurPlansPage() {
         }
         if (mapped.length > 0) {
           setCmsPlans(mapped);
+        } else {
+          // Draw built-in cards only when fetch returns no usable card
+          setCmsPlans(plots);
         }
+        setLoading(false);
       })
       .catch(() => {
-        // Leave existing cards on fetch failure
+        // Draw built-in cards only when fetch fails
+        setCmsPlans(plots);
+        setLoading(false);
       });
   }, []);
 
@@ -183,14 +223,11 @@ export default function OurPlansPage() {
       };
     } catch {}
 
-    const interval = setInterval(loadPlans, 10000);
-
     return () => {
       window.removeEventListener('focus', handleRefresh);
       window.removeEventListener('cms-content-updated', handleRefresh);
       window.removeEventListener('storage', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibility);
-      clearInterval(interval);
       if (channel) channel.close();
     };
   }, [loadPlans]);
@@ -253,7 +290,7 @@ export default function OurPlansPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 -mt-32 sm:-mt-44 lg:-mt-52 z-10">
 
           <div className="relative z-10">
-            <PlotCarousel items={cmsPlans} />
+            {loading ? <PlansSkeleton /> : <PlotCarousel items={cmsPlans} />}
           </div>
 
           {/* Terms & Conditions Block — Compact Size (max-w-[860px]) */}

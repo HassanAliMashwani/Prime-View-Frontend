@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { EventCard } from "./EventCard";
 import { EventModal } from "./EventModal";
 import { eventsData, EventData } from "@/data/events";
@@ -9,6 +9,16 @@ export const EventsGrid: React.FC<{ events?: EventData[] }> = ({ events }) => {
   // Use CMS events when provided and non-empty; otherwise fall back to the static array
   const data = events && events.length > 0 ? events : eventsData;
   const [selectedEvent, setSelectedEvent] = useState<EventData | null>(null);
+
+  // If a gallery or event popup is open and a refetch returns a new list, replace the open item from that list using the same id
+  useEffect(() => {
+    if (selectedEvent && data && data.length > 0) {
+      const updated = data.find((e) => e.id === selectedEvent.id);
+      if (updated) {
+        setSelectedEvent(updated);
+      }
+    }
+  }, [data, selectedEvent?.id]);
 
   return (
     <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -7,57 +7,79 @@ import { EventData, eventsData } from "@/data/events";
 import { fetchPublicContent } from "@/lib/dal/publicContent";
 import { normalizeImagePath } from "@/lib/images";
 
+function EventsSkeleton() {
+  return (
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+        <div className="md:col-span-2 lg:col-span-2 rounded-[28px] bg-white border border-black/[0.08] p-6 h-80 animate-pulse flex flex-col md:flex-row gap-6 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+          <div className="w-full md:w-[48%] h-48 md:h-full bg-black/[0.06] rounded-2xl" />
+          <div className="flex-1 flex flex-col justify-between py-2 space-y-3">
+            <div className="h-4 w-1/3 bg-black/[0.06] rounded-full" />
+            <div className="h-7 w-3/4 bg-black/[0.06] rounded-lg" />
+            <div className="h-4 w-full bg-black/[0.06] rounded-md" />
+            <div className="h-4 w-2/3 bg-black/[0.06] rounded-md" />
+            <div className="h-5 w-28 bg-black/[0.06] rounded-md mt-auto" />
+          </div>
+        </div>
+        <div className="col-span-1 rounded-[28px] bg-white border border-black/[0.08] p-6 h-80 animate-pulse flex flex-col gap-4 shadow-[0_4px_24px_rgba(0,0,0,0.06)]">
+          <div className="w-full h-40 bg-black/[0.06] rounded-2xl" />
+          <div className="h-4 w-1/2 bg-black/[0.06] rounded-full" />
+          <div className="h-6 w-3/4 bg-black/[0.06] rounded-lg" />
+          <div className="h-4 w-full bg-black/[0.06] rounded-md" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventsAndMediaPage() {
+  const [loading, setLoading] = useState(true);
   const [cmsEvents, setCmsEvents] = useState<EventData[]>([]);
 
   const loadEvents = useCallback(() => {
-    fetchPublicContent('events').then((blocks) => {
-      const mapped: EventData[] = [];
-      for (const block of blocks) {
-        const m = (block.metadata || {}) as Record<string, any>;
-        if (!block.title) {
-          console.warn(`[CMS Warning] Block ${block.id} in section events is missing required field: title`);
-          continue;
-        }
-
-        const fallbackCover = '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg';
-        let coverImage = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackCover);
-        if (coverImage.includes('sample.jpg') || (block.id.includes('pre-launch') && (!coverImage || coverImage.includes('banner') || coverImage.includes('QAS07562')))) {
-          coverImage = fallbackCover;
-        }
-
-        const rawGallery = Array.isArray(m.galleryImages) ? m.galleryImages : [];
-        let gallery: string[] = [];
-        for (const g of rawGallery) {
-          if (typeof g === 'string' && g.trim()) {
-            const norm = normalizeImagePath(g.trim());
-            if (!norm.includes('cld-sample-3')) {
-              gallery.push(norm);
-            }
+    fetchPublicContent('events')
+      .then((blocks) => {
+        const mapped: EventData[] = [];
+        for (const block of blocks) {
+          const m = (block.metadata || {}) as Record<string, any>;
+          if (!block.title) {
+            console.warn(`[CMS Warning] Block ${block.id} in section events is missing required field: title`);
+            continue;
           }
-          if (gallery.length === 9) break;
-        }
 
-        if (gallery.length === 0 && (block.id.includes('pre-launch') || block.id === 'event-pre-launch-ceremony')) {
-          const defaultEvent = eventsData.find((e) => e.id === 'pre-launch-ceremony');
-          gallery = defaultEvent ? defaultEvent.gallery : [];
-        }
+          const coverImage = normalizeImagePath(m?.imageUrl ? String(m.imageUrl).trim() : '');
+          const rawGallery = Array.isArray(m?.galleryImages) ? m.galleryImages : [];
+          const gallery: string[] = rawGallery
+            .filter((g: any) => typeof g === 'string' && g.trim())
+            .map((g: string) => normalizeImagePath(g.trim()))
+            .slice(0, 9);
 
-        mapped.push({
-          id: block.id,
-          title: block.title,
-          subtitle: block.subtitle || undefined,
-          date: m.date ? String(m.date) : '',
-          venue: m.location ? String(m.location) : undefined,
-          summary: block.content || '',
-          coverImage,
-          gallery,
-          fullDescription: block.content || '',
-          videoPreview: m.videoUrl && String(m.videoUrl).trim() ? String(m.videoUrl).trim() : undefined,
-        });
-      }
-      setCmsEvents(mapped);
-    });
+          mapped.push({
+            id: block.id,
+            title: block.title,
+            subtitle: block.subtitle || undefined,
+            date: m?.date ? String(m.date) : '',
+            venue: m?.location ? String(m.location) : undefined,
+            summary: block.content || '',
+            coverImage,
+            gallery,
+            fullDescription: block.content || '',
+            videoPreview: m?.videoUrl && String(m.videoUrl).trim() ? String(m.videoUrl).trim() : undefined,
+          });
+        }
+        if (mapped.length > 0) {
+          setCmsEvents(mapped);
+        } else {
+          // Draw built-in cards only when fetch returns no usable card
+          setCmsEvents(eventsData);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        // Draw built-in cards only when fetch fails
+        setCmsEvents(eventsData);
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -88,14 +110,11 @@ export default function EventsAndMediaPage() {
       };
     } catch {}
 
-    const interval = setInterval(loadEvents, 10000);
-
     return () => {
       window.removeEventListener('focus', handleRefresh);
       window.removeEventListener('cms-content-updated', handleRefresh);
       window.removeEventListener('storage', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibility);
-      clearInterval(interval);
       if (channel) channel.close();
     };
   }, [loadEvents]);
@@ -139,7 +158,7 @@ export default function EventsAndMediaPage() {
 
       {/* Events Grid Section — Overlaps the hero bottom fade */}
       <div className="pb-24 relative z-10 -mt-12 sm:-mt-16">
-        <EventsGrid events={cmsEvents} />
+        {loading ? <EventsSkeleton /> : <EventsGrid events={cmsEvents} />}
       </div>
 
     </div>
