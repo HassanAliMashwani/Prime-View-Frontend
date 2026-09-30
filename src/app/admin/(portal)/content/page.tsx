@@ -39,6 +39,7 @@ import {
 } from '@/lib/dal/content';
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache } from '@/lib/dal/apiCache';
+import { resolveImageLink, formatYouTubeEmbedUrl } from '@/lib/dal/resolveImage';
 
 export default function ContentCMSPage() {
   const router = useRouter();
@@ -76,6 +77,7 @@ export default function ContentCMSPage() {
     website?: string;
     imageUrl?: string;
     galleryImages: string[];
+    videoUrl?: string;
     tagsString?: string;
     featured: boolean;
   }>({
@@ -84,12 +86,45 @@ export default function ContentCMSPage() {
     category: '',
     content: '',
     galleryImages: [],
+    videoUrl: '',
     featured: false,
   });
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
   const [galleryWarning, setGalleryWarning] = useState<string | null>(null);
+  const [resolvedPreviewUrl, setResolvedPreviewUrl] = useState<string | null>(null);
+  const [imageLinkIsPage, setImageLinkIsPage] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  // Before preview and before save, turn the pasted address into a direct image address.
+  // If it cannot be resolved, leave the preview empty and show the words “This link is a page, not a picture.” Do not show a broken icon.
+  useEffect(() => {
+    let active = true;
+    const url = editForm.imageUrl?.trim();
+    if (!url) {
+      setResolvedPreviewUrl(null);
+      setImageLinkIsPage(false);
+      return;
+    }
+
+    resolveImageLink(url).then((res) => {
+      if (!active) return;
+      if (res.directUrl) {
+        setResolvedPreviewUrl(res.directUrl);
+        setImageLinkIsPage(false);
+      } else if (res.isPage) {
+        setResolvedPreviewUrl(null);
+        setImageLinkIsPage(true);
+      } else {
+        setResolvedPreviewUrl(null);
+        setImageLinkIsPage(false);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [editForm.imageUrl]);
 
   // 30-minute lock countdown timer
   const [lockSecondsRemaining, setLockSecondsRemaining] = useState<number | null>(null);
@@ -214,6 +249,7 @@ export default function ContentCMSPage() {
       galleryImages: Array.isArray(locked.metadata.galleryImages)
         ? (locked.metadata.galleryImages as string[]).slice(0, 9)
         : [],
+      videoUrl: (locked.metadata.videoUrl as string) || '',
       tagsString: Array.isArray(locked.metadata.tags) ? locked.metadata.tags.join(', ') : '',
       featured: Boolean(locked.metadata.featured),
     });
@@ -245,6 +281,7 @@ export default function ContentCMSPage() {
       website: '',
       imageUrl: '',
       galleryImages: [],
+      videoUrl: '',
       tagsString: '',
       featured: false,
     });
@@ -279,8 +316,21 @@ export default function ContentCMSPage() {
       ? editForm.tagsString.split(',').map((t) => t.trim()).filter(Boolean)
       : undefined;
 
+    let finalImageUrl = editForm.imageUrl?.trim() || undefined;
+    if (finalImageUrl) {
+      const res = await resolveImageLink(finalImageUrl);
+      if (res.isPage) {
+        setEditError('This link is a page, not a picture.');
+        setSaving(false);
+        return;
+      }
+      if (res.directUrl) {
+        finalImageUrl = res.directUrl;
+      }
+    }
+
     const metadata: Record<string, unknown> = {
-      imageUrl: editForm.imageUrl?.trim() || undefined,
+      imageUrl: finalImageUrl,
       featured: editForm.featured,
       tags,
     };
@@ -297,13 +347,25 @@ export default function ContentCMSPage() {
       if (editForm.location?.trim()) metadata.location = editForm.location.trim();
       if (editForm.contact?.trim()) metadata.contact = editForm.contact.trim();
       if (editForm.website?.trim()) metadata.website = editForm.website.trim();
+      if (editForm.videoUrl?.trim()) {
+        metadata.videoUrl = formatYouTubeEmbedUrl(editForm.videoUrl) || editForm.videoUrl.trim();
+      }
       if (editForm.galleryImages.length > 9) {
         setEditError('The tenth gallery picture is refused. Maximum of 9 gallery pictures allowed.');
         setSaving(false);
         return;
       }
       if (editForm.galleryImages.length > 0) {
-        metadata.galleryImages = editForm.galleryImages.slice(0, 9);
+        const resolvedGallery: string[] = [];
+        for (const img of editForm.galleryImages) {
+          const res = await resolveImageLink(img);
+          if (res.directUrl) {
+            resolvedGallery.push(res.directUrl);
+          } else if (!res.isPage) {
+            resolvedGallery.push(img.trim());
+          }
+        }
+        metadata.galleryImages = resolvedGallery.slice(0, 9);
       }
     }
 
@@ -957,10 +1019,15 @@ export default function ContentCMSPage() {
                       placeholder="/new assests/our plan assests/card 1.png or https://..."
                       className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                     />
-                    {editForm.imageUrl && (
+                    {imageLinkIsPage && (
+                      <p className="mt-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                        This link is a page, not a picture.
+                      </p>
+                    )}
+                    {!imageLinkIsPage && resolvedPreviewUrl && (
                       <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                         <img
-                          src={editForm.imageUrl}
+                          src={resolvedPreviewUrl}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
@@ -980,10 +1047,15 @@ export default function ContentCMSPage() {
                         placeholder="/new assests/Events and media/event1/banner.jpeg or https://..."
                         className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
                       />
-                      {editForm.imageUrl && (
+                      {imageLinkIsPage && (
+                        <p className="mt-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                          This link is a page, not a picture.
+                        </p>
+                      )}
+                      {!imageLinkIsPage && resolvedPreviewUrl && (
                         <div className="mt-2 h-24 w-40 rounded-lg overflow-hidden border border-slate-200 bg-slate-50">
                           <img
-                            src={editForm.imageUrl}
+                            src={resolvedPreviewUrl}
                             alt="Preview"
                             className="w-full h-full object-cover"
                           />
@@ -1015,16 +1087,22 @@ export default function ContentCMSPage() {
                         />
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             if (!newGalleryUrl.trim()) return;
                             if (editForm.galleryImages.length >= 9) {
                               setGalleryWarning('The tenth gallery picture is refused. At most 9 gallery pictures are allowed.');
                               return;
                             }
                             setGalleryWarning(null);
+                            const res = await resolveImageLink(newGalleryUrl.trim());
+                            if (res.isPage) {
+                              setGalleryWarning('This link is a page, not a picture.');
+                              return;
+                            }
+                            const finalUrl = res.directUrl || newGalleryUrl.trim();
                             setEditForm({
                               ...editForm,
-                              galleryImages: [...editForm.galleryImages, newGalleryUrl.trim()],
+                              galleryImages: [...editForm.galleryImages, finalUrl],
                             });
                             setNewGalleryUrl('');
                           }}
@@ -1056,6 +1134,24 @@ export default function ContentCMSPage() {
                             </div>
                           ))}
                         </div>
+                      )}
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        YouTube Video Link
+                      </label>
+                      <input
+                        type="text"
+                        value={editForm.videoUrl || ''}
+                        onChange={(e) => setEditForm({ ...editForm, videoUrl: e.target.value })}
+                        placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/... or shorts"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 font-mono"
+                      />
+                      {editForm.videoUrl && formatYouTubeEmbedUrl(editForm.videoUrl) && (
+                        <p className="mt-1 text-[11px] text-emerald-700 font-mono font-medium">
+                          Saves as embed: {formatYouTubeEmbedUrl(editForm.videoUrl)}
+                        </p>
                       )}
                     </div>
                   </>
