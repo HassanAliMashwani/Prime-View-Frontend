@@ -41,6 +41,54 @@ function ScallopedBadge({ children }: { children: React.ReactNode }) {
   );
 }
 
+const DEFAULT_CARD_IMAGES: Record<number, string> = {
+  0: '/new assests/our plan assests/card 1.png',
+  1: '/new assests/our plan assests/card 2.png',
+  2: '/new assests/our plan assests/card 3.png',
+  3: '/new assests/our plan assests/card 4.png',
+  4: '/new assests/our plan assests/card 5.png',
+  5: '/new assests/our plan assests/card 6.png',
+};
+
+function getPlanSortRank(block: { id: string; title?: string; metadata?: any }): number {
+  const id = (block.id || '').toLowerCase();
+  const size = String(block.metadata?.size || '').toLowerCase();
+  const title = (block.title || '').toLowerCase();
+
+  // 1. 05 Marla
+  if (
+    id === 'plan-05-marla' ||
+    size.includes('05 marla') ||
+    (size.includes('5 marla') && !size.includes('7.5') && !size.includes('15') && !size.includes('25') && !size.includes('35') && !size.includes('45')) ||
+    (title.includes('5 marla') && !title.includes('7.5'))
+  ) {
+    return 0;
+  }
+  // 2. 7.5 Marla
+  if (id === 'plan-7-5-marla' || size.includes('7.5 marla') || title.includes('7.5 marla')) {
+    return 1;
+  }
+  // 3. 10 Marla
+  if (id === 'plan-10-marla' || size.includes('10 marla') || title.includes('10 marla')) {
+    return 2;
+  }
+  // 4. 13 Marla
+  if (id === 'plan-13-marla' || size.includes('13 marla') || title.includes('13 marla')) {
+    return 3;
+  }
+  // 5. 01 Kanal
+  if (id === 'plan-01-kanal' || size.includes('01 kanal') || size.includes('1 kanal') || (title.includes('1 kanal') && !title.includes('executive villa'))) {
+    return 4;
+  }
+  // 6. 02 Kanal
+  if (id === 'plan-02-kanal' || size.includes('02 kanal') || size.includes('2 kanal') || title.includes('2 kanal') || title.includes('02 kanal')) {
+    return 5;
+  }
+
+  // Any newly added card comes after 02 Kanal
+  return 100;
+}
+
 export default function OurPlansPage() {
   const [cmsPlans, setCmsPlans] = useState<PlotItem[]>([]);
 
@@ -48,17 +96,18 @@ export default function OurPlansPage() {
     fetchPublicContent('plans')
       .then((blocks) => {
         if (!blocks || blocks.length === 0) return;
+        const sortedBlocks = [...blocks].sort((a, b) => getPlanSortRank(a) - getPlanSortRank(b));
         const mapped: PlotItem[] = [];
-        for (const block of blocks) {
+        for (const block of sortedBlocks) {
           const m = (block.metadata || {}) as Record<string, any>;
-          const missing: string[] = [];
-          if (!block.title) missing.push('title');
-          if (!m.imageUrl) missing.push('image');
-
-          if (missing.length > 0) {
-            console.warn(`[CMS Warning] Block ${block.id} in section plans is missing required field(s): ${missing.join(', ')}`);
+          if (!block.title) {
+            console.warn(`[CMS Warning] Block ${block.id} in section plans is missing required field: title`);
             continue;
           }
+
+          const rank = getPlanSortRank(block);
+          const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.png';
+          const image = (m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage;
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label
           const sizeMatch = String(m?.size || '').match(/^(.+?)\s*\((.+?)\)$/);
@@ -90,7 +139,7 @@ export default function OurPlansPage() {
             halfYearly,
             halfYearlyCount,
             possession,
-            image: m.imageUrl,
+            image,
           });
         }
         if (mapped.length > 0) {
