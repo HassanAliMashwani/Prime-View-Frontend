@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, Calendar, MapPin, Maximize2, Play } from "lucide-react";
 import { EventData } from "@/data/events";
+import { formatYouTubeEmbedUrl } from "@/lib/dal/youtube";
 
 interface EventModalProps {
   event: EventData;
@@ -14,7 +15,11 @@ interface EventModalProps {
 export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [mounted, setMounted] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
-  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+
+  const videoEmbedUrl = event.videoPreview
+    ? formatYouTubeEmbedUrl(event.videoPreview) ||
+      (event.videoPreview.includes("youtube.com/embed") ? event.videoPreview : null)
+    : null;
 
   useEffect(() => {
     setMounted(true);
@@ -94,67 +99,60 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
               </p>
             </div>
 
-            {/* Media Gallery */}
-            <div className="pt-4 border-t border-black/[0.08]">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-display text-2xl font-bold text-[#151914]">
-                  Event Photo Gallery
-                </h3>
-                <span className="text-xs font-semibold text-[#6B7462] bg-black/5 px-2.5 py-1 rounded-full">
-                  {event.gallery.length} Photos
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-                {/* Video First if available (Click opens embed and video plays; does not play by itself) */}
-                {event.videoPreview && (
-                  <div className="relative aspect-video sm:col-span-2 lg:col-span-3 rounded-2xl overflow-hidden bg-black border border-white/20 shadow-md">
-                    {isPlayingVideo ? (
-                      event.videoPreview.includes("youtube.com/embed") ? (
-                        <iframe
-                          src={`${event.videoPreview}${event.videoPreview.includes("?") ? "&" : "?"}autoplay=1`}
-                          title={event.title}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full border-0"
-                        />
-                      ) : (
-                        <video
-                          src={event.videoPreview}
-                          controls
-                          autoPlay
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
-                      )
-                    ) : (
-                      <div
-                        onClick={() => setIsPlayingVideo(true)}
-                        className="relative w-full h-full flex items-center justify-center cursor-pointer group bg-black/80"
-                      >
-                        {event.coverImage && (
-                          <img
-                            src={event.coverImage}
-                            alt={`${event.title} Video Preview`}
-                            className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-40 transition-opacity"
-                          />
-                        )}
-                        <div className="relative z-10 flex flex-col items-center gap-2">
-                          <div className="w-16 h-16 rounded-full bg-red-600 group-hover:bg-red-700 text-white flex items-center justify-center shadow-2xl transition-transform duration-300 group-hover:scale-110">
-                            <Play className="w-7 h-7 ml-1 fill-white" />
-                          </div>
-                          <span className="text-white text-xs font-bold tracking-wide uppercase bg-black/60 px-3 py-1 rounded-full backdrop-blur-xs">
-                            Click to Play Video
-                          </span>
-                        </div>
-                      </div>
-                    )}
+            {/* Video Section — Shown FIRST if video is added */}
+            {event.videoPreview && (
+              <div className="pt-4 border-t border-black/[0.08] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-red-50 border border-red-200/60 flex items-center justify-center text-red-600 shadow-2xs">
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                    </div>
+                    <h3 className="font-display text-xl sm:text-2xl font-bold text-[#151914]">
+                      Event Video
+                    </h3>
                   </div>
-                )}
-                
-                {/* Gallery Images with tailored aspect ratios and proper containment (Max 9) */}
-                {event.gallery.slice(0, 9).map((img, idx) => {
-                  // Custom layout logic to fit each photo without any cropping
+                  <span className="text-[11px] font-bold text-red-700 bg-red-50 border border-red-200 px-3 py-1 rounded-full uppercase tracking-wider">
+                    Video
+                  </span>
+                </div>
+
+                <div className="relative aspect-video w-full rounded-2xl overflow-hidden bg-black border border-black/10 shadow-lg">
+                  {videoEmbedUrl ? (
+                    <iframe
+                      src={videoEmbedUrl}
+                      title={`${event.title} Video`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="w-full h-full border-0"
+                    />
+                  ) : (
+                    <video
+                      src={event.videoPreview}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-full object-cover"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Photo Gallery — Rest of the pictures as it is now */}
+            {event.gallery && event.gallery.length > 0 && (
+              <div className="pt-4 border-t border-black/[0.08]">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-display text-xl sm:text-2xl font-bold text-[#151914]">
+                    Event Photo Gallery
+                  </h3>
+                  <span className="text-xs font-semibold text-[#6B7462] bg-black/5 px-2.5 py-1 rounded-full">
+                    {event.gallery.length} Photos
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+                  {event.gallery.slice(0, 9).map((img, idx) => {
+                    // Custom layout logic to fit each photo without any cropping
                   let colSpan = "col-span-1";
                   let aspect = "aspect-[3/4]";
                   let bg = "bg-[#F3F2ED]";
@@ -211,6 +209,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                 })}
               </div>
             </div>
+          )}
             
           </div>
         </div>
