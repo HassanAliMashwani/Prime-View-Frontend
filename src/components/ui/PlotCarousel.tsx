@@ -183,10 +183,7 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
       {/* 5-Card Physical Swapping Stage */}
       <div className="relative w-full max-w-6xl h-[670px] sm:h-[700px] mx-auto overflow-hidden">
         {data.map((plot, index) => {
-          let offset = index - activeIndex;
-          if (offset < -2) offset += data.length;
-          if (offset > 2) offset -= data.length;
-          const isActive = offset === 0;
+          const isActive = index === activeIndex;
 
           return (
             <div
