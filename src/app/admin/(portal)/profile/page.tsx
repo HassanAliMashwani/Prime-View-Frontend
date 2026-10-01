@@ -52,7 +52,7 @@ export default function AdminProfilePage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<AdminProfileDetails>(`/profile:${s.adminId}`);
+    return getCache<AdminProfileDetails>(`/profile:${s.adminId}`, true);
   };
   const init = getInit();
 

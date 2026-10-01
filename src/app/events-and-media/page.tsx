@@ -36,7 +36,7 @@ function EventsSkeleton() {
 export default function EventsAndMediaPage() {
   const getInit = () => {
     if (typeof window === 'undefined') return null;
-    return getCache<EventData[]>('public:events');
+    return getCache<EventData[]>('public:events', true);
   };
   const init = getInit();
   const [loading, setLoading] = useState(!init);

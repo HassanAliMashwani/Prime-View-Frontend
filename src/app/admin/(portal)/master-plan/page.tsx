@@ -33,7 +33,7 @@ export default function MasterPlanPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<BlockSummary[]>(`/master-plan:${s.adminId}`);
+    return getCache<BlockSummary[]>(`/master-plan:${s.adminId}`, true);
   };
   const init = getInit();
 

@@ -44,7 +44,7 @@ export default function AuditLogPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<{logs: AuditEntry[], total: number}>(`/audit-logs:${s.adminId}`);
+    return getCache<{logs: AuditEntry[], total: number}>(`/audit-logs:${s.adminId}`, true);
   };
   const init = getInit();
 

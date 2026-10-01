@@ -23,7 +23,7 @@ export default function InventoryOverviewPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<InventoryStats[]>(`/inventory:${s.adminId}`);
+    return getCache<InventoryStats[]>(`/inventory:${s.adminId}`, true);
   };
   const init = getInit();
 

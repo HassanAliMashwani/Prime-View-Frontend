@@ -73,7 +73,7 @@ function BlockPlotsContent() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<{block: Block, plots: Plot[]}>(`/master-plan/${blockId}:${s.adminId}`);
+    return getCache<{block: Block, plots: Plot[]}>(`/master-plan/${blockId}:${s.adminId}`, true);
   };
   const init = getInit();
 

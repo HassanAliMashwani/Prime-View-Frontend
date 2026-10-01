@@ -48,7 +48,7 @@ export default function ContentCMSPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<ContentBlock[]>(`/content:plans:${s.adminId}`);
+    return getCache<ContentBlock[]>(`/content:plans:${s.adminId}`, true);
   };
   const init = getInit();
 

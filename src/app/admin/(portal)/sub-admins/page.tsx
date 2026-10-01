@@ -72,7 +72,7 @@ export default function TeamsPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<AdminUser[]>(`/sub-admins:${s.adminId}`);
+    return getCache<AdminUser[]>(`/sub-admins:${s.adminId}`, true);
   };
   const init = getInit();
 

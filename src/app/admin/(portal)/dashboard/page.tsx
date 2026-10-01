@@ -30,7 +30,7 @@ export default function AdminDashboardPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<any>(`/dashboard:${s.adminId}`);
+    return getCache<any>(`/dashboard:${s.adminId}`, true);
   };
   const init = getInit();
 

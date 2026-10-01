@@ -52,10 +52,18 @@ const SOCIETY_BLOCKS = [
 function SalesHistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    const key = generateCacheKey('GET', `/sales/history?page=1&pageSize=${PAGE_SIZE}`, s.token);
+    return getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
+  };
+  const init = getInit();
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [items, setItems] = useState<SalesHistoryItem[]>([]);
-  const [kpis, setKpis] = useState<SalesHistoryKpis>({
+  const [loading, setLoading] = useState<boolean>(!init);
+  const [items, setItems] = useState<SalesHistoryItem[]>(init?.items || []);
+  const [kpis, setKpis] = useState<SalesHistoryKpis>(init?.kpis || {
     totalPlotsSold: 0,
     totalRevenuePkr: 0,
     todayPlotsSold: 0,
@@ -100,7 +108,7 @@ function SalesHistoryContent() {
       const key = generateCacheKey('GET', path, currentSession.token);
 
       if (!background) {
-        const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key);
+        const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
         if (cached) {
           setItems(cached.items);
           setKpis(cached.kpis);

@@ -41,7 +41,7 @@ export default function AdminReceiptsPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<ReceiptSubmission[]>(`/receipts:${s.adminId}`);
+    return getCache<ReceiptSubmission[]>(`/receipts:${s.adminId}`, true);
   };
   const init = getInit();
 

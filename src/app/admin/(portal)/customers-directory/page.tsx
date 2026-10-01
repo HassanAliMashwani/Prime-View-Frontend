@@ -52,9 +52,18 @@ function CustomersDirectoryContent() {
   const searchParams = useSearchParams();
   const queryCompleteCustId = searchParams?.get('completeCustomer');
 
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    const key = generateCacheKey('GET', `/customers?page=1&pageSize=${PAGE_SIZE}&search=&status=all`, s.token);
+    return getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [customers, setCustomers] = useState<CustomerDirectoryEntry[]>([]);
+  const [loading, setLoading] = useState<boolean>(!init);
+  const [customers, setCustomers] = useState<CustomerDirectoryEntry[]>(init?.customers || []);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -113,7 +122,7 @@ function CustomersDirectoryContent() {
     const key = generateCacheKey('GET', path, currentSession.token);
 
     if (!background) {
-      const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key);
+      const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
       if (cached) {
         setCustomers(cached.customers);
         setTotalRecords(cached.total);

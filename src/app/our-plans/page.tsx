@@ -122,7 +122,7 @@ function PlansSkeleton() {
 export default function OurPlansPage() {
   const getInit = () => {
     if (typeof window === 'undefined') return null;
-    return getCache<PlotItem[]>('public:plans');
+    return getCache<PlotItem[]>('public:plans', true);
   };
   const init = getInit();
   const [loading, setLoading] = useState(!init);

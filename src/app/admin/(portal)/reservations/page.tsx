@@ -43,7 +43,7 @@ export default function ReservationsPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<ReservationWithConflict[]>(`/reservations:${s.adminId}`);
+    return getCache<ReservationWithConflict[]>(`/reservations:${s.adminId}`, true);
   };
   const init = getInit();
 
