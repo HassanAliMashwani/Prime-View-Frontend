@@ -47,6 +47,8 @@ import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems 
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
+const PAGE_SIZE = 20;
+
 function CustomersDirectoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -95,7 +97,6 @@ function CustomersDirectoryContent() {
   const [deleteSubmitting, setDeleteSubmitting] = useState<boolean>(false);
 
   // Pagination state
-  const PAGE_SIZE = 20;
   const [page, setPage] = useState<number>(parseInt(searchParams?.get('page') || '1', 10));
 
   const handlePageChange = (newPage: number) => {
