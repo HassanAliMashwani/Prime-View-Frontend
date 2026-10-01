@@ -126,7 +126,7 @@ export default function AdminProfilePage() {
     }
   };
 
-  if (loading) {
+  if (loading && !details) {
     return <AdminProfileSkeleton />;
   }
 

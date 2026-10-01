@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { PlotCarousel, PlotItem, plots } from "@/components/ui/PlotCarousel";
 import { fetchPublicContent, ContentBlock } from "@/lib/dal/publicContent";
+import { getCache, setCache, reconcileItems } from "@/lib/dal/apiCache";
 import { normalizeImagePath } from "@/lib/images";
 import { Check, Calendar, ArrowUpRight, Star, Info, Percent, MapPin, CalendarDays, ShieldCheck, FileText, ChevronRight } from "lucide-react";
 
@@ -119,8 +120,13 @@ function PlansSkeleton() {
 }
 
 export default function OurPlansPage() {
-  const [loading, setLoading] = useState(true);
-  const [cmsPlans, setCmsPlans] = useState<PlotItem[]>([]);
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    return getCache<PlotItem[]>('public:plans');
+  };
+  const init = getInit();
+  const [loading, setLoading] = useState(!init);
+  const [cmsPlans, setCmsPlans] = useState<PlotItem[]>(init || []);
 
   const loadPlans = React.useCallback(() => {
     fetchPublicContent('plans')
@@ -166,6 +172,7 @@ export default function OurPlansPage() {
           const tag = m?.tags?.[0] || block.category || 'Residential';
 
           mapped.push({
+            id: block.id,
             size,
             tag,
             dimensions,
@@ -181,16 +188,26 @@ export default function OurPlansPage() {
           });
         }
         if (mapped.length > 0) {
-          setCmsPlans(mapped);
+          setCmsPlans((prev) => {
+            const next = reconcileItems(prev, mapped, (p) => p.id || p.size);
+            setCache('public:plans', next);
+            return next;
+          });
         } else {
-          // Draw built-in cards only when fetch returns no usable card
-          setCmsPlans(plots);
+          // Draw built-in cards only when first fetch returns no usable card and screen is empty
+          setCmsPlans((prev) => {
+            if (prev.length > 0) return prev;
+            return plots;
+          });
         }
         setLoading(false);
       })
       .catch(() => {
-        // Draw built-in cards only when fetch fails
-        setCmsPlans(plots);
+        // Draw built-in cards only when first fetch fails and screen is empty
+        setCmsPlans((prev) => {
+          if (prev.length > 0) return prev;
+          return plots;
+        });
         setLoading(false);
       });
   }, []);
@@ -213,6 +230,11 @@ export default function OurPlansPage() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    // Auto-refresh saved plans once a minute in the background without clearing the screen
+    const interval = setInterval(() => {
+      loadPlans();
+    }, 60000);
+
     let channel: BroadcastChannel | null = null;
     try {
       channel = new BroadcastChannel('cms_updates');
@@ -228,6 +250,7 @@ export default function OurPlansPage() {
       window.removeEventListener('cms-content-updated', handleRefresh);
       window.removeEventListener('storage', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
       if (channel) channel.close();
     };
   }, [loadPlans]);
@@ -290,7 +313,7 @@ export default function OurPlansPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 -mt-32 sm:-mt-44 lg:-mt-52 z-10">
 
           <div className="relative z-10">
-            {loading ? <PlansSkeleton /> : <PlotCarousel items={cmsPlans} />}
+            {loading && cmsPlans.length === 0 ? <PlansSkeleton /> : <PlotCarousel items={cmsPlans} />}
           </div>
 
           {/* Terms & Conditions Block — Compact Size (max-w-[860px]) */}

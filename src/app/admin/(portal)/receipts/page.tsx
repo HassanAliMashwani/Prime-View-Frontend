@@ -28,7 +28,7 @@ import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminReceipts, verifyReceipt, rejectReceipt } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 import {
   OfficialA4PaymentSlip,
@@ -76,7 +76,7 @@ export default function AdminReceiptsPage() {
 
     const res = await getAdminReceipts(currentSession);
     if (res.ok && res.receipts) {
-      setReceipts(res.receipts);
+      setReceipts((prev) => reconcileItems(prev, res.receipts || [], (r) => r.id));
       setCache(`/receipts:${currentSession.adminId}`, res.receipts);
     }
     setLoading(false);
@@ -194,7 +194,7 @@ export default function AdminReceiptsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  if (loading) {
+  if (loading && receipts.length === 0) {
     return <AdminTableSkeleton rows={5} columns={6} />;
   }
 

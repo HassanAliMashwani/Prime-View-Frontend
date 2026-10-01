@@ -23,7 +23,7 @@ import { AdminSession } from '@/lib/mock/types';
 import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminDashboardSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 export default function AdminDashboardPage() {
   const getInit = () => {
@@ -49,8 +49,8 @@ export default function AdminDashboardPage() {
         getReservations(activeSession),
       ]);
 
-      if (blockRes.ok) setBlocks(blockRes.blocks);
-      if (resRes.ok) setReservations(resRes.reservations);
+      if (blockRes.ok) setBlocks((prev) => reconcileItems(prev, blockRes.blocks, (b) => b.id));
+      if (resRes.ok) setReservations((prev) => reconcileItems(prev, resRes.reservations, (r) => r.id));
       
       setCache(`/dashboard:${activeSession.adminId}`, {
         blocks: blockRes.ok ? blockRes.blocks : [],

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { EventsGrid } from "@/components/events/EventsGrid";
 import { EventData, eventsData } from "@/data/events";
 import { fetchPublicContent } from "@/lib/dal/publicContent";
+import { getCache, setCache, reconcileItems } from "@/lib/dal/apiCache";
 import { normalizeImagePath } from "@/lib/images";
 
 function EventsSkeleton() {
@@ -33,8 +34,13 @@ function EventsSkeleton() {
 }
 
 export default function EventsAndMediaPage() {
-  const [loading, setLoading] = useState(true);
-  const [cmsEvents, setCmsEvents] = useState<EventData[]>([]);
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    return getCache<EventData[]>('public:events');
+  };
+  const init = getInit();
+  const [loading, setLoading] = useState(!init);
+  const [cmsEvents, setCmsEvents] = useState<EventData[]>(init || []);
 
   const loadEvents = useCallback(() => {
     fetchPublicContent('events')
@@ -68,16 +74,26 @@ export default function EventsAndMediaPage() {
           });
         }
         if (mapped.length > 0) {
-          setCmsEvents(mapped);
+          setCmsEvents((prev) => {
+            const next = reconcileItems(prev, mapped, (e) => e.id);
+            setCache('public:events', next);
+            return next;
+          });
         } else {
-          // Draw built-in cards only when fetch returns no usable card
-          setCmsEvents(eventsData);
+          // Draw built-in cards only when first fetch returns no usable card and screen is empty
+          setCmsEvents((prev) => {
+            if (prev.length > 0) return prev;
+            return eventsData;
+          });
         }
         setLoading(false);
       })
       .catch(() => {
-        // Draw built-in cards only when fetch fails
-        setCmsEvents(eventsData);
+        // Draw built-in cards only when first fetch fails and screen is empty
+        setCmsEvents((prev) => {
+          if (prev.length > 0) return prev;
+          return eventsData;
+        });
         setLoading(false);
       });
   }, []);
@@ -100,6 +116,11 @@ export default function EventsAndMediaPage() {
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
+    // Auto-refresh saved events once a minute in the background without clearing the screen
+    const interval = setInterval(() => {
+      loadEvents();
+    }, 60000);
+
     let channel: BroadcastChannel | null = null;
     try {
       channel = new BroadcastChannel('cms_updates');
@@ -115,6 +136,7 @@ export default function EventsAndMediaPage() {
       window.removeEventListener('cms-content-updated', handleRefresh);
       window.removeEventListener('storage', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibility);
+      clearInterval(interval);
       if (channel) channel.close();
     };
   }, [loadEvents]);
@@ -158,7 +180,7 @@ export default function EventsAndMediaPage() {
 
       {/* Events Grid Section — Overlaps the hero bottom fade */}
       <div className="pb-24 relative z-10 -mt-12 sm:-mt-16">
-        {loading ? <EventsSkeleton /> : <EventsGrid events={cmsEvents} />}
+        {loading && cmsEvents.length === 0 ? <EventsSkeleton /> : <EventsGrid events={cmsEvents} />}
       </div>
 
     </div>

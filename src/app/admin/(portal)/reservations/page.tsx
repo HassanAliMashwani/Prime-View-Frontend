@@ -25,7 +25,7 @@ import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 
 import { getBlockDisplayName } from '@/lib/map/regionData';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
   abbott: { badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', border: 'border-emerald-200', accent: 'text-emerald-800' },
@@ -69,8 +69,7 @@ export default function ReservationsPage() {
       });
 
       if (res.ok) {
-        console.log('RESERVATIONS LOADED:', res.reservations.length, res.reservations);
-        setReservations(res.reservations);
+        setReservations((prev) => reconcileItems(prev, res.reservations, (r) => r.id));
         if (search === '' && blockFilter === 'all' && activeTab === 'active') {
           setCache(`/reservations:${s.adminId}`, res.reservations);
         }
@@ -170,7 +169,7 @@ export default function ReservationsPage() {
     }
   };
 
-  if (loading || !session) {
+  if ((loading && reservations.length === 0) || !session) {
     return <AdminTableSkeleton rows={6} columns={6} />;
   }
 

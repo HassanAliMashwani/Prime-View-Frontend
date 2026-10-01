@@ -23,7 +23,7 @@ import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
 import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 const ACTION_COLORS: Record<string, string> = {
   PLOT_BOOKED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
@@ -83,7 +83,7 @@ export default function AuditLogPage() {
 
     const res = await getAuditLogs(currentSession, filters);
     if (res.ok) {
-      setLogs(res.logs);
+      setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
       setTotalCount(res.totalCount);
       if (!search && actorFilter === 'all' && entityFilter === 'all' && !startDate && !endDate) {
         setCache(`/audit-logs:${currentSession.adminId}`, { logs: res.logs || [], total: res.totalCount || 0 });
@@ -153,7 +153,7 @@ export default function AuditLogPage() {
     }
   };
 
-  if (loading) {
+  if (loading && logs.length === 0) {
     return <AdminAuditLogSkeleton />;
   }
 

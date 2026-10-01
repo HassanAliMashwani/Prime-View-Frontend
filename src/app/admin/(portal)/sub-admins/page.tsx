@@ -33,7 +33,7 @@ import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 const ALL_BLOCKS: { id: BlockId; name: string }[] = [
   { id: 'abbott', name: 'Abbott Block' },
@@ -119,7 +119,7 @@ export default function TeamsPage() {
     try {
       const res = await getSubAdmins(currentSession);
       if (res.ok) {
-        setSubAdmins(res.subAdmins);
+        setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
         setCache(`/sub-admins:${currentSession.adminId}`, res.subAdmins);
       } else {
         setFetchError(res.message || 'Failed to retrieve team members.');
@@ -415,7 +415,7 @@ export default function TeamsPage() {
       </div>
 
       {/* Loading State */}
-      {loading && <AdminTableSkeleton rows={4} columns={5} />}
+      {loading && subAdmins.length === 0 && <AdminTableSkeleton rows={4} columns={5} />}
 
       {/* Error State */}
       {!loading && fetchError && (

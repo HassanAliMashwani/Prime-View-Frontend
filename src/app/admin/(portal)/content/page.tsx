@@ -38,7 +38,7 @@ import {
   deleteContentBlock,
 } from '@/lib/dal/content';
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
 import { normalizeImagePath } from '@/lib/images';
 
@@ -103,7 +103,7 @@ export default function ContentCMSPage() {
   const loadData = useCallback(async (currentSession: AdminSession, section: ContentSection) => {
     const res = await getContentBlocks(currentSession, section);
     if (res.ok) {
-      setBlocks(res.blocks);
+      setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
       setCache(`/content:${section}:${currentSession.adminId}`, res.blocks);
     }
     setLoading(false);
@@ -460,7 +460,7 @@ export default function ContentCMSPage() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (loading) {
+  if (loading && blocks.length === 0) {
     return <AdminContentCrmSkeleton />;
   }
 

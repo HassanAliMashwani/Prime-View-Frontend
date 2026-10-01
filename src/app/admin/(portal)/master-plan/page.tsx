@@ -25,7 +25,7 @@ import InteractiveOverviewMap from '@/components/admin/master-plan/InteractiveOv
 
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 export default function MasterPlanPage() {
   const router = useRouter();
@@ -46,7 +46,7 @@ export default function MasterPlanPage() {
     try {
       const res = await getAdminMasterPlanBlocks(s);
       if (res.ok) {
-        setBlocks(res.blocks);
+        setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
         setCache(`/master-plan:${s.adminId}`, res.blocks);
       }
     } catch (err) {
@@ -83,7 +83,7 @@ export default function MasterPlanPage() {
     };
   }, [loadBlocks]);
 
-  if (loading || !session) {
+  if ((loading && blocks.length === 0) || !session) {
     return <AdminMasterPlanSkeleton />;
   }
 

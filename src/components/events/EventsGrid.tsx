@@ -14,7 +14,7 @@ export const EventsGrid: React.FC<{ events?: EventData[] }> = ({ events }) => {
   useEffect(() => {
     if (selectedEvent && data && data.length > 0) {
       const updated = data.find((e) => e.id === selectedEvent.id);
-      if (updated) {
+      if (updated && updated !== selectedEvent) {
         setSelectedEvent(updated);
       }
     }

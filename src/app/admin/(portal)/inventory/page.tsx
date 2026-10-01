@@ -15,7 +15,7 @@ import {
 import { getInventoryStats, InventoryStats } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 export default function InventoryOverviewPage() {
   const router = useRouter();
@@ -45,11 +45,14 @@ export default function InventoryOverviewPage() {
   const canAccess = isSuper || Boolean(session?.permissions?.can_view_inventory);
 
   const loadStats = useCallback(async () => {
-    setLoading(true);
+    setStats((prev) => {
+      if (prev.length === 0) setLoading(true);
+      return prev;
+    });
     setError('');
     try {
       const data = await getInventoryStats(fromDate || undefined, toDate || undefined, undefined, session?.token);
-      setStats(data);
+      setStats((prev) => reconcileItems(prev, data, (s) => s.blockId));
       if (session && !fromDate && !toDate) {
         setCache(`/inventory:${session.adminId}`, data);
       }
@@ -310,7 +313,7 @@ export default function InventoryOverviewPage() {
                 ))
               )}
             </tbody>
-            {!loading && stats.length > 0 && (
+            {stats.length > 0 && (
               <tfoot className="bg-slate-50/80 border-t border-slate-200 text-sm">
                 <tr>
                   <td className="py-4 px-6 text-slate-900 font-bold">Total</td>

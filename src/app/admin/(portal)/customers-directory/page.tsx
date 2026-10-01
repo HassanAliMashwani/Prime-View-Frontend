@@ -43,7 +43,7 @@ import {
 } from '@/lib/dal/customers';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
-import { getCache, setCache, generateCacheKey, clearCachePrefix } from '@/lib/dal/apiCache';
+import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
@@ -119,7 +119,10 @@ function CustomersDirectoryContent() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setLoading(true);
+        setCustomers((prev) => {
+          if (prev.length === 0) setLoading(true);
+          return prev;
+        });
       }
     }
 
@@ -135,7 +138,7 @@ function CustomersDirectoryContent() {
           return prev;
         });
       } else {
-        setCustomers(res.customers);
+        setCustomers((prev) => reconcileItems(prev, res.customers, (c) => c.id));
         setTotalRecords(res.total || 0);
         setCache(key, { customers: res.customers, total: res.total || 0 });
         setError(null);
@@ -321,7 +324,7 @@ function CustomersDirectoryContent() {
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
-  if (loading) {
+  if (loading && customers.length === 0) {
     return <AdminTableSkeleton rows={6} columns={6} />;
   }
 

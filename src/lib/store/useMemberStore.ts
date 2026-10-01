@@ -6,7 +6,7 @@ import { getPaymentSchedule, getPaymentHistory, PlotPaymentSchedule, PaymentTran
 import { getMyDocuments, PlotDocuments } from '../dal/documents';
 import { getActiveSession } from '../dal/auth';
 
-import { clearCachePrefix } from '../dal/apiCache';
+import { clearCachePrefix, reconcileItems } from '../dal/apiCache';
 
 interface MemberState {
   profile: Customer | null;
@@ -59,12 +59,12 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         return;
       }
 
-      set({
-        profile: profileRes.data || null,
-        plots: plotsRes.data || [],
-        schedules: schedulesRes.data || [],
+      set((state) => ({
+        profile: profileRes.data || state.profile,
+        plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
+        schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
         isLoading: false,
-      });
+      }));
     } catch (err) {
       set({ isLoading: false, error: 'Failed to load dashboard data' });
     }
@@ -83,7 +83,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
     }
     const res = await getMyPlots();
     if (res.ok) {
-      set({ plots: res.data, isLoading: false });
+      set((state) => ({
+        plots: reconcileItems(state.plots, res.data || [], (p) => p.id),
+        isLoading: false,
+      }));
     } else {
       set({ isLoading: false });
     }
@@ -98,11 +101,11 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         getPaymentSchedule(filterPlotId),
         getPaymentHistory(filterPlotId),
       ]);
-      set({
-        schedules: schedRes.data || [],
-        transactions: histRes.data || [],
+      set((state) => ({
+        schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
+        transactions: reconcileItems(state.transactions, histRes.data || [], (t) => t.id),
         isLoading: false,
-      });
+      }));
     } catch (e) {
       set({ isLoading: false, error: 'Failed to load payments' });
     }
@@ -114,10 +117,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
     }
     try {
       const histRes = await getPaymentHistory(filterPlotId);
-      set({
-        transactions: histRes.data || [],
+      set((state) => ({
+        transactions: reconcileItems(state.transactions, histRes.data || [], (t) => t.id),
         isLoading: false,
-      });
+      }));
     } catch (e) {
       set({ isLoading: false, error: 'Failed to load payment history' });
     }
@@ -129,7 +132,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
     }
     try {
       const res = await getMyDocuments();
-      set({ documents: res.data || [], isLoading: false });
+      set((state) => ({
+        documents: reconcileItems(state.documents, res.data || [], (d) => d.plotId),
+        isLoading: false,
+      }));
     } catch (e) {
       set({ isLoading: false, error: 'Failed to load documents' });
     }

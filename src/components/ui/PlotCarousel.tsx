@@ -11,6 +11,7 @@ const TEXT  = "#151914";
 const MUTED = "#6B7462";
 
 export interface PlotItem {
+  id?: string;
   size: string;
   tag: string;
   dimensions: string;
@@ -187,7 +188,7 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
 
           return (
             <div
-              key={`${plot.size}-${index}`}
+              key={plot.id || `${plot.size}-${index}`}
               className="absolute top-1/2 left-1/2 cursor-pointer"
               style={{
                 width: `${cardWidth}px`,

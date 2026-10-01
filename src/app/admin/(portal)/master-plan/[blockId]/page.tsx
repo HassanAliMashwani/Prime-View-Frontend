@@ -41,7 +41,7 @@ import {
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking } from '@/lib/dal/customers';
 import { Block, Plot, AdminSession, Reservation, PlotCategory, Customer, Booking } from '@/lib/mock/types';
-import { getCache, setCache } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
@@ -183,7 +183,7 @@ function BlockPlotsContent() {
         }
       } else {
         setBlock(res.block || null);
-        setPlots(res.plots || []);
+        setPlots((prev) => reconcileItems(prev, res.plots || [], (p) => p.id));
         if (res.block && res.plots) {
           setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
         }
@@ -639,7 +639,7 @@ function BlockPlotsContent() {
     );
   }
 
-  if (loading || !block || !session) {
+  if (((loading && plots.length === 0) || !block || !session)) {
     return <AdminMasterPlanSkeleton />;
   }
 

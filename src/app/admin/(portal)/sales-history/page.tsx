@@ -34,7 +34,7 @@ import {
 import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
-import { getCache, setCache, generateCacheKey, clearCachePrefix } from '@/lib/dal/apiCache';
+import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
 
 const PAGE_SIZE = 20;
 
@@ -107,7 +107,10 @@ function SalesHistoryContent() {
           setTotalRecords(cached.total);
           setLoading(false);
         } else {
-          setLoading(true);
+          setItems((prev) => {
+            if (prev.length === 0) setLoading(true);
+            return prev;
+          });
         }
       }
 
@@ -116,7 +119,7 @@ function SalesHistoryContent() {
       if (!res.ok) {
         setFeedback({ type: 'error', message: res.message || res.error || 'Failed to load sales history report.' });
       } else {
-        setItems(res.items);
+        setItems((prev) => reconcileItems(prev, res.items, (item) => item.id));
         setKpis(res.kpis);
         setTotalRecords(res.total || 0);
         setCache(key, { items: res.items, kpis: res.kpis, total: res.total || 0 });
@@ -198,7 +201,7 @@ function SalesHistoryContent() {
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
-  if (loading) {
+  if (loading && items.length === 0) {
     return <AdminSalesHistorySkeleton />;
   }
 
