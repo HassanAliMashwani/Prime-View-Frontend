@@ -868,7 +868,6 @@ function BlockPlotsContent() {
           const isReserved = visualStatus === 'reserved';
           const isBooked = visualStatus === 'booked';
           const isAllotted = visualStatus === 'allotted';
-          const isCommercialAvailable = plot.category === 'commercial' && visualStatus === 'available' && plot.status === 'available';
           const isAvailable = visualStatus === 'available' && !isAmenity && !isAdjustment;
           const isHighlighted = highlightedPlotId === plot.id;
 
@@ -897,9 +896,6 @@ function BlockPlotsContent() {
           } else if (isAmenity) {
             cardStyle = 'bg-slate-100/90 border-2 border-slate-300 text-slate-800 hover:bg-slate-200/90 hover:border-slate-400';
             statusBadge = 'bg-slate-700 text-white border-slate-800 font-bold';
-          } else if (isCommercialAvailable) {
-            cardStyle = 'bg-white border-2 border-slate-800 text-slate-900 hover:bg-slate-50';
-            statusBadge = 'bg-slate-100 text-slate-900 border-slate-400 font-bold';
           } else if (isAllotted) {
             cardStyle = 'bg-slate-950 border-2 border-slate-800 text-white hover:bg-slate-900';
             statusBadge = 'bg-slate-900 text-white border-slate-700 font-bold';

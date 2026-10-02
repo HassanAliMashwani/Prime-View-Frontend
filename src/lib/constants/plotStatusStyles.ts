@@ -133,11 +133,6 @@ export function getPlotStyle(plot: {
 
   const effectiveStatus = plot.displayStatus || plot.status;
 
-  // D3: Available commercial plots render with white fill + visible dark border
-  if (plot.category === 'commercial' && effectiveStatus === 'available') {
-    return SPECIAL_PLOT_STYLES.commercialAvailable;
-  }
-
   const validStatuses: PlotStatus[] = ['available', 'reserved', 'booked', 'allotted', 'disputed'];
   if (!validStatuses.includes(effectiveStatus as PlotStatus)) {
     throw new Error(`Unknown plot status: "${effectiveStatus}". Allowed values: ${validStatuses.join(', ')}`);

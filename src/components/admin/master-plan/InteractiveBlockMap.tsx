@@ -263,10 +263,6 @@ export default function InteractiveBlockMap({
               <span className="font-bold text-red-600">Disputed</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border border-slate-300 shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.commercialAvailable.fill }} />
-              <span>Commercial</span>
-            </div>
-            <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.amenity.fill }} />
               <span>Amenity</span>
             </div>
@@ -323,7 +319,8 @@ export default function InteractiveBlockMap({
       {/* Main Interactive Map Canvas */}
       <div
         ref={containerRef}
-        className={`relative w-full pb-[80.52%] overflow-hidden cursor-grab ${
+        style={{ paddingBottom: naturalWidth ? `${(naturalHeight / naturalWidth) * 100}%` : '80.52%' }}
+        className={`relative w-full overflow-hidden cursor-grab ${
           isPanning ? 'cursor-grabbing' : ''
         }`}
         onMouseDown={handleMouseDown}
@@ -477,12 +474,6 @@ export default function InteractiveBlockMap({
                   fillOpacity = isHovered ? 0.6 : 0.35;
                   strokeColor = style.stroke;
                   strokeWidth = 2;
-                } else if (plot.category === 'commercial' && visualStatus === 'available' && plot.status === 'available') {
-                  const style = SPECIAL_PLOT_STYLES.commercialAvailable;
-                  fillColor = style.fill;
-                  fillOpacity = isHovered ? 0.95 : 0.85;
-                  strokeColor = style.stroke;
-                  strokeWidth = 2.5;
                 } else {
                   const style = getPlotStyle(plot);
                   fillColor = style.fill;
