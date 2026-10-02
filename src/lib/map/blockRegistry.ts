@@ -1,6 +1,7 @@
 import { BlockMapConfig } from './types';
 import { eliteBlockConfig } from './eliteBlockAreas';
 import { npfPhase1BlockConfig } from './npfPhase1BlockAreas';
+import { commercialBlockConfig } from './commercialBlockAreas';
 
 /**
  * Central registry of all interactive traced block maps.
@@ -13,6 +14,7 @@ import { npfPhase1BlockConfig } from './npfPhase1BlockAreas';
 export const blockMapRegistry: Record<string, BlockMapConfig> = {
   elite: eliteBlockConfig,
   'npf-phase-1': npfPhase1BlockConfig,
+  commercial: commercialBlockConfig,
 };
 
 

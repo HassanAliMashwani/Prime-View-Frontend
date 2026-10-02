@@ -34,6 +34,7 @@ export interface TracedPlotArea {
   blockId: string;
   category: PlotCategory;
   amenityType?: string;
+  amenityName?: string;
   plotNumber: string | null;
   isGroupedRange: boolean;
   rangeSpan?: string;

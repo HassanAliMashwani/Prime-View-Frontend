@@ -77,7 +77,11 @@ export function parseSlug(
   }
 
   const isGroupedRange = numberOrRange.includes('..');
-  const plotNumber = isGroupedRange ? null : numberOrRange;
+  const plotNumber = isGroupedRange
+    ? null
+    : /^\d+$/.test(numberOrRange)
+    ? String(parseInt(numberOrRange, 10))
+    : numberOrRange;
   const rangeSpan = isGroupedRange ? numberOrRange : undefined;
   const sizeLabel = formatSizeLabel(rawSize);
 
@@ -127,6 +131,7 @@ export function parseAreaElement(
     blockId,
     category: parsedSlug.category,
     amenityType: parsedSlug.amenityType,
+    amenityName: parsedSlug.amenityType,
     plotNumber: parsedSlug.plotNumber,
     isGroupedRange: parsedSlug.isGroupedRange,
     rangeSpan: parsedSlug.rangeSpan,
