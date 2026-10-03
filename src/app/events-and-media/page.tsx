@@ -179,7 +179,7 @@ export default function EventsAndMediaPage() {
       </div>
 
       {/* Events Grid Section — Overlaps the hero bottom fade */}
-      <div className="pb-24 relative z-10 -mt-12 sm:-mt-16">
+      <div className="pb-24 relative z-10 -mt-12 sm:-mt-16 min-h-[480px]">
         {loading && cmsEvents.length === 0 ? <EventsSkeleton /> : <EventsGrid events={cmsEvents} />}
       </div>
 

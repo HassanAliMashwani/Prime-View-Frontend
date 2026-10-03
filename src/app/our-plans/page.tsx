@@ -312,7 +312,7 @@ export default function OurPlansPage() {
         {/* ── CARDS SECTION — overlaps the hero ─────────── */}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 -mt-32 sm:-mt-44 lg:-mt-52 z-10">
 
-          <div className="relative z-10">
+          <div className="relative z-10 min-h-[580px]">
             {loading && cmsPlans.length === 0 ? <PlansSkeleton /> : <PlotCarousel items={cmsPlans} />}
           </div>
 
