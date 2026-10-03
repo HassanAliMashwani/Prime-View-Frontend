@@ -72,7 +72,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
               </span>
             )}
             {event.venue && (
-              <span className="flex items-center gap-1.5 text-[#556050]">
+              <span className="flex items-center gap-1.5 text-[#333C30]">
                 <MapPin className="w-4 h-4 text-[#43612B] shrink-0" />
                 <span>{event.venue.split(",")[0]}</span>
               </span>
@@ -96,7 +96,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
             </p>
           )}
 
-          <p className="font-sans text-sm sm:text-[15px] text-[#5A6354] leading-relaxed line-clamp-3 mb-4">
+          <p className="font-sans text-sm sm:text-[15px] text-[#2C3629] leading-relaxed line-clamp-3 mb-4 font-normal">
             {event.summary || event.fullDescription}
           </p>
         </div>

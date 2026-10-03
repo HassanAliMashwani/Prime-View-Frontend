@@ -48,7 +48,7 @@ export const LocationDistancesSection: React.FC = () => {
         >
           Where Convenience Meets Home
         </ScrollReveal>
-        <p className="mt-4 font-sans text-sm sm:text-base text-charcoal/60 max-w-2xl mx-auto">
+        <p className="mt-4 font-sans text-sm sm:text-base text-charcoal/85 max-w-2xl mx-auto">
           Just minutes away from the Motorway, Railway Station, and major city hubs.
         </p>
       </div>
@@ -124,7 +124,7 @@ export const LocationDistancesSection: React.FC = () => {
             className="absolute left-1/2 -translate-x-1/2 mt-10 sm:mt-14 bg-white/95 backdrop-blur-md px-4 py-2 rounded-xl border border-gray-200 shadow-lg text-center w-max"
           >
             <h3 className="font-display text-base sm:text-lg font-bold text-deep-forest">Prime View</h3>
-            <p className="font-sans text-[9px] sm:text-[11px] font-bold text-charcoal/50 uppercase tracking-widest">
+            <p className="font-sans text-[9px] sm:text-[11px] font-bold text-charcoal/70 uppercase tracking-widest">
               Society Location
             </p>
           </motion.div>

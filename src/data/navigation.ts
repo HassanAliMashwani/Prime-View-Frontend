@@ -41,6 +41,7 @@ export const footerNavigation = {
   mapsAndPlans: [
     { title: "Society Location Map", href: "/map" },
     { title: "Masterplan Layout", href: "/map-2" },
+    { title: "Brand Styleguide", href: "/styleguide" },
     { title: "Marketing & Sales Partner", href: "/marketing-sales-partner" },
     { title: "Managing Committee", href: "/owners" },
     { title: "Legal Team", href: "/legal-team" },

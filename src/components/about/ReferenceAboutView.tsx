@@ -167,7 +167,7 @@ export function ReferenceAboutView() {
                 <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#2E6A4F] bg-[#2E6A4F]/10 px-1.5 py-0.5 rounded">
                   Project By
                 </span>
-                <span className="text-[10px] font-semibold text-[#8C827A] hidden xl:inline-block">
+                <span className="text-[10px] font-bold text-[#4D453E] hidden xl:inline-block">
                   Master Developer
                 </span>
               </div>
@@ -355,7 +355,7 @@ export function ReferenceAboutView() {
                 <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#2E6A4F] bg-[#2E6A4F]/10 px-2 py-0.5 rounded-md">
                   Project By
                 </span>
-                <span className="text-[11px] font-semibold text-[#8C827A]">
+                <span className="text-[11px] font-bold text-[#4D453E]">
                   Master Developer
                 </span>
               </div>

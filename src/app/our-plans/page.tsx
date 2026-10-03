@@ -328,7 +328,7 @@ export default function OurPlansPage() {
                   <h3 className="font-serif text-base sm:text-lg font-bold tracking-tight text-[#1B4324] uppercase">
                     Terms &amp; Conditions
                   </h3>
-                  <p className="text-[11.5px] sm:text-xs text-[#606A5D] font-medium">
+                  <p className="text-[11.5px] sm:text-xs text-[#313C2F] font-semibold">
                     Important terms to ensure transparency and trust.
                   </p>
                 </div>
@@ -363,7 +363,7 @@ export default function OurPlansPage() {
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
                 </div>
 
-                <p className="text-xs font-medium text-[#4A5347] leading-relaxed">
+                <p className="text-xs font-semibold text-[#242E22] leading-relaxed">
                   On full payment upfront.
                 </p>
               </div>
@@ -387,7 +387,7 @@ export default function OurPlansPage() {
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
                 </div>
 
-                <p className="text-xs font-medium text-[#4A5347] leading-relaxed">
+                <p className="text-xs font-semibold text-[#242E22] leading-relaxed">
                   For main road and corner plots.
                 </p>
               </div>
@@ -412,7 +412,7 @@ export default function OurPlansPage() {
                   <span className="h-[1.5px] w-5 bg-[#A8BBA2]" />
                 </div>
 
-                <p className="text-xs font-medium text-[#4A5347] leading-relaxed">
+                <p className="text-xs font-semibold text-[#242E22] leading-relaxed">
                   Must be deposited by the 10th of each month.
                 </p>
               </div>

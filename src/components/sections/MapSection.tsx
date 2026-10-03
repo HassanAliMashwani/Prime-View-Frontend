@@ -44,7 +44,7 @@ export const MapSection: React.FC = () => {
               Located Close to Heaven in Abbottabad
             </ScrollReveal>
 
-            <p className="font-sans text-sm sm:text-base text-charcoal/60 leading-relaxed text-center lg:text-left">
+            <p className="font-sans text-sm sm:text-base text-charcoal/85 leading-relaxed text-center lg:text-left">
               Prime View offers a serene natural setting combined with seamless
               GT Road accessibility. Visit our Islamabad Marketing &amp; Booking
               Office or explore our site location map.

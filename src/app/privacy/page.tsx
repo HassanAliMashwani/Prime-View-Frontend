@@ -78,8 +78,15 @@ export default function PrivacyPolicyPage() {
             </p>
           </section>
 
+          <section className="space-y-3">
+            <h2 className="font-display text-xl font-bold text-[#151914]">6. Site Media & Copyright</h2>
+            <p className="text-sm leading-relaxed text-[#4A5542]">
+              Photographs on this site belong to Prime View Cooperative Housing Society unless the owner names another license.
+            </p>
+          </section>
+
           <section className="space-y-3 border-t border-black/[0.08] pt-6">
-            <h2 className="font-display text-xl font-bold text-[#151914]">6. Contact & Office Address</h2>
+            <h2 className="font-display text-xl font-bold text-[#151914]">7. Contact & Office Address</h2>
             <p className="text-sm leading-relaxed text-[#4A5542]">
               For inquiries regarding personal records or society registration:
             </p>

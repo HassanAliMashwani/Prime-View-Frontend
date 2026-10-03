@@ -8,7 +8,7 @@ import { ChevronLeft, ChevronRight, FileText, CalendarDays, Clock, ArrowUpRight,
 // Warm ivory palette
 const GREEN = "#43612B";
 const TEXT  = "#151914";
-const MUTED = "#6B7462";
+const MUTED = "#3D4935";
 
 export interface PlotItem {
   id?: string;
@@ -283,7 +283,7 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
                           style={{ borderTop: "1px solid rgba(0,0,0,0.07)" }}
                         >
                           <span className="flex items-start gap-2 font-normal min-w-0" style={{ color: MUTED }}>
-                            <span style={{ color: "#8E9A80" }} className="shrink-0 mt-0.5">{row.icon}</span>
+                            <span style={{ color: "#4D6040" }} className="shrink-0 mt-0.5">{row.icon}</span>
                             <span className="leading-snug">{row.label}</span>
                           </span>
                           <span className="font-bold whitespace-nowrap ml-2 sm:ml-3 shrink-0 text-right leading-snug" style={{ color: TEXT }}>

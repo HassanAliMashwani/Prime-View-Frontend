@@ -270,12 +270,12 @@ export const AmenitiesSection: React.FC = () => {
                         onClick={() => scrollToChapter(idx)}
                         className={`w-full text-left px-4 py-3 rounded-xl border text-xs sm:text-sm font-sans transition-all duration-200 flex items-center justify-between group ${isActive
                           ? "bg-charcoal text-white font-bold border-2 border-black shadow-[0_6px_24px_rgba(0,0,0,0.15)]"
-                          : "bg-black/5 border border-black/10 text-charcoal/80 hover:bg-black/10 hover:text-charcoal font-medium shadow-xs"
+                          : "bg-black/5 border border-black/10 text-charcoal hover:bg-black/10 hover:text-black font-semibold shadow-xs"
                           }`}
                       >
                         <div className="flex items-center gap-3">
                           <span
-                            className={`font-mono text-xs font-bold ${isActive ? "text-emerald-400" : "text-charcoal/50"
+                            className={`font-mono text-xs font-bold ${isActive ? "text-emerald-400" : "text-charcoal/70"
                               }`}
                           >
                             {chap.stepNumber}

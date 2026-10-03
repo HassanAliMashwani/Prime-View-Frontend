@@ -67,18 +67,24 @@ export const ContactForm: React.FC = () => {
     setSubmitted(true);
   };
 
+  const handleReset = () => {
+    setFormData({ name: "", number: "", message: "" });
+    setConsentAccepted(false);
+    setErrorMsg(null);
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6, ease: "easeOut" }}
-      className="bg-[#FAF9F7] p-6 sm:p-8 rounded-2xl border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.09)] hover:-translate-y-1 transition-all duration-300"
+      className="bg-[#FAF9F7] p-5 sm:p-8 rounded-2xl border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.06)] hover:shadow-[0_12px_36px_rgba(0,0,0,0.09)] transition-all duration-300 w-full max-w-full overflow-hidden"
     >
       <h3 className="font-display text-2xl sm:text-3xl font-bold text-[#151914] mb-2">
         Send an Inquiry
       </h3>
-      <p className="font-sans text-xs sm:text-sm text-[#6B7462] mb-6">
+      <p className="font-sans text-xs sm:text-sm text-[#3B4435] mb-6">
         Fill out the form below to reach out to the Prime View team directly.
       </p>
 
@@ -120,13 +126,14 @@ export const ContactForm: React.FC = () => {
               type="text"
               id="form-field-name"
               name="name"
+              tabIndex={0}
               required
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="Full Name"
-              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#6B7462]/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
+              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#5A6352] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
             />
           </div>
 
@@ -141,13 +148,14 @@ export const ContactForm: React.FC = () => {
               type="tel"
               id="form-field-number"
               name="number"
+              tabIndex={0}
               required
               value={formData.number}
               onChange={(e) =>
                 setFormData({ ...formData, number: e.target.value })
               }
               placeholder="+92 3XX XXXXXXX"
-              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#6B7462]/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
+              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#5A6352] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
             />
           </div>
 
@@ -161,6 +169,7 @@ export const ContactForm: React.FC = () => {
             <textarea
               id="form-field-message"
               name="message"
+              tabIndex={0}
               rows={4}
               required
               value={formData.message}
@@ -168,7 +177,7 @@ export const ContactForm: React.FC = () => {
                 setFormData({ ...formData, message: e.target.value })
               }
               placeholder="Specify plot size (5, 7, 10 Marla, 1 Kanal) or questions..."
-              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#6B7462]/60 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
+              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#5A6352] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
             />
           </div>
 
@@ -178,23 +187,35 @@ export const ContactForm: React.FC = () => {
               type="checkbox"
               id="form-field-consent"
               name="consent"
+              tabIndex={0}
               required
               checked={consentAccepted}
               onChange={(e) => setConsentAccepted(e.target.checked)}
               className="mt-0.5 w-4 h-4 rounded text-[#43612B] border-black/[0.2] focus:ring-[#43612B] cursor-pointer"
             />
-            <label htmlFor="form-field-consent" className="text-xs text-[#6B7462] leading-relaxed cursor-pointer">
+            <label htmlFor="form-field-consent" className="text-xs text-[#3B4435] leading-relaxed cursor-pointer">
               I consent to Prime View Cooperative Housing Society storing my contact details and contacting me regarding this property inquiry. (Draft for owner review).
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="w-full inline-flex items-center justify-center gap-2 bg-[#43612B] hover:bg-[#324920] text-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] transition-all duration-150 active:scale-[0.99] cursor-pointer"
-          >
-            <span>Submit Booking Inquiry</span>
-            <Send className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2.5 pt-2">
+            <button
+              type="submit"
+              tabIndex={0}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#43612B] hover:bg-[#324920] text-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] transition-all duration-150 active:scale-[0.99] cursor-pointer"
+            >
+              <span>Send inquiry</span>
+              <Send className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              tabIndex={0}
+              onClick={handleReset}
+              className="inline-flex items-center justify-center bg-transparent hover:bg-black/[0.04] text-[#151914] border border-black/[0.15] text-xs font-bold py-3.5 px-5 rounded-xl uppercase tracking-wider transition-colors cursor-pointer"
+            >
+              Clear form
+            </button>
+          </div>
         </form>
       )}
     </motion.div>
