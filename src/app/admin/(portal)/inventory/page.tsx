@@ -56,8 +56,8 @@ export default function InventoryOverviewPage() {
       if (session && !fromDate && !toDate) {
         setCache(`/inventory:${session.adminId}`, data);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to load inventory stats');
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

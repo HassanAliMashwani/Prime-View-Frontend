@@ -74,6 +74,16 @@ export interface ApiResponse<T> {
   details?: any;
 }
 
+function sanitizeErrorMessage(rawMessage?: any): string {
+  if (
+    rawMessage === 'Invalid credentials.' ||
+    rawMessage === 'Account locked due to too many failed attempts.'
+  ) {
+    return rawMessage;
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 /**
  * Generic API GET helper.
  */
@@ -84,17 +94,18 @@ export async function apiGet<T>(path: string, token?: string): Promise<ApiRespon
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
+      const safeMsg = sanitizeErrorMessage(body?.message);
       return {
         ok: false,
-        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
-        message: body?.message || body?.error,
+        error: safeMsg,
+        message: safeMsg,
         status: res.status,
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
-    return { ok: false, error: msg, message: msg };
+  } catch {
+    const safeMsg = 'Something went wrong. Please try again.';
+    return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
 
@@ -110,18 +121,18 @@ export async function apiPost<T>(path: string, bodyData: any, token?: string): P
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
+      const safeMsg = sanitizeErrorMessage(body?.message);
       return {
         ok: false,
-        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
-        message: body?.message || body?.error,
+        error: safeMsg,
+        message: safeMsg,
         status: res.status,
-        details: body,
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
-    return { ok: false, error: msg, message: msg };
+  } catch {
+    const safeMsg = 'Something went wrong. Please try again.';
+    return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
 
@@ -137,17 +148,18 @@ export async function apiPatch<T>(path: string, bodyData: any, token?: string): 
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
+      const safeMsg = sanitizeErrorMessage(body?.message);
       return {
         ok: false,
-        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
-        message: body?.message || body?.error,
+        error: safeMsg,
+        message: safeMsg,
         status: res.status,
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
-    return { ok: false, error: msg, message: msg };
+  } catch {
+    const safeMsg = 'Something went wrong. Please try again.';
+    return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
 
@@ -162,17 +174,19 @@ export async function apiDelete<T = any>(path: string, token?: string): Promise<
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
+      const safeMsg = sanitizeErrorMessage(body?.message);
       return {
         ok: false,
-        error: body?.error || body?.reason || (body?.message ? String(body.message) : `HTTP_${res.status}`),
-        message: body?.message || body?.error,
+        error: safeMsg,
+        message: safeMsg,
         status: res.status,
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'NETWORK_ERROR';
-    return { ok: false, error: msg, message: msg };
+  } catch {
+    const safeMsg = 'Something went wrong. Please try again.';
+    return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
+
 

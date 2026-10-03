@@ -15,6 +15,14 @@ export function AdminActionToast({
   onClose: () => void;
 }) {
   if (!feedback) return null;
+
+  const displayMessage =
+    feedback.type === 'error'
+      ? (feedback.message === 'Invalid credentials.' || feedback.message === 'Account locked due to too many failed attempts.')
+        ? feedback.message
+        : 'Something went wrong. Please try again.'
+      : feedback.message;
+
   return (
     <div
       role="status"
@@ -26,7 +34,7 @@ export function AdminActionToast({
       }}
     >
       <div className="flex items-start gap-2">
-        <p className="flex-1">{feedback.message}</p>
+        <p className="flex-1">{displayMessage}</p>
         <button
           type="button"
           onClick={onClose}
@@ -39,3 +47,4 @@ export function AdminActionToast({
     </div>
   );
 }
+

@@ -49,8 +49,8 @@ export default function MasterPlanPage() {
         setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
         setCache(`/master-plan:${s.adminId}`, res.blocks);
       }
-    } catch (err) {
-      console.error('Failed to load blocks:', err);
+    } catch {
+      console.error('request failed');
     } finally {
       setLoading(false);
     }

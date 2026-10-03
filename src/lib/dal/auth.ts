@@ -56,9 +56,13 @@ export async function login(identifier: string, password: string): Promise<Login
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const msg = err.message;
+      if (msg === 'Invalid credentials.' || msg === 'Account locked due to too many failed attempts.') {
+        return { ok: false, error: msg };
+      }
       return {
         ok: false,
-        error: err.message || 'Invalid credentials. Please verify your details and try again.',
+        error: 'Something went wrong. Please try again.',
       };
     }
 
@@ -82,16 +86,16 @@ export async function login(identifier: string, password: string): Promise<Login
       try {
         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
         setCookie(COOKIE_KEY, JSON.stringify(session));
-      } catch (e) {
-        console.warn('Could not write to storage:', e);
+      } catch {
+        // Storage unavailable fallback
       }
     }
 
     return { ok: true, session };
-  } catch (err) {
+  } catch {
     return {
       ok: false,
-      error: 'Backend authentication service unreachable. Please ensure backend is running.',
+      error: 'Something went wrong. Please try again.',
     };
   }
 }
@@ -104,8 +108,8 @@ export async function logout(): Promise<void> {
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       removeCookie(COOKIE_KEY);
-    } catch (e) {
-      console.warn('Could not remove storage item:', e);
+    } catch {
+      // Storage unavailable fallback
     }
   }
 }
@@ -139,12 +143,13 @@ export function getActiveSession(): MemberSession | null {
       }
       removeCookie(COOKIE_KEY);
     }
-  } catch (e) {
-    console.warn('Error reading active session:', e);
+  } catch {
+    // Storage unavailable fallback
   }
 
   return null;
 }
+
 
 /**
  * Guard for member DAL functions.

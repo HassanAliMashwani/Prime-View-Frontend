@@ -5,9 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { siteConfig } from '@/data/site';
 
-import { Shield, Lock, ArrowRight, AlertCircle, ArrowLeft, KeyRound, UserCheck, Eye, EyeOff } from 'lucide-react';
+import { Shield, ArrowRight, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function MemberLoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -23,7 +22,7 @@ export default function MemberLoginPage() {
     setErrorMessage(null);
 
     if (!identifier.trim() || !password.trim()) {
-      setErrorMessage('Please enter both your Username / Membership Number and Password.');
+      setErrorMessage('Something went wrong. Please try again.');
       return;
     }
 
@@ -33,27 +32,18 @@ export default function MemberLoginPage() {
       if (res.ok) {
         router.push('/society-members/dashboard');
       } else {
-        setErrorMessage(res.error || 'Invalid credentials. Please try again.');
+        const msg = res.error;
+        if (msg === 'Invalid credentials.' || msg === 'Account locked due to too many failed attempts.') {
+          setErrorMessage(msg);
+        } else {
+          setErrorMessage('Something went wrong. Please try again.');
+        }
       }
-    } catch (err) {
-      setErrorMessage('An unexpected error occurred during login. Please try again.');
+    } catch {
+      setErrorMessage('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  // Demo account quick-fill helpers for seamless live presentations
-  const fillDemo = (demoId: string) => {
-    if (demoId === 'tariq') {
-      setIdentifier('PV-2024-001');
-    } else if (demoId === 'ayesha') {
-      setIdentifier('PV-2024-002');
-    } else if (demoId === 'usman') {
-      setIdentifier('PV-2024-003');
-    } else if (demoId === 'bilal') {
-      setIdentifier('PV-2024-004');
-    }
-    setErrorMessage(null);
   };
 
   return (
@@ -113,14 +103,14 @@ export default function MemberLoginPage() {
                 htmlFor="identifier"
                 className="text-xs font-bold text-[#151914] uppercase tracking-wider block"
               >
-                Username / Membership Number
+                Username
               </label>
               <input
                 id="identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="e.g. PV-2024-001 or CNIC / Phone"
+                placeholder="Username"
                 className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] placeholder-[#6B7462]/50 shadow-xs"
                 required
               />
@@ -185,48 +175,6 @@ export default function MemberLoginPage() {
               Forgot your credentials? Contact your society administrator or the main booking office.
             </p>
           </div>
-
-          {/* Demo Account Helpers for Live Presentation */}
-          <div className="p-4 rounded-2xl bg-[#FAF9F5] border border-black/[0.06] space-y-2">
-            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
-              <UserCheck className="w-3.5 h-3.5" />
-              <span>Demo Quick-Fill Accounts:</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-[11px]">
-              <button
-                type="button"
-                onClick={() => fillDemo('tariq')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
-              >
-                <span className="font-bold block text-[#151914] leading-tight">Tariq Mehmood</span>
-                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">1 Plot (Full Payment)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('ayesha')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
-              >
-                <span className="font-bold block text-[#151914] leading-tight">Dr. Ayesha</span>
-                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">1 Plot (Installment)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('usman')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
-              >
-                <span className="font-bold block text-[#151914] leading-tight">Malik Usman</span>
-                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">2 Plots (Mixed)</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => fillDemo('bilal')}
-                className="p-2 rounded-lg bg-white border border-black/[0.06] hover:border-[#43612B] text-left transition-colors flex flex-col justify-between h-full min-h-[54px]"
-              >
-                <span className="font-bold block text-[#151914] leading-tight">Bilal Ahmed</span>
-                <span className="text-[#6B7462] text-[10px] mt-auto pt-1">0 Plots (Empty State)</span>
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -237,3 +185,4 @@ export default function MemberLoginPage() {
     </div>
   );
 }
+

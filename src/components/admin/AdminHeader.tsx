@@ -53,8 +53,8 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           setLastSyncMsg('Live Sync Active');
         }, 3500);
       };
-    } catch (e) {
-      console.warn('BroadcastChannel error in AdminHeader:', e);
+    } catch {
+      // BroadcastChannel unavailable
     }
 
     return () => {

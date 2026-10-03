@@ -54,9 +54,13 @@ export async function adminLogin(username: string, password: string): Promise<Ad
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      const msg = err.message;
+      if (msg === 'Invalid credentials.' || msg === 'Account locked due to too many failed attempts.') {
+        return { ok: false, error: msg };
+      }
       return {
         ok: false,
-        error: err.message || 'Invalid administrative credentials.',
+        error: 'Something went wrong. Please try again.',
       };
     }
 
@@ -89,10 +93,10 @@ export async function adminLogin(username: string, password: string): Promise<Ad
     }
 
     return { ok: true, session };
-  } catch (netErr) {
+  } catch {
     return {
       ok: false,
-      error: 'Backend authentication service unreachable. Please ensure backend is running.',
+      error: 'Something went wrong. Please try again.',
     };
   }
 }
@@ -194,14 +198,13 @@ export async function getAdminProfile(session: AdminSession): Promise<{
     });
 
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      return { ok: false, error: err.message || 'Failed to fetch admin profile.' };
+      return { ok: false, error: 'Something went wrong. Please try again.' };
     }
 
     const data = await res.json();
     return { ok: true, admin: data.admin };
   } catch {
-    return { ok: false, error: 'Network error fetching admin profile.' };
+    return { ok: false, error: 'Something went wrong. Please try again.' };
   }
 }
 
@@ -225,12 +228,13 @@ export async function changeAdminPassword(
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return { ok: false, error: data.message || 'Password update failed.' };
+      return { ok: false, error: 'Something went wrong. Please try again.' };
     }
 
     return { ok: true, message: data.message || 'Password updated successfully.' };
   } catch {
-    return { ok: false, error: 'Network error updating password.' };
+    return { ok: false, error: 'Something went wrong. Please try again.' };
   }
 }
+
 

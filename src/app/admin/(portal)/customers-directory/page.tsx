@@ -144,7 +144,7 @@ function CustomersDirectoryContent() {
             setFeedback({ type: 'error', message: res.message || res.error || 'Failed to refresh customer directory.' });
             return prev;
           }
-          setError(res.message || res.error || 'Failed to load customer directory.');
+          setError('Something went wrong. Please try again.');
           return prev;
         });
       } else {
@@ -153,14 +153,14 @@ function CustomersDirectoryContent() {
         setCache(key, { customers: res.customers, total: res.total || 0 });
         setError(null);
       }
-    } catch (err) {
-      console.error('Failed to load customer directory:', err);
+    } catch {
+      console.error('request failed');
       setCustomers((prev) => {
         if (prev.length > 0) {
-          setFeedback({ type: 'error', message: 'Failed to refresh customer directory.' });
+          setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
           return prev;
         }
-        setError('An unexpected error occurred while loading the directory.');
+        setError('Something went wrong. Please try again.');
         return prev;
       });
     } finally {

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from '@/lib/dal/adminAuth';
 
 export default function AdminLoginPage() {
@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
-      setError('Please enter both administrative username and password.');
+      setError('Something went wrong. Please try again.');
       return;
     }
 
@@ -29,18 +29,18 @@ export default function AdminLoginPage() {
       if (res.ok) {
         router.push('/admin/dashboard');
       } else {
-        setError(res.error || 'Authentication failed. Please check your credentials.');
+        const msg = res.error;
+        if (msg === 'Invalid credentials.' || msg === 'Account locked due to too many failed attempts.') {
+          setError(msg);
+        } else {
+          setError('Something went wrong. Please try again.');
+        }
       }
     } catch {
-      setError('An unexpected error occurred. Please try again.');
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handlePrefillUsername = (u: string) => {
-    setUsername(u);
-    setError(null);
   };
 
   return (
@@ -96,7 +96,7 @@ export default function AdminLoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. admin, marketing, police"
+                  placeholder="Username"
                   className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-[#10251E] focus:ring-1 focus:ring-[#10251E] transition-colors"
                 />
               </div>
@@ -136,52 +136,9 @@ export default function AdminLoginPage() {
               <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
             </button>
           </form>
-
-          {/* Role Username Selector */}
-          <div className="mt-8 pt-5 border-t border-slate-100">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2.5 text-center">
-              Select Role (Prefill Username)
-            </div>
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => handlePrefillUsername('admin')}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
-              >
-                <div>
-                  <span className="font-bold text-[#10251E]">Super Administrator</span>
-                  <div className="text-[11px] text-slate-500">admin • Society-wide (All 8 Blocks)</div>
-                </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePrefillUsername('marketing')}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
-              >
-                <div>
-                  <span className="font-bold text-[#10251E]">Marketing Admin</span>
-                  <div className="text-[11px] text-slate-500">marketing • Abbott + Royal Blocks</div>
-                </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handlePrefillUsername('police')}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 hover:bg-emerald-50/70 border border-slate-200 hover:border-emerald-300 text-left transition-colors text-xs cursor-pointer"
-              >
-                <div>
-                  <span className="font-bold text-[#10251E]">Police Admin</span>
-                  <div className="text-[11px] text-slate-500">police • Overseas + Elite + Chalet</div>
-                </div>
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>
   );
 }
+

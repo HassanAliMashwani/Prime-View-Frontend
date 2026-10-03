@@ -47,8 +47,8 @@ export default function VerifySlipPage() {
       try {
         const data = await verifySlipPublic(slipNumber);
         setSubmission(data);
-      } catch (err) {
-        console.error('Error verifying slip:', err);
+      } catch {
+        console.error('request failed');
         setFetchError(true);
       } finally {
         setIsLoading(false);

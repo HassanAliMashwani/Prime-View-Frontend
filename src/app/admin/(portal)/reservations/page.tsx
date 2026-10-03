@@ -74,8 +74,8 @@ export default function ReservationsPage() {
           setCache(`/reservations:${s.adminId}`, res.reservations);
         }
       }
-    } catch (err) {
-      console.error('Failed loading reservations:', err);
+    } catch {
+      console.error('request failed');
     } finally {
       setLoading(false);
     }
@@ -162,8 +162,8 @@ export default function ReservationsPage() {
         setEditingRes(null);
         await loadData(session);
       }
-    } catch (err) {
-      console.error('Failed updating note:', err);
+    } catch {
+      console.error('request failed');
     } finally {
       setSavingNote(false);
     }

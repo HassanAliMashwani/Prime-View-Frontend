@@ -436,8 +436,8 @@ function CustomersPageContent() {
       } else if (type === 'nokCnic') {
         setPathAForm((prev) => ({ ...prev, nokCnicCopyUrl: dataUrl }));
       }
-    } catch (err) {
-      console.error('Failed to encode document:', err);
+    } catch {
+      console.error('request failed');
     } finally {
       setDocUploading(null);
     }

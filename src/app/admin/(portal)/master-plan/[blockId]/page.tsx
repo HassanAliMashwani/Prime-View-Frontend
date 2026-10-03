@@ -188,8 +188,8 @@ function BlockPlotsContent() {
           setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
         }
       }
-    } catch (err) {
-      console.error('Failed loading plots:', err);
+    } catch {
+      console.error('request failed');
     } finally {
       setLoading(false);
     }

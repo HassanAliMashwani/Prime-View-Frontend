@@ -184,8 +184,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           get().fetchDocuments();
         }
       };
-    } catch (e) {
-      console.warn('BroadcastChannel sync init error:', e);
+    } catch {
+      // BroadcastChannel unavailable
     }
 
     return () => {

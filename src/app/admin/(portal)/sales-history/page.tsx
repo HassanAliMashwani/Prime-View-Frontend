@@ -132,9 +132,9 @@ function SalesHistoryContent() {
         setTotalRecords(res.total || 0);
         setCache(key, { items: res.items, kpis: res.kpis, total: res.total || 0 });
       }
-    } catch (err) {
-      console.error('Failed to load sales report:', err);
-      setFeedback({ type: 'error', message: 'An error occurred while generating the sales report.' });
+    } catch {
+      console.error('request failed');
+      setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
     } finally {
       if (!background) setLoading(false);
     }

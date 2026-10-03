@@ -56,8 +56,8 @@ export default function AdminDashboardPage() {
         blocks: blockRes.ok ? blockRes.blocks : [],
         reservations: resRes.ok ? resRes.reservations : [],
       });
-    } catch (err) {
-      console.error('Failed loading dashboard data:', err);
+    } catch {
+      console.error('request failed');
     } finally {
       setLoading(false);
     }
