@@ -2,7 +2,6 @@ import { AdminSession, AdminUser } from '../mock/types';
 export type { AdminSession, AdminUser };
 
 const SESSION_STORAGE_KEY = 'prime_view_admin_session';
-const COOKIE_KEY = 'pv_admin_session';
 
 let nodeSessionOverride: AdminSession | null = null;
 
@@ -19,22 +18,6 @@ export interface AdminLoginResult {
   error?: string;
   lockedUntil?: number;
   session?: AdminSession;
-}
-
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-  return match ? decodeURIComponent(match[3]) : null;
-}
-
-function setCookie(name: string, value: string, maxAgeSeconds: number = 86400): void {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; SameSite=Lax`;
-}
-
-function removeCookie(name: string): void {
-  if (typeof document === 'undefined') return;
-  document.cookie = `${name}=; path=/; max-age=0; SameSite=Lax`;
 }
 
 import { API_BASE_URL } from '../api';
@@ -86,7 +69,6 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       try {
         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
-        setCookie(COOKIE_KEY, session.username, 86400);
       } catch {
         // Storage unavailable fallback
       }
@@ -113,7 +95,6 @@ export async function adminLogout(): Promise<{ ok: boolean }> {
       // Storage fallback
     }
   }
-  removeCookie(COOKIE_KEY);
   nodeSessionOverride = null;
 
   return { ok: true };

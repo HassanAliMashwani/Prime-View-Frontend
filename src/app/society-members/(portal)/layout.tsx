@@ -53,7 +53,6 @@ function MemberPortalContent({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => {
               sessionStorage.clear();
-              document.cookie = 'pv_member_token=; path=/; max-age=0;';
               window.location.href = '/society-members/login';
             }}
             className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"

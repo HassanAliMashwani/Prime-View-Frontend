@@ -8,29 +8,16 @@ export { API_BASE_URL, getApiBaseUrl };
 
 const ADMIN_SESSION_KEY = 'prime_view_admin_session';
 const MEMBER_SESSION_KEY = 'prime_view_member_session';
-const ADMIN_COOKIE_KEY = 'pv_admin_session';
-const MEMBER_COOKIE_KEY = 'pv_member_session';
-
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp('(^|;\\s*)(' + name + ')=([^;]*)'));
-  return match ? decodeURIComponent(match[3]) : null;
-}
 
 /**
- * Get the active admin JWT access token from sessionStorage or cookie.
+ * Get the active admin JWT access token from sessionStorage or localStorage.
  */
 export function getAdminToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    const item = sessionStorage.getItem(ADMIN_SESSION_KEY);
+    const item = sessionStorage.getItem(ADMIN_SESSION_KEY) || localStorage.getItem(ADMIN_SESSION_KEY);
     if (item) {
       const parsed = JSON.parse(item);
-      if (parsed?.token) return parsed.token;
-    }
-    const cookie = getCookie(ADMIN_COOKIE_KEY);
-    if (cookie) {
-      const parsed = JSON.parse(cookie);
       if (parsed?.token) return parsed.token;
     }
   } catch { /* ignore */ }
@@ -38,7 +25,7 @@ export function getAdminToken(): string | null {
 }
 
 /**
- * Get the active member JWT access token from sessionStorage or cookie.
+ * Get the active member JWT access token from sessionStorage.
  */
 export function getMemberToken(): string | null {
   if (typeof window === 'undefined') return null;
@@ -46,11 +33,6 @@ export function getMemberToken(): string | null {
     const item = sessionStorage.getItem(MEMBER_SESSION_KEY);
     if (item) {
       const parsed = JSON.parse(item);
-      if (parsed?.token) return parsed.token;
-    }
-    const cookie = getCookie(MEMBER_COOKIE_KEY);
-    if (cookie) {
-      const parsed = JSON.parse(cookie);
       if (parsed?.token) return parsed.token;
     }
   } catch { /* ignore */ }
