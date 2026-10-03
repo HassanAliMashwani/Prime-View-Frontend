@@ -6,7 +6,11 @@ import { ContactSection } from "@/components/sections/ContactSection";
 export const metadata = {
   title: pagesData.contact.title,
   description: pagesData.contact.description,
+  alternates: {
+    canonical: "https://prime-view-livid.vercel.app/contact",
+  },
 };
+
 
 export default function ContactPage() {
   return (

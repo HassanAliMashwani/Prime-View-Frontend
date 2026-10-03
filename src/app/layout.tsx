@@ -6,6 +6,7 @@ import { Footer } from "@/components/navigation/Footer";
 import { siteConfig } from "@/data/site";
 import { GlobalVideoPreloader } from "@/components/ui/GlobalVideoPreloader";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
+import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -34,12 +35,40 @@ const outfitFont = Outfit({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://prime-view-livid.vercel.app"),
   title: {
     default: `${siteConfig.name} — ${siteConfig.tagline}`,
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
   keywords: ["Prime View", "Abbottabad", "Housing Society", "Plots", "Real Estate Pakistan"],
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/favicon.ico",
+    apple: "/icon.png",
+  },
+  openGraph: {
+    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    description: siteConfig.description,
+    url: "https://prime-view-livid.vercel.app",
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: "/master-plan/Master Plan.png",
+        width: 1200,
+        height: 630,
+        alt: "Prime View Cooperative Housing Society Abbottabad Master Plan",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${siteConfig.name} — ${siteConfig.tagline}`,
+    description: siteConfig.description,
+    images: ["/master-plan/Master Plan.png"],
+  },
 };
 
 export default function RootLayout({
@@ -60,7 +89,11 @@ export default function RootLayout({
 
         {/* Global WhatsApp FAB (automatically hidden on admin and member portals) */}
         <WhatsAppButton />
+
+        {/* Cookie Consent Banner */}
+        <CookieConsentBanner />
       </body>
     </html>
   );
 }
+

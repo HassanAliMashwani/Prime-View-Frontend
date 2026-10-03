@@ -31,13 +31,16 @@ export const HeroSection: React.FC = () => {
       <div className="relative z-10 w-full max-w-7xl mx-auto px-6 flex flex-col items-center sm:items-stretch sm:pt-24">
 
         {/* Primary Headline */}
-        <ScrollReveal
-          variant="blur-word"
-          delay={0.2}
-          className="font-display text-5xl min-[390px]:text-6xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.05] sm:leading-[1.0] tracking-tight text-center sm:text-left sm:ml-8 lg:ml-20 w-full"
-        >
-          Close to Heaven
-        </ScrollReveal>
+        <h1 className="w-full text-center sm:text-left sm:ml-8 lg:ml-20">
+          <ScrollReveal
+            variant="blur-word"
+            delay={0.2}
+            className="font-display text-5xl min-[390px]:text-6xl sm:text-7xl lg:text-[8rem] text-pure-white leading-[1.05] sm:leading-[1.0] tracking-tight inline-block"
+          >
+            Close to Heaven
+          </ScrollReveal>
+        </h1>
+
 
         {/* Secondary Headline (Offset) */}
         <div className="w-full flex justify-center sm:justify-end mt-4 sm:mt-16">

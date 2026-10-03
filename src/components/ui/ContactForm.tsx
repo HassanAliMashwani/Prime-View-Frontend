@@ -6,6 +6,9 @@ import { motion } from "framer-motion";
 
 export const ContactForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [honeypot, setHoneypot] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     number: "",
@@ -14,6 +17,53 @@ export const ContactForm: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
+    // 1. Honeypot bot protection: if filled, quietly drop without alerting bot
+    if (honeypot.trim() !== "") {
+      setSubmitted(true);
+      return;
+    }
+
+    // 2. Client-side burst rate limiting (60 second cooldown)
+    const LAST_SUBMIT_KEY = "pv_last_inquiry_time";
+    const now = Date.now();
+    try {
+      const lastSubmit = sessionStorage.getItem(LAST_SUBMIT_KEY);
+      if (lastSubmit && now - parseInt(lastSubmit, 10) < 60000) {
+        const remaining = Math.ceil((60000 - (now - parseInt(lastSubmit, 10))) / 1000);
+        setErrorMsg(`Too many requests. Please wait ${remaining} seconds before submitting another inquiry.`);
+        return;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    // 3. Validation
+    if (formData.name.trim().length < 2) {
+      setErrorMsg("Please enter your legal name (minimum 2 characters).");
+      return;
+    }
+    const cleanNumber = formData.number.replace(/[^0-9+]/g, "");
+    if (cleanNumber.length < 8) {
+      setErrorMsg("Please provide a valid phone or WhatsApp number.");
+      return;
+    }
+    if (formData.message.trim().length < 5) {
+      setErrorMsg("Please provide a message describing your property inquiry.");
+      return;
+    }
+    if (!consentAccepted) {
+      setErrorMsg("You must consent to be contacted regarding this society inquiry.");
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(LAST_SUBMIT_KEY, now.toString());
+    } catch {
+      /* ignore */
+    }
+
     setSubmitted(true);
   };
 
@@ -35,10 +85,30 @@ export const ContactForm: React.FC = () => {
       {submitted ? (
         <div className="bg-[#EAF0E7] border border-[#A8BBA2]/50 text-[#151914] p-5 rounded-xl text-sm font-medium flex items-center gap-3">
           <CheckCircle2 className="w-5 h-5 text-[#43612B] shrink-0" />
-          <span>Thank you! We respond to all inquiries promptly within 2 hours.</span>
+          <span>Thank you! Your inquiry has been received. Our booking office will contact you within 2 business hours.</span>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4 font-sans">
+          {errorMsg && (
+            <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+              {errorMsg}
+            </div>
+          )}
+
+          {/* Honeypot field - invisible to human users, traps spam bots */}
+          <div aria-hidden="true" style={{ display: "none", position: "absolute", left: "-9999px" }}>
+            <label htmlFor="form-field-hp">Leave this field blank</label>
+            <input
+              type="text"
+              id="form-field-hp"
+              name="_society_inquiry_hp"
+              tabIndex={-1}
+              autoComplete="off"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+            />
+          </div>
+
           <div>
             <label
               htmlFor="form-field-name"
@@ -102,6 +172,22 @@ export const ContactForm: React.FC = () => {
             />
           </div>
 
+          {/* Form consent checkbox */}
+          <div className="flex items-start gap-2.5 pt-1">
+            <input
+              type="checkbox"
+              id="form-field-consent"
+              name="consent"
+              required
+              checked={consentAccepted}
+              onChange={(e) => setConsentAccepted(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded text-[#43612B] border-black/[0.2] focus:ring-[#43612B] cursor-pointer"
+            />
+            <label htmlFor="form-field-consent" className="text-xs text-[#6B7462] leading-relaxed cursor-pointer">
+              I consent to Prime View Cooperative Housing Society storing my contact details and contacting me regarding this property inquiry. (Draft for owner review).
+            </label>
+          </div>
+
           <button
             type="submit"
             className="w-full inline-flex items-center justify-center gap-2 bg-[#43612B] hover:bg-[#324920] text-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] transition-all duration-150 active:scale-[0.99] cursor-pointer"
@@ -114,3 +200,4 @@ export const ContactForm: React.FC = () => {
     </motion.div>
   );
 };
+

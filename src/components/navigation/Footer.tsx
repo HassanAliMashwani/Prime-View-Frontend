@@ -123,7 +123,12 @@ export const Footer: React.FC = () => {
                   </div>
                   <span>{siteConfig.email}</span>
                 </a>
+                <div className="flex items-center gap-2.5 text-xs text-[#6B7462] pt-1">
+                  <div className="w-5 shrink-0 flex items-center justify-center">📍</div>
+                  <span>Main Secretariat, Supply Road, Abbottabad, Pakistan</span>
+                </div>
               </div>
+
 
               {/* Social icons starting on that text edge (pl-[30px]), one row, equal gaps, 44px each */}
               <div className="flex items-center gap-2.5 pl-[30px] mt-1">
@@ -180,21 +185,26 @@ export const Footer: React.FC = () => {
 
             {/* Legal (Col 4: Span 3) */}
             <div className="lg:col-span-3">
-              <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Legal</h4>
+              <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Legal & Governance</h4>
               <ul className="space-y-2.5">
                 <li>
-                  <Link href="#" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Terms of Service
+                  <Link href="/terms" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                    Terms & Conditions
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Privacy Policy / GDPR
+                  <Link href="/privacy" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                    Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="#" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Cookie Policy
+                  <Link href="/cookies" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                    Cookies Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/refund" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
+                    Refund Policy
                   </Link>
                 </li>
                 <li>
@@ -207,7 +217,18 @@ export const Footer: React.FC = () => {
                     <span className="text-[11px]">↗</span>
                   </Link>
                 </li>
+                <li>
+                  <Link
+                    href="/society-members/login"
+                    className="font-sans text-sm font-bold transition-opacity hover:opacity-70 flex items-center gap-1.5"
+                    style={{ color: '#43612B' }}
+                  >
+                    <span>Member Portal</span>
+                    <span className="text-[11px]">↗</span>
+                  </Link>
+                </li>
               </ul>
+
 
               {/* Project of Roman Builders */}
               <div className="mt-6 pt-1">
