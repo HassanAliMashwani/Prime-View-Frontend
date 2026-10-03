@@ -54,10 +54,10 @@ export const LocationMapCard: React.FC = () => {
   const googleMapsUrl = `https://maps.google.com/?q=${coordinates}`;
   const directionsUrl = `https://maps.google.com/maps/dir/?api=1&destination=${coordinates}`;
 
-  // Map embed URL with satellite hybrid (t=h) or roadmap (t=m)
-  const mapEmbedUrl = `https://maps.google.com/maps?q=${coordinates}&z=${zoom}&t=${
-    mapMode === "satellite" ? "h" : "m"
-  }&output=embed`;
+  // Map embed URL with satellite hybrid (!5e1) or roadmap (!5e0)
+  const mapEmbedUrl = `https://www.google.com/maps/embed?origin=mfe&pb=!1m4!2m1!1s${coordinates}!5e${
+    mapMode === "satellite" ? "1" : "0"
+  }!6i${zoom}`;
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 1, 18));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 1, 10));

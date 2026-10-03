@@ -209,7 +209,7 @@ All legal pages contain real Prime View cooperative society details (Abbottabad,
    - Detailed disclosure of data collected (Applicant names, CNIC/NICOP, mobile numbers, mailing address, nominee details, and uploaded bank deposit slips).
    - Strict data minimization: data used only for plot file issuance, installment verification, and ballot communication.
 2. **Terms and Conditions (`/terms`)**:
-   - Plot reservation rules, 7-14 day token deposit hold durations, forfeiture conditions upon non-payment, installment remittance in PKR, and re-survey adjustment protocols.
+   - Plot reservation rules, 24hr token deposit hold durations, forfeiture conditions upon non-payment, installment remittance in PKR, and re-survey adjustment protocols.
    - Dispute jurisdiction explicitly placed with competent courts in Abbottabad, Pakistan.
 3. **Cookies Policy (`/cookies`)**:
    - Classifies essential technical authentication cookies (`pv_admin_token`, `pv_member_token`) and consent cookies (`pv_cookie_consent`).

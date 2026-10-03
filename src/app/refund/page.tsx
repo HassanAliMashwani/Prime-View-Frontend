@@ -13,11 +13,8 @@ export default function RefundPolicyPage() {
   return (
     <div className="py-16 sm:py-24 bg-[#F8F7F5] min-h-screen">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Mandatory owner review disclaimer */}
-        <div className="mb-8 p-4 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs sm:text-sm font-semibold flex items-center justify-between">
-          <span>Draft for owner review. The society owner will confirm the final legal text.</span>
-          <span className="text-[11px] uppercase tracking-wider text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded">Jurisdiction: Pakistan</span>
-        </div>
+       
+        
 
         <div className="bg-white p-8 sm:p-12 rounded-3xl border border-black/[0.08] shadow-[0_4px_24px_rgba(0,0,0,0.04)] space-y-8 font-sans text-[#151914]">
           <div className="border-b border-black/[0.08] pb-6">

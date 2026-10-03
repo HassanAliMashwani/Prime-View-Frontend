@@ -96,7 +96,7 @@ export const MapSection: React.FC = () => {
               <div className="relative w-full h-[360px] sm:h-[420px] rounded-xl overflow-hidden border border-stone bg-[#EFE7DA]/40">
                 <iframe
                   title="Prime View Abbottabad Satellite Location Map"
-                  src="https://maps.google.com/maps?q=34.0538,73.1534&t=k&z=13&output=embed"
+                  src="https://www.google.com/maps/embed?origin=mfe&pb=!1m4!2m1!1s34.0538,73.1534!5e1!6i13"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

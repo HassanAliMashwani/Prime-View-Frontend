@@ -147,102 +147,72 @@ export const Footer: React.FC = () => {
               </div>
             </div>
 
-            {/* Product / Quick Links (Col 2: Span 2) */}
-            <div className="lg:col-span-2">
-              <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Product</h4>
-              <ul className="space-y-2.5">
-                {footerNavigation.quickLinks.map((item) => (
-                  <li key={item.title}>
-                    <Link
-                      href={item.href}
-                      className="font-sans text-sm font-bold transition-opacity hover:opacity-70"
-                      style={{ color: '#151914' }}
-                    >
-                      {item.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {/* Three Navigation Sections with evenly distributed spacing */}
+            <div className="lg:col-span-7 flex flex-col sm:flex-row justify-between gap-8 sm:gap-6 lg:gap-8 pt-1">
 
-            {/* Resources / Maps & Info (Col 3: Span 2) */}
-            <div className="lg:col-span-2">
-              <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Resources</h4>
-              <ul className="space-y-2.5">
-                {footerNavigation.mapsAndPlans.map((item) => (
-                  <li key={item.title}>
-                    <Link
-                      href={item.href}
-                      className="font-sans text-sm font-bold transition-opacity hover:opacity-70"
-                      style={{ color: '#151914' }}
-                    >
-                      {item.title}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Legal (Col 4: Span 3) */}
-            <div className="lg:col-span-3">
-              <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Legal & Governance</h4>
-              <ul className="space-y-2.5">
-                <li>
-                  <Link href="/terms" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Terms & Conditions
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/cookies" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Cookies Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/refund" className="font-sans text-sm font-bold transition-opacity hover:opacity-70" style={{ color: '#151914' }}>
-                    Refund Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/admin/login"
-                    className="font-sans text-sm font-bold transition-opacity hover:opacity-70 flex items-center gap-1.5"
-                    style={{ color: '#43612B' }}
-                  >
-                    <span>Admin Portal</span>
-                    <span className="text-[11px]">↗</span>
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/society-members/login"
-                    className="font-sans text-sm font-bold transition-opacity hover:opacity-70 flex items-center gap-1.5"
-                    style={{ color: '#43612B' }}
-                  >
-                    <span>Member Portal</span>
-                    <span className="text-[11px]">↗</span>
-                  </Link>
-                </li>
-              </ul>
-
-
-              {/* Project of Roman Builders */}
-              <div className="mt-6 pt-1">
-                <a
-                  href="https://roman-builders.vercel.app/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 font-sans text-sm font-extrabold whitespace-nowrap tracking-tight hover:opacity-85 transition-opacity"
-                  style={{ color: '#70c729ff' }}
-                >
-                  <span>Project of Roman Builders</span>
-                  <span className="text-[11px]">↗</span>
-                </a>
+              {/* Product / Quick Links */}
+              <div className="shrink-0">
+                <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Product</h4>
+                <ul className="space-y-2.5">
+                  {footerNavigation.quickLinks.map((item) => (
+                    <li key={item.title}>
+                      <Link
+                        href={item.href}
+                        className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
+                        style={{ color: '#151914' }}
+                      >
+                        {item.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
+
+              {/* Resources / Maps & Info */}
+              <div className="shrink-0">
+                <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Resources</h4>
+                <ul className="space-y-2.5">
+                  {footerNavigation.mapsAndPlans.map((item) => (
+                    <li key={item.title}>
+                      <Link
+                        href={item.href}
+                        className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap"
+                        style={{ color: '#151914' }}
+                      >
+                        {item.title}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Legal & Governance */}
+              <div className="shrink-0">
+                <h4 className="font-display text-[15px] font-bold mb-3 underline underline-offset-4 decoration-2 whitespace-nowrap" style={{ color: '#43612B', textDecorationColor: 'rgba(67,97,43,0.3)' }}>Legal & Governance</h4>
+                <ul className="space-y-2.5">
+                  <li>
+                    <Link href="/terms" className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: '#151914' }}>
+                      Terms & Conditions
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/privacy" className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: '#151914' }}>
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/cookies" className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: '#151914' }}>
+                      Cookies Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/refund" className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: '#151914' }}>
+                      Refund Policy
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
             </div>
 
           </div>
