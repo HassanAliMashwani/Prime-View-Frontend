@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      body {
+        margin: 0;
+        background: #111827;
+      }
+      .master-plan {
+        position: relative;
+        width: fit-content;
+        max-width: 100%;
+      }
+      .master-plan img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      .master-plan canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+      .area-details {
+        position: fixed;
+        z-index: 1;
+        display: none;
+        padding: 10px 14px;
+        color: #f8fafc;
+        background: rgba(15, 23, 42, 0.94);
+        border: 1px solid #67e8f9;
+        border-radius: 6px;
+        box-shadow: 0 0 18px rgba(34, 211, 238, 0.55);
+        font:
+          600 14px/1.4 system-ui,
+          sans-serif;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="master-plan">
+      <img id="master-plan-image" src="Master Plan.png" usemap="#image-map" />
+      <canvas id="area-highlight" aria-hidden="true"></canvas>
+    </div>
+    <div id="area-details" class="area-details" role="status"></div>
+
+    <map name="image-map">
+      <area
+        target="_self"
+        alt="EliteBlock_254TotalProperties"
+        title="EliteBlock_254TotalProperties"
+        href=""
+        coords="142,528,148,505,153,489,163,468,170,457,175,439,175,425,184,413,192,389,204,377,218,343,222,313,246,253,256,242,269,237,287,230,294,220,307,209,318,209,330,210,376,198,405,176,415,161,425,156,436,154,469,145,499,119,519,105,545,100,560,86,573,66,589,54,607,60,621,68,624,80,620,96,618,105,628,116,640,119,658,118,681,127,678,162,685,188,650,217,652,230,657,238,657,276,667,306,693,341,700,371,692,386,682,393,657,397,636,404,614,421,584,447,563,478,559,492,526,438,506,449,501,458,443,507,419,514,400,505,347,475,336,485,325,507,325,526,311,564,308,597,186,561,185,551"
+        shape="poly"
+      />
+      <area
+        target=""
+        alt="CommercialArea_108TotalProperties"
+        title="CommercialArea_108TotalProperties"
+        href=""
+        coords="188,562,178,574,171,587,171,603,171,627,171,638,166,649,168,661,167,677,163,710,163,728,163,739,170,758,188,764,209,764,232,760,271,731,289,708,301,652,307,598"
+        shape="poly"
+      />
+      <area
+        target=""
+        alt="OverseasBlock_293TotalProperties"
+        title="OverseasBlock_293TotalProperties"
+        href=""
+        coords="333,708,409,704,459,706,476,702,499,689,531,678,545,674,559,670,574,660,600,699,621,689,591,646,593,638,599,635,613,648,620,652,624,657,632,663,710,728,715,738,696,782,656,937,643,962,469,882,454,869,411,843,383,819,350,786,326,756,303,714"
+        shape="poly"
+      />
+      <area
+        target=""
+        alt="AbbottBlock_467TotalProperties"
+        title="AbbottBlock_467TotalProperties"
+        href=""
+        coords="303,715,283,717,272,732,297,780,346,821,358,851,357,902,347,916,329,920,265,900,251,898,232,902,211,926,218,967,227,1013,231,1038,225,1068,229,1088,225,1120,231,1150,238,1169,249,1178,260,1179,281,1174,301,1175,325,1185,351,1205,400,1230,400,1243,409,1271,429,1279,440,1277,473,1282,513,1277,487,924,483,904,467,880,454,870,413,844,382,818,350,786,326,757"
+        shape="poly"
+      />
+      <area
+        target=""
+        alt="RoyalBlock_253TotalProperties"
+        title="RoyalBlock_253TotalProperties"
+        href=""
+        coords="469,882,483,906,487,921,514,1277,532,1277,584,1280,606,1276,639,1256,672,1233,700,1204,710,1177,678,1037,647,990,640,975,642,961"
+        shape="poly"
+      />
+      <area
+        target=""
+        alt="NpfPartA_254TotalProperties"
+        title="NpfPartA_254TotalProperties"
+        href=""
+        coords="717,736,851,791,964,815,1027,824,1128,831,1104,898,1085,889,1068,938,1088,945,1166,957,1107,1122,1017,1083,1009,1109,942,1064,834,1013,693,977,690,983,643,964,656,938,696,784"
+        shape="poly"
+      />
+      <area
+        target=""
+        alt="NpfProposedLand_0TotalPropertiesYet"
+        title="NpfProposedLand_0TotalPropertiesYet"
+        href=""
+        coords="1128,830,1378,907,1474,901,1517,921,1349,1315,1101,1217,1042,1131,1009,1109,1017,1084,1108,1121,1165,956,1090,945,1068,938,1085,888,1104,898"
+        shape="poly"
+      />
+    </map>
+
+    <script>
+      const image = document.getElementById("master-plan-image");
+      const canvas = document.getElementById("area-highlight");
+      const context = canvas.getContext("2d");
+      const details = document.getElementById("area-details");
+      const areas = document.querySelectorAll("area[alt]");
+
+      function readablePascalCase(value) {
+        return value
+          .replace(/([a-z\d])([A-Z])/g, "$1 $2")
+          .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+          .replace(/^./, (character) => character.toUpperCase());
+      }
+
+      function resizeHighlight() {
+        const scaleX = image.clientWidth / image.naturalWidth;
+        const scaleY = image.clientHeight / image.naturalHeight;
+        const devicePixelRatio = window.devicePixelRatio || 1;
+
+        canvas.width = image.clientWidth * devicePixelRatio;
+        canvas.height = image.clientHeight * devicePixelRatio;
+        context.setTransform(
+          devicePixelRatio * scaleX,
+          0,
+          0,
+          devicePixelRatio * scaleY,
+          0,
+          0,
+        );
+      }
+
+      function showHighlight(area, event) {
+        const coordinates = area.coords.split(",").map(Number);
+        context.clearRect(0, 0, image.naturalWidth, image.naturalHeight);
+        context.beginPath();
+        context.moveTo(coordinates[0], coordinates[1]);
+        for (let index = 2; index < coordinates.length; index += 2) {
+          context.lineTo(coordinates[index], coordinates[index + 1]);
+        }
+        context.closePath();
+        context.fillStyle = "rgba(34, 211, 238, 0.22)";
+        context.shadowColor = "rgba(34, 211, 238, 0.95)";
+        context.shadowBlur = 24;
+        context.fill();
+        context.shadowBlur = 0;
+        context.strokeStyle = "#67e8f9";
+        context.lineWidth = 4;
+        context.stroke();
+
+        details.textContent = area.alt
+          .split("_")
+          .map(readablePascalCase)
+          .join(" - ");
+        details.style.display = "block";
+        details.style.left = `${event.clientX + 16}px`;
+        details.style.top = `${event.clientY + 16}px`;
+      }
+
+      function hideHighlight() {
+        context.clearRect(0, 0, image.naturalWidth, image.naturalHeight);
+        details.style.display = "none";
+      }
+
+      image.addEventListener("load", resizeHighlight);
+      if (image.complete) resizeHighlight();
+      window.addEventListener("resize", resizeHighlight);
+      areas.forEach((area) => {
+        area.title = area.alt.split("_").map(readablePascalCase).join(" - ");
+        area.addEventListener("mouseenter", (event) =>
+          showHighlight(area, event),
+        );
+        area.addEventListener("mousemove", (event) => {
+          details.style.left = `${event.clientX + 16}px`;
+          details.style.top = `${event.clientY + 16}px`;
+        });
+        area.addEventListener("mouseleave", hideHighlight);
+      });
+    </script>
+  </body>
+</html>

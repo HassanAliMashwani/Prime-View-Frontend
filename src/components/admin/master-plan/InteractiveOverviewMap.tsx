@@ -42,8 +42,8 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
   };
 
   const getTooltipStyle = () => {
-    const containerWidth = containerRef.current?.clientWidth || 850;
-    const containerHeight = containerRef.current?.clientHeight || 712;
+    const containerWidth = containerRef.current?.clientWidth || 1567;
+    const containerHeight = containerRef.current?.clientHeight || 1343;
     const cardWidth = Math.min(288, Math.max(200, containerWidth - 24));
     const cardHeight = 240;
 
@@ -69,11 +69,11 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredRegion(null)}
     >
-      {/* Aspect Ratio Container (847 x 712) */}
-      <div className="relative w-full pb-[84.06%]">
+      {/* Aspect Ratio Container (1567 x 1343) */}
+      <div className="relative w-full pb-[85.71%]">
         {/* Base Map Image */}
         <Image
-          src="/master-plan/overview-map.png"
+          src="/master-plan/Master Plan/Master Plan.png"
           alt="Prime View Master Plan Overview"
           fill
           priority
@@ -83,7 +83,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
 
         {/* SVG Interactive Overlay */}
         <svg
-          viewBox="0 0 847 712"
+          viewBox="0 0 1567 1343"
           className="absolute inset-0 w-full h-full"
           preserveAspectRatio="xMidYMid meet"
           onPointerLeave={() => setHoveredRegion(null)}
@@ -94,11 +94,10 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
               <rect width="8" height="8" fill="#1e293b" fillOpacity="0.75" />
               <line x1="0" y1="0" x2="0" y2="8" stroke="#475569" strokeWidth="1.5" />
             </pattern>
-            {/* Chalet hatch pattern */}
-            <pattern id="chaletHatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-              <rect width="6" height="6" fill="#AFD9AA" fillOpacity="0.45" />
-              <line x1="0" y1="0" x2="0" y2="6" stroke="#2d5a3d" strokeWidth="1" />
-            </pattern>
+            {/* Cyan glow filter from masterPlan.html */}
+            <filter id="cyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor="#22d3ee" floodOpacity="0.95" />
+            </filter>
           </defs>
 
           {regionData.map((region) => {
@@ -106,19 +105,24 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
             const isHovered = hoveredRegion?.id === region.id;
             const summary = getBlockSummary(region.blockId as string);
 
-            let fillColor = region.fill;
-            let fillOpacity = isHovered ? 0.65 : 0.28;
-            let strokeColor = region.darkColor;
-            let strokeWidth = isHovered ? 2.5 : 1.2;
+            let fillColor = 'transparent';
+            let fillOpacity = 0;
+            let strokeColor = 'transparent';
+            let strokeWidth = 0;
+            let filter = 'none';
 
             if (!isAccessible) {
               fillColor = 'url(#outOfScopeHatch)';
               fillOpacity = 0.85;
               strokeColor = '#64748b';
               strokeWidth = 1;
-            } else if (region.hatch) {
-              fillColor = 'url(#chaletHatch)';
-              fillOpacity = isHovered ? 0.8 : 0.55;
+            } else if (isHovered) {
+              // Exact cyan glowing highlight from masterPlan.html
+              fillColor = 'rgba(34, 211, 238, 0.22)';
+              fillOpacity = 1;
+              strokeColor = '#67e8f9';
+              strokeWidth = 3.5;
+              filter = 'url(#cyanGlow)';
             }
 
             return (
@@ -141,20 +145,10 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                   stroke={strokeColor}
                   strokeWidth={strokeWidth}
                   strokeLinejoin="round"
+                  filter={filter}
+                  style={{ pointerEvents: 'all' }}
                   className="transition-all duration-200"
                 />
-
-                {/* Optional Leader Line */}
-                {region.leaderLine && (
-                  <path
-                    d={region.leaderLine}
-                    stroke={strokeColor}
-                    strokeWidth="1.5"
-                    strokeDasharray="3,3"
-                    fill="none"
-                  />
-                )}
-
               </g>
             );
           })}
@@ -187,6 +181,11 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                 );
               }
 
+              const officialTotal = hoveredRegion.units;
+              const reserved = summary?.reservedCount || 0;
+              const booked = summary?.bookedCount || 0;
+              const available = Math.max(0, officialTotal - reserved - booked);
+
               return (
                 <div data-testid="map-hover-preview" className="w-72 rounded-2xl border border-slate-200 bg-white/95 p-4 text-slate-900 shadow-2xl backdrop-blur-md">
                   <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -199,36 +198,36 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                         {hasBlockMap(hoveredRegion.blockId) ? 'Interactive Traced Map' : 'Sector Map'}
                       </span>
                     </div>
-                    {hasBlockMap(hoveredRegion.blockId) && (
-                      <span className="text-[9px] font-bold uppercase bg-purple-100 text-purple-800 px-2 py-0.5 rounded-full border border-purple-200">
-                        Level 2 Traced
-                      </span>
-                    )}
+                    <span className="text-[10px] font-bold uppercase bg-cyan-50 text-cyan-900 px-2 py-0.5 rounded-full border border-cyan-200 font-mono">
+                      {officialTotal > 0 ? `${officialTotal} Total Properties` : 'Proposed Land'}
+                    </span>
                   </div>
 
                   <h4 className="font-serif text-base font-bold text-slate-900">
                     {hoveredRegion.name}
                   </h4>
 
-                  {summary ? (
+                  {officialTotal > 0 ? (
                     <div className="mt-3 grid grid-cols-3 gap-1.5 bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
                       <div className="bg-emerald-50/80 p-1.5 rounded-lg border border-emerald-100">
                         <div className="text-[9px] font-mono font-bold text-emerald-700 uppercase">Avail</div>
-                        <div className="text-sm font-bold text-emerald-900 font-mono">{summary.availableCount}</div>
+                        <div className="text-sm font-bold text-emerald-900 font-mono">{available}</div>
                       </div>
                       <div className="bg-amber-50/80 p-1.5 rounded-lg border border-amber-100">
                         <div className="text-[9px] font-mono font-bold text-amber-700 uppercase">Rsvd</div>
-                        <div className="text-sm font-bold text-amber-900 font-mono">{summary.reservedCount}</div>
+                        <div className="text-sm font-bold text-amber-900 font-mono">{reserved}</div>
                       </div>
                       <div className="bg-rose-50/80 p-1.5 rounded-lg border border-rose-100">
                         <div className="text-[9px] font-mono font-bold text-rose-700 uppercase">Booked</div>
-                        <div className="text-sm font-bold text-rose-900 font-mono">{summary.bookedCount}</div>
+                        <div className="text-sm font-bold text-rose-900 font-mono">{booked}</div>
                       </div>
                     </div>
                   ) : (
-                    <p className="mt-1 text-[11px] text-slate-600 line-clamp-2">
-                      {hoveredRegion.description}
-                    </p>
+                    <div className="mt-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center">
+                      <p className="text-[11px] font-medium text-slate-600">
+                        Proposed Land — 0 Total Properties Yet. Expansion zone reserved for future phases.
+                      </p>
+                    </div>
                   )}
 
                   {summary?.disputedCount && summary.disputedCount > 0 ? (

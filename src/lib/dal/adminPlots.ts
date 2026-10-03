@@ -3,6 +3,7 @@ import { canAccessBlock } from './adminAuth';
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from '../api';
 import { setRegisteredPlotsCache } from './customers';
 import { getCache, setCache } from './apiCache';
+import { MASTER_PLAN_TOTAL_PLOTS } from '../map/regionData';
 
 export interface BlockSummary extends Block {
   totalCount: number;
@@ -52,19 +53,24 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
 
       const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id));
       const summaries: BlockSummary[] = accessibleBlocks.map((block: any) => {
+        const total = MASTER_PLAN_TOTAL_PLOTS[block.id] ?? (typeof block.totalCount === 'number' ? block.totalCount : block.totalPlots || 0);
+        const reserved = typeof block.reservedCount === 'number' ? block.reservedCount : 0;
+        const booked = typeof block.bookedCount === 'number' ? block.bookedCount : 0;
+        const available = Math.max(0, total - reserved - booked);
+
         return {
           id: block.id,
           name: block.name,
           description: block.description || '',
-          totalPlots: block.totalPlots || 0,
+          totalPlots: total,
+          totalCount: total,
           amenities:
             block.amenities && block.amenities.length > 0
               ? block.amenities
               : ['Central Park', 'Community Mosque'],
-          totalCount: typeof block.totalCount === 'number' ? block.totalCount : 0,
-          availableCount: typeof block.availableCount === 'number' ? block.availableCount : 0,
-          reservedCount: typeof block.reservedCount === 'number' ? block.reservedCount : 0,
-          bookedCount: typeof block.bookedCount === 'number' ? block.bookedCount : 0,
+          availableCount: available,
+          reservedCount: reserved,
+          bookedCount: booked,
           allottedCount: typeof block.allottedCount === 'number' ? block.allottedCount : 0,
           amenityCount: typeof block.amenityCount === 'number' ? block.amenityCount : 0,
           disputedCount: typeof block.disputedCount === 'number' ? block.disputedCount : 0,
