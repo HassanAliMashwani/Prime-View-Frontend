@@ -1,6 +1,8 @@
 import React from "react";
 import Image from "next/image";
 import { TeamBentoGrid } from "@/components/sections/TeamBentoGrid";
+import { TeamMemberProfile } from "@/data/team";
+
 
 export const metadata = {
   title: "Software Developers - PrimeView Cooperative Housing Society Abt",
@@ -8,9 +10,11 @@ export const metadata = {
 };
 
 export default function SoftwareDevelopersPage() {
-  const devTeamList = [
+  const devTeamList: TeamMemberProfile[] = [
     {
       id: "dev-1",
+      title: "",
+      photoDiscovered: false,
       name: "Hassan Ali Mashwani",
       role: "Lead Software Developer",
       category: "Software Developers",
@@ -22,6 +26,8 @@ export default function SoftwareDevelopersPage() {
     },
     {
       id: "dev-2",
+      title: "",
+      photoDiscovered: false,
       name: "Umer Liaqat",
       role: "Software Engineer",
       category: "Software Developers",
@@ -33,6 +39,8 @@ export default function SoftwareDevelopersPage() {
     },
     {
       id: "dev-3",
+      title: "",
+      photoDiscovered: false,
       name: "Taifoor Farid",
       role: "Software Engineer",
       category: "Software Developers",
@@ -44,6 +52,8 @@ export default function SoftwareDevelopersPage() {
     },
     {
       id: "dev-4",
+      title: "",
+      photoDiscovered: false,
       name: "Aalyan Mughal",
       role: "Software Engineer",
       category: "Software Developers",
