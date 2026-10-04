@@ -16,6 +16,9 @@ import { getInventoryStats, InventoryStats } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+
+const PAGE_SIZE = 10;
 
 export default function InventoryOverviewPage() {
   const router = useRouter();
@@ -33,6 +36,8 @@ export default function InventoryOverviewPage() {
   const [fromDate, setFromDate] = useState<string>('');
   const [toDate, setToDate] = useState<string>('');
   const [error, setError] = useState<string>('');
+  const [page, setPage] = useState<number>(1);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
   
   useEffect(() => {
     const s = getActiveAdminSession();
@@ -44,17 +49,18 @@ export default function InventoryOverviewPage() {
   const isSuper = session?.role === 'super_admin';
   const canAccess = isSuper || Boolean(session?.permissions?.can_view_inventory);
 
-  const loadStats = useCallback(async () => {
+  const loadStats = useCallback(async (p = page) => {
     setStats((prev) => {
       if (prev.length === 0) setLoading(true);
       return prev;
     });
     setError('');
     try {
-      const data = await getInventoryStats(fromDate || undefined, toDate || undefined, undefined, session?.token);
-      setStats((prev) => reconcileItems(prev, data, (s) => s.blockId));
-      if (session && !fromDate && !toDate) {
-        setCache(`/inventory:${session.adminId}`, data);
+      const data = await getInventoryStats(fromDate || undefined, toDate || undefined, undefined, session?.token, p, PAGE_SIZE);
+      setStats((prev) => reconcileItems(prev, data.stats, (s) => s.blockId));
+      setTotalRecords(data.total || 0);
+      if (session && !fromDate && !toDate && p === 1) {
+        setCache(`/inventory:${session.adminId}`, data.stats);
       }
     } catch {
       setError('Something went wrong. Please try again.');
@@ -65,9 +71,13 @@ export default function InventoryOverviewPage() {
 
   useEffect(() => {
     if (session && canAccess) {
-      loadStats();
+      loadStats(page);
     }
-  }, [session, canAccess, loadStats]);
+  }, [session, canAccess, loadStats, page]);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+  };
 
   if (session && !canAccess) {
     return (
@@ -136,7 +146,7 @@ export default function InventoryOverviewPage() {
               <span className="text-xs font-bold px-1">Print</span>
             </button>
             <button
-              onClick={loadStats}
+              onClick={() => loadStats(page)}
               disabled={loading}
               className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-200 shadow-xs cursor-pointer min-h-[44px] min-w-[44px] flex items-center justify-center"
               title="Refresh Data"
@@ -262,71 +272,71 @@ export default function InventoryOverviewPage() {
       </div>
 
       {/* Main Stats Table (Desktop >= 768px) */}
-      <div className="hidden md:block bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-bold">
-              <tr>
-                <th className="py-4 px-6">Block</th>
-                <th className="py-4 px-6 text-green-800">Available</th>
-                <th className="py-4 px-6 text-amber-800">Reserved</th>
-                <th className="py-4 px-6 text-blue-800">Booked</th>
-                <th className="py-4 px-6 text-purple-800">Allotted</th>
-                <th className="py-4 px-6 text-slate-700">Total (4 Core)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-sm">
-              {loading && stats.length === 0 ? (
-                Array.from({ length: 6 }).map((_, i) => (
-                  <tr key={i} className="animate-pulse">
-                    <td className="py-4 px-6"><div className="h-4 w-32 bg-slate-200/80 rounded-md" /></td>
-                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
-                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
-                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
-                    <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
-                    <td className="py-4 px-6"><div className="h-4 w-16 bg-slate-200/80 rounded-md" /></td>
-                  </tr>
-                ))
-              ) : stats.length === 0 ? (
+      <div className="hidden md:block">
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={true}>
+            <table className="w-full text-left bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase tracking-wider font-bold">
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">No data available</td>
+                  <th className="py-4 px-6">Block</th>
+                  <th className="py-4 px-6 text-green-800">Available</th>
+                  <th className="py-4 px-6 text-amber-800">Reserved</th>
+                  <th className="py-4 px-6 text-blue-800">Booked</th>
+                  <th className="py-4 px-6 text-purple-800">Allotted</th>
+                  <th className="py-4 px-6 text-slate-700">Total (4 Core)</th>
                 </tr>
-              ) : (
-                stats.map((s) => (
-                  <tr key={s.blockId} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
-                          <Map className="w-4 h-4 text-slate-600" />
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {loading && stats.length === 0 ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-4 px-6"><div className="h-4 w-32 bg-slate-200/80 rounded-md" /></td>
+                      <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                      <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                      <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                      <td className="py-4 px-6"><div className="h-4 w-12 bg-slate-200/80 rounded-md" /></td>
+                      <td className="py-4 px-6"><div className="h-4 w-16 bg-slate-200/80 rounded-md" /></td>
+                    </tr>
+                  ))
+                ) : stats.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-8 text-center text-slate-400 font-medium">No data available</td>
+                  </tr>
+                ) : (
+                  stats.map((s) => (
+                    <tr key={s.blockId} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-200">
+                            <Map className="w-4 h-4 text-slate-600" />
+                          </div>
+                          <span className="text-slate-800 font-semibold">{s.blockName}</span>
                         </div>
-                        <span className="text-slate-800 font-semibold">{s.blockName}</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-green-700 font-semibold">{s.available}</td>
-                    <td className="py-4 px-6 text-amber-700 font-semibold">{s.reserved}</td>
-                    <td className="py-4 px-6 text-blue-700 font-semibold">{s.booked}</td>
-                    <td className="py-4 px-6 text-purple-700 font-semibold">{s.allotted}</td>
-                    <td className="py-4 px-6 text-slate-900 font-bold">
-                      {s.available + s.reserved + s.booked + s.allotted}
-                    </td>
+                      </td>
+                      <td className="py-4 px-6 text-green-700 font-semibold">{s.available}</td>
+                      <td className="py-4 px-6 text-amber-700 font-semibold">{s.reserved}</td>
+                      <td className="py-4 px-6 text-blue-700 font-semibold">{s.booked}</td>
+                      <td className="py-4 px-6 text-purple-700 font-semibold">{s.allotted}</td>
+                      <td className="py-4 px-6 text-slate-900 font-bold">
+                        {s.available + s.reserved + s.booked + s.allotted}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+              {stats.length > 0 && (
+                <tfoot className="bg-slate-50/80 border-t border-slate-200 text-sm">
+                  <tr>
+                    <td className="py-4 px-6 text-slate-900 font-bold">Total</td>
+                    <td className="py-4 px-6 text-green-700 font-bold">{totalAvailable}</td>
+                    <td className="py-4 px-6 text-amber-700 font-bold">{totalReserved}</td>
+                    <td className="py-4 px-6 text-blue-700 font-bold">{totalBooked}</td>
+                    <td className="py-4 px-6 text-purple-700 font-bold">{totalAllotted}</td>
+                    <td className="py-4 px-6 text-slate-900 font-bold">{totalSellable}</td>
                   </tr>
-                ))
+                </tfoot>
               )}
-            </tbody>
-            {stats.length > 0 && (
-              <tfoot className="bg-slate-50/80 border-t border-slate-200 text-sm">
-                <tr>
-                  <td className="py-4 px-6 text-slate-900 font-bold">Total</td>
-                  <td className="py-4 px-6 text-green-700 font-bold">{totalAvailable}</td>
-                  <td className="py-4 px-6 text-amber-700 font-bold">{totalReserved}</td>
-                  <td className="py-4 px-6 text-blue-700 font-bold">{totalBooked}</td>
-                  <td className="py-4 px-6 text-purple-700 font-bold">{totalAllotted}</td>
-                  <td className="py-4 px-6 text-slate-900 font-bold">{totalSellable}</td>
-                </tr>
-              </tfoot>
-            )}
-          </table>
-        </div>
+            </table>
+        </AdminTableShell>
       </div>
       
       {totalDisputed > 0 && (

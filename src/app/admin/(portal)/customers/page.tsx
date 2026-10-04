@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
+import { siteConfig } from '@/data/site';
 import {
   UserPlus,
   Users,
@@ -2932,7 +2933,7 @@ function CustomersPageContent() {
                   {/* Right Side: Official Prime View Logo */}
                   <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 relative flex items-center justify-center">
                     <Image
-                      src="/logo-trimmed.png"
+                      src={siteConfig.logoPath}
                       alt="Prime View Logo"
                       width={80}
                       height={80}

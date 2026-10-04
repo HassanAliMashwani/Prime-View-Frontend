@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { siteConfig } from '@/data/site';
 import { 
   ScrollText, 
   TrendingUp, 
@@ -35,8 +36,8 @@ import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
 import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
-
-const PAGE_SIZE = 20;
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+const PAGE_SIZE = 10;
 
 const SOCIETY_BLOCKS = [
   { id: 'abbott', name: 'Abbott Block' },
@@ -441,7 +442,7 @@ function SalesHistoryContent() {
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 relative shrink-0">
                 <Image
-                  src="/logo-trimmed.png"
+                  src={siteConfig.logoPath}
                   alt="Prime View Emblem"
                   width={48}
                   height={48}
@@ -620,18 +621,18 @@ function SalesHistoryContent() {
         </div>
 
         {/* Ledger Data Table (Desktop >= 768px, print:block) */}
-        <div className="hidden md:block print:block overflow-x-auto print:overflow-visible">
-          <table className="w-full text-left border-collapse print:text-[10px] print:border print:border-slate-300">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 print:bg-slate-100 text-[11px] print:text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                <th className="py-3 px-3 w-10 text-center print:border print:border-slate-300">#</th>
-                <th className="py-3 px-4 print:border print:border-slate-300">Booking Date & Time</th>
-                <th className="py-3 px-4 print:border print:border-slate-300">Property Allotted</th>
-                <th className="py-3 px-4 print:border print:border-slate-300">Customer Member</th>
-                <th className="py-3 px-4 print:border print:border-slate-300">Contract Price</th>
-                <th className="py-3 px-4 print:border print:border-slate-300">Payment Scheme</th>
-                <th className="py-3 px-4 print:border print:border-slate-300">Sold By (Admin)</th>
-                <th className="py-3 px-4 text-right print:hidden">Action</th>
+        <div className="hidden md:block print:block">
+          <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange}>
+            <thead className="sticky top-0 z-10 print:static">
+              <tr className="border-b border-slate-200 bg-slate-50 print:bg-slate-100 text-[11px] print:text-[10px] font-bold text-slate-700 uppercase tracking-wider">
+                <th className="py-3 px-3 w-10 text-center print:border print:border-slate-300 bg-slate-50">#</th>
+                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Booking Date & Time</th>
+                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Property Allotted</th>
+                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Customer Member</th>
+                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Contract Price</th>
+                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Payment Scheme</th>
+                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Sold By (Admin)</th>
+                <th className="py-3 px-4 text-right print:hidden bg-slate-50">Action</th>
               </tr>
             </thead>
             {/* Screen-Only Paginated Table Rows */}
@@ -813,35 +814,7 @@ function SalesHistoryContent() {
                 </tr>
               </tfoot>
             )}
-          </table>
-        </div>
-
-        {/* Screen-Only Pagination Footer */}
-        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 print:hidden">
-          <div>
-            Showing <span className="font-semibold text-slate-900">{from}–{to}</span> of <span className="font-semibold text-slate-900">{items.length}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handlePageChange(Math.max(1, page - 1))}
-              disabled={safePage <= 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              Prev
-            </button>
-            <span className="text-xs font-medium text-slate-500">
-              Page {safePage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
-              disabled={safePage >= totalPages}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              Next
-            </button>
-          </div>
+          </AdminTableShell>
         </div>
 
         {/* Print-Only Signatures and Audit Sign-Off Section */}

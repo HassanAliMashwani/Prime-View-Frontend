@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
+import { siteConfig } from '@/data/site';
 import {
   LayoutDashboard,
   Home,
@@ -16,7 +17,6 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { siteConfig } from '@/data/site';
 
 interface MemberSidebarProps {
   isOpen?: boolean;
@@ -55,7 +55,7 @@ export const MemberSidebar: React.FC<MemberSidebarProps> = ({ isOpen, onClose })
             {/* Logo Container with high-contrast white background */}
             <div className="relative w-12 h-12 rounded-2xl bg-white p-1 shadow-[0_2px_12px_rgba(0,0,0,0.06)] border border-black/[0.08] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
               <Image
-                src="/logo-trimmed.png"
+                src={siteConfig.logoPath}
                 alt="Prime View Emblem"
                 fill
                 className="object-contain"

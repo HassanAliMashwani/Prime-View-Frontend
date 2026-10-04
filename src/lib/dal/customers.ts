@@ -187,23 +187,15 @@ export async function searchCustomers(
     return { ok: true, customers: [] };
   }
 
-  const res = await apiGet<any[]>('/customers', session?.token);
-  if (!res.ok || !res.data) {
+  const res = await apiGet<any>(`/customers?search=${encodeURIComponent(q)}&pageSize=10`, session?.token);
+  if (!res.ok || !res.data || !res.data.customers) {
     return { ok: false, customers: [], error: res.error, message: res.error };
   }
 
-  const matches = res.data.filter(
-    (c: any) =>
-      c.fullName?.toLowerCase().includes(q) ||
-      c.cnic?.includes(q) ||
-      c.phone?.includes(q) ||
-      c.membershipNo?.toLowerCase().includes(q)
-  );
+  const matches = res.data.customers;
 
   const disambiguated: CustomerDisambiguation[] = matches.map((c: any) => {
-    const propertiesCount = (c.bookings || []).filter(
-      (b: any) => b.status === 'completed' || b.status === 'active'
-    ).length;
+    const propertiesCount = c.plotCount || 0;
 
     return {
       id: c.id,

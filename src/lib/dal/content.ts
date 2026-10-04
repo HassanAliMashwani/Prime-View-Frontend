@@ -7,10 +7,16 @@ import { apiGet, apiPost, apiDelete } from '../api';
  */
 export async function getContentBlocks(
   session: AdminSession,
-  section?: ContentSection
-): Promise<{ ok: boolean; blocks: ContentBlock[]; error?: string }> {
-  const query = section ? `?section=${section}` : '';
-  const res = await apiGet<any>(`/content${query}`, session.token);
+  section?: ContentSection,
+  filters?: { page?: number; pageSize?: number }
+): Promise<{ ok: boolean; blocks: ContentBlock[]; total?: number; page?: number; pageSize?: number; error?: string }> {
+  const queryParams = new URLSearchParams();
+  if (section) queryParams.set('section', section);
+  if (filters?.page) queryParams.set('page', String(filters.page));
+  if (filters?.pageSize) queryParams.set('pageSize', String(filters.pageSize));
+
+  const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
+  const res = await apiGet<any>(`/content${queryStr}`, session.token);
 
   if (!res.ok) {
     return { ok: false, blocks: [], error: res.error || 'FETCH_CONTENT_FAILED' };
@@ -20,7 +26,13 @@ export async function getContentBlocks(
     ? res.data
     : (res.data as any)?.blocks || [];
 
-  return { ok: true, blocks };
+  return { 
+    ok: true, 
+    blocks,
+    total: res.data?.total,
+    page: res.data?.page,
+    pageSize: res.data?.pageSize
+  };
 }
 
 /**

@@ -26,6 +26,9 @@ import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 import { getBlockDisplayName } from '@/lib/map/regionData';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+
+const PAGE_SIZE = 10;
 
 const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: string }> = {
   abbott: { badge: 'bg-emerald-100 text-emerald-900 border-emerald-300', border: 'border-emerald-200', accent: 'text-emerald-800' },
@@ -53,24 +56,33 @@ export default function ReservationsPage() {
   const [search, setSearch] = useState<string>('');
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(!init);
+  const [page, setPage] = useState<number>(1);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
 
   // Edit Note Modal State
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
   const [noteText, setNoteText] = useState<string>('');
   const [savingNote, setSavingNote] = useState<boolean>(false);
 
-  const loadData = useCallback(async (s: AdminSession) => {
-    try {
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, blockFilter, activeTab]);
 
+  const loadData = useCallback(async (s: AdminSession, p = page) => {
+    try {
       const res = await getReservations(s, {
         search,
         blockId: blockFilter,
         status: activeTab === 'active' ? 'active' : undefined,
+        page: p,
+        pageSize: PAGE_SIZE,
       });
 
       if (res.ok) {
         setReservations((prev) => reconcileItems(prev, res.reservations, (r) => r.id));
-        if (search === '' && blockFilter === 'all' && activeTab === 'active') {
+        setTotalRecords(res.total);
+        if (search === '' && blockFilter === 'all' && activeTab === 'active' && p === 1) {
           setCache(`/reservations:${s.adminId}`, res.reservations);
         }
       }
@@ -79,7 +91,7 @@ export default function ReservationsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, blockFilter, activeTab]);
+  }, [search, blockFilter, activeTab, page]);
 
   useEffect(() => {
     const s = getActiveAdminSession();
@@ -88,6 +100,13 @@ export default function ReservationsPage() {
       loadData(s);
     }
   }, [loadData]);
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    if (session) {
+      loadData(session, newPage);
+    }
+  };
 
   // Auto-refresh via polling
   useEffect(() => {
@@ -286,7 +305,7 @@ export default function ReservationsPage() {
       </div>
 
       {/* Reservations Table / Cards - Crisp White List */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl shadow-sm overflow-hidden">
+      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false}>
         {displayedReservations.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
             <Building2 className="w-10 h-10 mx-auto text-slate-300 mb-3" />
@@ -475,7 +494,7 @@ export default function ReservationsPage() {
             })}
           </div>
         )}
-      </div>
+      </AdminTableShell>
 
       {/* Edit Note Modal - Crisp Light Styling */}
       {editingRes && (

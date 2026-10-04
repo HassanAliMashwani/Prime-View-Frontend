@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { siteConfig } from '@/data/site';
 import {
   User,
   ShieldCheck,
@@ -194,7 +195,7 @@ export default function AdminProfilePage() {
             {/* Prime View Emblem Logo Container */}
             <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white border border-slate-200/90 shadow-md p-2 flex items-center justify-center shrink-0">
               <Image
-                src="/logo-trimmed.png"
+                src={siteConfig.logoPath}
                 alt="Prime View Official Emblem"
                 width={80}
                 height={80}

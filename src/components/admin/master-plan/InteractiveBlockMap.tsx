@@ -152,13 +152,10 @@ export default function InteractiveBlockMap({
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect) {
-      setMousePos({
-        x: e.clientX - rect.left,
-        y: e.clientY - rect.top,
-      });
-    }
+    setMousePos({
+      x: e.clientX,
+      y: e.clientY,
+    });
 
     if (isPanning) {
       setPan({
@@ -197,8 +194,8 @@ export default function InteractiveBlockMap({
 
   // Dynamically compute tooltip position so the detail card is always right beside the pointer
   const getTooltipStyle = (): React.CSSProperties => {
-    const containerWidth = containerRef.current?.clientWidth || 1000;
-    const containerHeight = containerRef.current?.clientHeight || 800;
+    const containerWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
+    const containerHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
 
     // Use measured dimensions if available, or compact realistic defaults
     const cardWidth = tooltipRef.current?.offsetWidth || (hoveredArea?.isGroupedRange ? 260 : 270);
@@ -606,7 +603,7 @@ export default function InteractiveBlockMap({
         {hoveredArea && (
           <div
             ref={tooltipRef}
-            className="pointer-events-none absolute z-40 transition-opacity duration-150 ease-out"
+            className="pointer-events-none fixed z-50 transition-opacity duration-150 ease-out"
             style={getTooltipStyle()}
           >
             {(() => {

@@ -27,10 +27,9 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = containerRef.current?.getBoundingClientRect() || e.currentTarget.getBoundingClientRect();
     setMousePos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
+      x: e.clientX,
+      y: e.clientY,
     });
   };
 
@@ -42,8 +41,8 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
   };
 
   const getTooltipStyle = () => {
-    const containerWidth = containerRef.current?.clientWidth || 1567;
-    const containerHeight = containerRef.current?.clientHeight || 1343;
+    const containerWidth = typeof window !== 'undefined' ? window.innerWidth : 1567;
+    const containerHeight = typeof window !== 'undefined' ? window.innerHeight : 1343;
     const cardWidth = Math.min(288, Math.max(200, containerWidth - 24));
     const cardHeight = 240;
 
@@ -157,7 +156,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
         {/* Hover Floating Card */}
         {hoveredRegion && (
           <div
-            className="pointer-events-none absolute z-30 transition-all duration-75 ease-out"
+            className="pointer-events-none fixed z-50 transition-all duration-75 ease-out"
             style={getTooltipStyle()}
           >
             {(() => {

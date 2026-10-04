@@ -34,7 +34,9 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 
+const PAGE_SIZE = 10;
 const ALL_BLOCKS: { id: BlockId; name: string }[] = [
   { id: 'abbott', name: 'Abbott Block' },
   { id: 'royal', name: 'Royal Block' },
@@ -83,7 +85,8 @@ export default function TeamsPage() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
-
+  const [page, setPage] = useState<number>(1);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
   // Modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
@@ -109,18 +112,29 @@ export default function TeamsPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, statusFilter]);
+
   // Load Sub Admins
-  const loadData = useCallback(async (currentSession: AdminSession) => {
+  const loadData = useCallback(async (currentSession: AdminSession, p = page) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
       return;
     }
     setFetchError(null);
     try {
-      const res = await getSubAdmins(currentSession);
+      const res = await getSubAdmins(currentSession, {
+        search: searchTerm,
+        page: p,
+        pageSize: PAGE_SIZE
+      });
       if (res.ok) {
         setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
-        setCache(`/sub-admins:${currentSession.adminId}`, res.subAdmins);
+        setTotalRecords(res.total);
+        if (searchTerm === '' && statusFilter === 'all' && p === 1) {
+          setCache(`/sub-admins:${currentSession.adminId}`, res.subAdmins);
+        }
       } else {
         setFetchError(res.message || 'Failed to retrieve team members.');
       }
@@ -129,7 +143,7 @@ export default function TeamsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [searchTerm, statusFilter, page]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -139,8 +153,17 @@ export default function TeamsPage() {
     }
     setSession(cur);
     loadData(cur);
+  }, [loadData, router]);
 
-    // Auto-refresh via polling
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    if (session) {
+      loadData(session, newPage);
+    }
+  };
+
+  // Auto-refresh via polling
+  useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s) loadData(s);
@@ -305,16 +328,8 @@ export default function TeamsPage() {
     setEditForm((prev) => ({ ...prev, permissions: updated }));
   };
 
-  // Filtered members list
-  const filteredAdmins = subAdmins.filter((a) => {
-    const matchesSearch =
-      a.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus =
-      statusFilter === 'all' ? true : a.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  // Filtered members list is now handled by the server
+  const filteredAdmins = subAdmins;
 
   // Guard: Super Admin only
   if (session && session.role !== 'super_admin') {
@@ -474,7 +489,8 @@ export default function TeamsPage() {
 
       {/* Responsive Teams Grid (Desktop: 2/3 cols; Mobile: 1 col) */}
       {!loading && !fetchError && filteredAdmins.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-1">
           {filteredAdmins.map((admin) => {
             // Count granted module permissions
             const grantedCount = MODULE_REGISTRY.filter(
@@ -648,7 +664,8 @@ export default function TeamsPage() {
               </div>
             );
           })}
-        </div>
+          </div>
+        </AdminTableShell>
       )}
 
       {/* CREATE SUB-ADMIN MODAL */}

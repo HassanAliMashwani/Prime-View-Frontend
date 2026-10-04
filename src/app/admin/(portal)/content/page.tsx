@@ -39,6 +39,8 @@ import {
 } from '@/lib/dal/content';
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+
+const PAGE_SIZE = 10;
 import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
 import { normalizeImagePath } from '@/lib/images';
 
@@ -58,6 +60,8 @@ export default function ContentCMSPage() {
   const [blocks, setBlocks] = useState<ContentBlock[]>(init || []);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
+  const [page, setPage] = useState<number>(1);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
   // Edit / Create Drawer state
   const [editingBlock, setEditingBlock] = useState<ContentBlock | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -99,12 +103,32 @@ export default function ContentCMSPage() {
   const [lockSecondsRemaining, setLockSecondsRemaining] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const pageRef = useRef(page);
+  useEffect(() => { pageRef.current = page; }, [page]);
+
   // Load content blocks
-  const loadData = useCallback(async (currentSession: AdminSession, section: ContentSection) => {
-    const res = await getContentBlocks(currentSession, section);
+  const loadData = useCallback(async (currentSession: AdminSession, section: ContentSection, p = 1, isLoadMore = false) => {
+    const fetchPage = isLoadMore ? p : 1;
+    const fetchPageSize = isLoadMore ? PAGE_SIZE : p * PAGE_SIZE;
+
+    const res = await getContentBlocks(currentSession, section, {
+      page: fetchPage,
+      pageSize: fetchPageSize
+    });
     if (res.ok) {
-      setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
-      setCache(`/content:${section}:${currentSession.adminId}`, res.blocks);
+      if (isLoadMore) {
+        setBlocks((prev) => {
+          const existing = new Set(prev.map(b => b.id));
+          const newItems = res.blocks.filter(b => !existing.has(b.id));
+          return [...prev, ...newItems];
+        });
+      } else {
+        setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
+      }
+      setTotalRecords(res.total || 0);
+      if (fetchPage === 1) {
+        setCache(`/content:${section}:${currentSession.adminId}`, res.blocks.slice(0, PAGE_SIZE));
+      }
     }
     setLoading(false);
   }, []);
@@ -116,18 +140,48 @@ export default function ContentCMSPage() {
       return;
     }
     setSession(cur);
-    loadData(cur, activeSection);
+    loadData(cur, activeSection, 1, false);
 
     // Auto-refresh content list every 30 seconds to catch lock changes
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
       if (latestSession) {
-        loadData(latestSession, activeSection);
+        loadData(latestSession, activeSection, pageRef.current, false);
       }
     }, 30000);
 
     return () => clearInterval(intervalId);
   }, [router, activeSection, loadData]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeSection]);
+
+  const observerTarget = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && blocks.length < totalRecords) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          if (session) {
+            setLoading(true);
+            loadData(session, activeSection, nextPage, true);
+          }
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) observer.unobserve(observerTarget.current);
+    };
+  }, [loading, blocks.length, totalRecords, page, session, activeSection, loadData]);
 
   // Flash feedback timer
   useEffect(() => {
@@ -569,7 +623,7 @@ export default function ContentCMSPage() {
       </div>
 
       {/* Content Blocks Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
         {blocks.map((block) => {
           const isLockedByMe = block.lockedBy === session?.adminId;
           const isLockedByOther = block.lockedBy && block.lockedBy !== session?.adminId;
@@ -779,6 +833,16 @@ export default function ContentCMSPage() {
           );
         })}
       </div>
+
+      {/* Infinite Scroll Trigger */}
+      {blocks.length < totalRecords && (
+        <div ref={observerTarget} className="flex justify-center py-8">
+          <div className="flex items-center gap-2 text-slate-500">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span className="text-sm font-medium">Loading more content...</span>
+          </div>
+        </div>
+      )}
 
       {/* ==================================================== */}
       {/* 30-MINUTE EDIT LOCK DRAWER / CREATE MODAL            */}

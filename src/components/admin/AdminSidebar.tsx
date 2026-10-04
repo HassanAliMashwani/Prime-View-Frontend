@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
+import { siteConfig } from '@/data/site';
 import {
   LayoutDashboard,
   Map,
@@ -184,7 +185,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
           <div className="flex items-center gap-3">
             <div className="relative w-11 h-11 rounded-2xl bg-white border border-slate-200/90 shadow-xs p-1 flex items-center justify-center shrink-0">
               <Image
-                src="/logo-trimmed.png"
+                src={siteConfig.logoPath}
                 alt="Prime View Logo"
                 width={36}
                 height={36}

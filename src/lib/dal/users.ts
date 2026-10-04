@@ -43,9 +43,15 @@ export interface UpdateSubAdminInput {
 /**
  * Retrieve all Sub Administrators (Super Admin exclusive).
  */
-export async function getSubAdmins(session: AdminSession): Promise<{
+export async function getSubAdmins(
+  session: AdminSession,
+  filters?: { search?: string; page?: number; pageSize?: number }
+): Promise<{
   ok: boolean;
   subAdmins: AdminUser[];
+  total: number;
+  page: number;
+  pageSize: number;
   error?: string;
   message?: string;
 }> {
@@ -53,16 +59,27 @@ export async function getSubAdmins(session: AdminSession): Promise<{
     return {
       ok: false,
       subAdmins: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
       error: 'FORBIDDEN_SUPER_ADMIN_ONLY',
       message: 'Sub Admin management is strictly restricted to Super Administrators.',
     };
   }
 
-  const res = await apiGet<{ ok: boolean; subAdmins: AdminUser[] }>('/admin/sub-admins', session?.token);
+  const query = new URLSearchParams();
+  if (filters?.search) query.set('search', filters.search);
+  if (filters?.page) query.set('page', String(filters.page));
+  if (filters?.pageSize) query.set('pageSize', String(filters.pageSize));
+
+  const res = await apiGet<any>(`/admin/sub-admins?${query.toString()}`, session?.token);
   if (!res.ok || !res.data) {
     return {
       ok: false,
       subAdmins: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
       error: res.error,
       message: res.error || 'Failed to fetch sub-admins.',
     };
@@ -71,6 +88,9 @@ export async function getSubAdmins(session: AdminSession): Promise<{
   return {
     ok: true,
     subAdmins: res.data.subAdmins || [],
+    total: res.data.total || 0,
+    page: res.data.page || 1,
+    pageSize: res.data.pageSize || 10,
   };
 }
 

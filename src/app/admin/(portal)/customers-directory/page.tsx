@@ -44,10 +44,11 @@ import {
 import { AdminSession } from '@/lib/mock/types';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 function CustomersDirectoryContent() {
   const router = useRouter();
@@ -756,21 +757,20 @@ function CustomersDirectoryContent() {
       </div>
 
       {/* Customers Table (Desktop >= 768px) */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/75 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-                <th className="py-3.5 px-4">Member Info</th>
-                <th className="py-3.5 px-4">Contact Details</th>
-                <th className="py-3.5 px-4">Allotted Properties</th>
-                <th className="py-3.5 px-4">Installment Standing</th>
-                <th className="py-3.5 px-4">Financial Ledger</th>
-                <th className="py-3.5 px-4">Compliance Status</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
+      <div className="hidden md:block">
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange}>
+          <thead className="sticky top-0 z-10">
+            <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
+              <th className="py-3.5 px-4 bg-slate-50">Member Info</th>
+              <th className="py-3.5 px-4 bg-slate-50">Contact Details</th>
+              <th className="py-3.5 px-4 bg-slate-50">Allotted Properties</th>
+              <th className="py-3.5 px-4 bg-slate-50">Installment Standing</th>
+              <th className="py-3.5 px-4 bg-slate-50">Financial Ledger</th>
+              <th className="py-3.5 px-4 bg-slate-50">Compliance Status</th>
+              <th className="py-3.5 px-4 text-right bg-slate-50">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 text-xs">
               {filteredCustomers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
@@ -1028,36 +1028,7 @@ function CustomersDirectoryContent() {
                 })
               )}
             </tbody>
-          </table>
-        </div>
-
-        {/* Pagination Footer */}
-        <div className="px-4 py-3 border-t border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600">
-          <div>
-            Showing <span className="font-semibold text-slate-900">{from}–{to}</span> of <span className="font-semibold text-slate-900">{totalRecords}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handlePageChange(Math.max(1, page - 1))}
-              disabled={safePage <= 1}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              Prev
-            </button>
-            <span className="text-xs font-medium text-slate-500">
-              Page {safePage} of {totalPages}
-            </span>
-            <button
-              type="button"
-              onClick={() => handlePageChange(Math.min(Math.ceil(totalRecords / PAGE_SIZE), page + 1))}
-              disabled={safePage >= Math.ceil(totalRecords / PAGE_SIZE)}
-              className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        </AdminTableShell>
       </div>
 
       {/* ── MODAL: CUSTOMER DOSSIER ── */}

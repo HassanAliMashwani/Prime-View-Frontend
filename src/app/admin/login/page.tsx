@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { siteConfig } from '@/data/site';
 import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from '@/lib/dal/adminAuth';
 
@@ -53,7 +54,7 @@ export default function AdminLoginPage() {
         <div className="text-center mb-8">
           <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-slate-200/90 shadow-xl p-2.5 mb-4">
             <Image
-              src="/logo-trimmed.png"
+              src={siteConfig.logoPath}
               alt="Prime View Logo"
               width={64}
               height={64}

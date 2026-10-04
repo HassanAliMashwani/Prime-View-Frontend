@@ -19,103 +19,73 @@ export async function getReservations(
     status?: ReservationStatus | 'all';
     blockId?: string;
     search?: string;
+    page?: number;
+    pageSize?: number;
   }
 ): Promise<{
   ok: boolean;
   reservations: ReservationWithConflict[];
+  total: number;
+  page: number;
+  pageSize: number;
   error?: string;
 }> {
-  const plotsRes = await apiGet<any[]>('/plots', session.token);
+  const query = new URLSearchParams();
+  if (filters?.status) query.set('status', filters.status);
+  if (filters?.blockId) query.set('blockId', filters.blockId);
+  if (filters?.search) query.set('search', filters.search);
+  if (filters?.page) query.set('page', String(filters.page));
+  if (filters?.pageSize) query.set('pageSize', String(filters.pageSize));
 
-  if (!plotsRes.ok || !Array.isArray(plotsRes.data)) {
+  const res = await apiGet<any>(`/reservations?${query.toString()}`, session.token);
+
+  if (!res.ok) {
     return {
       ok: false,
       reservations: [],
-      error: plotsRes.error || 'FETCH_PLOTS_FAILED',
+      total: 0,
+      page: 1,
+      pageSize: 10,
+      error: res.error || 'FETCH_RESERVATIONS_FAILED',
     };
   }
 
-  // Flatten all reservations from plots
-  const rawReservations: (Reservation & { plot: Plot })[] = [];
-  const plotMap = new Map<string, Plot>();
-
-  for (const plot of plotsRes.data) {
-    plotMap.set(plot.id, plot);
-    if (plot.reservations && Array.isArray(plot.reservations)) {
-      for (const r of plot.reservations) {
-        rawReservations.push({
-          id: r.id,
-          plotId: r.plotId || plot.id,
-          plotNumber: plot.plotNumber || 'Unknown',
-          blockId: plot.blockId || '',
-          customerName: r.customerName || '',
-          customerPhone: r.customerPhone || '',
-          customerEmail: r.customerEmail || undefined,
-          tokenFee: Number(r.tokenFee) || 50000,
-          validUntil: r.validUntil || new Date(Date.now() + 24 * 3600000).toISOString(),
-          reservedByAdminId: r.reservedByAdminId || '',
-          reservedByAdminName: r.reservedByAdminName || 'Admin Officer',
-          status: (r.status || 'active') as ReservationStatus,
-          createdAt: r.createdAt || new Date().toISOString(),
-          confirmedAt: r.confirmedAt || undefined,
-          confirmedByBookingId: r.confirmedByBookingId || undefined,
-          supersededAt: r.supersededAt || undefined,
-          supersededByBookingId: r.supersededByBookingId || undefined,
-          cancelledAt: r.cancelledAt || undefined,
-          cancelledByAdminId: r.cancelledByAdminId || undefined,
-          resolutionNote: r.resolutionNote || undefined,
-          plot,
-        });
-      }
-    }
-  }
-
-  // 1. Filter by block accessibility (Exception 5.4)
-  let accessible = rawReservations.filter((r) =>
-    canAccessBlock(session, r.blockId)
-  );
-
-  // 2. Count active reservations per plot to detect race-condition duplicates
-  const activePlotCounts = new Map<string, number>();
-  accessible.forEach((r) => {
-    if (r.status === 'active') {
-      activePlotCounts.set(r.plotId, (activePlotCounts.get(r.plotId) || 0) + 1);
-    }
-  });
-
-  // 3. Apply optional filters
-  if (filters?.blockId && filters.blockId !== 'all') {
-    accessible = accessible.filter((r) => r.blockId === filters.blockId);
-  }
-
-  if (filters?.status && filters.status !== 'all') {
-    accessible = accessible.filter((r) => r.status === filters.status);
-  }
-
-  if (filters?.search) {
-    const s = filters.search.trim().toLowerCase();
-    accessible = accessible.filter(
-      (r) =>
-        r.plotNumber.toLowerCase().includes(s) ||
-        r.customerName.toLowerCase().includes(s) ||
-        r.customerPhone.toLowerCase().includes(s) ||
-        (r.customerEmail && r.customerEmail.toLowerCase().includes(s)) ||
-        r.reservedByAdminName.toLowerCase().includes(s)
-    );
-  }
-
-  // 4. Attach conflict indicators & live plot details
-  const results: ReservationWithConflict[] = accessible.map((r) => {
-    const conflictCount = r.status === 'active' ? activePlotCounts.get(r.plotId) || 0 : 0;
+  const results: ReservationWithConflict[] = (res.data.items || []).map((r: any) => {
+    const activeCount = r.plot?.reservations?.length || 0;
     return {
-      ...r,
-      hasDuplicateConflict: conflictCount > 1,
-      conflictCount,
+      id: r.id,
+      plotId: r.plotId || r.plot?.id,
+      plotNumber: r.plot?.plotNumber || 'Unknown',
+      blockId: r.plot?.blockId || '',
+      customerName: r.customerName || '',
+      customerPhone: r.customerPhone || '',
+      customerEmail: r.customerEmail || undefined,
+      tokenFee: Number(r.tokenFee) || 50000,
+      validUntil: r.validUntil || new Date(Date.now() + 24 * 3600000).toISOString(),
+      reservedByAdminId: r.reservedByAdminId || '',
+      reservedByAdminName: r.reservedByAdminName || 'Admin Officer',
+      status: (r.status || 'active') as ReservationStatus,
+      createdAt: r.createdAt || new Date().toISOString(),
+      confirmedAt: r.confirmedAt || undefined,
+      confirmedByBookingId: r.confirmedByBookingId || undefined,
+      supersededAt: r.supersededAt || undefined,
+      supersededByBookingId: r.supersededByBookingId || undefined,
+      cancelledAt: r.cancelledAt || undefined,
+      cancelledByAdminId: r.cancelledByAdminId || undefined,
+      resolutionNote: r.resolutionNote || undefined,
       plot: r.plot,
+      hasDuplicateConflict: r.status === 'active' && activeCount > 1,
+      conflictCount: r.status === 'active' ? activeCount : 0,
     };
   });
 
-  return { ok: true, reservations: results };
+  return { 
+    ok: true, 
+    reservations: results,
+    total: res.data.total || 0,
+    page: res.data.page || 1,
+    pageSize: res.data.pageSize || 10
+  };
 }
 
 /**

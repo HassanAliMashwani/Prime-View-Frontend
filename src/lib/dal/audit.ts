@@ -8,6 +8,8 @@ export interface AuditFilterOptions {
   startDate?: string;
   endDate?: string;
   search?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 /**
@@ -28,8 +30,21 @@ export async function getAuditLogs(
     return { ok: false, logs: [], totalCount: 0, error: 'FORBIDDEN_SUPER_ADMIN_ONLY' };
   }
 
+  const queryParams = new URLSearchParams();
+  if (filters?.actorId && filters.actorId !== 'all') queryParams.set('actorId', filters.actorId);
+  if (filters?.entityType && filters.entityType !== 'all') queryParams.set('entityType', filters.entityType);
+  if (filters?.action && filters.action !== 'all') queryParams.set('action', filters.action);
+  if (filters?.startDate) queryParams.set('startDate', filters.startDate);
+  if (filters?.endDate) queryParams.set('endDate', filters.endDate);
+  if (filters?.search) queryParams.set('search', filters.search);
+  if (filters?.page) queryParams.set('page', filters.page.toString());
+  if (filters?.pageSize) queryParams.set('pageSize', filters.pageSize.toString());
+
+  const queryString = queryParams.toString();
+  const endpoint = queryString ? `/admin/audit?${queryString}` : '/admin/audit';
+
   const res = await apiGet<{ logs: AuditEntry[]; totalCount: number }>(
-    '/admin/audit',
+    endpoint,
     session.token
   );
 
@@ -48,40 +63,5 @@ export async function getAuditLogs(
     ? (res.data as unknown as AuditEntry[])
     : [];
 
-  let logs = [...rawLogs];
-
-  if (filters?.actorId && filters.actorId !== 'all') {
-    logs = logs.filter((l) => l.actorId === filters.actorId);
-  }
-
-  if (filters?.entityType && filters.entityType !== 'all') {
-    logs = logs.filter((l) => l.entityType === filters.entityType);
-  }
-
-  if (filters?.action && filters.action !== 'all') {
-    logs = logs.filter((l) => l.action === filters.action);
-  }
-
-  if (filters?.startDate) {
-    const start = new Date(filters.startDate).getTime();
-    logs = logs.filter((l) => new Date(l.timestamp).getTime() >= start);
-  }
-
-  if (filters?.endDate) {
-    const end = new Date(filters.endDate).getTime() + 24 * 60 * 60 * 1000;
-    logs = logs.filter((l) => new Date(l.timestamp).getTime() <= end);
-  }
-
-  if (filters?.search) {
-    const s = filters.search.trim().toLowerCase();
-    logs = logs.filter(
-      (l) =>
-        (l.details && l.details.toLowerCase().includes(s)) ||
-        (l.actorName && l.actorName.toLowerCase().includes(s)) ||
-        (l.action && l.action.toLowerCase().includes(s)) ||
-        (l.entityId && l.entityId.toLowerCase().includes(s))
-    );
-  }
-
-  return { ok: true, logs, totalCount: logs.length };
+  return { ok: true, logs: rawLogs, totalCount: res.data?.totalCount || 0 };
 }

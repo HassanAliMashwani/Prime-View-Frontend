@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { siteConfig } from '@/data/site';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 import { Shield, ArrowRight, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
@@ -72,7 +73,7 @@ export default function MemberLoginPage() {
           <div className="text-center space-y-2">
             <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white border border-black/[0.08] shadow-[0_4px_20px_rgba(0,0,0,0.06)] p-2 mb-1">
               <Image
-                src="/logo-trimmed.png"
+                src={siteConfig.logoPath}
                 alt="Prime View Logo"
                 width={64}
                 height={64}
