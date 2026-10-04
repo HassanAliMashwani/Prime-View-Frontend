@@ -36,7 +36,7 @@ export const HeroSection: React.FC = () => {
       <div className="absolute inset-0 z-0 bg-black">
         <video
           ref={videoRef}
-          src="/new assests/Vedios/PV WEBSITE - Trim Home page.mp4"
+          src="/new assests/Vedios/low qual vedio drone shoot.mp4"
           autoPlay
           muted
           loop
