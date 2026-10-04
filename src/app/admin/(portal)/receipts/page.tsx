@@ -29,6 +29,9 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminReceipts, verifyReceipt, rejectReceipt } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+
+const PAGE_SIZE = 10;
 
 import {
   OfficialA4PaymentSlip,
@@ -47,7 +50,9 @@ export default function AdminReceiptsPage() {
 
   const [session, setSession] = useState<AdminSession | null>(null);
   const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init || []);
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(!init);
+  const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | ReceiptStatus>('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -65,7 +70,12 @@ export default function AdminReceiptsPage() {
   const [driftReceipt, setDriftReceipt] = useState<ReceiptSubmission | null>(null);
   const [driftNewPreview, setDriftNewPreview] = useState<any>(null);
 
-  const loadData = useCallback(async (currentSession: AdminSession) => {
+  const pageRef = React.useRef(page);
+  const statusRef = React.useRef(statusFilter);
+  useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { statusRef.current = statusFilter; }, [statusFilter]);
+
+  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter) => {
     const isSuper = currentSession.role === 'super_admin';
     const hasAuth = Boolean(currentSession.permissions?.can_verify_receipts);
 
@@ -74,13 +84,16 @@ export default function AdminReceiptsPage() {
       return;
     }
 
-    const res = await getAdminReceipts(currentSession);
+    const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE);
     if (res.ok && res.receipts) {
       setReceipts((prev) => reconcileItems(prev, res.receipts || [], (r) => r.id));
-      setCache(`/receipts:${currentSession.adminId}`, res.receipts);
+      setTotalCount(res.totalCount || 0);
+      if (p === 1 && st === 'all') {
+        setCache(`/receipts:${currentSession.adminId}`, res.receipts);
+      }
     }
     setLoading(false);
-  }, []);
+  }, [page, statusFilter]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -95,7 +108,7 @@ export default function AdminReceiptsPage() {
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
       if (latestSession) {
-        loadData(latestSession);
+        loadData(latestSession, pageRef.current, statusRef.current);
       }
     }, 30000);
 
@@ -224,9 +237,8 @@ export default function AdminReceiptsPage() {
     );
   }
 
-  // Filter receipts
+  // Filter receipts for client-side search only
   const filteredReceipts = receipts.filter((r) => {
-    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const bank = (r.depositoryBank || r.bankName || '').toLowerCase();
@@ -242,9 +254,12 @@ export default function AdminReceiptsPage() {
     return true;
   });
 
-  const pendingCount = receipts.filter((r) => r.status === 'pending').length;
-  const verifiedCount = receipts.filter((r) => r.status === 'verified').length;
-  const rejectedCount = receipts.filter((r) => r.status === 'rejected').length;
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    if (session) {
+      loadData(session, newPage, statusFilter);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
@@ -273,13 +288,7 @@ export default function AdminReceiptsPage() {
             <FileCheck className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-slate-900 font-serif tracking-tight flex items-center gap-2">
               <span>Receipt Verification Desk</span>
-              {pendingCount > 0 && (
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold border border-amber-300">
-                  {pendingCount} Pending Action
-                </span>
-              )}
             </h1>
             <p className="text-xs text-slate-500">
               Verify customer bank deposit slips, sync ledgers to Paid, and generate two-part official A4 slips.
@@ -300,7 +309,7 @@ export default function AdminReceiptsPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => setStatusFilter('pending')}
+            onClick={() => { setStatusFilter('pending'); setPage(1); }}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'pending'
                 ? 'bg-amber-500 text-white shadow-xs'
@@ -309,14 +318,11 @@ export default function AdminReceiptsPage() {
           >
             <Clock className="w-3.5 h-3.5" />
             <span>Pending Review</span>
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-white/30 text-white font-mono">
-              {pendingCount}
-            </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setStatusFilter('verified')}
+            onClick={() => { setStatusFilter('verified'); setPage(1); }}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'verified'
                 ? 'bg-emerald-700 text-white shadow-xs'
@@ -325,14 +331,11 @@ export default function AdminReceiptsPage() {
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Verified &amp; Issued</span>
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-white/30 text-white font-mono">
-              {verifiedCount}
-            </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setStatusFilter('rejected')}
+            onClick={() => { setStatusFilter('rejected'); setPage(1); }}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'rejected'
                 ? 'bg-rose-700 text-white shadow-xs'
@@ -341,21 +344,18 @@ export default function AdminReceiptsPage() {
           >
             <XCircle className="w-3.5 h-3.5" />
             <span>Declined</span>
-            <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-white/30 text-white font-mono">
-              {rejectedCount}
-            </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setStatusFilter('all')}
+            onClick={() => { setStatusFilter('all'); setPage(1); }}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               statusFilter === 'all'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <span>All Submissions ({receipts.length})</span>
+            <span>All Submissions</span>
           </button>
         </div>
 
@@ -373,6 +373,7 @@ export default function AdminReceiptsPage() {
       </div>
 
       {/* Receipts List */}
+      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false}>
       <div className="space-y-4">
         {filteredReceipts.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3 shadow-xs">
@@ -597,6 +598,7 @@ export default function AdminReceiptsPage() {
           ))
         )}
       </div>
+      </AdminTableShell>
 
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* ATTACHED IMAGE PREVIEW MODAL                                  */}

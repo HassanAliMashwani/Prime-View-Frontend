@@ -24,6 +24,9 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
 import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+
+const PAGE_SIZE = 10;
 
 const ACTION_COLORS: Record<string, string> = {
   PLOT_BOOKED: 'bg-emerald-100 text-emerald-900 border-emerald-300',
@@ -52,6 +55,7 @@ export default function AuditLogPage() {
   const [logs, setLogs] = useState<AuditEntry[]>(init?.logs || []);
   const [totalCount, setTotalCount] = useState(init?.total || 0);
   const [loading, setLoading] = useState(!init);
+  const [page, setPage] = useState(1);
 
   // Filters
   const [search, setSearch] = useState('');
@@ -63,8 +67,11 @@ export default function AuditLogPage() {
   // Diff Modal state
   const [diffEntry, setDiffEntry] = useState<AuditEntry | null>(null);
 
+  const pageRef = React.useRef(page);
+  useEffect(() => { pageRef.current = page; }, [page]);
+
   // Load audit logs
-  const loadData = useCallback(async (currentSession: AdminSession) => {
+  const loadData = useCallback(async (currentSession: AdminSession, p = page) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
       return;
@@ -75,6 +82,8 @@ export default function AuditLogPage() {
       entityType: entityFilter !== 'all' ? entityFilter : undefined,
       startDate: startDate || undefined,
       endDate: endDate || undefined,
+      page: p,
+      pageSize: PAGE_SIZE,
     };
 
     if (actorFilter !== 'all') {
@@ -85,12 +94,12 @@ export default function AuditLogPage() {
     if (res.ok) {
       setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
       setTotalCount(res.totalCount);
-      if (!search && actorFilter === 'all' && entityFilter === 'all' && !startDate && !endDate) {
+      if (p === 1 && !search && actorFilter === 'all' && entityFilter === 'all' && !startDate && !endDate) {
         setCache(`/audit-logs:${currentSession.adminId}`, { logs: res.logs || [], total: res.totalCount || 0 });
       }
     }
     setLoading(false);
-  }, [search, actorFilter, entityFilter, startDate, endDate]);
+  }, [search, actorFilter, entityFilter, startDate, endDate, page]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -105,7 +114,7 @@ export default function AuditLogPage() {
     const handleSync = () => {
       const latest = getActiveAdminSession();
       if (latest && latest.role === 'super_admin') {
-        loadData(latest);
+        loadData(latest, pageRef.current);
       }
     };
 
@@ -132,6 +141,14 @@ export default function AuditLogPage() {
     setEntityFilter('all');
     setStartDate('');
     setEndDate('');
+    setPage(1);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    if (session) {
+      loadData(session, newPage);
+    }
   };
 
   // Pretty JSON formatter helper
@@ -282,9 +299,10 @@ export default function AuditLogPage() {
       </div>
 
       {/* Audit Log Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={true}>
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500 font-bold">
                 <th className="py-3 px-4">Timestamp</th>
@@ -373,6 +391,7 @@ export default function AuditLogPage() {
           </table>
         </div>
       </div>
+      </AdminTableShell>
 
       {/* ==================================================== */}
       {/* DIFF VIEWER MODAL                                    */}

@@ -95,10 +95,19 @@ export async function getCustomerReceipts(_customerId?: string): Promise<Receipt
  */
 export async function getAdminReceipts(
   session: AdminSession,
-  statusFilter?: ReceiptStatus
-): Promise<{ ok: boolean; receipts?: ReceiptSubmission[]; error?: string; message?: string }> {
-  const query = statusFilter && statusFilter !== ('all' as any) ? `?status=${statusFilter}` : '';
-  const res = await apiGet<{ receipts: ReceiptSubmission[] }>(`/receipts${query}`, session.token || getAdminToken() || undefined);
+  statusFilter?: ReceiptStatus,
+  page?: number,
+  pageSize?: number
+): Promise<{ ok: boolean; receipts?: ReceiptSubmission[]; totalCount?: number; error?: string; message?: string }> {
+  const queryParams = new URLSearchParams();
+  if (statusFilter && statusFilter !== ('all' as any)) queryParams.set('status', statusFilter);
+  if (page) queryParams.set('page', page.toString());
+  if (pageSize) queryParams.set('pageSize', pageSize.toString());
+
+  const queryString = queryParams.toString();
+  const endpoint = queryString ? `/receipts?${queryString}` : '/receipts';
+
+  const res = await apiGet<{ receipts: ReceiptSubmission[]; totalCount?: number; total?: number }>(endpoint, session.token || getAdminToken() || undefined);
 
   if (!res.ok) {
     return {
@@ -110,7 +119,7 @@ export async function getAdminReceipts(
   }
 
   const list = Array.isArray(res.data) ? res.data : (res.data as any)?.receipts || [];
-  return { ok: true, receipts: list.map(cleanReceiptDate) };
+  return { ok: true, receipts: list.map(cleanReceiptDate), totalCount: res.data?.totalCount || res.data?.total || 0 };
 }
 
 
