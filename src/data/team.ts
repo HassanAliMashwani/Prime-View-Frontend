@@ -9,7 +9,7 @@ export interface TeamMemberProfile {
   title: string;
   role: string;
   email?: string;
-  category: "Managing Committee" | "Marketing Partner" | "Legal Team" | "Society Members";
+  category: "Managing Committee" | "Marketing Partner" | "Legal Team" | "Society Members" | "Software Developers";
   photoPath: string | null;
   photoDiscovered: boolean;
   facebookUrl?: string;
