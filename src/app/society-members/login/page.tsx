@@ -111,6 +111,7 @@ export default function MemberLoginPage() {
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 placeholder="Username"
+                autoComplete="username"
                 className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] placeholder-[#6B7462]/50 shadow-xs"
                 required
               />
@@ -132,6 +133,7 @@ export default function MemberLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full px-4 py-3 pr-11 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] placeholder-[#6B7462]/50 shadow-xs"
                   required
                 />
