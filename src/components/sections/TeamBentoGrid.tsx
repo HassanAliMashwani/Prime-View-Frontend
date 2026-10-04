@@ -592,6 +592,7 @@ const TeamMemberFullCard = ({
                     </div>
                   ))}
                 </div>
+              </>
             )}
 
             {/* Developer Social Links */}
