@@ -3,17 +3,17 @@ import Image from "next/image";
 import { TeamBentoGrid } from "@/components/sections/TeamBentoGrid";
 
 export const metadata = {
-  title: "Developers - PrimeView Cooperative Housing Society Abt",
-  description: "Meet the development team that built the Prime View Cooperative Housing Society website.",
+  title: "Software Developers - PrimeView Cooperative Housing Society Abt",
+  description: "Meet the software development team that built the Prime View Cooperative Housing Society website.",
 };
 
-export default function DevelopersPage() {
+export default function SoftwareDevelopersPage() {
   const devTeamList = [
     {
       id: "dev-1",
       name: "Hassan Ali Mashwani",
-      role: "Lead Developer",
-      category: "Developers",
+      role: "Lead Software Developer",
+      category: "Software Developers",
       bio: "Spearheading the engineering and architecture of the Prime View platform, ensuring robust backend systems and a seamless, high-performance web experience.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       socialLinks: []
@@ -22,7 +22,7 @@ export default function DevelopersPage() {
       id: "dev-2",
       name: "Umer Liaqat",
       role: "Software Engineer",
-      category: "Developers",
+      category: "Software Developers",
       bio: "Specializes in building modern interfaces and scalable applications, bringing the vision of Prime View to life through clean code and innovative design.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       socialLinks: []
@@ -31,7 +31,7 @@ export default function DevelopersPage() {
       id: "dev-3",
       name: "Taifoor Farid",
       role: "Software Engineer",
-      category: "Developers",
+      category: "Software Developers",
       bio: "Focuses on crafting intuitive user experiences and optimizing platform performance to deliver a premium digital environment for all members.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       socialLinks: []
@@ -40,7 +40,7 @@ export default function DevelopersPage() {
       id: "dev-4",
       name: "Aalyan Mughal",
       role: "Software Engineer",
-      category: "Developers",
+      category: "Software Developers",
       bio: "Drives the development of core features and integrations, ensuring the Prime View portals operate smoothly and securely.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       socialLinks: []
@@ -73,7 +73,7 @@ export default function DevelopersPage() {
 
         <div className="relative z-10 max-w-4xl mx-auto space-y-4">
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl text-white tracking-tight font-bold leading-[1.05] uppercase drop-shadow-[0_2px_16px_rgba(0,0,0,0.85)]">
-            Developers
+            Software Developers
           </h1>
           <p className="text-white/90 text-sm sm:text-base font-medium drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] tracking-wide max-w-2xl mx-auto leading-relaxed">
             The Technology & Engineering Team Behind the Prime View Platform
