@@ -54,7 +54,7 @@ export const Header: React.FC = () => {
                 src={siteConfig.logoPath}
                 alt="Prime View Emblem"
                 fill
-                className="object-contain object-left drop-shadow-[0_2px_8px_rgba(255,255,255,0.6)]"
+                className="object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]"
                 priority
               />
             </div>
