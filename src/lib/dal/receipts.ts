@@ -95,7 +95,7 @@ export async function getCustomerReceipts(_customerId?: string): Promise<Receipt
  */
 export async function getAdminReceipts(
   session: AdminSession,
-  statusFilter?: ReceiptStatus,
+  statusFilter?: ReceiptStatus | 'all',
   page?: number,
   pageSize?: number
 ): Promise<{ ok: boolean; receipts?: ReceiptSubmission[]; totalCount?: number; error?: string; message?: string }> {
