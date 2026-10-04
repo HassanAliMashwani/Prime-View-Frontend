@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MagneticWrapper } from "@/components/ui/MagneticWrapper";
@@ -8,27 +8,6 @@ import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const HeroSection: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [videoOpacity, setVideoOpacity] = useState(1);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-    
-    const handleTimeUpdate = () => {
-      if (video.duration > 0) {
-        // Fade out during the last 0.8 seconds
-        if (video.duration - video.currentTime <= 0.8) {
-          setVideoOpacity(0);
-        } else if (video.currentTime < 0.5) {
-          // Fade back in at the start
-          setVideoOpacity(1);
-        }
-      }
-    };
-
-    video.addEventListener("timeupdate", handleTimeUpdate);
-    return () => video.removeEventListener("timeupdate", handleTimeUpdate);
-  }, []);
 
   return (
     <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
@@ -36,13 +15,12 @@ export const HeroSection: React.FC = () => {
       <div className="absolute inset-0 z-0 bg-black">
         <video
           ref={videoRef}
-          src="/new assests/Vedios/PV WEBSITE - Trim Home page.mp4"
+          src="/new%20assests/Vedios/PV%20WEBSITE%20-%20Trim%20Home%20page.mp4"
           autoPlay
           muted
           loop
           playsInline
-          style={{ opacity: videoOpacity }}
-          className="object-cover object-center w-full h-full transition-opacity duration-700 ease-in-out"
+          className="object-cover object-center w-full h-full"
         />
         {/* Subtle balanced gradient overlay for contrast */}
         <div

@@ -352,9 +352,9 @@ async function runFull3PhaseLoop() {
     console.log(`Attempting login with Identifier: "${loginIdentifier}", Password: "${loginPassword}"`);
 
     // Type with Puppeteer native keystrokes so React 19 synthetic event handlers receive each change
-    await windowC.click('#identifier', { clickCount: 3 });
+    await windowC.click('#identifier', { clickCount: 3 } as any);
     await windowC.type('#identifier', loginIdentifier, { delay: 25 });
-    await windowC.click('#password', { clickCount: 3 });
+    await windowC.click('#password', { clickCount: 3 } as any);
     await windowC.type('#password', loginPassword, { delay: 25 });
 
     // Verify input values in DOM
@@ -459,7 +459,7 @@ async function runFull3PhaseLoop() {
     const ledgerData = await windowC.evaluate(() => {
       const text = document.body.innerText;
       const rows = Array.from(document.querySelectorAll('tbody tr'));
-      const rowTexts = rows.map((r) => r.innerText.replace(/\s+/g, ' ').trim());
+      const rowTexts = rows.map((r) => (r as HTMLElement).innerText.replace(/\s+/g, ' ').trim());
 
       return {
         totalRows: rows.length,
@@ -490,7 +490,7 @@ async function runFull3PhaseLoop() {
     const historyData = await windowC.evaluate(() => {
       const text = document.body.innerText;
       const rows = Array.from(document.querySelectorAll('tr, .p-4.border-b, .divide-y > div'));
-      const lineItems = rows.map(r => r.innerText.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      const lineItems = rows.map(r => (r as HTMLElement).innerText.replace(/\s+/g, ' ').trim()).filter(Boolean);
 
       const hasAdmissionFee = text.includes('Admission Fee') && text.includes('2,000');
       const hasShareFee = text.includes('Share Subscription Fee') && text.includes('10,000');
