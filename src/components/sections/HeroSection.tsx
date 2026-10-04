@@ -12,14 +12,22 @@ export const HeroSection: React.FC = () => {
   return (
     <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
       {/* Full-bleed background — Abbottabad mountain landscape */}
-      <div className="absolute inset-0 z-0 bg-black">
+      <div className="absolute inset-0 z-0 bg-[url('/assets/hero/hero-video-poster.jpg')] bg-cover bg-center">
         <video
           ref={videoRef}
           src="/new%20assests/Vedios/PV%20WEBSITE%20-%20Trim%20Home%20page.mp4"
+          poster="/assets/hero/hero-video-poster.jpg"
+          preload="auto"
           autoPlay
           muted
           loop
           playsInline
+          onCanPlay={(e) => {
+            const video = e.currentTarget;
+            if (video.paused) {
+              video.play().catch(() => {});
+            }
+          }}
           className="object-cover object-center w-full h-full"
         />
         {/* Subtle balanced gradient overlay for contrast */}
