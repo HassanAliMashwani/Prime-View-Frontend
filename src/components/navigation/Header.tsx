@@ -50,11 +50,13 @@ export const Header: React.FC = () => {
             aria-label="Prime View Home"
           >
             <div className="relative w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 transition-transform duration-180 group-hover:scale-105 flex items-center">
+              {/* White glowing background blob behind the logo */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-16 h-16 sm:w-20 sm:h-20 bg-white/70 blur-2xl rounded-full pointer-events-none" />
               <Image
                 src={siteConfig.logoPath}
                 alt="Prime View Emblem"
                 fill
-                className="object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.9)]"
+                className="object-contain object-left drop-shadow-[0_0_15px_rgba(255,255,255,0.9)] relative z-10"
                 priority
               />
             </div>
