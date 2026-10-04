@@ -9,13 +9,13 @@ export const HeroSection: React.FC = () => {
     <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
       {/* Full-bleed background — Abbottabad mountain landscape */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/assets/hero/prime-site-view-scaled.jpg"
-          alt="Panoramic view of green hills and mountains near Abbottabad — Prime View Housing Society site"
-          fill
-          className="object-cover object-center"
-          priority
-          sizes="100vw"
+        <video
+          src="/new assests/Vedios/PV WEBSITE - Trim Home page.mp4"
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="object-cover object-center w-full h-full"
         />
         {/* Subtle balanced gradient overlay for contrast */}
         <div
