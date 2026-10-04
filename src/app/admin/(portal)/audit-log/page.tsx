@@ -239,7 +239,7 @@ export default function AuditLogPage() {
               type="text"
               placeholder="Search action, details, actor..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
               className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
             />
           </div>
@@ -248,7 +248,7 @@ export default function AuditLogPage() {
           <div>
             <select
               value={entityFilter}
-              onChange={(e) => setEntityFilter(e.target.value)}
+              onChange={(e) => { setEntityFilter(e.target.value); setPage(1); }}
               className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 text-slate-700"
             >
               <option value="all">All Entity Types</option>
@@ -268,7 +268,7 @@ export default function AuditLogPage() {
             <input
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => { setStartDate(e.target.value); setPage(1); }}
               className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 text-slate-700"
             />
           </div>
@@ -279,7 +279,7 @@ export default function AuditLogPage() {
             <input
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => { setEndDate(e.target.value); setPage(1); }}
               className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 text-slate-700"
             />
           </div>
@@ -299,7 +299,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Audit Log Table */}
-      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={true}>
+      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false}>
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
