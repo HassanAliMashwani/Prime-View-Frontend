@@ -1,36 +1,11 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Playfair_Display, Cormorant_Garamond, Outfit } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/navigation/Header";
-import { Footer } from "@/components/navigation/Footer";
 import { siteConfig } from "@/data/site";
-import { GlobalVideoPreloader } from "@/components/ui/GlobalVideoPreloader";
-import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
-import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
-  display: "swap",
-});
-
-const serifFont = Playfair_Display({
-  subsets: ["latin"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
-const cormorantFont = Cormorant_Garamond({
-  subsets: ["latin"],
-  variable: "--font-cormorant",
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const outfitFont = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  weight: ["300", "400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -79,21 +54,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sansFont.variable} ${serifFont.variable} ${cormorantFont.variable} ${outfitFont.variable} scroll-smooth`}
+      className={`${sansFont.variable} scroll-smooth`}
     >
       <body className="font-sans antialiased bg-[#F8F7F5] text-[#151914] min-h-screen flex flex-col justify-between selection:bg-[#43612B] selection:text-white">
-        <Header />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-        <GlobalVideoPreloader />
-
-        {/* Global WhatsApp FAB (automatically hidden on admin and member portals) */}
-        <WhatsAppButton />
-
-        {/* Cookie Consent Banner */}
-        <CookieConsentBanner />
+        {children}
       </body>
     </html>
   );
 }
+
 

@@ -20,10 +20,15 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
 import { getReservations, ReservationWithConflict } from '@/lib/dal/reservations';
 import { AdminSession } from '@/lib/mock/types';
-import InventoryOverviewChart from '@/components/admin/dashboard/InventoryOverviewChart';
+import dynamic from 'next/dynamic';
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminDashboardSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+
+const InventoryOverviewChart = dynamic(
+  () => import('@/components/admin/dashboard/InventoryOverviewChart'),
+  { ssr: false }
+);
 
 export default function AdminDashboardPage() {
   const getInit = () => {
