@@ -601,10 +601,16 @@ const TeamMemberFullCard = ({
                 {member.email && (
                   <a
                     href={`mailto:${member.email}`}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-[#C4A265]/50 hover:bg-white hover:shadow-sm transition-all text-[#1C3D32]"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4DCC8] hover:bg-white hover:shadow-md transition-all text-[#1C3D32]"
                   >
-                    <Mail className="w-4 h-4 text-[#A6843D]" />
-                    <span className="text-[12px] font-medium" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>Email</span>
+                    <svg viewBox="0 0 48 48" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                      <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.73V40h7c1.65,0,3-1.35,3-3V16.2z"/>
+                      <path fill="#1e88e5" d="M3,16.2l3.61,1.96l6.39,5.54V40H6c-1.65,0-3-1.35-3-3V16.2z"/>
+                      <path fill="#e53935" d="M35,11.2l-11,8.25L13,11.2C13.25,10.05,14.47,9,16,9h16C33.53,9,34.75,10.05,35,11.2z"/>
+                      <path fill="#c62828" d="M45,16.2v-1.12c0-1.61-0.96-3.03-2.42-3.66L35,11.2l5,2.75L45,16.2z"/>
+                      <path fill="#fbc02d" d="M3,16.2v-1.12c0-1.61,0.96-3.03,2.42-3.66L13,11.2l-5,2.75L3,16.2z"/>
+                    </svg>
+                    <span className="text-[13px] font-semibold" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>Gmail</span>
                   </a>
                 )}
                 {member.linkedinUrl && (
@@ -612,10 +618,12 @@ const TeamMemberFullCard = ({
                     href={member.linkedinUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-[#C4A265]/50 hover:bg-white hover:shadow-sm transition-all text-[#1C3D32]"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4DCC8] hover:bg-white hover:shadow-md transition-all text-[#1C3D32]"
                   >
-                    <Linkedin className="w-4 h-4 text-[#A6843D]" />
-                    <span className="text-[12px] font-medium" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>LinkedIn</span>
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" fill="#0A66C2" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                    <span className="text-[13px] font-semibold" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>LinkedIn</span>
                   </a>
                 )}
               </div>
