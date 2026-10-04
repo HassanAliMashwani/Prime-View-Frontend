@@ -603,12 +603,12 @@ const TeamMemberFullCard = ({
                     href={`mailto:${member.email}`}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-[#E4DCC8] hover:bg-white hover:shadow-md transition-all text-[#1C3D32]"
                   >
-                    <svg viewBox="0 0 48 48" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
-                      <path fill="#4caf50" d="M45,16.2l-5,2.75l-5,4.73V40h7c1.65,0,3-1.35,3-3V16.2z"/>
-                      <path fill="#1e88e5" d="M3,16.2l3.61,1.96l6.39,5.54V40H6c-1.65,0-3-1.35-3-3V16.2z"/>
-                      <path fill="#e53935" d="M35,11.2l-11,8.25L13,11.2C13.25,10.05,14.47,9,16,9h16C33.53,9,34.75,10.05,35,11.2z"/>
-                      <path fill="#c62828" d="M45,16.2v-1.12c0-1.61-0.96-3.03-2.42-3.66L35,11.2l5,2.75L45,16.2z"/>
-                      <path fill="#fbc02d" d="M3,16.2v-1.12c0-1.61,0.96-3.03,2.42-3.66L13,11.2l-5,2.75L3,16.2z"/>
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg">
+                      <path fill="#4285F4" d="M17 20.5h3.5c1.1 0 2-.9 2-2V7.4l-5.5 4.1v9z"/>
+                      <path fill="#34A853" d="M1.5 7.4v11.1c0 1.1.9 2 2 2H7v-9l-5.5-4.1z"/>
+                      <path fill="#FBBC05" d="M17 3.5v3.9l5.5-4.1c-.3-.2-.8-.4-1.3-.4-.5 0-1 .2-1.5.5L17 3.5z"/>
+                      <path fill="#EA4335" d="M7 3.5v3.9L1.5 3.3c-.3-.2-.8-.4-1.3-.4-.1 0-.1 0-.2.1v.1l7 5.2 5 3.8 5-3.8 7-5.2v-.1c-.1-.1-.1-.1-.2-.1-.5 0-1 .2-1.3.4l-5.5 4.2L7 3.5z"/>
+                      <path fill="#EA4335" d="M7 7.4L12 11.1l5-3.7V3.5L12 7.2 7 3.5v3.9z"/>
                     </svg>
                     <span className="text-[13px] font-semibold" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>Gmail</span>
                   </a>
