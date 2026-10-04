@@ -13,6 +13,7 @@ export interface TeamMemberProfile {
   photoPath: string | null;
   photoDiscovered: boolean;
   facebookUrl?: string;
+  linkedinUrl?: string;
   twitterUrl?: string;
   instagramUrl?: string;
   bio?: string;

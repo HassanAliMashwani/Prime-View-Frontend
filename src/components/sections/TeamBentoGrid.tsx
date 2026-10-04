@@ -19,6 +19,7 @@ import {
   Newspaper,
   GraduationCap,
   CheckCircle2,
+  Linkedin,
 } from "lucide-react";
 import { TeamMemberProfile, LeadershipMember } from "@/data/team";
 
@@ -591,7 +592,32 @@ const TeamMemberFullCard = ({
                     </div>
                   ))}
                 </div>
-              </>
+            )}
+
+            {/* Developer Social Links */}
+            {member.category === "Software Developers" && (
+              <div className="flex items-center gap-3 mt-4 pt-4 border-t border-[#C4A265]/30">
+                {member.email && (
+                  <a
+                    href={`mailto:${member.email}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-[#C4A265]/50 hover:bg-white hover:shadow-sm transition-all text-[#1C3D32]"
+                  >
+                    <Mail className="w-4 h-4 text-[#A6843D]" />
+                    <span className="text-[12px] font-medium" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>Email</span>
+                  </a>
+                )}
+                {member.linkedinUrl && (
+                  <a
+                    href={member.linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/60 border border-[#C4A265]/50 hover:bg-white hover:shadow-sm transition-all text-[#1C3D32]"
+                  >
+                    <Linkedin className="w-4 h-4 text-[#A6843D]" />
+                    <span className="text-[12px] font-medium" style={{ fontFamily: "var(--font-outfit), Outfit, sans-serif" }}>LinkedIn</span>
+                  </a>
+                )}
+              </div>
             )}
           </div>
         </div>

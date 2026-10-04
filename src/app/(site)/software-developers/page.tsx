@@ -16,6 +16,8 @@ export default function SoftwareDevelopersPage() {
       category: "Software Developers",
       bio: "Spearheading the engineering and architecture of the Prime View platform, ensuring robust backend systems and a seamless, high-performance web experience.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+      email: "hassan@primeview.org",
+      linkedinUrl: "https://linkedin.com",
       socialLinks: []
     },
     {
@@ -25,6 +27,8 @@ export default function SoftwareDevelopersPage() {
       category: "Software Developers",
       bio: "Specializes in building modern interfaces and scalable applications, bringing the vision of Prime View to life through clean code and innovative design.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+      email: "umer@primeview.org",
+      linkedinUrl: "https://linkedin.com",
       socialLinks: []
     },
     {
@@ -34,6 +38,8 @@ export default function SoftwareDevelopersPage() {
       category: "Software Developers",
       bio: "Focuses on crafting intuitive user experiences and optimizing platform performance to deliver a premium digital environment for all members.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+      email: "taifoor@primeview.org",
+      linkedinUrl: "https://linkedin.com",
       socialLinks: []
     },
     {
@@ -43,6 +49,8 @@ export default function SoftwareDevelopersPage() {
       category: "Software Developers",
       bio: "Drives the development of core features and integrations, ensuring the Prime View portals operate smoothly and securely.",
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+      email: "aalyan@primeview.org",
+      linkedinUrl: "https://linkedin.com",
       socialLinks: []
     }
   ];
