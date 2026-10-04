@@ -22,7 +22,6 @@ export default function SoftwareDevelopersPage() {
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       email: "hassan@primeview.org",
       linkedinUrl: "https://linkedin.com",
-      socialLinks: []
     },
     {
       id: "dev-2",
@@ -35,7 +34,6 @@ export default function SoftwareDevelopersPage() {
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       email: "umer@primeview.org",
       linkedinUrl: "https://linkedin.com",
-      socialLinks: []
     },
     {
       id: "dev-3",
@@ -48,7 +46,6 @@ export default function SoftwareDevelopersPage() {
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       email: "taifoor@primeview.org",
       linkedinUrl: "https://linkedin.com",
-      socialLinks: []
     },
     {
       id: "dev-4",
@@ -61,7 +58,6 @@ export default function SoftwareDevelopersPage() {
       photoPath: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
       email: "aalyan@primeview.org",
       linkedinUrl: "https://linkedin.com",
-      socialLinks: []
     }
   ];
 
