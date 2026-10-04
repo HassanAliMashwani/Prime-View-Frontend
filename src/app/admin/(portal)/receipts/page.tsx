@@ -288,6 +288,7 @@ export default function AdminReceiptsPage() {
             <FileCheck className="w-5 h-5" />
           </div>
           <div>
+            <h1 className="text-xl font-bold text-slate-900 font-serif tracking-tight flex items-center gap-2">
               <span>Receipt Verification Desk</span>
             </h1>
             <p className="text-xs text-slate-500">
