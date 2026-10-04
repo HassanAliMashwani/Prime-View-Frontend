@@ -16,6 +16,7 @@ export const mainNavigation: NavItem[] = [
       { title: "Society Members", href: "/society-members" },
       { title: "Legal Team", href: "/legal-team" },
       { title: "Marketing & Sales Partner", href: "/marketing-sales-partner" },
+      { title: "Developers", href: "/developers" },
     ],
   },
   {
