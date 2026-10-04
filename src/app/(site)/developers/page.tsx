@@ -11,21 +11,37 @@ export default function DevelopersPage() {
   const devTeamList = [
     {
       id: "dev-1",
-      name: "The Development Team",
-      role: "Software Engineering & UI/UX",
+      name: "Hassan Ali Mashwani",
+      role: "Lead Developer",
       category: "Developers",
-      bio: "Our dedicated technology team specializes in building scalable, secure, and highly performant web applications. With a focus on modern frameworks, seamless user experiences, and robust backend architectures, we ensure that the Prime View digital experience is as premium as the society itself.",
+      bio: "Spearheading the engineering and architecture of the Prime View platform, ensuring robust backend systems and a seamless, high-performance web experience.",
       imageUrl: "/assets/team/placeholder.jpg",
-      socialLinks: [
-        { platform: "linkedin", url: "#" },
-      ]
+      socialLinks: []
     },
     {
       id: "dev-2",
-      name: "Antigravity",
-      role: "AI Agents & Advanced Automation",
+      name: "Umer Liaqat",
+      role: "Software Engineer",
       category: "Developers",
-      bio: "Powering the rapid iteration and flawless execution of the Prime View portal systems. Our AI-driven development practices ensure that all features are built with cutting-edge efficiency and zero compromises on code quality.",
+      bio: "Specializes in building modern interfaces and scalable applications, bringing the vision of Prime View to life through clean code and innovative design.",
+      imageUrl: "/assets/team/placeholder.jpg",
+      socialLinks: []
+    },
+    {
+      id: "dev-3",
+      name: "Taifoor Farid",
+      role: "Software Engineer",
+      category: "Developers",
+      bio: "Focuses on crafting intuitive user experiences and optimizing platform performance to deliver a premium digital environment for all members.",
+      imageUrl: "/assets/team/placeholder.jpg",
+      socialLinks: []
+    },
+    {
+      id: "dev-4",
+      name: "Aalyan Mughal",
+      role: "Software Engineer",
+      category: "Developers",
+      bio: "Drives the development of core features and integrations, ensuring the Prime View portals operate smoothly and securely.",
       imageUrl: "/assets/team/placeholder.jpg",
       socialLinks: []
     }
