@@ -112,9 +112,21 @@ export default function TeamsPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
+  const reqIdRef = React.useRef(0);
+  const [searchInput, setSearchInput] = useState('');
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   useEffect(() => {
     setPage(1);
-  }, [searchTerm, statusFilter]);
+    if (session) loadData(session, 1);
+  }, [statusFilter]);
 
   // Load Sub Admins
   const loadData = useCallback(async (currentSession: AdminSession, p = page) => {
@@ -122,13 +134,17 @@ export default function TeamsPage() {
       setLoading(false);
       return;
     }
+    const currentReq = ++reqIdRef.current;
     setFetchError(null);
     try {
       const res = await getSubAdmins(currentSession, {
         search: searchTerm,
+        status: statusFilter,
         page: p,
         pageSize: PAGE_SIZE
       });
+      if (currentReq !== reqIdRef.current) return;
+
       if (res.ok) {
         setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
         setTotalRecords(res.total);
@@ -139,9 +155,10 @@ export default function TeamsPage() {
         setFetchError(res.message || 'Failed to retrieve team members.');
       }
     } catch {
+      if (currentReq !== reqIdRef.current) return;
       setFetchError('Network communication error while loading team members.');
     } finally {
-      setLoading(false);
+      if (currentReq === reqIdRef.current) setLoading(false);
     }
   }, [searchTerm, statusFilter, page]);
 
@@ -166,11 +183,13 @@ export default function TeamsPage() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
-      if (s) loadData(s);
+      if (s && searchTerm === '' && statusFilter === 'all') {
+        loadData(s);
+      }
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [loadData, router]);
+  }, [loadData, router, searchTerm, statusFilter]);
 
   // Flash feedback timer
   useEffect(() => {
@@ -407,8 +426,8 @@ export default function TeamsPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name, username, or email..."
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition-colors"
           />
@@ -466,7 +485,7 @@ export default function TeamsPage() {
           {searchTerm || statusFilter !== 'all' ? (
             <button
               onClick={() => {
-                setSearchTerm('');
+                setSearchInput('');
                 setStatusFilter('all');
               }}
               className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
