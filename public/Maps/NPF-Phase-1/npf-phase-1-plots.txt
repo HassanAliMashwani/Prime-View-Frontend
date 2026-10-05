@@ -14,4 +14,4 @@ Amenities:
 	Filtration Plant: 219
 	Open Garden: 234
 	Grid Station: 247
-	Graveyard: 4
+	Amenity: 246

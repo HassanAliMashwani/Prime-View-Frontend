@@ -44,10 +44,9 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_amenity_4_1k",
+    "slug": "npf-phase-1_plot_4_1k",
     "blockId": "npf-phase-1",
-    "category": "amenity",
-    "amenityType": "Graveyard",
+    "category": "residential",
     "plotNumber": "4",
     "isGroupedRange": false,
     "sizeLabel": "1 Kanal",
@@ -3376,10 +3375,11 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_plot_241_7.5m",
+    "slug": "npf-phase-1_amenity_246_7.5m",
     "blockId": "npf-phase-1",
-    "category": "residential",
-    "plotNumber": "241",
+    "category": "amenity",
+    "amenityType": "Amenity",
+    "plotNumber": "246",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",
     "points": [
@@ -3390,10 +3390,10 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_plot_242_7.5m",
+    "slug": "npf-phase-1_plot_245_7.5m",
     "blockId": "npf-phase-1",
     "category": "residential",
-    "plotNumber": "242",
+    "plotNumber": "245",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",
     "points": [
@@ -3404,10 +3404,10 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_plot_243_7.5m",
+    "slug": "npf-phase-1_plot_244_7.5m",
     "blockId": "npf-phase-1",
     "category": "residential",
-    "plotNumber": "243",
+    "plotNumber": "244",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",
     "points": [
@@ -3418,10 +3418,10 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_plot_244_7.5m",
+    "slug": "npf-phase-1_plot_243_7.5m",
     "blockId": "npf-phase-1",
     "category": "residential",
-    "plotNumber": "244",
+    "plotNumber": "243",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",
     "points": [
@@ -3432,10 +3432,10 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_plot_245_7.5m",
+    "slug": "npf-phase-1_plot_242_7.5m",
     "blockId": "npf-phase-1",
     "category": "residential",
-    "plotNumber": "245",
+    "plotNumber": "242",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",
     "points": [
@@ -3446,11 +3446,10 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_amenity_246_7.5m",
+    "slug": "npf-phase-1_plot_241_7.5m",
     "blockId": "npf-phase-1",
-    "category": "amenity",
-    "amenityType": "Amenity",
-    "plotNumber": "246",
+    "category": "residential",
+    "plotNumber": "241",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",
     "points": [
