@@ -3375,10 +3375,9 @@ export const npfPhase1BlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "npf-phase-1_amenity_246_7.5m",
+    "slug": "npf-phase-1_plot_246_7.5m",
     "blockId": "npf-phase-1",
-    "category": "amenity",
-    "amenityType": "Amenity",
+    "category": "residential",
     "plotNumber": "246",
     "isGroupedRange": false,
     "sizeLabel": "7.5 Marla",

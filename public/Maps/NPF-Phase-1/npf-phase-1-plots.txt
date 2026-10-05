@@ -1,5 +1,5 @@
 SaleAble:
-	Residential: 1-44, 82-218, 220-233, 235-245, 248-253
+	Residential: 1-44, 82-218, 220-233, 235-246, 248-253
 	Commercial:  46-73
 Amenities:
 	Commercial Park: 45
@@ -14,4 +14,3 @@ Amenities:
 	Filtration Plant: 219
 	Open Garden: 234
 	Grid Station: 247
-	Amenity: 246
