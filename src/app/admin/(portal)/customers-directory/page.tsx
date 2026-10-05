@@ -325,24 +325,7 @@ function CustomersDirectoryContent() {
     }
   };
 
-  // Filtered list
-  const filteredCustomers = customers.filter((c) => {
-    if (statusFilter === 'needs_registration' && c.registrationStatus !== 'minimal') return false;
-    if (statusFilter === 'active' && (c.accountStatus !== 'active' || c.registrationStatus === 'minimal')) return false;
-    if (statusFilter === 'suspended' && c.accountStatus !== 'suspended') return false;
-    if (statusFilter === 'strikes' && (!c.strikeCount || c.strikeCount === 0)) return false;
-
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const matchName = c.fullName.toLowerCase().includes(q);
-      const matchMem = c.membershipNo.toLowerCase().includes(q);
-      const matchCnic = c.cnic.includes(q);
-      const matchPhone = c.phone.includes(q);
-      const matchPlot = c.plots.some((p) => p.plotNumber.toLowerCase().includes(q) || p.blockName.toLowerCase().includes(q));
-      if (!matchName && !matchMem && !matchCnic && !matchPhone && !matchPlot) return false;
-    }
-    return true;
-  });
+  // Browser filter removed (filtering is done server-side)
 
   // Pagination logic
   useEffect(() => {
@@ -439,13 +422,13 @@ function CustomersDirectoryContent() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by Name, Membership #, CNIC, Plot..."
             className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
           />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600">
+          {searchInput && (
+            <button onClick={() => setSearchInput('')} className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600">
               <X className="w-3.5 h-3.5" />
             </button>
           )}
@@ -514,7 +497,7 @@ function CustomersDirectoryContent() {
 
       {/* Mobile Stacked Cards (< 768px) */}
       <div className="md:hidden space-y-3">
-        {filteredCustomers.length === 0 ? (
+        {customers.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
             No customers found matching the search or filter criteria.
           </div>
