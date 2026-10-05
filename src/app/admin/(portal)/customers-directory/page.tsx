@@ -72,8 +72,21 @@ function CustomersDirectoryContent() {
 
   // Filters
   const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'needs_registration' | 'active' | 'suspended' | 'strikes'>('all');
   const [totalRecords, setTotalRecords] = useState<number>(0);
+
+  const reqIdRef = React.useRef(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (search !== searchInput) {
+        setSearch(searchInput);
+        setPage(1);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput, search]);
 
   // Modals state
   const [dossierCustomer, setDossierCustomer] = useState<CustomerDirectoryEntry | null>(null);
@@ -120,6 +133,7 @@ function CustomersDirectoryContent() {
   }, [queryCompleteCustId, router]);
 
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, searchParam = '', statusParam = 'all', background = false) => {
+    const reqId = ++reqIdRef.current;
     const path = `/customers?page=${pageParam}&pageSize=${PAGE_SIZE}&search=${searchParam}&status=${statusParam}`;
     const key = generateCacheKey('GET', path, currentSession.token);
 
@@ -130,15 +144,13 @@ function CustomersDirectoryContent() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setCustomers((prev) => {
-          if (prev.length === 0) setLoading(true);
-          return prev;
-        });
+        setLoading(true);
       }
     }
 
     try {
       const res = await getCustomersDirectory(currentSession, { page: pageParam, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
+      if (reqId !== reqIdRef.current) return;
       if (!res.ok) {
         setCustomers((prev) => {
           if (prev.length > 0) {
@@ -146,15 +158,20 @@ function CustomersDirectoryContent() {
             return prev;
           }
           setError('Something went wrong. Please try again.');
-          return prev;
+          return [];
         });
       } else {
-        setCustomers((prev) => reconcileItems(prev, res.customers, (c) => c.id));
+        if (res.customers.length === 0) {
+          setCustomers([]);
+        } else {
+          setCustomers(res.customers);
+        }
         setTotalRecords(res.total || 0);
         setCache(key, { customers: res.customers, total: res.total || 0 });
         setError(null);
       }
     } catch {
+      if (reqId !== reqIdRef.current) return;
       console.error('request failed');
       setCustomers((prev) => {
         if (prev.length > 0) {
@@ -162,10 +179,10 @@ function CustomersDirectoryContent() {
           return prev;
         }
         setError('Something went wrong. Please try again.');
-        return prev;
+        return [];
       });
     } finally {
-      if (!background) setLoading(false);
+      if (reqId === reqIdRef.current && !background) setLoading(false);
     }
   }, []);
 
@@ -178,15 +195,18 @@ function CustomersDirectoryContent() {
     setSession(cur);
     loadData(cur, page, search, statusFilter, false);
 
-    // Auto-refresh customer directory every 30 seconds
-    const intervalId = setInterval(() => {
-      const latestSession = getActiveAdminSession();
-      if (latestSession) {
-        loadData(latestSession, page, search, statusFilter, true);
-      }
-    }, 30000);
-
-    return () => clearInterval(intervalId);
+    const isFiltered = search !== '' || statusFilter !== 'all';
+    
+    // Auto-refresh customer directory every 30 seconds (only if not filtered)
+    if (!isFiltered) {
+      const intervalId = setInterval(() => {
+        const latestSession = getActiveAdminSession();
+        if (latestSession && reqIdRef.current) {
+          loadData(latestSession, page, search, statusFilter, true);
+        }
+      }, 30000);
+      return () => clearInterval(intervalId);
+    }
   }, [router, loadData, page, search, statusFilter]);
 
   // Flash feedback auto-clear (8s)
