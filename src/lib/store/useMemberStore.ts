@@ -103,7 +103,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
       ]);
       set((state) => ({
         schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
-        transactions: reconcileItems(state.transactions, histRes.data || [], (t) => t.id),
+        transactions: histRes.data || [],
         isLoading: false,
       }));
     } catch (e) {
@@ -118,7 +118,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
     try {
       const histRes = await getPaymentHistory(filterPlotId);
       set((state) => ({
-        transactions: reconcileItems(state.transactions, histRes.data || [], (t) => t.id),
+        transactions: histRes.data || [],
         isLoading: false,
       }));
     } catch (e) {

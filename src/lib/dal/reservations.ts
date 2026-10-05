@@ -16,7 +16,7 @@ export interface ReservationWithConflict extends Reservation {
 export async function getReservations(
   session: AdminSession,
   filters?: {
-    status?: ReservationStatus | 'all';
+    status?: ReservationStatus | 'all' | 'history';
     blockId?: string;
     search?: string;
     page?: number;

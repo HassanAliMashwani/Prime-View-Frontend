@@ -115,21 +115,7 @@ export default function TeamsPage() {
   const reqIdRef = React.useRef(0);
   const [searchInput, setSearchInput] = useState('');
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setSearchTerm(searchInput);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchInput]);
-
-  useEffect(() => {
-    setPage(1);
-    if (session) loadData(session, 1);
-  }, [statusFilter]);
-
-  // Load Sub Admins
-  const loadData = useCallback(async (currentSession: AdminSession, p = page) => {
+  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchTerm) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
       return;
@@ -138,17 +124,21 @@ export default function TeamsPage() {
     setFetchError(null);
     try {
       const res = await getSubAdmins(currentSession, {
-        search: searchTerm,
-        status: statusFilter,
+        search,
+        status: st,
         page: p,
         pageSize: PAGE_SIZE
       });
       if (currentReq !== reqIdRef.current) return;
 
       if (res.ok) {
-        setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
+        if (!res.subAdmins || res.subAdmins.length === 0) {
+          setSubAdmins([]);
+        } else {
+          setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
+        }
         setTotalRecords(res.total);
-        if (searchTerm === '' && statusFilter === 'all' && p === 1) {
+        if (search === '' && st === 'all' && p === 1) {
           setCache(`/sub-admins:${currentSession.adminId}`, res.subAdmins);
         }
       } else {
@@ -161,6 +151,20 @@ export default function TeamsPage() {
       if (currentReq === reqIdRef.current) setLoading(false);
     }
   }, [searchTerm, statusFilter, page]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchTerm(searchInput);
+      setPage(1);
+      if (session) loadData(session, 1, statusFilter, searchInput);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+    if (session) loadData(session, 1, statusFilter, searchInput);
+  }, [statusFilter]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();

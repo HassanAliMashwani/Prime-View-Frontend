@@ -80,20 +80,9 @@ export default function AdminReceiptsPage() {
   useEffect(() => { statusRef.current = statusFilter; }, [statusFilter]);
   useEffect(() => { searchRef.current = searchQuery; }, [searchQuery]);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setSearchQuery(searchInput);
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchInput]);
 
-  useEffect(() => {
-    setPage(1);
-    if (session) loadData(session, 1, statusFilter);
-  }, [statusFilter]);
 
-  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter) => {
+  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchQuery) => {
     const isSuper = currentSession.role === 'super_admin';
     const hasAuth = Boolean(currentSession.permissions?.can_verify_receipts);
 
@@ -104,18 +93,36 @@ export default function AdminReceiptsPage() {
     const currentReq = ++reqIdRef.current;
     
     // Pass searchQuery or searchRef.current to getAdminReceipts if the mock/lib supports it.
-    const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, searchRef.current);
+    const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
     if (currentReq !== reqIdRef.current) return;
 
-    if (res.ok && res.receipts) {
-      setReceipts((prev) => reconcileItems(prev, res.receipts || [], (r) => r.id));
+    if (res.ok) {
+      if (!res.receipts || res.receipts.length === 0) {
+        setReceipts([]);
+      } else {
+        setReceipts((prev) => reconcileItems(prev, res.receipts || [], (r) => r.id));
+      }
       setTotalCount(res.totalCount || 0);
-      if (p === 1 && st === 'all' && searchRef.current === '') {
-        setCache(`/receipts:${currentSession.adminId}`, res.receipts);
+      if (p === 1 && st === 'all' && search === '') {
+        setCache(`/receipts:${currentSession.adminId}`, res.receipts || []);
       }
     }
     if (currentReq === reqIdRef.current) setLoading(false);
-  }, [page, statusFilter]);
+  }, [page, statusFilter, searchQuery]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPage(1);
+      if (session) loadData(session, 1, statusFilter, searchInput);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+    if (session) loadData(session, 1, statusFilter, searchInput);
+  }, [statusFilter]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();

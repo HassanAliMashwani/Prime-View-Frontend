@@ -45,7 +45,7 @@ export interface UpdateSubAdminInput {
  */
 export async function getSubAdmins(
   session: AdminSession,
-  filters?: { search?: string; page?: number; pageSize?: number }
+  filters?: { search?: string; status?: string; page?: number; pageSize?: number }
 ): Promise<{
   ok: boolean;
   subAdmins: AdminUser[];
@@ -69,6 +69,7 @@ export async function getSubAdmins(
 
   const query = new URLSearchParams();
   if (filters?.search) query.set('search', filters.search);
+  if (filters?.status && filters.status !== 'all') query.set('status', filters.status);
   if (filters?.page) query.set('page', String(filters.page));
   if (filters?.pageSize) query.set('pageSize', String(filters.pageSize));
 

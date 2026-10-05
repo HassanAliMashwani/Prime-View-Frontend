@@ -54,6 +54,7 @@ export default function ReservationsPage() {
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init || []);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(!init);
   const [page, setPage] = useState<number>(1);
@@ -64,34 +65,68 @@ export default function ReservationsPage() {
   const [noteText, setNoteText] = useState<string>('');
   const [savingNote, setSavingNote] = useState<boolean>(false);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setPage(1);
-  }, [search, blockFilter, activeTab]);
+  const reqIdRef = React.useRef(0);
+  const pageRef = React.useRef(page);
+  const searchRef = React.useRef(search);
+  const blockRef = React.useRef(blockFilter);
+  const tabRef = React.useRef(activeTab);
 
-  const loadData = useCallback(async (s: AdminSession, p = page) => {
+  useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { searchRef.current = search; }, [search]);
+  useEffect(() => { blockRef.current = blockFilter; }, [blockFilter]);
+  useEffect(() => { tabRef.current = activeTab; }, [activeTab]);
+
+  const loadData = useCallback(async (
+    s: AdminSession, 
+    p = page, 
+    srch = search, 
+    block = blockFilter, 
+    tab = activeTab
+  ) => {
+    const currentReq = ++reqIdRef.current;
     try {
       const res = await getReservations(s, {
-        search,
-        blockId: blockFilter,
-        status: activeTab === 'active' ? 'active' : undefined,
+        search: srch,
+        blockId: block,
+        status: tab === 'active' ? 'active' : 'history',
         page: p,
         pageSize: PAGE_SIZE,
       });
+      if (currentReq !== reqIdRef.current) return;
 
       if (res.ok) {
-        setReservations((prev) => reconcileItems(prev, res.reservations, (r) => r.id));
+        if (!res.reservations || res.reservations.length === 0) {
+          setReservations([]);
+        } else {
+          setReservations((prev) => reconcileItems(prev, res.reservations, (r) => r.id));
+        }
         setTotalRecords(res.total);
-        if (search === '' && blockFilter === 'all' && activeTab === 'active' && p === 1) {
-          setCache(`/reservations:${s.adminId}`, res.reservations);
+        if (srch === '' && block === 'all' && tab === 'active' && p === 1) {
+          setCache(`/reservations:${s.adminId}`, res.reservations || []);
         }
       }
     } catch {
-      console.error('request failed');
+      if (currentReq === reqIdRef.current) {
+        console.error('request failed');
+      }
     } finally {
-      setLoading(false);
+      if (currentReq === reqIdRef.current) setLoading(false);
     }
   }, [search, blockFilter, activeTab, page]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+      if (session) loadData(session, 1, searchInput, blockFilter, activeTab);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+    if (session) loadData(session, 1, search, blockFilter, activeTab);
+  }, [blockFilter, activeTab]);
 
   useEffect(() => {
     const s = getActiveAdminSession();
@@ -112,8 +147,8 @@ export default function ReservationsPage() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
-      if (s) {
-        loadData(s);
+      if (s && searchRef.current === '' && blockRef.current === 'all' && tabRef.current === 'active') {
+        loadData(s, pageRef.current, searchRef.current, blockRef.current, tabRef.current);
       }
     }, 30000);
 
@@ -269,8 +304,8 @@ export default function ReservationsPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by customer name, phone, plot number, or admin..."
             className="w-full pl-10 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-emerald-600"
           />

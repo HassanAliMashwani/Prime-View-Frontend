@@ -58,7 +58,8 @@ export default function AuditLogPage() {
   const [page, setPage] = useState(1);
 
   // Filters
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [actorFilter, setActorFilter] = useState('all');
   const [entityFilter, setEntityFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
@@ -67,39 +68,81 @@ export default function AuditLogPage() {
   // Diff Modal state
   const [diffEntry, setDiffEntry] = useState<AuditEntry | null>(null);
 
+  const reqIdRef = React.useRef(0);
   const pageRef = React.useRef(page);
+  const searchRef = React.useRef(searchQuery);
+  const actorRef = React.useRef(actorFilter);
+  const entityRef = React.useRef(entityFilter);
+  const startRef = React.useRef(startDate);
+  const endRef = React.useRef(endDate);
+
   useEffect(() => { pageRef.current = page; }, [page]);
+  useEffect(() => { searchRef.current = searchQuery; }, [searchQuery]);
+  useEffect(() => { actorRef.current = actorFilter; }, [actorFilter]);
+  useEffect(() => { entityRef.current = entityFilter; }, [entityFilter]);
+  useEffect(() => { startRef.current = startDate; }, [startDate]);
+  useEffect(() => { endRef.current = endDate; }, [endDate]);
 
   // Load audit logs
-  const loadData = useCallback(async (currentSession: AdminSession, p = page) => {
+  const loadData = useCallback(async (
+    currentSession: AdminSession, 
+    p = page, 
+    search = searchQuery,
+    actor = actorFilter,
+    entity = entityFilter,
+    start = startDate,
+    end = endDate
+  ) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
       return;
     }
 
+    const currentReq = ++reqIdRef.current;
+
     const filters: AuditFilterOptions = {
       search: search || undefined,
-      entityType: entityFilter !== 'all' ? entityFilter : undefined,
-      startDate: startDate || undefined,
-      endDate: endDate || undefined,
+      entityType: entity !== 'all' ? entity : undefined,
+      startDate: start || undefined,
+      endDate: end || undefined,
       page: p,
       pageSize: PAGE_SIZE,
     };
 
-    if (actorFilter !== 'all') {
-      filters.actorId = actorFilter;
+    if (actor !== 'all') {
+      filters.actorId = actor;
     }
 
     const res = await getAuditLogs(currentSession, filters);
+    if (currentReq !== reqIdRef.current) return;
+
     if (res.ok) {
-      setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
+      if (!res.logs || res.logs.length === 0) {
+        setLogs([]);
+      } else {
+        setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
+      }
       setTotalCount(res.totalCount);
-      if (p === 1 && !search && actorFilter === 'all' && entityFilter === 'all' && !startDate && !endDate) {
+      if (p === 1 && !search && actor === 'all' && entity === 'all' && !start && !end) {
         setCache(`/audit-logs:${currentSession.adminId}`, { logs: res.logs || [], total: res.totalCount || 0 });
       }
     }
     setLoading(false);
-  }, [search, actorFilter, entityFilter, startDate, endDate, page]);
+  }, [searchQuery, actorFilter, entityFilter, startDate, endDate, page]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPage(1);
+      if (session) loadData(session, 1, searchInput, actorFilter, entityFilter, startDate, endDate);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+    if (session) loadData(session, 1, searchQuery, actorFilter, entityFilter, startDate, endDate);
+  }, [actorFilter, entityFilter, startDate, endDate]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -113,8 +156,8 @@ export default function AuditLogPage() {
     // Cross-tab broadcast listener to automatically refresh audit log on actions
     const handleSync = () => {
       const latest = getActiveAdminSession();
-      if (latest && latest.role === 'super_admin') {
-        loadData(latest, pageRef.current);
+      if (latest && latest.role === 'super_admin' && !searchRef.current && actorRef.current === 'all' && entityRef.current === 'all' && !startRef.current && !endRef.current) {
+        loadData(latest, pageRef.current, searchRef.current, actorRef.current, entityRef.current, startRef.current, endRef.current);
       }
     };
 
@@ -136,7 +179,8 @@ export default function AuditLogPage() {
 
   // Handle filter reset
   const handleResetFilters = () => {
-    setSearch('');
+    setSearchInput('');
+    setSearchQuery('');
     setActorFilter('all');
     setEntityFilter('all');
     setStartDate('');
@@ -238,8 +282,8 @@ export default function AuditLogPage() {
             <input
               type="text"
               placeholder="Search action, details, actor..."
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
             />
           </div>
@@ -285,7 +329,7 @@ export default function AuditLogPage() {
           </div>
         </div>
 
-        {(search || entityFilter !== 'all' || startDate || endDate) && (
+        {(searchQuery || entityFilter !== 'all' || startDate || endDate) && (
           <div className="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
             <span>Filtered results active</span>
             <button
