@@ -1455,7 +1455,7 @@ function BlockPlotsContent() {
                         <RotateCcw className="w-4 h-4 text-blue-600" />
                         <span>Release Master Plan Adjustment Freeze</span>
                       </button>
-                    ) : (
+                    ) : (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') ? (
                       <button
                         type="button"
                         onClick={() => setIsAdjustmentModalOpen(true)}
@@ -1465,7 +1465,7 @@ function BlockPlotsContent() {
                         <AlertTriangle className="w-3.5 h-3.5 text-blue-600" />
                         <span>Adjustment</span>
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 )}
               </div>
