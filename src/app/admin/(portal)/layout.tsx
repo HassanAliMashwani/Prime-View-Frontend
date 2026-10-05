@@ -38,9 +38,12 @@ export default function AdminPortalLayout({
   }
 
   // Derive header title from pathname
-  let pageTitle = 'Dashboard';
-  let pageSubtitle = 'Society Overview';
-  if (pathname.includes('/admin/master-plan')) {
+  let pageTitle = '';
+  let pageSubtitle = '';
+  if (pathname.includes('/admin/dashboard')) {
+    pageTitle = 'Dashboard';
+    pageSubtitle = 'Society Overview';
+  } else if (pathname.includes('/admin/master-plan')) {
     pageTitle = 'Master Plan';
     pageSubtitle = 'Inventory & Plot Grid';
   } else if (pathname.includes('/admin/inventory')) {

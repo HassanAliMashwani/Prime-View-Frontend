@@ -449,8 +449,17 @@ export const AdminPortalLayoutSkeleton: React.FC = () => {
           </div>
         </header>
 
-        <main className="p-4 sm:p-8 flex-1">
-          <AdminDashboardSkeleton />
+        <main className="p-4 sm:p-8 flex-1 space-y-6">
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
+            <Skeleton className="h-8 w-1/4 rounded-lg" />
+            <Skeleton className="h-4 w-full rounded-md" />
+            <Skeleton className="h-4 w-5/6 rounded-md" />
+            <Skeleton className="h-4 w-4/6 rounded-md" />
+          </div>
+          <div className="bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs space-y-4">
+            <Skeleton className="h-8 w-1/3 rounded-lg" />
+            <Skeleton className="h-32 w-full rounded-xl" />
+          </div>
         </main>
       </div>
     </div>
