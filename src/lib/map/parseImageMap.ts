@@ -3,7 +3,7 @@ import { PlotCategory } from '../mock/types';
 
 export function formatSizeLabel(rawSize: string): string {
   const clean = rawSize.trim();
-  if (clean.includes('##')) return 'Unspecified';
+  if (clean.includes('##') || clean.toLowerCase() === 'notmentioned') return 'Unspecified';
   if (/m\/p$/i.test(clean)) {
     const val = clean.replace(/m\/p$/i, '').trim();
     return `${val} Marla / plot`;
@@ -65,7 +65,7 @@ export function parseSlug(
   let amenityType: string | undefined = undefined;
 
   const lowerType = type.toLowerCase();
-  if (lowerType === 'plot') {
+  if (lowerType === 'plot' || lowerType === 'residential') {
     category = 'residential';
   } else if (lowerType === 'commercial') {
     category = 'commercial';
@@ -78,6 +78,8 @@ export function parseSlug(
 
   const isGroupedRange = numberOrRange.includes('..');
   const plotNumber = isGroupedRange
+    ? null
+    : numberOrRange.toLowerCase() === 'notmentioned'
     ? null
     : /^\d+$/.test(numberOrRange)
     ? String(parseInt(numberOrRange, 10))
