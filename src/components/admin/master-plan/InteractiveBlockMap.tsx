@@ -226,7 +226,7 @@ export default function InteractiveBlockMap({
   };
 
   return (
-    <div className="relative w-full rounded-3xl border border-slate-200/90 bg-slate-950 overflow-hidden shadow-2xl select-none">
+    <div className="relative w-full rounded-3xl border border-slate-200/90 bg-white overflow-hidden shadow-xl select-none">
       {/* Map Header Controls Bar */}
       <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between pointer-events-none">
         {/* Map Legend & Pills */}
@@ -277,29 +277,29 @@ export default function InteractiveBlockMap({
         </div>
 
         {/* Zoom Controls */}
-        <div className="pointer-events-auto flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-800 shadow-lg">
+        <div className="pointer-events-auto flex items-center gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200 shadow-md">
           <button
             onClick={handleZoomIn}
-            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
             title="Zoom In"
           >
             <ZoomIn className="w-4 h-4" />
           </button>
           <button
             onClick={handleZoomOut}
-            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
             title="Zoom Out"
           >
             <ZoomOut className="w-4 h-4" />
           </button>
           <button
             onClick={handleResetZoom}
-            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+            className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
             title="Reset Zoom"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
-          <span className="px-2 font-mono text-[10px] text-slate-400 font-bold border-l border-slate-800">
+          <span className="px-2 font-mono text-[10px] text-slate-600 font-bold border-l border-slate-200">
             {Math.round(scale * 100)}%
           </span>
         </div>

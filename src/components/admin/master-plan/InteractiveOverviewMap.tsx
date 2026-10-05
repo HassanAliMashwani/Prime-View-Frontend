@@ -64,7 +64,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-slate-900 shadow-xl select-none"
+      className="relative w-full overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-xl select-none"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setHoveredRegion(null)}
     >
