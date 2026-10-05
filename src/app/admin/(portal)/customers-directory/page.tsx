@@ -774,7 +774,7 @@ function CustomersDirectoryContent() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
-              {filteredCustomers.length === 0 ? (
+              {customers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     No customers found matching the search or filter criteria.
