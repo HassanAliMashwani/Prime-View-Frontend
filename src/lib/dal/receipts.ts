@@ -97,12 +97,14 @@ export async function getAdminReceipts(
   session: AdminSession,
   statusFilter?: ReceiptStatus | 'all',
   page?: number,
-  pageSize?: number
+  pageSize?: number,
+  search?: string
 ): Promise<{ ok: boolean; receipts?: ReceiptSubmission[]; totalCount?: number; error?: string; message?: string }> {
   const queryParams = new URLSearchParams();
   if (statusFilter && statusFilter !== ('all' as any)) queryParams.set('status', statusFilter);
   if (page) queryParams.set('page', page.toString());
   if (pageSize) queryParams.set('pageSize', pageSize.toString());
+  if (search) queryParams.set('search', search);
 
   const queryString = queryParams.toString();
   const endpoint = queryString ? `/receipts?${queryString}` : '/receipts';

@@ -70,10 +70,28 @@ export default function AdminReceiptsPage() {
   const [driftReceipt, setDriftReceipt] = useState<ReceiptSubmission | null>(null);
   const [driftNewPreview, setDriftNewPreview] = useState<any>(null);
 
+  const reqIdRef = React.useRef(0);
+  const [searchInput, setSearchInput] = useState('');
+
   const pageRef = React.useRef(page);
   const statusRef = React.useRef(statusFilter);
+  const searchRef = React.useRef(searchQuery);
   useEffect(() => { pageRef.current = page; }, [page]);
   useEffect(() => { statusRef.current = statusFilter; }, [statusFilter]);
+  useEffect(() => { searchRef.current = searchQuery; }, [searchQuery]);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
+  useEffect(() => {
+    setPage(1);
+    if (session) loadData(session, 1, statusFilter);
+  }, [statusFilter]);
 
   const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter) => {
     const isSuper = currentSession.role === 'super_admin';
@@ -83,16 +101,20 @@ export default function AdminReceiptsPage() {
       setLoading(false);
       return;
     }
+    const currentReq = ++reqIdRef.current;
+    
+    // Pass searchQuery or searchRef.current to getAdminReceipts if the mock/lib supports it.
+    const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, searchRef.current);
+    if (currentReq !== reqIdRef.current) return;
 
-    const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE);
     if (res.ok && res.receipts) {
       setReceipts((prev) => reconcileItems(prev, res.receipts || [], (r) => r.id));
       setTotalCount(res.totalCount || 0);
-      if (p === 1 && st === 'all') {
+      if (p === 1 && st === 'all' && searchRef.current === '') {
         setCache(`/receipts:${currentSession.adminId}`, res.receipts);
       }
     }
-    setLoading(false);
+    if (currentReq === reqIdRef.current) setLoading(false);
   }, [page, statusFilter]);
 
   useEffect(() => {
@@ -107,7 +129,7 @@ export default function AdminReceiptsPage() {
     // Auto-refresh via polling
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
-      if (latestSession) {
+      if (latestSession && searchRef.current === '' && statusRef.current === 'pending') {
         loadData(latestSession, pageRef.current, statusRef.current);
       }
     }, 30000);
@@ -237,22 +259,8 @@ export default function AdminReceiptsPage() {
     );
   }
 
-  // Filter receipts for client-side search only
-  const filteredReceipts = receipts.filter((r) => {
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      const bank = (r.depositoryBank || r.bankName || '').toLowerCase();
-      return (
-        r.customerName.toLowerCase().includes(q) ||
-        r.membershipNo.toLowerCase().includes(q) ||
-        r.plotNumber.toLowerCase().includes(q) ||
-        r.transactionRef.toLowerCase().includes(q) ||
-        bank.includes(q) ||
-        (r.slip?.slipNumber && r.slip.slipNumber.toLowerCase().includes(q))
-      );
-    }
-    return true;
-  });
+  // Filter receipts is now handled by the server
+  const filteredReceipts = receipts;
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
@@ -365,8 +373,8 @@ export default function AdminReceiptsPage() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search member, plot, slip #..."
             className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:border-teal-600"
           />
