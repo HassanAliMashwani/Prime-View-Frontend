@@ -31,6 +31,7 @@ export default function InventoryOverviewPage() {
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [loading, setLoading] = useState<boolean>(!init);
   const [stats, setStats] = useState<InventoryStats[]>(init || []);
   const [fromDate, setFromDate] = useState<string>('');
@@ -50,10 +51,7 @@ export default function InventoryOverviewPage() {
   const canAccess = isSuper || Boolean(session?.permissions?.can_view_inventory);
 
   const loadStats = useCallback(async (p = page) => {
-    setStats((prev) => {
-      if (prev.length === 0) setLoading(true);
-      return prev;
-    });
+    setLoading(true);
     setError('');
     try {
       const data = await getInventoryStats(fromDate || undefined, toDate || undefined, undefined, session?.token, p, PAGE_SIZE);
@@ -65,6 +63,7 @@ export default function InventoryOverviewPage() {
     } catch {
       setError('Something went wrong. Please try again.');
     } finally {
+      setHasLoadedOnce(true);
       setLoading(false);
     }
   }, [fromDate, toDate, session?.token]);
@@ -217,7 +216,7 @@ export default function InventoryOverviewPage() {
 
       {/* Mobile Stacked Cards (< 768px) */}
       <div className="md:hidden space-y-3">
-        {loading && stats.length === 0 ? (
+        {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 animate-pulse">
               <div className="h-5 w-32 bg-slate-200 rounded-md" />
@@ -286,7 +285,7 @@ export default function InventoryOverviewPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-sm">
-                {loading && stats.length === 0 ? (
+                {loading ? (
                   Array.from({ length: 6 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
                       <td className="py-4 px-6"><div className="h-4 w-32 bg-slate-200/80 rounded-md" /></td>

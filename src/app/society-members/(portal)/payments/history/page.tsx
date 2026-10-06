@@ -12,12 +12,20 @@ import {
   Calendar,
   ArrowLeft,
   FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
 import { MemberHistorySkeleton } from '@/components/ui/skeleton';
 
 export default function PaymentHistoryPage() {
   const { transactions, plots, fetchPaymentHistory, profile, isLoading } = useMemberStore();
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('all');
+
+  useEffect(() => {
+    if (!isLoading) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     fetchPaymentHistory(selectedFilter);
@@ -101,7 +109,7 @@ export default function PaymentHistoryPage() {
                 onChange={(e) => setSelectedFilter(e.target.value)}
                 className="w-full sm:w-48 appearance-none pl-8 pr-8 py-2.5 text-xs font-semibold rounded-xl border border-black/10 bg-[#FAF9F5] text-[#151914] focus:outline-none focus:ring-2 focus:ring-[#43612B]"
               >
-                <option value="all">All Properties ({plots.length})</option>
+                <option value="all">All Properties</option>
                 {plots.map((p) => (
                   <option key={p.id} value={p.id}>
                     Plot {p.plotNumber} ({p.size})
@@ -124,8 +132,13 @@ export default function PaymentHistoryPage() {
         </div>
 
         {/* Transactions Table */}
-        {isLoading && transactions.length === 0 ? (
+        {!hasLoadedOnce && isLoading && transactions.length === 0 ? (
           <MemberHistorySkeleton />
+        ) : isLoading ? (
+          <div className="bg-white rounded-2xl border border-black/[0.08] p-16 text-center space-y-3 shadow-xs flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 text-[#43612B] animate-spin" />
+            <p className="text-xs font-medium text-[#6B7462]">Loading transaction history...</p>
+          </div>
         ) : transactions.length === 0 ? (
           <div className="bg-white rounded-3xl border border-black/[0.08] p-12 text-center space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">

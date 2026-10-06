@@ -27,6 +27,7 @@ import {
   Sparkles,
   Info,
   Trash2,
+  Loader2,
 } from 'lucide-react';
 import { AdminSession, AdminUser, BlockId } from '@/lib/mock/types';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
@@ -79,6 +80,7 @@ export default function TeamsPage() {
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [subAdmins, setSubAdmins] = useState<AdminUser[]>(init || []);
   const [loading, setLoading] = useState(!init);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -148,7 +150,10 @@ export default function TeamsPage() {
       if (currentReq !== reqIdRef.current) return;
       setFetchError('Network communication error while loading team members.');
     } finally {
-      if (currentReq === reqIdRef.current) setLoading(false);
+      if (currentReq === reqIdRef.current) {
+        setHasLoadedOnce(true);
+        setLoading(false);
+      }
     }
   }, [searchTerm, statusFilter, page]);
 
@@ -445,7 +450,7 @@ export default function TeamsPage() {
             onChange={(e) => setStatusFilter(e.target.value as any)}
             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none cursor-pointer"
           >
-            <option value="all">All Members ({subAdmins.length})</option>
+            <option value="all">All Members</option>
             <option value="active">Active Only</option>
             <option value="suspended">Suspended Only</option>
           </select>
@@ -453,7 +458,15 @@ export default function TeamsPage() {
       </div>
 
       {/* Loading State */}
-      {loading && subAdmins.length === 0 && <AdminTableSkeleton rows={4} columns={5} />}
+      {!hasLoadedOnce && loading && subAdmins.length === 0 && <AdminTableSkeleton rows={4} columns={5} />}
+
+      {/* Loading State during filter/search */}
+      {hasLoadedOnce && loading && (
+        <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs flex flex-col items-center justify-center gap-2">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
+          <span className="text-xs font-medium text-slate-500">Loading team members...</span>
+        </div>
+      )}
 
       {/* Error State */}
       {!loading && fetchError && (

@@ -40,8 +40,15 @@ function PaymentsContent() {
   const initialPlotParam = searchParams.get('plot');
 
   const { schedules, plots, profile, fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [activeTab, setActiveTab] = useState<'installment' | 'one_time'>('installment');
   const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoading]);
 
   // Receipts and Verification Slip state
   const [receipts, setReceipts] = useState<ReceiptSubmission[]>([]);
@@ -474,7 +481,7 @@ function PaymentsContent() {
         )}
 
 
-        {isLoading && schedules.length === 0 ? (
+        {!hasLoadedOnce && isLoading && schedules.length === 0 ? (
           <MemberPaymentsSkeleton />
         ) : schedules.length === 0 ? (
           /* Single unified empty state for zero-plot accounts */
@@ -515,15 +522,6 @@ function PaymentsContent() {
               >
                 <Calendar className="w-4 h-4" />
                 <span>Installment</span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                    activeTab === 'installment'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-black/5 text-[#6B7462]'
-                  }`}
-                >
-                  {installmentPlots.length}
-                </span>
               </button>
 
               <button
@@ -537,15 +535,6 @@ function PaymentsContent() {
               >
                 <Receipt className="w-4 h-4" />
                 <span>Full Payment</span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-mono font-bold ${
-                    activeTab === 'one_time'
-                      ? 'bg-white/20 text-white'
-                      : 'bg-black/5 text-[#6B7462]'
-                  }`}
-                >
-                  {oneTimePlots.length}
-                </span>
               </button>
             </div>
 

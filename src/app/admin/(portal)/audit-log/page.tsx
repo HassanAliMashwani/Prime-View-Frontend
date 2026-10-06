@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Layers,
   RefreshCw,
+  Loader2,
 } from 'lucide-react';
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
@@ -52,6 +53,7 @@ export default function AuditLogPage() {
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [logs, setLogs] = useState<AuditEntry[]>(init?.logs || []);
   const [totalCount, setTotalCount] = useState(init?.total || 0);
   const [loading, setLoading] = useState(!init);
@@ -127,7 +129,10 @@ export default function AuditLogPage() {
         setCache(`/audit-logs:${currentSession.adminId}`, { logs: res.logs || [], total: res.totalCount || 0 });
       }
     }
-    setLoading(false);
+    if (currentReq === reqIdRef.current) {
+      setHasLoadedOnce(true);
+      setLoading(false);
+    }
   }, [searchQuery, actorFilter, entityFilter, startDate, endDate, page]);
 
   useEffect(() => {
@@ -214,7 +219,7 @@ export default function AuditLogPage() {
     }
   };
 
-  if (loading && logs.length === 0) {
+  if (!hasLoadedOnce && loading && logs.length === 0) {
     return <AdminAuditLogSkeleton />;
   }
 
@@ -358,7 +363,16 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-              {logs.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
+                      <span className="text-xs font-medium">Loading audit records...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
                     No matching audit records found.

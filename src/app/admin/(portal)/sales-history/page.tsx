@@ -23,7 +23,8 @@ import {
   Award,
   Sparkles,
   FileCheck2,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
@@ -62,6 +63,7 @@ function SalesHistoryContent() {
   };
   const init = getInit();
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [loading, setLoading] = useState<boolean>(!init);
   const [items, setItems] = useState<SalesHistoryItem[]>(init?.items || []);
   const [kpis, setKpis] = useState<SalesHistoryKpis>(init?.kpis || {
@@ -137,6 +139,7 @@ function SalesHistoryContent() {
       console.error('request failed');
       setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
     } finally {
+      setHasLoadedOnce(true);
       if (!background) setLoading(false);
     }
   }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
@@ -210,7 +213,7 @@ function SalesHistoryContent() {
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
-  if (loading && items.length === 0) {
+  if (!hasLoadedOnce && loading && items.length === 0) {
     return <AdminSalesHistorySkeleton />;
   }
 
@@ -527,7 +530,12 @@ function SalesHistoryContent() {
 
         {/* Mobile Stacked Cards (< 768px, print:hidden) */}
         <div className="md:hidden print:hidden space-y-3 p-4">
-          {items.length === 0 ? (
+          {loading ? (
+            <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+              <span className="text-xs font-medium">Loading sales records...</span>
+            </div>
+          ) : items.length === 0 ? (
             <div className="py-12 text-center text-slate-400">
               No plot bookings found for the selected date range or filter criteria.
             </div>
@@ -637,7 +645,16 @@ function SalesHistoryContent() {
             </thead>
             {/* Screen-Only Paginated Table Rows */}
             <tbody className="divide-y divide-slate-100 text-xs print:hidden">
-              {items.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} className="py-12 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                      <span className="text-xs font-medium">Loading sales records...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
                     No plot bookings found for the selected date range or filter criteria.

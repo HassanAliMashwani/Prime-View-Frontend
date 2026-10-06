@@ -28,7 +28,8 @@ import {
   FileText,
   Trash2,
   Copy,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
@@ -65,6 +66,7 @@ function CustomersDirectoryContent() {
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [loading, setLoading] = useState<boolean>(!init);
   const [customers, setCustomers] = useState<CustomerDirectoryEntry[]>(init?.customers || []);
   const [error, setError] = useState<string | null>(null);
@@ -182,7 +184,10 @@ function CustomersDirectoryContent() {
         return [];
       });
     } finally {
-      if (reqId === reqIdRef.current && !background) setLoading(false);
+      if (reqId === reqIdRef.current) {
+        setHasLoadedOnce(true);
+        if (!background) setLoading(false);
+      }
     }
   }, []);
 
@@ -338,7 +343,7 @@ function CustomersDirectoryContent() {
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
-  if (loading && customers.length === 0) {
+  if (!hasLoadedOnce && loading && customers.length === 0) {
     return <AdminTableSkeleton rows={6} columns={6} />;
   }
 
@@ -437,67 +442,65 @@ function CustomersDirectoryContent() {
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'all'
                 ? 'bg-slate-900 text-white border-slate-900'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            All Members ({statusFilter === 'all' ? totalRecords : '-'})
+            All Members
           </button>
           <button
             onClick={() => setStatusFilter('needs_registration')}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'needs_registration'
                 ? 'bg-amber-600 text-white border-amber-600'
                 : 'bg-white text-amber-800 border-amber-200 hover:bg-amber-50'
             }`}
           >
-            <span>Needs Registration</span>
-            {needsRegistrationCount > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                statusFilter === 'needs_registration' ? 'bg-white text-amber-800' : 'bg-amber-100 text-amber-900'
-              }`}>
-                {needsRegistrationCount}
-              </span>
-            )}
+            Needs Registration
           </button>
           <button
             onClick={() => setStatusFilter('active')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'active'
                 ? 'bg-emerald-700 text-white border-emerald-700'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            Active ({activeCount})
+            Active
           </button>
           <button
             onClick={() => setStatusFilter('suspended')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'suspended'
                 ? 'bg-rose-700 text-white border-rose-700'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            Suspended ({statusFilter === 'suspended' ? totalRecords : '-'})
+            Suspended
           </button>
           <button
             onClick={() => setStatusFilter('strikes')}
-            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all ${
+            className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'strikes'
                 ? 'bg-amber-600 text-white border-amber-600'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
             }`}
           >
-            Has Strikes ({withStrikesCount})
+            Has Strikes
           </button>
         </div>
       </div>
 
       {/* Mobile Stacked Cards (< 768px) */}
       <div className="md:hidden space-y-3">
-        {customers.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+            <span className="text-xs font-medium">Loading members...</span>
+          </div>
+        ) : customers.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-400">
             No customers found matching the search or filter criteria.
           </div>
@@ -774,7 +777,16 @@ function CustomersDirectoryContent() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
-              {customers.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="py-12 text-center text-slate-500">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                    <span className="text-xs font-medium">Loading members...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : customers.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
                     No customers found matching the search or filter criteria.

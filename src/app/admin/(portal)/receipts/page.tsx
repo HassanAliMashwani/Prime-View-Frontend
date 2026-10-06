@@ -23,6 +23,7 @@ import {
   Receipt,
   FileText,
   Lock,
+  Loader2,
 } from 'lucide-react';
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
@@ -49,6 +50,7 @@ export default function AdminReceiptsPage() {
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init || []);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(!init);
@@ -107,7 +109,10 @@ export default function AdminReceiptsPage() {
         setCache(`/receipts:${currentSession.adminId}`, res.receipts || []);
       }
     }
-    if (currentReq === reqIdRef.current) setLoading(false);
+    if (currentReq === reqIdRef.current) {
+      setHasLoadedOnce(true);
+      setLoading(false);
+    }
   }, [page, statusFilter, searchQuery]);
 
   useEffect(() => {
@@ -236,7 +241,7 @@ export default function AdminReceiptsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  if (loading && receipts.length === 0) {
+  if (!hasLoadedOnce && loading && receipts.length === 0) {
     return <AdminTableSkeleton rows={5} columns={6} />;
   }
 
@@ -391,7 +396,12 @@ export default function AdminReceiptsPage() {
       {/* Receipts List */}
       <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false}>
       <div className="space-y-4">
-        {filteredReceipts.length === 0 ? (
+        {loading ? (
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3 shadow-xs flex flex-col items-center justify-center">
+            <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
+            <p className="text-xs font-medium text-slate-500">Loading receipts...</p>
+          </div>
+        ) : filteredReceipts.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3 shadow-xs">
             <Receipt className="w-12 h-12 text-slate-300 mx-auto" />
             <h3 className="font-serif font-bold text-base text-slate-800">

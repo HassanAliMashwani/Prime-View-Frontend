@@ -15,7 +15,8 @@ import {
   RotateCcw,
   MapPin,
   Lock,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getReservations, updateReservationNote, confirmReservation, releaseReservation, ReservationWithConflict } from '@/lib/dal/reservations';
@@ -51,6 +52,7 @@ export default function ReservationsPage() {
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init || []);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [search, setSearch] = useState<string>('');
@@ -110,7 +112,10 @@ export default function ReservationsPage() {
         console.error('request failed');
       }
     } finally {
-      if (currentReq === reqIdRef.current) setLoading(false);
+      if (currentReq === reqIdRef.current) {
+        setHasLoadedOnce(true);
+        setLoading(false);
+      }
     }
   }, [search, blockFilter, activeTab, page]);
 
@@ -223,7 +228,7 @@ export default function ReservationsPage() {
     }
   };
 
-  if ((loading && reservations.length === 0) || !session) {
+  if ((!hasLoadedOnce && loading && reservations.length === 0) || !session) {
     return <AdminTableSkeleton rows={6} columns={6} />;
   }
 
@@ -258,9 +263,6 @@ export default function ReservationsPage() {
             }`}
           >
             <span>Active Reservations</span>
-            <span className="bg-amber-900 text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
-              {activeReservations.length}
-            </span>
           </button>
 
           <button
@@ -273,9 +275,6 @@ export default function ReservationsPage() {
           >
             <History className="w-3.5 h-3.5" />
             <span>Resolved History</span>
-            <span className="bg-indigo-950 text-white px-2 py-0.5 rounded-full text-[10px] font-mono font-bold">
-              {historyReservations.length}
-            </span>
           </button>
         </div>
       </div>
@@ -341,7 +340,12 @@ export default function ReservationsPage() {
 
       {/* Reservations Table / Cards - Crisp White List */}
       <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false}>
-        {displayedReservations.length === 0 ? (
+        {loading ? (
+          <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+            <span className="text-xs font-medium">Loading reservations...</span>
+          </div>
+        ) : displayedReservations.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
             <Building2 className="w-10 h-10 mx-auto text-slate-300 mb-3" />
             <div className="font-serif text-base text-slate-800 font-bold">No Reservations Found</div>
