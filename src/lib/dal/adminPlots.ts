@@ -225,18 +225,11 @@ export async function getAdminPlotDetails(
     tokenFee: Number(r.tokenFee) || 0,
   }));
 
-  let owner: Customer | undefined = undefined;
+  const owner: Customer | undefined = p.currentOwner || undefined;
   let booking: Booking | undefined = undefined;
 
-  if (plot.currentOwnerId) {
-    const custRes = await apiGet<any>(`/customers/${plot.currentOwnerId}`, session?.token);
-    if (custRes.ok && custRes.data) {
-      owner = custRes.data;
-      const ownerAny = owner as any;
-      if (ownerAny && Array.isArray(ownerAny.bookings)) {
-        booking = ownerAny.bookings.find((b: any) => b.plotId === plotId);
-      }
-    }
+  if (Array.isArray(p.bookings)) {
+    booking = p.bookings.find((b: any) => b.plotId === plotId);
   }
 
   return { ok: true, plot, reservations, owner, booking };

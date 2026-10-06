@@ -104,6 +104,9 @@ export interface Plot {
   price: number;
   status: PlotStatus;
   currentOwnerId?: string;
+  currentOwner?: Customer;
+  reservations?: Reservation[];
+  bookings?: Booking[];
   amenityName?: string;  // e.g. 'Community Mosque', 'Hospital' for amenity plots
   // Phase 2 Two-Layer Locking
   lockedBy?: string;     // adminId holding the lock

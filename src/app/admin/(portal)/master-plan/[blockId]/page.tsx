@@ -281,9 +281,33 @@ function BlockPlotsContent() {
     setSelectedPlot(plot);
     setActionError(null);
     setIsEditingPrice(false);
-    setSelectedPlotOwner(null);
-    setSelectedPlotBooking(null);
-    setPlotReservations([]);
+
+    // If that plot has reservations, show them immediately
+    if (Array.isArray(plot.reservations) && plot.reservations.length > 0) {
+      setPlotReservations(
+        plot.reservations.map((r: any) => ({
+          ...r,
+          tokenFee: Number(r.tokenFee) || 0,
+        }))
+      );
+    } else {
+      setPlotReservations([]);
+    }
+
+    // If currentOwner already has fullName, show that member immediately
+    if (plot.currentOwner && plot.currentOwner.fullName) {
+      setSelectedPlotOwner(plot.currentOwner);
+    } else {
+      setSelectedPlotOwner(null);
+    }
+
+    // If bookings already present on plot, show immediately
+    if (Array.isArray(plot.bookings)) {
+      const b = plot.bookings.find((x: any) => x.plotId === plot.id);
+      setSelectedPlotBooking(b || null);
+    } else {
+      setSelectedPlotBooking(null);
+    }
     
     setIsLoadingPlotDetails(true);
     const s = getActiveAdminSession();
