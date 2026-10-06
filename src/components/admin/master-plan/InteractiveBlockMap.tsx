@@ -123,10 +123,14 @@ export default function InteractiveBlockMap({
     const map = new Map<string, Plot>();
     plots.forEach((p) => {
       map.set(p.plotNumber.toLowerCase(), p);
-      // Also map without prefixes if present (e.g. 'el-233' -> '233')
+      // Also map without prefixes if present (e.g. 'el-233' -> '233', 'A-01' -> '01' & '1')
       const stripped = p.plotNumber.replace(/^[a-z]+-/i, '').toLowerCase();
       if (stripped !== p.plotNumber.toLowerCase()) {
         map.set(stripped, p);
+      }
+      const unpadded = stripped.replace(/^0+/, '');
+      if (unpadded && unpadded !== stripped) {
+        map.set(unpadded, p);
       }
     });
     return map;

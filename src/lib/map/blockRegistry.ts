@@ -4,6 +4,7 @@ import { npfPhase1BlockConfig } from './npfPhase1BlockAreas';
 import { commercialBlockConfig } from './commercialBlockAreas';
 import { royalBlockConfig } from './royalBlockAreas';
 import { overseasBlockConfig } from './overseasBlockAreas';
+import { abbottBlockConfig } from './abbottBlockAreas';
 
 /**
  * Central registry of all interactive traced block maps.
@@ -19,6 +20,7 @@ export const blockMapRegistry: Record<string, BlockMapConfig> = {
   commercial: commercialBlockConfig,
   royal: royalBlockConfig,
   overseas: overseasBlockConfig,
+  abbott: abbottBlockConfig,
 };
 
 
