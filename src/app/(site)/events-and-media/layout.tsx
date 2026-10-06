@@ -15,5 +15,15 @@ export const metadata: Metadata = {
 };
 
 export default function EventsAndMediaLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <link
+        rel="preload"
+        as="image"
+        href="/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135_thumb.webp"
+        fetchPriority="high"
+      />
+      {children}
+    </>
+  );
 }

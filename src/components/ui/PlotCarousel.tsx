@@ -28,6 +28,7 @@ export interface PlotItem {
 
 export const plots: PlotItem[] = [
   {
+    id: "plan-05-marla",
     size: "05 Marla",
     tag: "Residential",
     dimensions: "25 x 50",
@@ -42,6 +43,7 @@ export const plots: PlotItem[] = [
     image: "/new assests/our plan assests/card 1.webp",
   },
   {
+    id: "plan-7-5-marla",
     size: "7.5 Marla",
     tag: "Residential",
     dimensions: "30 x 40",
@@ -56,6 +58,7 @@ export const plots: PlotItem[] = [
     image: "/new assests/our plan assests/card 2.webp",
   },
   {
+    id: "plan-10-marla",
     size: "10 Marla",
     tag: "Residential",
     dimensions: "35 x 70",
@@ -70,6 +73,7 @@ export const plots: PlotItem[] = [
     image: "/new assests/our plan assests/card 3.webp",
   },
   {
+    id: "plan-13-marla",
     size: "13 Marla",
     tag: "Residential",
     dimensions: "40 x 80",
@@ -84,6 +88,7 @@ export const plots: PlotItem[] = [
     image: "/new assests/our plan assests/card 4.webp",
   },
   {
+    id: "plan-01-kanal",
     size: "01 Kanal",
     tag: "Residential",
     dimensions: "50 x 100",
@@ -98,6 +103,7 @@ export const plots: PlotItem[] = [
     image: "/new assests/our plan assests/card 5.webp",
   },
   {
+    id: "plan-02-kanal",
     size: "02 Kanal",
     tag: "Residential",
     dimensions: "75 x 120",
@@ -184,7 +190,20 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
       {/* 5-Card Physical Swapping Stage */}
       <div className="relative w-full max-w-6xl h-[670px] sm:h-[700px] mx-auto overflow-hidden">
         {data.map((plot, index) => {
-          const isActive = index === activeIndex;
+          let offset = (index - activeIndex + data.length) % data.length;
+          if (offset > data.length / 2) offset -= data.length;
+
+          const isActive = offset === 0;
+          const isSide = !isMobile && Math.abs(offset) === 1;
+          const isVisible = isActive || isSide;
+
+          const imgLoading: "eager" | "lazy" = isVisible ? "eager" : "lazy";
+          const imgDecoding: "auto" | "async" = isVisible ? "auto" : "async";
+          const imgFetchPriority: "high" | "auto" | "low" = isActive
+            ? "high"
+            : isSide
+            ? "auto"
+            : "low";
 
           return (
             <div
@@ -221,8 +240,9 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
                   <img
                     src={normalizePlanCardImage(plot.image)}
                     alt={`Prime View ${plot.size} plot`}
-                    loading={index === 0 ? "eager" : "lazy"}
-                    decoding="async"
+                    loading={imgLoading}
+                    decoding={imgDecoding}
+                    fetchPriority={imgFetchPriority}
                     className="w-full h-full object-cover object-center"
                   />
                 </div>

@@ -262,7 +262,6 @@ export default function OurPlansPage() {
               src="/new assests/our plan assests/hero background.jpeg?v=2"
               alt="Prime View Mountain Valley Landscape"
               fill
-              priority
               className="object-cover object-center"
               sizes="100vw"
             />

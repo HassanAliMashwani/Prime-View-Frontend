@@ -139,7 +139,6 @@ export default function EventsAndMediaPage() {
             src="/new assests/our plan assests/hero background.jpeg?v=2"
             alt="Prime View Events & Media Hero Background"
             fill
-            priority
             className="object-cover object-center"
             sizes="100vw"
           />

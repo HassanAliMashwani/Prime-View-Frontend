@@ -15,5 +15,25 @@ export const metadata: Metadata = {
 };
 
 export default function OurPlansLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <>
+      <link
+        rel="preload"
+        as="image"
+        href="/new assests/our plan assests/card 2.webp"
+        fetchPriority="high"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="/new assests/our plan assests/card 1.webp"
+      />
+      <link
+        rel="preload"
+        as="image"
+        href="/new assests/our plan assests/card 3.webp"
+      />
+      {children}
+    </>
+  );
 }

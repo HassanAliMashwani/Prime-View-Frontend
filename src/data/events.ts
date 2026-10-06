@@ -13,7 +13,7 @@ export interface EventData {
 
 export const eventsData: EventData[] = [
   {
-    id: "pre-launch-ceremony",
+    id: "event-pre-launch-ceremony",
     title: "Pre-Launch Ceremony",
     subtitle: "Prime View Cooperative Housing Society Abbottabad",
     date: "Monday, 17 August | 12:00 PM",
