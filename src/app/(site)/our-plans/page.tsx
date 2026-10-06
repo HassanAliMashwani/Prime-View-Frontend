@@ -43,12 +43,12 @@ function ScallopedBadge({ children }: { children: React.ReactNode }) {
 }
 
 const DEFAULT_CARD_IMAGES: Record<number, string> = {
-  0: '/new assests/our plan assests/card 1.png',
-  1: '/new assests/our plan assests/card 2.png',
-  2: '/new assests/our plan assests/card 3.png',
-  3: '/new assests/our plan assests/card 4.png',
-  4: '/new assests/our plan assests/card 5.png',
-  5: '/new assests/our plan assests/card 6.png',
+  0: '/new assests/our plan assests/card 1.webp',
+  1: '/new assests/our plan assests/card 2.webp',
+  2: '/new assests/our plan assests/card 3.webp',
+  3: '/new assests/our plan assests/card 4.webp',
+  4: '/new assests/our plan assests/card 5.webp',
+  5: '/new assests/our plan assests/card 6.webp',
 };
 
 function getPlanSortRank(block: { id: string; title?: string; metadata?: any }): number {
@@ -141,7 +141,7 @@ export default function OurPlansPage() {
           }
 
           const rank = getPlanSortRank(block);
-          const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.png';
+          const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.webp';
           const image = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage);
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label

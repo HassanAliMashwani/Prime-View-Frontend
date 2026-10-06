@@ -30,7 +30,6 @@ import { siteConfig } from "@/data/site";
  */
 
 export function ReferenceAboutView() {
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   return (
@@ -424,33 +423,6 @@ export function ReferenceAboutView() {
         </div>
 
       </div>
-
-      {/* ══════════════════════════════════════════════════════════════
-          VIDEO TOUR MODAL
-      ══════════════════════════════════════════════════════════════ */}
-      {isVideoModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="relative w-full max-w-4xl bg-black rounded-3xl overflow-hidden shadow-2xl border border-white/20">
-            <button
-              onClick={() => setIsVideoModalOpen(false)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white text-white hover:text-black flex items-center justify-center backdrop-blur-md transition-all cursor-pointer"
-              aria-label="Close Video"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            <div className="relative aspect-video w-full bg-black">
-              <video
-                src="/new assests/Vedios/low qual vedio drone shoot.mp4"
-                controls
-                autoPlay
-                className="w-full h-full object-cover"
-              >
-                Your browser does not support the video tag.
-              </video>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════
           PHOTO LIGHTBOX PREVIEW MODAL

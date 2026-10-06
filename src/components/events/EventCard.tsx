@@ -2,6 +2,7 @@ import React from "react";
 import Image from "next/image";
 import { Play, Calendar, MapPin, ArrowRight } from "lucide-react";
 import { EventData } from "@/data/events";
+import { getEventImageUrls } from "@/lib/images";
 
 interface EventCardProps {
   event: EventData;
@@ -11,6 +12,8 @@ interface EventCardProps {
 
 export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical", onClick }) => {
   const isHorizontal = layout === "horizontal";
+  const { thumb: coverThumb } = getEventImageUrls(event.coverImage);
+  const displayCover = coverThumb || event.coverImage;
 
   return (
     <div
@@ -30,20 +33,22 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
             : "w-full h-56 sm:h-64"
         }`}
       >
-        {event.coverImage && (event.coverImage.startsWith("http://") || event.coverImage.startsWith("https://")) ? (
+        {displayCover && (displayCover.startsWith("http://") || displayCover.startsWith("https://")) ? (
           <img
-            src={event.coverImage}
+            src={displayCover}
             alt={`${event.title} Cover`}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
           />
         ) : (
           <Image
-            src={event.coverImage}
+            src={displayCover}
             alt={`${event.title} Cover`}
             fill
+            loading="lazy"
             className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
             sizes="(max-width: 768px) 100vw, 50vw"
-            priority
           />
         )}
         {/* Subtle Gradient Overlay */}
@@ -105,28 +110,35 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
           {/* Mini Gallery Preview: thumbnails and +4 vertically centered in one row inside card */}
           {isHorizontal && event.gallery.length > 0 && (
             <div className="flex items-center gap-2 sm:gap-2.5 mb-4 overflow-x-auto py-1">
-              {event.gallery.slice(0, 4).map((img, idx) => (
-                <div
-                  key={idx}
-                  className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0 self-center"
-                >
-                  {img && (img.startsWith("http://") || img.startsWith("https://")) ? (
-                    <img
-                      src={img}
-                      alt="Gallery Preview"
-                      className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300"
-                    />
-                  ) : (
-                    <Image
-                      src={img}
-                      alt="Gallery Preview"
-                      fill
-                      className="object-cover group-hover/thumb:scale-110 transition-transform duration-300"
-                      sizes="64px"
-                    />
-                  )}
-                </div>
-              ))}
+              {event.gallery.slice(0, 4).map((img, idx) => {
+                const { thumb: thumbUrl } = getEventImageUrls(img);
+                const displayThumb = thumbUrl || img;
+                return (
+                  <div
+                    key={idx}
+                    className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0 self-center"
+                  >
+                    {displayThumb && (displayThumb.startsWith("http://") || displayThumb.startsWith("https://")) ? (
+                      <img
+                        src={displayThumb}
+                        alt="Gallery Preview"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300"
+                      />
+                    ) : (
+                      <Image
+                        src={displayThumb}
+                        alt="Gallery Preview"
+                        fill
+                        loading="lazy"
+                        className="object-cover group-hover/thumb:scale-110 transition-transform duration-300"
+                        sizes="64px"
+                      />
+                    )}
+                  </div>
+                );
+              })}
               {event.gallery.length > 4 && (
                 <div className="w-14 h-10 sm:w-16 sm:h-11 rounded-lg bg-[#FAF9F5] border border-black/[0.08] flex items-center justify-center text-[#43612B] text-xs font-bold shrink-0 self-center">
                   +{event.gallery.length - 4}

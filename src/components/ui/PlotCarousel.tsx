@@ -39,7 +39,7 @@ export const plots: PlotItem[] = [
     halfYearly: "90,000",
     halfYearlyCount: 8,
     possession: "200,000",
-    image: "/new assests/our plan assests/card 1.png",
+    image: "/new assests/our plan assests/card 1.webp",
   },
   {
     size: "7.5 Marla",
@@ -53,7 +53,7 @@ export const plots: PlotItem[] = [
     halfYearly: "130,000",
     halfYearlyCount: 8,
     possession: "295,000",
-    image: "/new assests/our plan assests/card 2.png",
+    image: "/new assests/our plan assests/card 2.webp",
   },
   {
     size: "10 Marla",
@@ -67,7 +67,7 @@ export const plots: PlotItem[] = [
     halfYearly: "175,000",
     halfYearlyCount: 8,
     possession: "400,000",
-    image: "/new assests/our plan assests/card 3.png",
+    image: "/new assests/our plan assests/card 3.webp",
   },
   {
     size: "13 Marla",
@@ -81,7 +81,7 @@ export const plots: PlotItem[] = [
     halfYearly: "230,000",
     halfYearlyCount: 8,
     possession: "620,000",
-    image: "/new assests/our plan assests/card 4.png",
+    image: "/new assests/our plan assests/card 4.webp",
   },
   {
     size: "01 Kanal",
@@ -95,7 +95,7 @@ export const plots: PlotItem[] = [
     halfYearly: "360,000",
     halfYearlyCount: 8,
     possession: "800,000",
-    image: "/new assests/our plan assests/card 5.png",
+    image: "/new assests/our plan assests/card 5.webp",
   },
   {
     size: "02 Kanal",
@@ -108,7 +108,7 @@ export const plots: PlotItem[] = [
     monthlyCount: 39,
     halfYearly: "1,080,000",
     halfYearlyCount: 8,
-    image: "/new assests/our plan assests/card 6.png",
+    image: "/new assests/our plan assests/card 6.webp",
   },
 ];
 
@@ -218,21 +218,13 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
 
                 {/* Card Image */}
                 <div className="relative w-full overflow-hidden" style={{ height: "260px" }}>
-                  {plot.image && (plot.image.startsWith("http://") || plot.image.startsWith("https://")) ? (
-                    <img
-                      src={plot.image}
-                      alt={`Prime View ${plot.size} plot`}
-                      className="w-full h-full object-cover object-center"
-                    />
-                  ) : (
-                    <Image
-                      src={plot.image}
-                      alt={`Prime View ${plot.size} plot`}
-                      fill
-                      className="object-cover object-center"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                    />
-                  )}
+                  <img
+                    src={plot.image}
+                    alt={`Prime View ${plot.size} plot`}
+                    loading={index === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    className="w-full h-full object-cover object-center"
+                  />
                 </div>
 
                 {/* Card Body */}

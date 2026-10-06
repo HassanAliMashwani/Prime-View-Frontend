@@ -18,8 +18,8 @@ import {
 import { Plot } from '@/lib/mock/types';
 import { PLOT_STATUS_STYLES, SPECIAL_PLOT_STYLES, getPlotStyle } from '@/lib/constants/plotStatusStyles';
 
-import { getBlockMapConfig } from '@/lib/map/blockRegistry';
-import { TracedPlotArea } from '@/lib/map/types';
+import { getBlockMapConfig, loadBlockMapConfig } from '@/lib/map/blockRegistry';
+import { TracedPlotArea, BlockMapConfig } from '@/lib/map/types';
 
 interface InteractiveBlockMapProps {
   blockId: string;
@@ -42,7 +42,29 @@ export default function InteractiveBlockMap({
   categoryFilter = 'all',
   focusPlotId = null,
 }: InteractiveBlockMapProps) {
-  const config = getBlockMapConfig(blockId);
+  const [config, setConfig] = useState<BlockMapConfig | null>(() => getBlockMapConfig(blockId) || null);
+  const [loadingMap, setLoadingMap] = useState<boolean>(() => !config);
+
+  useEffect(() => {
+    let isMounted = true;
+    const cached = getBlockMapConfig(blockId);
+    if (cached) {
+      setConfig(cached);
+      setLoadingMap(false);
+      return;
+    }
+    setLoadingMap(true);
+    loadBlockMapConfig(blockId).then((loaded) => {
+      if (isMounted) {
+        setConfig(loaded || null);
+        setLoadingMap(false);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [blockId]);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Zoom & Pan State
@@ -136,8 +158,13 @@ export default function InteractiveBlockMap({
     return map;
   }, [plots]);
 
-  if (!config) {
-    return null;
+  if (loadingMap || !config) {
+    return (
+      <div className="relative w-full rounded-2xl bg-white p-8 border border-slate-200/80 shadow-xs flex flex-col items-center justify-center min-h-[460px] animate-pulse">
+        <div className="w-8 h-8 border-3 border-emerald-600/20 border-t-emerald-600 rounded-full animate-spin mb-3" />
+        <p className="text-xs font-semibold text-slate-500">Loading interactive block map...</p>
+      </div>
+    );
   }
 
   const { naturalWidth, naturalHeight, imageSrc, blockName, areas } = config;

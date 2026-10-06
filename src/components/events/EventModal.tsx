@@ -6,6 +6,7 @@ import Image from "next/image";
 import { X, Calendar, MapPin, Maximize2, Play } from "lucide-react";
 import { EventData } from "@/data/events";
 import { formatYouTubeEmbedUrl } from "@/lib/dal/youtube";
+import { getEventImageUrls } from "@/lib/images";
 
 interface EventModalProps {
   event: EventData;
@@ -152,6 +153,10 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
                   {event.gallery.slice(0, 9).map((img, idx) => {
+                    const { thumb: thumbUrl, full: fullUrl } = getEventImageUrls(img);
+                    const displayThumb = thumbUrl || img;
+                    const displayFull = fullUrl || img;
+
                     // Custom layout logic to fit each photo without any cropping
                   let colSpan = "col-span-1";
                   let aspect = "aspect-[3/4]";
@@ -181,20 +186,23 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                   return (
                     <div
                       key={idx}
-                      onClick={() => setLightboxImage(img)}
+                      onClick={() => setLightboxImage(displayFull)}
                       className={`group relative ${colSpan} ${aspect} ${bg} rounded-2xl overflow-hidden border border-black/[0.08] shadow-xs cursor-pointer hover:shadow-xl transition-all duration-300 flex items-center justify-center`}
                     >
-                      {img && (img.startsWith("http://") || img.startsWith("https://")) ? (
+                      {displayThumb && (displayThumb.startsWith("http://") || displayThumb.startsWith("https://")) ? (
                         <img
-                          src={img}
+                          src={displayThumb}
                           alt={`${event.title} Photo ${idx + 1}`}
+                          loading="lazy"
+                          decoding="async"
                           className={`w-full h-full ${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
                         />
                       ) : (
                         <Image
-                          src={img}
+                          src={displayThumb}
                           alt={`${event.title} Photo ${idx + 1}`}
                           fill
+                          loading="lazy"
                           className={`${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
                           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 66vw, 50vw"
                         />

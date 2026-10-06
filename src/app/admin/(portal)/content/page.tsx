@@ -268,19 +268,19 @@ export default function ContentCMSPage() {
       location: locked.metadata.location,
       contact: (locked.metadata.contact as string) || '',
       website: (locked.metadata.website as string) || '',
-      imageUrl: normalizeImagePath(locked.metadata.imageUrl || '') || (locked.id === 'plan-02-kanal' ? '/new assests/our plan assests/card 6.png' : (locked.id.includes('pre-launch') ? '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg' : '')),
+      imageUrl: normalizeImagePath(locked.metadata.imageUrl || '') || (locked.id === 'plan-02-kanal' ? '/new assests/our plan assests/card 6.webp' : (locked.id.includes('pre-launch') ? '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.webp' : '')),
       galleryImages: Array.isArray(locked.metadata.galleryImages) && locked.metadata.galleryImages.length > 0 && !locked.metadata.galleryImages[0].includes('sample')
         ? (locked.metadata.galleryImages as string[]).map((img) => normalizeImagePath(img)).slice(0, 9)
         : (locked.id.includes('pre-launch')
           ? [
-              '/new assests/Events and media/event1/WhatsApp Image 2026-09-06 at 3.10.12 PM.jpeg',
-              '/new assests/Events and media/event1/QAS07025.JPG_202609031129.jpeg',
-              '/new assests/Events and media/event1/QAS07031.JPG_2K_202609031134.jpeg',
-              '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.jpeg',
-              '/new assests/Events and media/event1/QAS07562_improved.png',
-              '/new assests/Events and media/event1/QAS07590_glow.png',
-              '/new assests/Events and media/event1/QAS07600.png_2K_202609031145.jpeg',
-              '/new assests/Events and media/event1/QAS07627.JPG_202609031125.jpeg',
+              '/new assests/Events and media/event1/WhatsApp Image 2026-09-06 at 3.10.12 PM.webp',
+              '/new assests/Events and media/event1/QAS07025.JPG_202609031129.webp',
+              '/new assests/Events and media/event1/QAS07031.JPG_2K_202609031134.webp',
+              '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.webp',
+              '/new assests/Events and media/event1/QAS07562_improved.webp',
+              '/new assests/Events and media/event1/QAS07590_glow.webp',
+              '/new assests/Events and media/event1/QAS07600.png_2K_202609031145.webp',
+              '/new assests/Events and media/event1/QAS07627.JPG_202609031125.webp',
             ]
           : []),
       videoUrl: (locked.metadata.videoUrl as string) || '',

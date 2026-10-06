@@ -1,23 +1,56 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MagneticWrapper } from "@/components/ui/MagneticWrapper";
 import { ScrollReveal } from "@/components/ui/ScrollReveal";
 
 export const HeroSection: React.FC = () => {
+  const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoSrc, setVideoSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Show poster image immediately; start video only after section is visible and idle
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry && entry.isIntersecting) {
+          if ("requestIdleCallback" in window) {
+            window.requestIdleCallback(
+              () => {
+                setVideoSrc("/new assests/Vedios/PV WEBSITE - Trim Home page.mp4");
+              },
+              { timeout: 1500 }
+            );
+          } else {
+            setTimeout(() => {
+              setVideoSrc("/new assests/Vedios/PV WEBSITE - Trim Home page.mp4");
+            }, 500);
+          }
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
+    <section ref={sectionRef} className="relative w-full h-dvh min-h-[600px] sm:min-h-[650px] flex flex-col justify-center items-center overflow-hidden">
       {/* Full-bleed background — Abbottabad mountain landscape */}
       <div className="absolute inset-0 z-0 bg-[url('/assets/hero/hero-video-poster.jpg')] bg-cover bg-center">
         <video
           ref={videoRef}
-          src="/new%20assests/Vedios/PV%20WEBSITE%20-%20Trim%20Home%20page.mp4"
+          src={videoSrc || undefined}
           poster="/assets/hero/hero-video-poster.jpg"
-          preload="auto"
+          preload="none"
           autoPlay
           muted
           loop

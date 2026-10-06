@@ -1,7 +1,6 @@
 import { Playfair_Display, Cormorant_Garamond, Outfit } from "next/font/google";
 import { Header } from "@/components/navigation/Header";
 import { Footer } from "@/components/navigation/Footer";
-import { GlobalVideoPreloader } from "@/components/ui/GlobalVideoPreloader";
 import { WhatsAppButton } from "@/components/ui/WhatsAppButton";
 import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 
@@ -35,7 +34,6 @@ export default function SiteLayout({
       <Header />
       <main className="flex-grow">{children}</main>
       <Footer />
-      <GlobalVideoPreloader />
 
       {/* Global WhatsApp FAB (automatically hidden on admin and member portals) */}
       <WhatsAppButton />
