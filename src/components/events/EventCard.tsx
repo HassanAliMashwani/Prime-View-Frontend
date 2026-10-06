@@ -1,13 +1,70 @@
+"use client";
+
 import React from "react";
 import { Play, Calendar, MapPin, ArrowRight } from "lucide-react";
 import { EventData } from "@/data/events";
 import { getEventImageUrls } from "@/lib/images";
+import { useFadeInImage } from "@/lib/hooks/useFadeInImage";
 
 interface EventCardProps {
   event: EventData;
   layout?: "horizontal" | "vertical";
   isFirst?: boolean;
   onClick: () => void;
+}
+
+function EventCoverImage({
+  src,
+  alt,
+  isFirst,
+}: {
+  src: string;
+  alt: string;
+  isFirst: boolean;
+}) {
+  const { imgRef, isLoaded, handleLoad } = useFadeInImage(src);
+
+  return (
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      loading={isFirst ? "eager" : "lazy"}
+      decoding="async"
+      onLoad={handleLoad}
+      className="w-full h-full object-cover object-center group-hover:scale-105"
+      style={{
+        opacity: isLoaded ? 1 : 0,
+        transition: "opacity 400ms ease-out, transform 500ms ease-out",
+      }}
+    />
+  );
+}
+
+function EventGalleryThumb({
+  src,
+  alt,
+}: {
+  src: string;
+  alt: string;
+}) {
+  const { imgRef, isLoaded, handleLoad } = useFadeInImage(src);
+
+  return (
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      onLoad={handleLoad}
+      className="w-full h-full object-cover group-hover/thumb:scale-110"
+      style={{
+        opacity: isLoaded ? 1 : 0,
+        transition: "opacity 400ms ease-out, transform 300ms ease-out",
+      }}
+    />
+  );
 }
 
 export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical", isFirst = false, onClick }) => {
@@ -27,19 +84,17 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
 
       {/* Cover Image Area */}
       <div
-        className={`relative overflow-hidden shrink-0 z-10 ${
+        className={`relative overflow-hidden shrink-0 z-10 bg-[#FAF9F5] ${
           isHorizontal
             ? "w-full md:w-[48%] h-64 md:h-auto min-h-[260px] md:min-h-[320px]"
             : "w-full h-56 sm:h-64"
         }`}
       >
         {displayCover && (
-          <img
+          <EventCoverImage
             src={displayCover}
             alt={`${event.title} Cover`}
-            loading={isFirst ? "eager" : "lazy"}
-            decoding="async"
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+            isFirst={isFirst}
           />
         )}
         {/* Subtle Gradient Overlay */}
@@ -107,15 +162,12 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
                 return (
                   <div
                     key={idx}
-                    className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0 self-center"
+                    className="relative w-14 h-10 sm:w-16 sm:h-11 rounded-lg overflow-hidden border border-black/10 shadow-2xs group/thumb shrink-0 self-center bg-[#FAF9F5]"
                   >
                     {displayThumb && (
-                      <img
+                      <EventGalleryThumb
                         src={displayThumb}
                         alt="Gallery Preview"
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover group-hover/thumb:scale-110 transition-transform duration-300"
                       />
                     )}
                   </div>

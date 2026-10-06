@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, FileText, CalendarDays, Clock, ArrowUpRight, KeyRound } from "lucide-react";
 import { normalizePlanCardImage } from "@/lib/images";
+import { useFadeInImage } from "@/lib/hooks/useFadeInImage";
 
 // Warm ivory palette
 const GREEN = "#43612B";
@@ -117,6 +118,39 @@ export const plots: PlotItem[] = [
     image: "/new assests/our plan assests/card 6.webp",
   },
 ];
+
+function PlanCardImage({
+  src,
+  alt,
+  loading,
+  decoding,
+  fetchPriority,
+}: {
+  src: string;
+  alt: string;
+  loading: "eager" | "lazy";
+  decoding: "auto" | "async";
+  fetchPriority: "high" | "auto" | "low";
+}) {
+  const { imgRef, isLoaded, handleLoad } = useFadeInImage(src);
+
+  return (
+    <img
+      ref={imgRef}
+      src={src}
+      alt={alt}
+      loading={loading}
+      decoding={decoding}
+      fetchPriority={fetchPriority}
+      onLoad={handleLoad}
+      className="w-full h-full object-cover object-center"
+      style={{
+        opacity: isLoaded ? 1 : 0,
+        transition: "opacity 400ms ease-out",
+      }}
+    />
+  );
+}
 
 export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
   // Use CMS items when provided and non-empty; otherwise fall back to the static array
@@ -236,14 +270,13 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
                 </div>
 
                 {/* Card Image */}
-                <div className="relative w-full overflow-hidden" style={{ height: "260px" }}>
-                  <img
+                <div className="relative w-full overflow-hidden bg-[#FAF9F7]" style={{ height: "260px" }}>
+                  <PlanCardImage
                     src={normalizePlanCardImage(plot.image)}
                     alt={`Prime View ${plot.size} plot`}
                     loading={imgLoading}
                     decoding={imgDecoding}
                     fetchPriority={imgFetchPriority}
-                    className="w-full h-full object-cover object-center"
                   />
                 </div>
 
