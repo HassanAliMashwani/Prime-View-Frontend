@@ -413,84 +413,17 @@ function PaymentsContent() {
         subtitle="Independent plot payment schedules, receipts & verified slips"
       />
 
-      <main className="p-6 sm:p-8 max-w-7xl w-full mx-auto space-y-8">
-        {/* ── Upcoming Installment Payment Alert (Requirement 7) ── */}
-        {upcomingAlert && (
-          <div
-            className={`rounded-2xl p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm transition-all ${
-              upcomingAlert.isOverdue
-                ? 'bg-rose-50/90 border-rose-200 text-rose-950'
-                : 'bg-[#FAF9F5] border-[#43612B]/30 text-[#151914]'
-            }`}
-          >
-            <div className="flex items-start gap-3.5">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                  upcomingAlert.isOverdue
-                    ? 'bg-rose-100 text-rose-700'
-                    : 'bg-[#EAF0E7] text-[#43612B]'
-                }`}
-              >
-                {upcomingAlert.isOverdue ? (
-                  <AlertCircle className="w-5 h-5" />
-                ) : (
-                  <Bell className="w-5 h-5" />
-                )}
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                      upcomingAlert.isOverdue
-                        ? 'bg-rose-200 text-rose-800'
-                        : 'bg-[#43612B] text-white'
-                    }`}
-                  >
-                    {upcomingAlert.isOverdue ? 'Overdue Installment Notice' : 'Upcoming Installment Alert'}
-                  </span>
-                  <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
-                </div>
-                <p className="text-xs text-[#4A5347] leading-relaxed">
-                  Installment #{upcomingAlert.installmentNumber} of{' '}
-                  <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
-                  {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
-                  <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit slip below once paid.
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                openUploadModalWithPlot(
-                  upcomingAlert?.plotId,
-                  upcomingAlert?.installmentNumber,
-                  upcomingAlert?.amount
-                )
-              }
-              className={`shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
-                upcomingAlert.isOverdue
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
-                  : 'bg-[#43612B] hover:bg-[#365222] text-white shadow-[#43612B]/20'
-              }`}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Upload Receipt for Inst. #{upcomingAlert.installmentNumber}</span>
-            </button>
-          </div>
-        )}
-
-
+      <main className="px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-8 max-w-7xl w-full mx-auto space-y-3 sm:space-y-8">
         {!hasLoadedOnce && isLoading && schedules.length === 0 ? (
           <MemberPaymentsSkeleton />
         ) : schedules.length === 0 ? (
           /* Single unified empty state for zero-plot accounts */
-          <div className="bg-white rounded-3xl border border-black/[0.08] p-12 text-center space-y-4 shadow-xs">
-            <div className="w-16 h-16 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">
-              <CreditCard className="w-8 h-8 text-[#43612B]/70" />
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-12 text-center space-y-3 sm:space-y-4 shadow-xs">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">
+              <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-[#43612B]/70" />
             </div>
             <div className="space-y-1">
-              <h4 className="font-display font-bold text-lg text-[#151914]">
+              <h4 className="font-display font-bold text-base sm:text-lg text-[#151914]">
                 No Properties Linked to Your Account Yet
               </h4>
               <p className="text-xs text-[#6B7462] max-w-md mx-auto leading-relaxed">
@@ -500,7 +433,7 @@ function PaymentsContent() {
             <div className="pt-2">
               <Link
                 href="/society-members/properties"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#43612B] text-white text-xs font-bold hover:bg-[#344c22] transition-colors"
+                className="w-full sm:w-auto min-h-[44px] justify-center inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#43612B] text-white text-xs font-bold hover:bg-[#344c22] transition-colors"
               >
                 <span>Check Properties</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -508,13 +441,13 @@ function PaymentsContent() {
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
-            {/* ── Top-Level Payment Type Tabs ── */}
-            <div className="flex items-center gap-3 border-b border-black/[0.08] pb-3">
+          <div className="space-y-3 sm:space-y-6">
+            {/* ── Top-Level Payment Type Tabs (Equal buttons in 1 row) ── */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 border-b border-black/[0.08] pb-3">
               <button
                 type="button"
                 onClick={() => handleTabChange('installment')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 cursor-pointer ${
+                className={`w-full sm:w-auto min-h-[44px] justify-center px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === 'installment'
                     ? 'bg-[#43612B] text-white shadow-[0_4px_16px_rgba(67,97,43,0.25)]'
                     : 'bg-white text-[#6B7462] hover:text-[#151914] border border-black/[0.08] hover:bg-black/5'
@@ -527,7 +460,7 @@ function PaymentsContent() {
               <button
                 type="button"
                 onClick={() => handleTabChange('one_time')}
-                className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2.5 cursor-pointer ${
+                className={`w-full sm:w-auto min-h-[44px] justify-center px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
                   activeTab === 'one_time'
                     ? 'bg-[#43612B] text-white shadow-[0_4px_16px_rgba(67,97,43,0.25)]'
                     : 'bg-white text-[#6B7462] hover:text-[#151914] border border-black/[0.08] hover:bg-black/5'
@@ -538,9 +471,75 @@ function PaymentsContent() {
               </button>
             </div>
 
+            {/* ── Upcoming Installment Payment Alert (Only on Installment tab, below tab pills) ── */}
+            {activeTab === 'installment' && upcomingAlert && (
+              <div
+                className={`rounded-2xl p-3.5 sm:p-5 border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-sm transition-all ${
+                  upcomingAlert.isOverdue
+                    ? 'bg-rose-50/90 border-rose-200 text-rose-950'
+                    : 'bg-[#FAF9F5] border-[#43612B]/30 text-[#151914]'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                      upcomingAlert.isOverdue
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-[#EAF0E7] text-[#43612B]'
+                    }`}
+                  >
+                    {upcomingAlert.isOverdue ? (
+                      <AlertCircle className="w-5 h-5" />
+                    ) : (
+                      <Bell className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                          upcomingAlert.isOverdue
+                            ? 'bg-rose-200 text-rose-800'
+                            : 'bg-[#43612B] text-white'
+                        }`}
+                      >
+                        {upcomingAlert.isOverdue ? 'Overdue Installment Notice' : 'Upcoming Installment Alert'}
+                      </span>
+                      <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
+                    </div>
+                    <p className="text-xs text-[#4A5347] leading-relaxed">
+                      Installment #{upcomingAlert.installmentNumber} of{' '}
+                      <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
+                      {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
+                      <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit slip below once paid.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    openUploadModalWithPlot(
+                      upcomingAlert?.plotId,
+                      upcomingAlert?.installmentNumber,
+                      upcomingAlert?.amount
+                    )
+                  }
+                  className={`w-full sm:w-auto min-h-[44px] justify-center shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer ${
+                    upcomingAlert.isOverdue
+                      ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+                      : 'bg-[#43612B] hover:bg-[#365222] text-white shadow-[#43612B]/20'
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Upload Receipt for Inst. #{upcomingAlert.installmentNumber}</span>
+                </button>
+              </div>
+            )}
+
             {/* ── Sub-view: Empty Tab State OR Plot List OR Selected Plot Ledger ── */}
             {currentTabPlots.length === 0 ? (
-              <div className="bg-white rounded-3xl border border-black/[0.08] p-10 text-center space-y-3 shadow-xs">
+              <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-10 text-center space-y-3 shadow-xs">
                 <div className="w-12 h-12 rounded-xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">
                   <CreditCard className="w-6 h-6 opacity-40" />
                 </div>
@@ -555,17 +554,17 @@ function PaymentsContent() {
               </div>
             ) : !selectedPlotId || !activeSchedule ? (
               /* Plot List for Selected Tab */
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-[#6B7462] font-medium">
+                  <p className="text-xs text-[#6B7462] font-medium truncate mr-2">
                     Select a plot below to view its statutory fees and isolated payment schedule:
                   </p>
-                  <span className="text-xs font-semibold text-[#151914]">
+                  <span className="text-xs font-semibold text-[#151914] shrink-0">
                     {currentTabPlots.length} {currentTabPlots.length === 1 ? 'Plot' : 'Plots'} Found
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   {currentTabPlots.map((plotSchedule) => {
                     const isInstallment = plotSchedule.paymentType === 'installment';
                     const hasOverdue = plotSchedule.schedule.some((p) => p.status === 'overdue');
@@ -577,59 +576,68 @@ function PaymentsContent() {
                       <div
                         key={plotSchedule.plotId}
                         onClick={() => setSelectedPlotId(plotSchedule.plotId)}
-                        className="bg-white rounded-2xl border border-black/[0.08] p-5 shadow-xs hover:border-[#43612B]/40 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group"
+                        className="bg-white rounded-2xl border border-black/[0.08] p-3.5 sm:p-5 shadow-xs hover:border-[#43612B]/40 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group min-w-0"
                       >
-                        <div className="space-y-3">
-                          <div className="flex items-start justify-between gap-3">
-                            <div>
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-[#43612B]">
+                        <div className="space-y-2.5 sm:space-y-3">
+                          <div className="flex items-start justify-between gap-2.5">
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-[#43612B] block truncate">
                                 {plotSchedule.blockName}
                               </span>
-                              <h3 className="font-display font-bold text-lg text-[#151914] group-hover:text-[#43612B] transition-colors">
+                              <h3 className="font-display font-bold text-base sm:text-lg text-[#151914] group-hover:text-[#43612B] transition-colors leading-tight truncate">
                                 Plot {plotSchedule.plotNumber}
                               </h3>
-                              <p className="text-xs text-[#6B7462]">{plotSchedule.size}</p>
+                              <p className="text-xs text-[#6B7462] truncate">{plotSchedule.size}</p>
                             </div>
 
                             {/* Status Chip */}
                             {isInstallment ? (
                               hasOverdue ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-50 text-red-700 border border-red-200">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 sm:py-1 rounded-full bg-red-50 text-red-700 border border-red-200 shrink-0">
                                   <AlertCircle className="w-3 h-3" />
                                   {overdueCount} Overdue
                                 </span>
                               ) : paidCount === totalCount && totalCount > 0 ? (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                                   <CheckCircle2 className="w-3 h-3" />
                                   Settled
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20">
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 sm:py-1 rounded-full bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20 shrink-0">
                                   {paidCount} of {totalCount} Paid
                                 </span>
                               )
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
                                 <CheckCircle2 className="w-3 h-3" />
                                 Settled
                               </span>
                             )}
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-black/[0.05] text-xs">
-                            <div>
-                              <span className="text-[10px] text-[#6B7462] uppercase tracking-wider block">
+                          {/* Compact Money Row (3 figures in 1 row on mobile >=380px and desktop) */}
+                          <div className="grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 py-2 sm:py-3 border-t border-black/[0.05]">
+                            <div className="min-w-0">
+                              <span className="text-[11px] text-[#6B7462] uppercase tracking-wider block font-bold truncate">
                                 Total Price
                               </span>
-                              <span className="font-bold text-[#151914]">
+                              <span className="font-bold text-base text-[#151914] tabular-nums truncate block">
                                 {formatPKR(plotSchedule.totalPrice)}
                               </span>
                             </div>
-                            <div>
-                              <span className="text-[10px] text-[#6B7462] uppercase tracking-wider block">
+                            <div className="min-w-0">
+                              <span className="text-[11px] text-[#6B7462] uppercase tracking-wider block font-bold truncate">
+                                Total Paid
+                              </span>
+                              <span className="font-bold text-base text-[#43612B] tabular-nums truncate block">
+                                {formatPKR(plotSchedule.paidAmount)}
+                              </span>
+                            </div>
+                            <div className="min-w-0 col-span-2 min-[380px]:col-span-1 sm:col-span-1">
+                              <span className="text-[11px] text-[#6B7462] uppercase tracking-wider block font-bold truncate">
                                 Remaining
                               </span>
-                              <span className="font-bold text-[#151914]">
+                              <span className="font-bold text-base text-[#151914] tabular-nums truncate block">
                                 {formatPKR(plotSchedule.remainingBalance)}
                               </span>
                             </div>
@@ -643,7 +651,7 @@ function PaymentsContent() {
                                 : 0
                             );
                             return (
-                              <div className="pt-2 space-y-1">
+                              <div className="pt-1 space-y-1">
                                 <div className="flex items-center justify-between text-[11px] font-semibold">
                                   <span className="text-[#6B7462]">
                                     {isInstallment ? `${paidCount} of ${totalCount} Paid` : 'Cleared'}
@@ -661,9 +669,9 @@ function PaymentsContent() {
                           })()}
                         </div>
 
-                        <div className="mt-4 pt-3 border-t border-black/[0.05] flex items-center justify-between text-xs text-[#43612B] font-bold">
+                        <div className="mt-2.5 pt-2.5 border-t border-black/[0.05] flex items-center justify-between w-full text-xs text-[#43612B] font-bold min-h-[44px]">
                           <span>View Detailed Ledger &amp; Schedule</span>
-                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform shrink-0" />
                         </div>
                       </div>
                     );
@@ -672,12 +680,12 @@ function PaymentsContent() {
               </div>
             ) : (
               /* Per-Plot Ledger View */
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
+              <div className="space-y-3 sm:space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <button
                     type="button"
                     onClick={() => setSelectedPlotId(null)}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-[#43612B] bg-[#EAF0E7] hover:bg-[#d8e4d3] transition-colors border border-[#43612B]/20 cursor-pointer"
+                    className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-[#43612B] bg-[#EAF0E7] hover:bg-[#d8e4d3] transition-colors border border-[#43612B]/20 cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
                     <span>Back to {activeTab === 'installment' ? 'Installment' : 'Full Payment'} Plots</span>
@@ -691,7 +699,7 @@ function PaymentsContent() {
                         <button
                           type="button"
                           onClick={() => openUploadModalWithPlot(activeSchedule.plotId)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          className="min-h-[44px] w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                         >
                           <Upload className="w-3.5 h-3.5" />
                           <span>Upload Receipt for Plot {activeSchedule.plotNumber}</span>
@@ -708,15 +716,15 @@ function PaymentsContent() {
                   </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="space-y-3 sm:space-y-6">
                   {/* Financial Summary Card */}
-                  <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 shadow-xs">
-                    <div className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-black/[0.06]">
+                  <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-8 shadow-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-4 sm:pb-6 border-b border-black/[0.06]">
                       <div>
                         <span className="text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
                           Plot Account Breakdown
                         </span>
-                        <h3 className="font-display font-bold text-xl sm:text-2xl text-[#151914] mt-0.5">
+                        <h3 className="font-display font-bold text-lg sm:text-2xl text-[#151914] mt-0.5">
                           Plot {activeSchedule.plotNumber} ({activeSchedule.size})
                         </h3>
                       </div>
@@ -751,7 +759,7 @@ function PaymentsContent() {
                         .reduce((sum, r) => sum + Number(r.amount), 0);
 
                       return (
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 pt-3 sm:pt-6">
                           <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04]">
                             <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
                               Total Plot Price
@@ -872,13 +880,13 @@ function PaymentsContent() {
             {/* ══════════════════════════════════════════════════════════════ */}
             {/* SUBMITTED RECEIPTS & OFFICIAL TWO-PART SLIPS (Requirement 8)  */}
             {/* ══════════════════════════════════════════════════════════════ */}
-            <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-6 shadow-xs mt-10">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-black/[0.06]">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-8 space-y-4 sm:space-y-6 shadow-xs mt-3 sm:mt-10 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-black/[0.06]">
                 <div className="space-y-0.5">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
                     Payment Verification Desk
                   </span>
-                  <h3 className="font-display font-bold text-xl text-[#151914]">
+                  <h3 className="font-display font-bold text-lg sm:text-xl text-[#151914]">
                     Submitted Receipts &amp; Official Slips
                   </h3>
                   <p className="text-xs text-[#6B7462]">
@@ -889,7 +897,7 @@ function PaymentsContent() {
                 <button
                   type="button"
                   onClick={() => openUploadModalWithPlot()}
-                  className="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
+                  className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
                 >
                   <Upload className="w-4 h-4" />
                   <span>Upload New Receipt</span>
@@ -897,8 +905,8 @@ function PaymentsContent() {
               </div>
 
               {receipts.length === 0 ? (
-                <div className="py-10 text-center space-y-3 bg-[#FAF9F7] rounded-2xl border border-black/[0.05]">
-                  <Receipt className="w-10 h-10 text-[#6B7462] opacity-40 mx-auto" />
+                <div className="py-8 sm:py-10 text-center space-y-3 bg-[#FAF9F7] rounded-2xl border border-black/[0.05] p-4">
+                  <Receipt className="w-9 h-9 sm:w-10 sm:h-10 text-[#6B7462] opacity-40 mx-auto" />
                   <p className="text-xs font-semibold text-[#151914]">No payment receipts submitted yet</p>
                   <p className="text-[11px] text-[#6B7462] max-w-md mx-auto">
                     When you pay your installments or booking charges at the bank, upload a photo or scan of your deposit slip here to receive your official verified member slip.
@@ -911,9 +919,9 @@ function PaymentsContent() {
                     return (
                       <div
                         key={sub.id}
-                        className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-black/[0.01] px-2 rounded-xl transition-colors"
+                        className="py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-black/[0.01] px-1 sm:px-2 rounded-xl transition-colors min-w-0"
                       >
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                           {(() => {
                             const blockTitle = sub.blockName || (subPlot as any)?.blockName || subPlot?.blockId || '';
@@ -955,14 +963,14 @@ function PaymentsContent() {
                           )}
                         </div>
 
-                        <div className="text-xs text-[#6B7462] flex items-center gap-3 flex-wrap">
+                        <div className="text-xs text-[#6B7462] flex items-center gap-2 sm:gap-3 flex-wrap">
                           <span>
                             Amount: <strong className="text-[#151914]">{formatPKR(sub.amount)}</strong>
                           </span>
                           <span>&bull;</span>
                           <span>Depository Bank: <strong className="text-[#151914]">{sub.depositoryBank || sub.bankName || 'N/A'}</strong></span>
                           <span>&bull;</span>
-                          <span>Ref: <strong className="font-mono text-[#151914]">{sub.transactionRef}</strong></span>
+                          <span className="break-all">Ref: <strong className="font-mono text-[#151914]">{sub.transactionRef}</strong></span>
                           <span>&bull;</span>
                           <span>Deposited: {sub.paymentDate ? String(sub.paymentDate).split('T')[0] : '—'}</span>
                         </div>
@@ -975,25 +983,25 @@ function PaymentsContent() {
                       </div>
 
                       {/* Action buttons */}
-                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <div className="flex items-center gap-2 w-full sm:w-auto self-start sm:self-center shrink-0">
                         {sub.status === 'verified' && sub.slip ? (
                           <button
                             type="button"
                             onClick={() => setActiveSlipSubmission(sub)}
-                            className="px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                            className="w-full sm:w-auto min-h-[44px] justify-center px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
                           >
                             <ShieldCheck className="w-4 h-4" />
                             <span>View Official Member Slip</span>
                           </button>
                         ) : sub.status === 'pending' ? (
-                          <span className="text-[11px] text-amber-700 font-medium px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/60">
+                          <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-[11px] text-amber-700 font-medium px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/60">
                             Under Committee Review
                           </span>
                         ) : (
                           <button
                             type="button"
                             onClick={() => openUploadModalWithPlot(sub.plotId, sub.installmentNumber, sub.amount)}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold text-[#43612B] hover:bg-[#EAF0E7] border border-[#43612B]/30 cursor-pointer"
+                            className="w-full sm:w-auto min-h-[44px] justify-center px-3 py-1.5 rounded-xl text-xs font-bold text-[#43612B] hover:bg-[#EAF0E7] border border-[#43612B]/30 cursor-pointer"
                           >
                             Re-upload Receipt
                           </button>

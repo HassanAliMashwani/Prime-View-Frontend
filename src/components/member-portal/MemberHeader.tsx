@@ -24,26 +24,26 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
   const handleOpenMenu = onOpenMobileMenu || portal.openMobileMenu;
 
   return (
-    <header className="bg-[#FAF9F7] border-b border-black/[0.08] px-4 sm:px-6 py-3 sm:py-4 sticky top-0 z-30 flex items-center justify-between">
-      <div className="flex items-center gap-3 sm:gap-4">
+    <header className="bg-[#FAF9F7] border-b border-black/[0.08] px-4 sm:px-8 py-2.5 sm:py-4 sticky top-0 z-30 flex items-center justify-between">
+      <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1 mr-2">
         <button
           onClick={handleOpenMenu}
-          className="lg:hidden w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#151914] hover:bg-black/5 transition-colors"
+          className="lg:hidden w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-black/10 bg-white text-[#151914] hover:bg-black/5 transition-colors shrink-0"
           aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" />
         </button>
-        <div>
-          <h1 className="font-display font-bold text-xl sm:text-2xl text-[#151914] leading-tight">
+        <div className="min-w-0 flex-1">
+          <h1 className="font-display font-bold text-lg sm:text-2xl text-[#151914] leading-tight truncate">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-xs text-[#6B7462] font-medium mt-0.5">{subtitle}</p>
+            <p className="text-xs text-[#6B7462] font-medium mt-0.5 truncate">{subtitle}</p>
           )}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 shrink-0">
         <button
           type="button"
           onClick={openTermsModal}
@@ -55,7 +55,7 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2.5 pl-2 border-l border-black/10">
-          <div className="w-9 h-9 rounded-full bg-[#43612B] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+          <div className="w-11 h-11 min-w-[44px] min-h-[44px] sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full bg-[#43612B] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
             <User className="w-4 h-4" />
           </div>
           <div className="hidden md:block text-left">

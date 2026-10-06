@@ -201,11 +201,11 @@ export default function ProfilePage() {
         subtitle="Manage contact records &amp; verified account details"
       />
 
-      <main className="p-4 md:p-6 lg:p-8 max-w-4xl w-full mx-auto space-y-6 sm:space-y-8">
+      <main className="px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-6 md:p-8 max-w-4xl w-full mx-auto space-y-3 sm:space-y-8">
         {/* Toast Notification */}
         {toastMessage && (
           <div
-            className={`p-4 rounded-2xl border flex items-center gap-3 text-xs font-semibold animate-fade-in ${
+            className={`p-3.5 sm:p-4 rounded-2xl border flex items-center gap-3 text-xs font-semibold animate-fade-in ${
               toastMessage.type === 'success'
                 ? 'bg-[#EAF0E7] text-[#43612B] border-[#43612B]/20'
                 : 'bg-red-50 text-red-700 border-red-200'
@@ -221,21 +221,21 @@ export default function ProfilePage() {
         )}
 
         {/* Read-Only System Identity Box (Section 2.8) */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-4 sm:p-6 md:p-8 space-y-6 shadow-xs">
-          <div className="flex items-center gap-4 pb-5 border-b border-black/[0.06]">
-            <div className="w-14 h-14 rounded-2xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center font-bold text-xl">
-              <User className="w-7 h-7" />
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-6 md:p-8 space-y-3 sm:space-y-6 shadow-xs">
+          <div className="flex items-center gap-3 sm:gap-4 pb-3 sm:pb-5 border-b border-black/[0.06]">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center font-bold text-xl shrink-0">
+              <User className="w-6 h-6 sm:w-7 sm:h-7" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-display font-bold text-xl text-[#151914]">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-display font-bold text-lg sm:text-xl text-[#151914] truncate">
                   {profile?.fullName || 'Member Profile'}
                 </h3>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20">
                   {profile?.accountStatus || 'Active'}
                 </span>
               </div>
-              <p className="text-xs text-[#6B7462]">
+              <p className="text-xs text-[#6B7462] truncate mt-0.5">
                 {profile?.fatherOrHusbandName
                   ? `S/O, D/O, W/O: ${profile.fatherOrHusbandName} • `
                   : ''}
@@ -244,66 +244,67 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* 2 by 2 grid with 12px gaps on phone */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {/* Membership No */}
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
-                <FileBadge className="w-3.5 h-3.5" />
-                <span>Membership No</span>
+            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#43612B] truncate">
+                <FileBadge className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Membership No</span>
               </div>
-              <p className="font-mono font-bold text-sm text-[#151914]">
+              <p className="font-mono font-bold text-xs sm:text-sm text-[#151914] truncate">
                 {profile?.membershipNo || '—'}
               </p>
-              <p className="text-[10px] text-[#6B7462]">Official society member ID</p>
+              <p className="text-[10px] text-[#6B7462] truncate">Official society ID</p>
             </div>
 
             {/* Customer ID */}
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
-                <Lock className="w-3.5 h-3.5 text-[#43612B]" />
-                <span>System ID</span>
+            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
+                <Lock className="w-3.5 h-3.5 text-[#43612B] shrink-0" />
+                <span className="truncate">System ID</span>
               </div>
-              <p className="font-mono font-bold text-sm text-[#151914]">
+              <p className="font-mono font-bold text-xs sm:text-sm text-[#151914] truncate" title={profile?.id}>
                 {profile?.id || '—'}
               </p>
-              <p className="text-[10px] text-[#6B7462]">Immutable ledger record</p>
+              <p className="text-[10px] text-[#6B7462] truncate">Immutable ledger</p>
             </div>
 
             {/* Account Status */}
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
-                <Shield className="w-3.5 h-3.5 text-[#43612B]" />
-                <span>Account Status</span>
+            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
+                <Shield className="w-3.5 h-3.5 text-[#43612B] shrink-0" />
+                <span className="truncate">Status</span>
               </div>
-              <p className="font-bold text-sm text-emerald-700 capitalize">
+              <p className="font-bold text-xs sm:text-sm text-emerald-700 capitalize truncate">
                 {profile?.accountStatus || 'Active'}
               </p>
-              <p className="text-[10px] text-[#6B7462]">Verified society standing</p>
+              <p className="text-[10px] text-[#6B7462] truncate">Verified standing</p>
             </div>
 
             {/* Enrolled Date */}
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
-                <Calendar className="w-3.5 h-3.5 text-[#43612B]" />
-                <span>Enrolled Date</span>
+            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1 min-w-0">
+              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
+                <Calendar className="w-3.5 h-3.5 text-[#43612B] shrink-0" />
+                <span className="truncate">Enrolled Date</span>
               </div>
-              <p className="font-medium text-sm text-[#151914]">
+              <p className="font-medium text-xs sm:text-sm text-[#151914] truncate">
                 {profile?.createdDate ? String(profile.createdDate).split('T')[0] : '—'}
               </p>
-              <p className="text-[10px] text-[#6B7462]">Original file registry</p>
+              <p className="text-[10px] text-[#6B7462] truncate">Original registry</p>
             </div>
           </div>
         </div>
 
         {/* Next of Kin (NOK) Read-Only Reference Card (Section 2.8) */}
-        <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-5 shadow-xs">
-          <div className="flex items-start justify-between gap-4">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-8 space-y-3 sm:space-y-5 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0">
-                <Users className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <h3 className="font-display font-bold text-base text-[#151914]">
+                <h3 className="font-display font-bold text-sm sm:text-base text-[#151914]">
                   Next of Kin (NOK) &bull; Legal Nominee
                 </h3>
                 <p className="text-xs text-[#6B7462]">
@@ -311,13 +312,14 @@ export default function ProfilePage() {
                 </p>
               </div>
             </div>
-            <span className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-black/5 text-[#6B7462] border border-black/10">
-              Read-Only Reference
+            <span className="shrink-0 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-black/5 text-[#6B7462] border border-black/10">
+              Read-Only
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
+          {/* Two fields stacked on mobile with normal padding */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7462] block">
                 Full Name of NOK
               </span>
@@ -327,7 +329,7 @@ export default function ProfilePage() {
               <p className="text-[10px] text-[#6B7462]">Designated primary successor</p>
             </div>
 
-            <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
+            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#6B7462] block">
                 CNIC of NOK
               </span>
@@ -338,7 +340,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="bg-[#FAF9F7] rounded-xl p-3.5 border border-black/[0.05] flex items-start gap-2.5 text-xs text-[#6B7462]">
+          <div className="bg-[#FAF9F7] rounded-xl p-3 sm:p-3.5 border border-black/[0.05] flex items-start gap-2.5 text-xs text-[#6B7462]">
             <Info className="w-4 h-4 text-[#43612B] shrink-0 mt-0.5" />
             <span>
               Next of Kin modifications are statutory and require submitting a legal affidavit and physical identity verification at the society secretariat.
@@ -347,9 +349,9 @@ export default function ProfilePage() {
         </div>
 
         {/* Editable Fields Form (Section 2.8) */}
-        <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-6 shadow-xs">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-8 space-y-3 sm:space-y-6 shadow-xs">
           <div>
-            <h3 className="font-display font-bold text-lg text-[#151914]">
+            <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
               Contact Particulars &amp; Mailing Address
             </h3>
             <p className="text-xs text-[#6B7462]">
@@ -357,8 +359,8 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-3 sm:space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-5">
               {/* Full Name */}
               <div className="space-y-1.5">
                 <label
@@ -371,7 +373,7 @@ export default function ProfilePage() {
                   id="fullName"
                   type="text"
                   {...register('fullName')}
-                  className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                  className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                 />
                 {errors.fullName && (
                   <p className="text-[11px] text-red-600 font-medium">
@@ -393,7 +395,7 @@ export default function ProfilePage() {
                   type="text"
                   {...register('cnic')}
                   placeholder="37405-XXXXXXX-X"
-                  className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                  className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                 />
                 {errors.cnic && (
                   <p className="text-[11px] text-red-600 font-medium">{errors.cnic.message}</p>
@@ -412,7 +414,7 @@ export default function ProfilePage() {
                   id="email"
                   type="email"
                   {...register('email')}
-                  className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                  className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                 />
                 {errors.email && (
                   <p className="text-[11px] text-red-600 font-medium">{errors.email.message}</p>
@@ -432,7 +434,7 @@ export default function ProfilePage() {
                   type="text"
                   {...register('phone')}
                   placeholder="0300-XXXXXXX"
-                  className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                  className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                 />
                 {errors.phone && (
                   <p className="text-[11px] text-red-600 font-medium">{errors.phone.message}</p>
@@ -454,7 +456,7 @@ export default function ProfilePage() {
                 rows={3}
                 {...register('mailingAddress')}
                 placeholder="House #, Street #, Sector/Area, City"
-                className="w-full px-4 py-3 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] resize-none"
+                className="w-full px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] resize-none"
               />
               {errors.mailingAddress && (
                 <p className="text-[11px] text-red-600 font-medium">
@@ -463,14 +465,14 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div className="pt-4 border-t border-black/[0.06] flex items-center justify-between">
+            <div className="pt-3 sm:pt-4 border-t border-black/[0.06] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <span className="text-xs text-[#6B7462]">
                 Changes are immediately synchronized across your member account.
               </span>
               <button
                 type="submit"
                 disabled={isSubmitting || !isDirty}
-                className="px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all"
+                className="w-full sm:w-auto min-h-[44px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
@@ -489,14 +491,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Password Management Card */}
-        <div className="bg-white rounded-3xl border border-black/[0.08] p-6 sm:p-8 space-y-6 shadow-xs">
-          <div className="flex items-start justify-between gap-4">
+        <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-8 space-y-3 sm:space-y-6 shadow-xs">
+          <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0">
-                <Lock className="w-5 h-5" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0">
+                <Lock className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
               <div>
-                <h3 className="font-display font-bold text-lg text-[#151914]">
+                <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
                   Portal Password &amp; Security
                 </h3>
                 <p className="text-xs text-[#6B7462]">
@@ -508,7 +510,7 @@ export default function ProfilePage() {
 
           {passwordToast && (
             <div
-              className={`p-4 rounded-2xl border flex items-center gap-3 text-xs font-semibold animate-fade-in ${
+              className={`p-3.5 sm:p-4 rounded-2xl border flex items-center gap-3 text-xs font-semibold animate-fade-in ${
                 passwordToast.type === 'success'
                   ? 'bg-[#EAF0E7] text-[#43612B] border-[#43612B]/20'
                   : 'bg-rose-50 text-rose-700 border-rose-200'
@@ -523,8 +525,8 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <form onSubmit={handlePasswordChange} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <form onSubmit={handlePasswordChange} className="space-y-3 sm:space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
               <div className="space-y-1.5">
                 <label
                   htmlFor="currentPassword"
@@ -539,7 +541,7 @@ export default function ProfilePage() {
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-3 pr-11 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                    className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 pr-12 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                     required
                   />
                   <button
@@ -547,7 +549,7 @@ export default function ProfilePage() {
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     aria-label={showCurrentPassword ? 'Hide password' : 'Show password'}
                     title={showCurrentPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center absolute right-0 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
                   >
                     {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -569,7 +571,7 @@ export default function ProfilePage() {
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="At least 8 characters"
                     minLength={8}
-                    className="w-full px-4 py-3 pr-11 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                    className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 pr-12 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                     required
                   />
                   <button
@@ -577,7 +579,7 @@ export default function ProfilePage() {
                     onClick={() => setShowNewPassword(!showNewPassword)}
                     aria-label={showNewPassword ? 'Hide password' : 'Show password'}
                     title={showNewPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center absolute right-0 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
                   >
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -599,7 +601,7 @@ export default function ProfilePage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat new password"
                     minLength={8}
-                    className="w-full px-4 py-3 pr-11 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                    className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 pr-12 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                     required
                   />
                   <button
@@ -607,7 +609,7 @@ export default function ProfilePage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                     title={showConfirmPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
+                    className="w-11 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center absolute right-0 top-1/2 -translate-y-1/2 text-[#6B7462] hover:text-[#151914] transition-colors p-1 rounded-lg focus:outline-none cursor-pointer"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -615,14 +617,14 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-black/[0.06] flex items-center justify-between">
+            <div className="pt-3 border-t border-black/[0.06] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
               <span className="text-[11px] text-[#6B7462]">
                 Passwords must contain at least 8 characters to safeguard your property records.
               </span>
               <button
                 type="submit"
                 disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-                className="px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all"
+                className="w-full sm:w-auto min-h-[44px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all cursor-pointer"
               >
                 {passwordLoading ? (
                   <>
@@ -641,7 +643,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Society Compliance & Strike Record Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 border border-black/[0.08] shadow-xs space-y-6">
+        <div className="bg-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-8 border border-black/[0.08] shadow-xs space-y-4 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-black/[0.06]">
             <div className="flex items-center gap-3">
               <div className={`p-2.5 rounded-2xl ${
