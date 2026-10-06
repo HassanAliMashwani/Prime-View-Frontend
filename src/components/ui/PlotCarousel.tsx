@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, FileText, CalendarDays, Clock, ArrowUpRight, KeyRound } from "lucide-react";
+import { normalizePlanCardImage } from "@/lib/images";
 
 // Warm ivory palette
 const GREEN = "#43612B";
@@ -219,7 +219,7 @@ export function PlotCarousel({ items }: { items?: PlotItem[] } = {}) {
                 {/* Card Image */}
                 <div className="relative w-full overflow-hidden" style={{ height: "260px" }}>
                   <img
-                    src={plot.image}
+                    src={normalizePlanCardImage(plot.image)}
                     alt={`Prime View ${plot.size} plot`}
                     loading={index === 0 ? "eager" : "lazy"}
                     decoding="async"

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import Image from "next/image";
 import { X, Calendar, MapPin, Maximize2, Play } from "lucide-react";
 import { EventData } from "@/data/events";
 import { formatYouTubeEmbedUrl } from "@/lib/dal/youtube";
@@ -189,22 +188,13 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                       onClick={() => setLightboxImage(displayFull)}
                       className={`group relative ${colSpan} ${aspect} ${bg} rounded-2xl overflow-hidden border border-black/[0.08] shadow-xs cursor-pointer hover:shadow-xl transition-all duration-300 flex items-center justify-center`}
                     >
-                      {displayThumb && (displayThumb.startsWith("http://") || displayThumb.startsWith("https://")) ? (
+                      {displayThumb && (
                         <img
                           src={displayThumb}
                           alt={`${event.title} Photo ${idx + 1}`}
                           loading="lazy"
                           decoding="async"
                           className={`w-full h-full ${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
-                        />
-                      ) : (
-                        <Image
-                          src={displayThumb}
-                          alt={`${event.title} Photo ${idx + 1}`}
-                          fill
-                          loading="lazy"
-                          className={`${fit} object-center transition-transform duration-500 group-hover:scale-[1.02]`}
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 66vw, 50vw"
                         />
                       )}
                       <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
@@ -243,19 +233,11 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
             className="relative max-w-5xl max-h-[88vh] w-full h-[80vh] flex items-center justify-center"
             onClick={(e) => e.stopPropagation()}
           >
-            {lightboxImage.startsWith("http://") || lightboxImage.startsWith("https://") ? (
+            {lightboxImage && (
               <img
                 src={lightboxImage}
                 alt="Enlarged Preview"
                 className="max-w-full max-h-full object-contain"
-              />
-            ) : (
-              <Image
-                src={lightboxImage}
-                alt="Enlarged Preview"
-                fill
-                className="object-contain"
-                sizes="90vw"
               />
             )}
           </div>

@@ -26,9 +26,16 @@ export function normalizeImagePath(raw: string | null | undefined): string {
   // Strip Windows drive letters (e.g. E:, C:)
   str = str.replace(/^[a-zA-Z]:/, '');
 
+  // Rewrite plan cards 1 to 6 (.png, .jpg, .jpeg) to WebP display copies
+  const cardMatch = str.match(/(?:.*\/)?card\s*([1-6])\.(?:png|jpe?g|webp)/i);
+  if (cardMatch) {
+    return `/new assests/our plan assests/card ${cardMatch[1]}.webp`;
+  }
+
   // Handle loose text mentions like "card6 pic for 2 kanal plan"
-  if (/card\s*6/i.test(str) && /plan/i.test(str)) {
-    return '/new assests/our plan assests/card 6.webp';
+  if (/card\s*([1-6])/i.test(str) && /plan/i.test(str)) {
+    const num = str.match(/card\s*([1-6])/i)?.[1] || '6';
+    return `/new assests/our plan assests/card ${num}.webp`;
   }
 
   // Ensure leading slash for web root relative paths
@@ -36,6 +43,23 @@ export function normalizeImagePath(raw: string | null | undefined): string {
     str = '/' + str;
   }
 
+  return str;
+}
+
+/**
+ * Normalizes a plan card image URL so that cards 1 through 6
+ * always point to their optimized WebP display copies.
+ * - /new assests/our plan assests/card N.png -> /new assests/our plan assests/card N.webp
+ * - the same file as .jpg or .jpeg -> the same .webp
+ * - an existing .webp path stays .webp
+ */
+export function normalizePlanCardImage(raw: string | null | undefined): string {
+  if (!raw) return '';
+  const str = normalizeImagePath(raw);
+  const match = str.match(/card\s*([1-6])(?:\.(?:png|jpe?g|webp))?/i);
+  if (match) {
+    return `/new assests/our plan assests/card ${match[1]}.webp`;
+  }
   return str;
 }
 

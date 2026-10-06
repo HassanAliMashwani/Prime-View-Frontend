@@ -35,12 +35,11 @@ function EventsSkeleton() {
 
 export default function EventsAndMediaPage() {
   const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    return getCache<EventData[]>('public:events', true);
+    if (typeof window === 'undefined') return eventsData;
+    const cached = getCache<EventData[]>('public:events', true);
+    return cached && cached.length > 0 ? cached : eventsData;
   };
-  const init = getInit();
-  const [loading, setLoading] = useState(!init);
-  const [cmsEvents, setCmsEvents] = useState<EventData[]>(init || []);
+  const [cmsEvents, setCmsEvents] = useState<EventData[]>(getInit);
 
   const loadEvents = useCallback(() => {
     fetchPublicContent('events')
@@ -79,22 +78,10 @@ export default function EventsAndMediaPage() {
             setCache('public:events', next);
             return next;
           });
-        } else {
-          // Draw built-in cards only when first fetch returns no usable card and screen is empty
-          setCmsEvents((prev) => {
-            if (prev.length > 0) return prev;
-            return eventsData;
-          });
         }
-        setLoading(false);
       })
       .catch(() => {
-        // Draw built-in cards only when first fetch fails and screen is empty
-        setCmsEvents((prev) => {
-          if (prev.length > 0) return prev;
-          return eventsData;
-        });
-        setLoading(false);
+        // Leave existing visible events on screen if request fails
       });
   }, []);
 
@@ -180,7 +167,7 @@ export default function EventsAndMediaPage() {
 
       {/* Events Grid Section — Overlaps the hero bottom fade */}
       <div className="pb-24 relative z-10 -mt-12 sm:-mt-16 min-h-[480px]">
-        {loading && cmsEvents.length === 0 ? <EventsSkeleton /> : <EventsGrid events={cmsEvents} />}
+        <EventsGrid events={cmsEvents.length > 0 ? cmsEvents : eventsData} />
       </div>
 
     </div>

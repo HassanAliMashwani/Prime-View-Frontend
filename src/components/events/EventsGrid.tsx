@@ -44,6 +44,7 @@ export const EventsGrid: React.FC<{ events?: EventData[] }> = ({ events }) => {
               <EventCard
                 event={event}
                 layout={layoutType}
+                isFirst={index === 0}
                 onClick={() => setSelectedEvent(event)}
               />
             </div>

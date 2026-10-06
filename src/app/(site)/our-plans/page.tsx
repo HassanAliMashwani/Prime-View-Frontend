@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { PlotCarousel, PlotItem, plots } from "@/components/ui/PlotCarousel";
 import { fetchPublicContent, ContentBlock } from "@/lib/dal/publicContent";
 import { getCache, setCache, reconcileItems } from "@/lib/dal/apiCache";
-import { normalizeImagePath } from "@/lib/images";
+import { normalizeImagePath, normalizePlanCardImage } from "@/lib/images";
 import { Check, Calendar, ArrowUpRight, Star, Info, Percent, MapPin, CalendarDays, ShieldCheck, FileText, ChevronRight } from "lucide-react";
 
 // Static pre-calculated 12-lobed rosette points to prevent SSR/client hydration floating-point precision mismatches
@@ -43,12 +43,12 @@ function ScallopedBadge({ children }: { children: React.ReactNode }) {
 }
 
 const DEFAULT_CARD_IMAGES: Record<number, string> = {
-  0: '/new assests/our plan assests/card 1.webp',
-  1: '/new assests/our plan assests/card 2.webp',
-  2: '/new assests/our plan assests/card 3.webp',
-  3: '/new assests/our plan assests/card 4.webp',
-  4: '/new assests/our plan assests/card 5.webp',
-  5: '/new assests/our plan assests/card 6.webp',
+  0: normalizePlanCardImage('/new assests/our plan assests/card 1.webp'),
+  1: normalizePlanCardImage('/new assests/our plan assests/card 2.webp'),
+  2: normalizePlanCardImage('/new assests/our plan assests/card 3.webp'),
+  3: normalizePlanCardImage('/new assests/our plan assests/card 4.webp'),
+  4: normalizePlanCardImage('/new assests/our plan assests/card 5.webp'),
+  5: normalizePlanCardImage('/new assests/our plan assests/card 6.webp'),
 };
 
 function getPlanSortRank(block: { id: string; title?: string; metadata?: any }): number {
@@ -121,12 +121,11 @@ function PlansSkeleton() {
 
 export default function OurPlansPage() {
   const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    return getCache<PlotItem[]>('public:plans', true);
+    if (typeof window === 'undefined') return plots;
+    const cached = getCache<PlotItem[]>('public:plans', true);
+    return cached && cached.length > 0 ? cached : plots;
   };
-  const init = getInit();
-  const [loading, setLoading] = useState(!init);
-  const [cmsPlans, setCmsPlans] = useState<PlotItem[]>(init || []);
+  const [cmsPlans, setCmsPlans] = useState<PlotItem[]>(getInit);
 
   const loadPlans = React.useCallback(() => {
     fetchPublicContent('plans')
@@ -142,7 +141,7 @@ export default function OurPlansPage() {
 
           const rank = getPlanSortRank(block);
           const fallbackImage = DEFAULT_CARD_IMAGES[rank] || '/new assests/our plan assests/card 6.webp';
-          const image = normalizeImagePath((m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage);
+          const image = normalizePlanCardImage((m?.imageUrl && String(m.imageUrl).trim()) || fallbackImage);
 
           // Map subtitle to dimension line when size has no parentheses; keep size as size label
           const sizeMatch = String(m?.size || '').match(/^(.+?)\s*\((.+?)\)$/);
@@ -193,22 +192,10 @@ export default function OurPlansPage() {
             setCache('public:plans', next);
             return next;
           });
-        } else {
-          // Draw built-in cards only when first fetch returns no usable card and screen is empty
-          setCmsPlans((prev) => {
-            if (prev.length > 0) return prev;
-            return plots;
-          });
         }
-        setLoading(false);
       })
       .catch(() => {
-        // Draw built-in cards only when first fetch fails and screen is empty
-        setCmsPlans((prev) => {
-          if (prev.length > 0) return prev;
-          return plots;
-        });
-        setLoading(false);
+        // Leave existing visible cards on screen if request fails
       });
   }, []);
 
@@ -313,7 +300,7 @@ export default function OurPlansPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-10 -mt-32 sm:-mt-44 lg:-mt-52 z-10">
 
           <div className="relative z-10 min-h-[580px]">
-            {loading && cmsPlans.length === 0 ? <PlansSkeleton /> : <PlotCarousel items={cmsPlans} />}
+            <PlotCarousel items={cmsPlans.length > 0 ? cmsPlans : plots} />
           </div>
 
           {/* Terms & Conditions Block — Compact Size (max-w-[860px]) */}
