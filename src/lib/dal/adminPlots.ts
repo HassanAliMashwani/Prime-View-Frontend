@@ -226,13 +226,31 @@ export async function getAdminPlotDetails(
   }));
 
   const owner: Customer | undefined = p.currentOwner || undefined;
-  let booking: Booking | undefined = undefined;
-
-  if (Array.isArray(p.bookings)) {
-    booking = p.bookings.find((b: any) => b.plotId === plotId);
-  }
+  const booking: Booking | undefined = getActiveOrLatestBooking(p.bookings, plotId);
 
   return { ok: true, plot, reservations, owner, booking };
+}
+
+/**
+ * Choose the booking whose status is active, falling back to the latest booking for the plot.
+ */
+export function getActiveOrLatestBooking(bookings?: any[], plotId?: string): Booking | undefined {
+  if (!Array.isArray(bookings) || bookings.length === 0) return undefined;
+
+  const matching = plotId
+    ? bookings.filter((b: any) => !b.plotId || b.plotId === plotId)
+    : bookings;
+
+  const targetList = matching.length > 0 ? matching : bookings;
+
+  const activeBooking = targetList.find((b: any) => b.status === 'active');
+  if (activeBooking) return activeBooking;
+
+  return [...targetList].sort((a: any, b: any) => {
+    const timeA = new Date(a.bookingDate || a.createdAt || 0).getTime();
+    const timeB = new Date(b.bookingDate || b.createdAt || 0).getTime();
+    return timeB - timeA;
+  })[0];
 }
 
 /**

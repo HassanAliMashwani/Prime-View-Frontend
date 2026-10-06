@@ -30,6 +30,7 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
   getAdminBlockPlots, 
   getAdminPlotDetails,
+  getActiveOrLatestBooking,
   acquireLock, 
   releaseLock,
   startReservingPlot,
@@ -303,7 +304,7 @@ function BlockPlotsContent() {
 
     // If bookings already present on plot, show immediately
     if (Array.isArray(plot.bookings)) {
-      const b = plot.bookings.find((x: any) => x.plotId === plot.id);
+      const b = getActiveOrLatestBooking(plot.bookings, plot.id);
       setSelectedPlotBooking(b || null);
     } else {
       setSelectedPlotBooking(null);
@@ -1028,45 +1029,80 @@ function BlockPlotsContent() {
       {/* Plot Detail Modal / Action Drawer */}
       {selectedPlot && (
         <div 
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 cursor-pointer"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:py-6 overflow-hidden cursor-pointer"
           onClick={(e) => {
             if (e.target === e.currentTarget) handleCloseDrawer();
           }}
         >
           <div 
-            className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 cursor-default flex flex-col max-h-[100dvh] my-auto"
+            className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 cursor-default flex flex-col max-h-[90vh] sm:max-h-[86vh] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50 shrink-0">
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono uppercase font-bold text-emerald-800">
+            <div className="px-3.5 py-2.5 sm:px-5 sm:py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/90 shrink-0">
+              <div className="min-w-0 pr-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <span className="text-[10px] sm:text-xs font-mono uppercase font-bold text-emerald-800 truncate">
                     Sector: {block.name}
                   </span>
                   <span className="text-slate-300">•</span>
-                  <span className={`text-[10px] font-mono uppercase font-bold px-2 py-0.5 rounded border ${CATEGORY_COLORS[selectedPlot.category]}`}>
+                  <span className={`text-[10px] font-mono uppercase font-bold px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[selectedPlot.category]}`}>
                     {selectedPlot.category.replace('_', ' ')}
                   </span>
+                  {selectedPlot.isAdjustment && (
+                    <span className="text-[10px] bg-blue-600 text-white font-mono font-bold px-1.5 py-0.5 rounded uppercase">
+                      Adjustment
+                    </span>
+                  )}
                 </div>
-                <h3 className="text-xl font-serif font-bold text-slate-900 mt-0.5">
+                <h3 className="text-base sm:text-lg font-serif font-bold text-slate-900 mt-0.5">
                   Plot {selectedPlot.plotNumber}
                 </h3>
               </div>
-              <button
-                data-testid="close-drawer-btn"
-                aria-label="Close plot details"
-                onClick={handleCloseDrawer}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl hover:bg-slate-200 transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Header Quick Adjustment Action (Super Admin) */}
+                {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
+                  selectedPlot.isAdjustment ? (
+                    <button
+                      type="button"
+                      onClick={handleReleaseAdjustment}
+                      disabled={actionLoading}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 text-[11px] font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
+                      title="Release Master Plan Adjustment Freeze"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Release Freeze</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsAdjustmentModalOpen(true)}
+                      disabled={actionLoading}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 text-[11px] font-bold rounded-lg transition-colors cursor-pointer shadow-2xs hover:shadow-xs"
+                      title="Town Planning Boundary Re-survey Adjustment"
+                    >
+                      <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Adjustment</span>
+                    </button>
+                  )
+                )}
+
+                <button
+                  data-testid="close-drawer-btn"
+                  aria-label="Close plot details"
+                  onClick={handleCloseDrawer}
+                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-200 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* Modal Body */}
-            <div className="p-4 sm:p-6 space-y-5 text-xs text-slate-700 overflow-y-auto">
+            <div className="p-3 sm:p-4 space-y-2.5 text-xs text-slate-700 overflow-y-auto flex-1 min-h-0">
               {actionError && (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-2">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl flex items-start gap-2 shadow-2xs">
                   <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                   <span>{actionError}</span>
                 </div>
@@ -1074,23 +1110,22 @@ function BlockPlotsContent() {
 
               {/* Status Banner */}
               {selectedPlot.isAdjustment ? (
-                <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-2xl text-blue-950 space-y-2">
+                <div className="p-3 bg-blue-50/90 border border-blue-300 rounded-xl text-blue-950 space-y-1.5 shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-sm text-blue-900">
-                      <AlertTriangle className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span className="lowercase font-mono">adjustment</span>
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-blue-900">
+                      <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                      <span>Town Planning Adjustment Freeze</span>
                     </div>
-                    <span className="text-[10px] bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded-md lowercase">
-                      adjustment
+                    <span className="text-[9px] bg-blue-600 text-white font-mono font-bold px-2 py-0.5 rounded uppercase">
+                      Freeze Active
                     </span>
                   </div>
-                  <p className="text-[11px] text-blue-800 leading-relaxed">
-                    This plot has been flagged for town planning recalculation or boundary re-survey. 
-                    <strong> New reservations and bookings are strictly prohibited.</strong>
+                  <p className="text-[11px] text-blue-800 leading-snug">
+                    Plot operations frozen for boundary re-survey or recalculation. New reservations and bookings prohibited.
                   </p>
                   {selectedPlot.adjustmentReason && (
-                    <div className="text-[11px] bg-white/90 border border-blue-200 rounded-xl p-2.5 font-medium">
-                      <strong className="text-blue-950">Adjustment Note:</strong> {selectedPlot.adjustmentReason}
+                    <div className="text-[11px] bg-white/90 border border-blue-200 rounded-lg p-2 font-medium">
+                      <strong className="text-blue-950">Reason:</strong> {selectedPlot.adjustmentReason}
                     </div>
                   )}
                   {selectedPlot.adjustmentBy && (
@@ -1100,12 +1135,12 @@ function BlockPlotsContent() {
                   )}
                 </div>
               ) : selectedPlot.lockedBy ? (
-                <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 text-rose-900">
-                    <Lock className="w-4 h-4 text-rose-600" />
-                    <div>
-                      <div className="font-bold text-xs">Active Booking Lock (10m)</div>
-                      <div className="text-[11px] text-rose-700">
+                <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center justify-between gap-2 shadow-2xs">
+                  <div className="flex items-center gap-2 text-rose-900 min-w-0">
+                    <Lock className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs truncate">Active Booking Lock (10m)</div>
+                      <div className="text-[10px] text-rose-700 truncate">
                         Held by: <strong>{selectedPlot.lockedByName}</strong>
                       </div>
                     </div>
@@ -1118,19 +1153,19 @@ function BlockPlotsContent() {
                         activeSelectedPlotIdRef.current = null;
                         setSelectedPlot(null);
                       }}
-                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg shadow-xs"
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg shadow-xs shrink-0 cursor-pointer"
                     >
                       Force Release
                     </button>
                   )}
                 </div>
-              ) : ((selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0) || selectedPlot.reservingByName) && selectedPlot.status !== 'reserved' && selectedPlot.status !== 'booked' ? (
-                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5 text-amber-900">
-                    <BookmarkCheck className="w-4 h-4 text-amber-600" />
-                    <div>
-                      <div className="font-bold text-xs">Reserve Form In Progress</div>
-                      <div className="text-[11px] text-amber-800">
+              ) : ((selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0) || selectedPlot.reservingByName) && selectedPlot.status !== 'reserved' && selectedPlot.status !== 'booked' && selectedPlot.status !== 'allotted' ? (
+                <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2 shadow-2xs">
+                  <div className="flex items-center gap-2 text-amber-900 min-w-0">
+                    <BookmarkCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="font-bold text-xs truncate">Reserve Form In Progress</div>
+                      <div className="text-[10px] text-amber-800 truncate">
                         Being reserved by:{' '}
                         <strong>
                           {selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0
@@ -1140,16 +1175,16 @@ function BlockPlotsContent() {
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300">
+                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-300 shrink-0">
                     Non-blocking
                   </span>
                 </div>
               ) : selectedPlot.category === 'amenity' ? (
-                <div className="p-3.5 bg-purple-50 border border-purple-200 rounded-xl text-purple-950">
-                  <div className="font-bold text-sm text-purple-900">
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-purple-950 shadow-2xs">
+                  <div className="font-bold text-xs text-purple-900">
                     Non-Sellable Society Amenity: {selectedPlot.amenityName}
                   </div>
-                  <p className="text-[11px] mt-1 text-purple-800">
+                  <p className="text-[11px] mt-0.5 text-purple-800 leading-snug">
                     This property is reserved for public utility and cannot be booked or reserved.
                   </p>
                 </div>
@@ -1157,17 +1192,17 @@ function BlockPlotsContent() {
 
               {/* Dispute Warning Banner in Drawer */}
               {((selectedPlot.displayStatus || selectedPlot.status) === 'disputed' || selectedPlot.isDisputed || (selectedPlot.activeReservationCount && selectedPlot.activeReservationCount > 1)) && (
-                <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl text-rose-950 space-y-2">
+                <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-950 space-y-1 shadow-2xs">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-bold text-sm text-rose-900">
-                      <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                    <div className="flex items-center gap-1.5 font-bold text-xs text-rose-900">
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
                       <span>Disputed Plot</span>
                     </div>
-                    <span className="text-[10px] bg-rose-600 text-white font-mono font-bold px-2 py-0.5 rounded-md uppercase">
+                    <span className="text-[9px] bg-rose-600 text-white font-mono font-bold px-1.5 py-0.5 rounded uppercase">
                       disputed
                     </span>
                   </div>
-                  <p className="text-[11px] text-rose-800 leading-relaxed font-medium">
+                  <p className="text-[11px] text-rose-800 leading-snug font-medium">
                     {selectedPlot.displayStatusReason || (
                       selectedPlot.activeReservationCount && selectedPlot.activeReservationCount > 1
                         ? `${selectedPlot.activeReservationCount} competing reservations — needs resolution.`
@@ -1177,25 +1212,26 @@ function BlockPlotsContent() {
                 </div>
               )}
 
-              {/* Plot Specs */}
-              <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Plot Size</span>
-                  <div className="text-sm font-bold text-slate-900">{selectedPlot.size}</div>
+              {/* Plot Specs (Compact & Adaptable Responsive Grid) */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/90 p-2.5 sm:p-3 rounded-xl border border-slate-200">
+                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
+                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Plot Size</span>
+                  <div className="text-xs sm:text-sm font-bold text-slate-900 truncate">{selectedPlot.size}</div>
                 </div>
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Official Price</span>
+
+                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
+                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Official Price</span>
                   {isEditingPrice ? (
-                    <div className="mt-1 space-y-1.5">
+                    <div className="mt-1 space-y-1">
                       <div className="flex items-center gap-1">
-                        <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
+                        <span className="text-[10px] font-mono font-bold text-slate-500">PKR</span>
                         <input
                           type="number"
                           min={100000}
                           step={50000}
                           value={newPriceInput}
                           onChange={(e) => setNewPriceInput(e.target.value)}
-                          className="w-28 px-1.5 py-0.5 text-xs font-mono font-bold bg-white border border-emerald-400 rounded-lg focus:outline-hidden"
+                          className="w-20 px-1 py-0.5 text-xs font-mono font-bold bg-white border border-emerald-400 rounded focus:outline-hidden"
                           autoFocus
                         />
                       </div>
@@ -1204,23 +1240,23 @@ function BlockPlotsContent() {
                           type="button"
                           onClick={handleSavePrice}
                           disabled={priceSaving}
-                          className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded-md cursor-pointer"
+                          className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded cursor-pointer"
                         >
                           {priceSaving ? '...' : 'Save'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsEditingPrice(false)}
-                          className="px-1.5 py-0.5 text-slate-500 hover:text-slate-800 text-[10px] cursor-pointer"
+                          className="px-1 py-0.5 text-slate-500 hover:text-slate-800 text-[9px] cursor-pointer"
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-emerald-800 font-mono">
-                        {selectedPlot.price > 0 ? `PKR ${selectedPlot.price.toLocaleString()}` : 'Society Amenity'}
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-xs sm:text-sm font-bold text-emerald-800 font-mono truncate">
+                        {selectedPlot.price > 0 ? `PKR ${selectedPlot.price.toLocaleString()}` : 'Amenity'}
                       </span>
                       {session?.role === 'super_admin' && selectedPlot.price > 0 && (
                         <button
@@ -1229,7 +1265,7 @@ function BlockPlotsContent() {
                             setNewPriceInput(String(selectedPlot.price));
                             setIsEditingPrice(true);
                           }}
-                          className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
+                          className="text-[9px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer shrink-0"
                         >
                           Edit
                         </button>
@@ -1237,21 +1273,18 @@ function BlockPlotsContent() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Current Status</span>
-                  <div className="text-sm font-bold capitalize text-slate-900 flex items-center gap-1.5 flex-wrap">
-                    <span>{selectedPlot.displayStatus || selectedPlot.status}</span>
-                    {selectedPlot.displayStatus && selectedPlot.displayStatus !== selectedPlot.status && (
-                      <span className="text-[10px] font-mono text-rose-600 font-normal">
-                        (stored: {selectedPlot.status})
-                      </span>
-                    )}
+
+                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
+                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Status</span>
+                  <div className="text-xs sm:text-sm font-bold capitalize text-slate-900 truncate">
+                    {selectedPlot.displayStatus || selectedPlot.status}
                   </div>
                 </div>
-                <div>
-                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold">Plot Type</span>
-                  <div className="text-sm font-bold capitalize text-slate-700 font-mono">
-                    {selectedPlot.plotType}
+
+                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
+                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Type</span>
+                  <div className="text-xs sm:text-sm font-bold capitalize text-slate-700 font-mono truncate">
+                    {selectedPlot.plotType || selectedPlot.category}
                   </div>
                 </div>
               </div>
@@ -1260,12 +1293,12 @@ function BlockPlotsContent() {
               {plotReservations.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
                       <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
                       Active Reservations ({plotReservations.length})
                     </span>
                     {plotReservations.length > 1 && (
-                      <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2.5 py-0.5 rounded-full border border-rose-300">
+                      <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300">
                         Dispute Race Conflict
                       </span>
                     )}
@@ -1274,157 +1307,197 @@ function BlockPlotsContent() {
                   {plotReservations.map((res, idx) => (
                     <div
                       key={res.id}
-                      className="bg-amber-50/80 border border-amber-200/90 p-3.5 rounded-2xl flex items-center justify-between gap-3 shadow-2xs transition-all hover:bg-amber-50"
+                      className="bg-amber-50/90 border border-amber-200 p-2.5 sm:p-3 rounded-xl space-y-2 shadow-2xs hover:bg-amber-50 transition-all"
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-slate-900 text-xs truncate">
-                          {idx + 1}. {res.customerName}
-                        </div>
-                        <div className="text-[11px] text-slate-600 font-mono mt-0.5">
-                          Token: <strong className="text-slate-900 font-bold">PKR {res.tokenFee.toLocaleString()}</strong> • {res.customerPhone}
-                        </div>
-                        {res.validUntil && (() => {
-                          const hold = formatRemainingHoldTime(res.validUntil);
-                          return (
-                            <div className="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-1.5 flex-wrap">
-                              <span>Hold: <strong className="text-slate-800">{new Date(res.validUntil).toLocaleDateString()}</strong></span>
-                              <span>•</span>
-                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border ${
-                                hold.isExpired
-                                  ? 'bg-rose-100 text-rose-800 border-rose-300'
-                                  : hold.isUrgent
-                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              }`}>
-                                <Clock className="w-2.5 h-2.5" />
-                                <span>{hold.text}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-bold text-slate-900 text-xs">
+                              {idx + 1}. {res.customerName}
+                            </span>
+                            <span className="text-[11px] font-mono text-slate-700 bg-white/90 px-1.5 py-0.5 rounded border border-amber-200">
+                              Token: <strong className="text-slate-900 font-bold">PKR {res.tokenFee.toLocaleString()}</strong>
+                            </span>
+                            {res.customerPhone && (
+                              <span className="text-[11px] text-slate-600 font-mono">
+                                📞 {res.customerPhone}
                               </span>
-                            </div>
-                          );
-                        })()}
-                        {res.resolutionNote && (
-                          <div className="text-[10px] text-amber-900/90 italic mt-1.5 bg-white/90 px-2.5 py-1 rounded-lg border border-amber-200 leading-snug break-words">
-                            Note: {res.resolutionNote}
+                            )}
                           </div>
-                        )}
-                      </div>
 
-                      {/* Convert / Release Actions */}
-                      <div className="shrink-0 flex items-center gap-2">
-                        {session?.permissions.can_reserve && (
+                          {res.validUntil && (() => {
+                            const hold = formatRemainingHoldTime(res.validUntil);
+                            return (
+                              <div className="text-[10px] text-slate-500 font-mono mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span>Hold: <strong className="text-slate-800">{new Date(res.validUntil).toLocaleDateString()}</strong></span>
+                                <span>•</span>
+                                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border ${
+                                  hold.isExpired
+                                    ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                    : hold.isUrgent
+                                    ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                }`}>
+                                  <Clock className="w-2.5 h-2.5" />
+                                  <span>{hold.text}</span>
+                                </span>
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Convert / Release Actions */}
+                        <div className="shrink-0 flex items-center gap-1.5 self-end sm:self-center">
+                          {session?.permissions.can_reserve && (
+                            <button
+                              type="button"
+                              onClick={() => handleReleaseReservation(res)}
+                              disabled={actionLoading}
+                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 font-bold text-xs rounded-lg border transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50 ${
+                                res.reservedByAdminId === session.adminId || session.role === 'super_admin'
+                                  ? 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
+                                  : 'bg-slate-50 text-slate-400 border-slate-200'
+                              }`}
+                              title={
+                                res.reservedByAdminId === session.adminId
+                                  ? 'Release your reservation back to society inventory'
+                                  : session.role === 'super_admin'
+                                  ? `Super Admin Override: Release ${res.reservedByAdminName}'s reservation`
+                                  : `Only reserving admin (${res.reservedByAdminName}) can release`
+                              }
+                            >
+                              {res.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
+                                <Lock className="w-3 h-3 text-slate-400" />
+                              ) : (
+                                <RotateCcw className="w-3 h-3 text-slate-400 hover:text-rose-600" />
+                              )}
+                              <span>Release</span>
+                            </button>
+                          )}
+
                           <button
                             type="button"
-                            onClick={() => handleReleaseReservation(res)}
+                            onClick={() => openBook(res)}
                             disabled={actionLoading}
-                            className={`shrink-0 inline-flex items-center justify-center gap-1.5 px-3 py-2 font-bold text-xs rounded-xl border transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50 ${
-                              res.reservedByAdminId === session.adminId || session.role === 'super_admin'
-                                ? 'bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
-                                : 'bg-slate-50 text-slate-400 border-slate-200'
-                            }`}
-                            title={
-                              res.reservedByAdminId === session.adminId
-                                ? 'Release your reservation back to society inventory'
-                                : session.role === 'super_admin'
-                                ? `Super Admin Override: Release ${res.reservedByAdminName}'s reservation`
-                                : `Only reserving admin (${res.reservedByAdminName}) can release`
-                            }
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg transition-all cursor-pointer shadow-xs whitespace-nowrap disabled:opacity-50"
                           >
-                            {res.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
-                              <Lock className="w-3.5 h-3.5 text-slate-400" />
-                            ) : (
-                              <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
-                            )}
-                            <span>Release</span>
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-200" />
+                            <span>Confirm Booking</span>
                           </button>
-                        )}
-
-                        <button
-                          type="button"
-                          onClick={() => openBook(res)}
-                          disabled={actionLoading}
-                          className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs whitespace-nowrap min-w-[135px] disabled:opacity-50"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-200" />
-                          <span>Confirm Booking</span>
-                        </button>
+                        </div>
                       </div>
+
+                      {res.resolutionNote && (
+                        <div className="text-[10px] text-amber-900 bg-white/90 px-2 py-1 rounded-md border border-amber-200 leading-snug break-words">
+                          <span className="font-semibold">Note:</span> {res.resolutionNote}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Allocated Member Card for Booked Plot */}
-              {selectedPlot.status === 'booked' && (() => {
+              {/* Allocated Member Card for Booked or Allotted Plot */}
+              {(selectedPlot.status === 'booked' || selectedPlot.status === 'allotted') && (() => {
                 const booking = selectedPlotBooking;
                 const bookedCustomer = selectedPlotOwner;
+                const isAllotted = selectedPlot.status === 'allotted';
                 
                 if (bookedCustomer?.registrationStatus === 'minimal') {
                   return (
-                    <div className="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-4 space-y-3 shadow-xs">
+                    <div className="bg-amber-50/80 border border-amber-300 rounded-xl p-3 space-y-2 shadow-2xs">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
-                          <User className="w-4 h-4 text-amber-600" />
-                          Booked (Pending Formalities)
+                          <User className="w-3.5 h-3.5 text-amber-600" />
+                          {isAllotted ? 'Allotted (Pending Formalities)' : 'Booked (Pending Formalities)'}
                         </span>
-                        <span className="text-[10px] bg-amber-200 text-amber-950 font-bold px-2.5 py-0.5 rounded-full font-mono border border-amber-400">
+                        <span className="text-[10px] bg-amber-200 text-amber-950 font-bold px-2 py-0.5 rounded-full font-mono border border-amber-400">
                           Needs Registration
                         </span>
                       </div>
-                      <div className="space-y-1.5 pt-1 text-xs">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-900">{bookedCustomer.fullName}</span>
-                          <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded border border-amber-300">
+
+                      <div className="bg-white/90 border border-amber-200/80 rounded-lg p-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-bold text-slate-900 truncate">{bookedCustomer.fullName}</span>
+                          <span className="text-[10px] font-mono font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded border border-amber-300 shrink-0">
                             MEMBERSHIP PENDING
                           </span>
                         </div>
-                        <div className="text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
-                          <span>🪪 CNIC: <strong className="text-slate-800 font-mono">{bookedCustomer.cnic}</strong></span>
-                          <span>📍 City: <strong className="text-slate-800">{bookedCustomer.city || bookedCustomer.mailingAddress}</strong></span>
+                        <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {bookedCustomer.phone && <span>📞 {bookedCustomer.phone}</span>}
+                          <span>🪪 CNIC: <strong className="text-slate-800 font-mono">{bookedCustomer.cnic || 'Pending'}</strong></span>
+                          <span>📍 City: <strong className="text-slate-800">{bookedCustomer.city || bookedCustomer.mailingAddress || '—'}</strong></span>
                         </div>
-                        
-                        {session?.role === 'super_admin' && (
-                          <div className="pt-2"> 
-                            <Link
-                              href={`/admin/customers?completeCustomer=${bookedCustomer.id}`}
-                              className="w-full inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
-                            >
-                              <ShieldCheck className="w-4 h-4" />
-                              <span>Complete Member Registration (Super Admin)</span>
-                            </Link>
+
+                        {booking && (
+                          <div className="text-[11px] text-amber-900/80 font-mono pt-1 border-t border-amber-100 flex items-center justify-between">
+                            <span>Booked: {new Date(booking.bookingDate).toLocaleDateString()}</span>
+                            <span className="capitalize font-semibold">Plan: {booking.paymentType.replace('_', ' ')}</span>
                           </div>
                         )}
                       </div>
+
+                      {session?.role === 'super_admin' && (
+                        <Link
+                          href={`/admin/customers?completeCustomer=${bookedCustomer.id}`}
+                          className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-xs transition-colors"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          <span>Complete Member Registration (Super Admin)</span>
+                        </Link>
+                      )}
                     </div>
                   );
                 }
 
                 return (
-                  <div className="bg-rose-50/80 border border-rose-200 rounded-2xl p-4 space-y-2">
+                  <div className={`border rounded-xl p-3 space-y-2 shadow-2xs ${
+                    isAllotted
+                      ? 'bg-slate-50 border-slate-200'
+                      : 'bg-rose-50/80 border-rose-200'
+                  }`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-rose-900 uppercase tracking-wider flex items-center gap-1.5">
-                        <User className="w-4 h-4 text-rose-600" />
+                      <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${
+                        isAllotted ? 'text-slate-900' : 'text-rose-900'
+                      }`}>
+                        <User className={`w-3.5 h-3.5 ${isAllotted ? 'text-slate-700' : 'text-rose-600'}`} />
                         Allocated Society Member
                       </span>
-                      <span className="text-[10px] bg-rose-200 text-rose-900 font-bold px-2 py-0.5 rounded-full font-mono">
-                        Booked
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                        isAllotted
+                          ? 'bg-slate-900 text-white'
+                          : 'bg-rose-200 text-rose-900'
+                      }`}>
+                        {isAllotted ? 'Allotted' : 'Booked'}
                       </span>
                     </div>
+
                     {bookedCustomer ? (
-                      <div className="space-y-1.5 pt-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-bold text-slate-900">{bookedCustomer.fullName}</span>
-                          <span className="text-xs font-mono font-bold text-rose-700 bg-white px-2 py-0.5 rounded border border-rose-200">
+                      <div className="bg-white/90 border border-slate-200/80 rounded-lg p-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-sm font-bold text-slate-900 truncate">{bookedCustomer.fullName}</span>
+                          <span className={`text-xs font-mono font-bold bg-white px-2 py-0.5 rounded border shrink-0 ${
+                            isAllotted ? 'text-slate-800 border-slate-300' : 'text-rose-700 border-rose-200'
+                          }`}>
                             {bookedCustomer.membershipNo}
                           </span>
                         </div>
-                        <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-4 gap-y-1">
-                          <span>📞 {bookedCustomer.phone}</span>
-                          <span>✉️ {bookedCustomer.email}</span>
+                        <div className="text-xs text-slate-600 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          {bookedCustomer.phone && <span>📞 {bookedCustomer.phone}</span>}
+                          {bookedCustomer.email && <span>✉️ {bookedCustomer.email}</span>}
+                          {bookedCustomer.cnic && (
+                            <span>🪪 CNIC: <strong className="text-slate-800 font-mono">{bookedCustomer.cnic}</strong></span>
+                          )}
+                          {(bookedCustomer.city || bookedCustomer.mailingAddress) && (
+                            <span>📍 City: <strong className="text-slate-800">{bookedCustomer.city || bookedCustomer.mailingAddress}</strong></span>
+                          )}
                         </div>
                         {booking && (
-                          <div className="text-[11px] text-slate-500 font-mono pt-1.5 border-t border-rose-200/60 flex items-center justify-between">
+                          <div className={`text-[11px] text-slate-500 font-mono pt-1 border-t ${
+                            isAllotted ? 'border-slate-200' : 'border-rose-200/60'
+                          } flex items-center justify-between`}>
                             <span>Booked on: {new Date(booking.bookingDate).toLocaleDateString()}</span>
-                            <span className="capitalize">Plan: {booking.paymentType.replace('_', ' ')}</span>
+                            <span className="capitalize font-semibold">Plan: {booking.paymentType.replace('_', ' ')}</span>
                           </div>
                         )}
                       </div>
@@ -1435,64 +1508,68 @@ function BlockPlotsContent() {
                 );
               })()}
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col gap-3">
-                {selectedPlot.isAdjustment ? (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-2">
-                    <Lock className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span>Plot Operations Locked Under Boundary Re-survey Freeze</span>
+            </div>
+
+            {/* Modal Fixed / Pinned Action Footer */}
+            <div className="p-3 sm:p-3.5 border-t border-slate-200 bg-white/95 backdrop-blur-xs shrink-0 flex flex-col gap-2 shadow-xs">
+              {selectedPlot.isAdjustment ? (
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <div className="flex-1 p-2 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-1.5 w-full">
+                    <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                    <span>Operations Locked Under Town Planning Freeze</span>
                   </div>
-                ) : selectedPlot.category !== 'amenity' && selectedPlot.status !== 'booked' && (
-                  <div className="flex items-center gap-3">
+                  {session?.role === 'super_admin' && (
                     <button
                       type="button"
-                      onClick={openReserve}
+                      onClick={handleReleaseAdjustment}
                       disabled={actionLoading}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs whitespace-nowrap"
+                      className="w-full sm:w-auto py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs flex items-center justify-center gap-1.5 shrink-0"
                     >
-                      <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Reserve Plot (Token)</span>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Release Freeze</span>
                     </button>
+                  )}
+                </div>
+              ) : (
+                <>
+                  {selectedPlot.category !== 'amenity' && selectedPlot.status !== 'booked' && selectedPlot.status !== 'allotted' && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={openReserve}
+                        disabled={actionLoading}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs whitespace-nowrap min-h-[38px]"
+                      >
+                        <BookmarkCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>Reserve Plot (Token)</span>
+                      </button>
 
+                      <button
+                        type="button"
+                        onClick={() => openBook()}
+                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId)}
+                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap min-h-[38px]"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+                        <span>Lock & Book Now</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Super Admin Master Plan Adjustment Button */}
+                  {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
                     <button
                       type="button"
-                      onClick={() => openBook()}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap"
+                      onClick={() => setIsAdjustmentModalOpen(true)}
+                      disabled={actionLoading}
+                      className="w-full py-2 px-3 bg-blue-50/80 hover:bg-blue-100 border border-blue-200 hover:border-blue-400 text-blue-900 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs min-h-[38px]"
                     >
-                      <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
-                      <span>Lock & Book Now</span>
+                      <AlertTriangle className="w-4 h-4 text-blue-600" />
+                      <span>Town Planning Boundary Adjustment</span>
                     </button>
-                  </div>
-                )}
-
-                {/* Super Admin Master Plan Adjustment Controls */}
-                {session?.role === 'super_admin' && (
-                  <div className="pt-2 border-t border-slate-200">
-                    {selectedPlot.isAdjustment ? (
-                      <button
-                        type="button"
-                        onClick={handleReleaseAdjustment}
-                        disabled={actionLoading}
-                        className="w-full py-2.5 px-3 bg-white hover:bg-blue-50 border-2 border-blue-400 text-blue-800 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs flex items-center justify-center gap-1.5"
-                      >
-                        <RotateCcw className="w-4 h-4 text-blue-600" />
-                        <span>Release Master Plan Adjustment Freeze</span>
-                      </button>
-                    ) : (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') ? (
-                      <button
-                        type="button"
-                        onClick={() => setIsAdjustmentModalOpen(true)}
-                        disabled={actionLoading}
-                        className="w-full py-2 px-3 bg-slate-100 hover:bg-blue-50 border border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-semibold text-xs rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-1.5"
-                      >
-                        <AlertTriangle className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Adjustment</span>
-                      </button>
-                    ) : null}
-                  </div>
-                )}
-              </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
