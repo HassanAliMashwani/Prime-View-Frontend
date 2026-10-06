@@ -66,6 +66,7 @@ export default function InteractiveBlockMap({
   }, [blockId]);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Zoom & Pan State
   const [scale, setScale] = useState<number>(1);
@@ -220,8 +221,6 @@ export default function InteractiveBlockMap({
       setTimeout(() => setGroupedToast(null), 3500);
     }
   };
-
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
   // Dynamically compute tooltip position so the detail card is always right beside the pointer
   const getTooltipStyle = (): React.CSSProperties => {
