@@ -488,7 +488,7 @@ export async function getCustomersDirectory(
       lastLogin: customer.lastLogin,
       strikeCount: customer.strikeCount || 0,
       strikeHistory: [],
-      plots: [], // Not fetched in summary
+      plots: customer.plots || [],
       plotsCount: customer.plotCount || 0,
       installmentsPaidCount: 0, // Not fetched in summary
       installmentsDueCount: 0, // Not fetched in summary

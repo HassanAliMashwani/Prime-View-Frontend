@@ -284,15 +284,12 @@ export default function AdminDashboardPage() {
             <h3 className="font-serif font-bold text-lg text-slate-900">
               Accessible Sectors {isInitialLoading ? '' : `(${blocks.length})`}
             </h3>
-            <p className="text-xs text-slate-500">
-              Color-coded sector portfolios within your administrative authority.
-            </p>
           </div>
           <Link
             href="/admin/master-plan"
             className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
           >
-            <span>View Interactive Grid</span>
+            <span>View Interactive Map</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>

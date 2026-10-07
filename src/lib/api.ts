@@ -57,13 +57,13 @@ export interface ApiResponse<T> {
 }
 
 function sanitizeErrorMessage(rawMessage?: any): string {
-  if (
-    rawMessage === 'Invalid credentials.' ||
-    rawMessage === 'Account locked due to too many failed attempts.'
-  ) {
-    return rawMessage;
+  if (!rawMessage) return 'Something went wrong. Please try again.';
+  if (typeof rawMessage === 'string') return rawMessage;
+  if (Array.isArray(rawMessage)) return rawMessage.join(', ');
+  if (typeof rawMessage === 'object' && rawMessage.message) {
+    return sanitizeErrorMessage(rawMessage.message);
   }
-  return 'Something went wrong. Please try again.';
+  return String(rawMessage);
 }
 
 /**

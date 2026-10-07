@@ -79,7 +79,14 @@ function PlotSelector({
       setLoading(true);
       getAdminAllPlots(session, debouncedSearch).then(res => {
         if (res.ok && res.plots) {
-          setResults(res.plots);
+          const availableOnly = res.plots.filter((p: Plot) => {
+            if (p.status !== 'available') return false;
+            if (p.category === 'amenity') return false;
+            if (p.isAdjustment) return false;
+            if (session.role !== 'super_admin' && !session.assignedBlocks?.includes(p.blockId)) return false;
+            return true;
+          });
+          setResults(availableOnly);
         }
         setLoading(false);
       });

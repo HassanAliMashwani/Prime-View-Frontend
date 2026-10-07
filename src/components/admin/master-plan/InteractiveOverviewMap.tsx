@@ -229,16 +229,8 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                     </div>
                   )}
 
-                  {summary?.disputedCount && summary.disputedCount > 0 ? (
-                    <div className="mt-2.5 bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-950 px-2.5 py-1 rounded-xl text-center font-bold text-[10px] flex items-center justify-center gap-1.5 shadow-2xs animate-pulse">
-                      <AlertTriangle className="w-3 h-3 text-fuchsia-600 shrink-0" />
-                      <span>{summary.disputedCount} Disputed Plot{summary.disputedCount > 1 ? 's' : ''} (Competing Claims)</span>
-                    </div>
-                  ) : null}
-
-                  <div className="mt-3 flex items-center justify-between text-xs font-bold text-emerald-700 pt-2 border-t border-slate-100">
+                  <div className="mt-3 flex items-center justify-center text-xs font-bold text-emerald-700 pt-2 border-t border-slate-100">
                     <span>Click to open block view</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
                   </div>
                 </div>
               );

@@ -3,7 +3,6 @@ import { canAccessBlock } from './adminAuth';
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from '../api';
 import { setRegisteredPlotsCache } from './customers';
 import { getCache, setCache } from './apiCache';
-import { MASTER_PLAN_TOTAL_PLOTS } from '../map/regionData';
 
 export interface BlockSummary extends Block {
   totalCount: number;
@@ -51,12 +50,12 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
         return { ok: false, blocks: [], error: apiRes.error || 'Failed to fetch blocks' };
       }
 
-      const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id));
+      const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id) && b.id !== 'chalet');
       const summaries: BlockSummary[] = accessibleBlocks.map((block: any) => {
-        const total = MASTER_PLAN_TOTAL_PLOTS[block.id] ?? (typeof block.totalCount === 'number' ? block.totalCount : block.totalPlots || 0);
+        const total = typeof block.totalCount === 'number' ? block.totalCount : block.totalPlots || 0;
         const reserved = typeof block.reservedCount === 'number' ? block.reservedCount : 0;
         const booked = typeof block.bookedCount === 'number' ? block.bookedCount : 0;
-        const available = Math.max(0, total - reserved - booked);
+        const available = typeof block.availableCount === 'number' ? block.availableCount : Math.max(0, total - reserved - booked);
 
         return {
           id: block.id,

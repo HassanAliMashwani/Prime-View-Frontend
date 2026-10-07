@@ -43,10 +43,15 @@ export function computePlotLedger(
   );
 
   const remainingBalance = Math.max(0, totalPlotPrice - totalPaidToDate);
-  const percentSettled =
-    totalPlotPrice > 0
-      ? Math.min(100, Math.round((totalPaidToDate / totalPlotPrice) * 100))
-      : 0;
+  let percentSettled = 0;
+  if (totalPlotPrice > 0) {
+    if (remainingBalance <= 0) {
+      percentSettled = 100;
+    } else {
+      const rawPercent = Math.floor((totalPaidToDate / totalPlotPrice) * 100);
+      percentSettled = Math.min(99, Math.max(0, rawPercent));
+    }
+  }
 
   return { totalPlotPrice, totalPaidToDate, remainingBalance, percentSettled };
 }

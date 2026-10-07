@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { PlotCarousel, PlotItem, plots } from "@/components/ui/PlotCarousel";
 import { fetchPublicContent, ContentBlock } from "@/lib/dal/publicContent";
-import { getCache, setCache, reconcileItems } from "@/lib/dal/apiCache";
+import { getCache, setCache, reconcileItems, clearCachePrefix } from "@/lib/dal/apiCache";
 import { normalizeImagePath, normalizePlanCardImage } from "@/lib/images";
 import { Check, Calendar, ArrowUpRight, Star, Info, Percent, MapPin, CalendarDays, ShieldCheck, FileText, ChevronRight } from "lucide-react";
 
@@ -203,6 +203,7 @@ export default function OurPlansPage() {
     loadPlans();
 
     const handleRefresh = () => {
+      clearCachePrefix('public:');
       loadPlans();
     };
 
@@ -212,6 +213,7 @@ export default function OurPlansPage() {
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
+        clearCachePrefix('public:');
         loadPlans();
       }
     };
@@ -227,6 +229,7 @@ export default function OurPlansPage() {
       channel = new BroadcastChannel('cms_updates');
       channel.onmessage = (e) => {
         if (e.data?.type === 'CONTENT_UPDATED') {
+          clearCachePrefix('public:');
           loadPlans();
         }
       };

@@ -257,3 +257,83 @@ export async function verifySlipPublic(
   return res.data;
 }
 
+/**
+ * Upload a receipt file to the private 'receipts' bucket via presigned upload URL.
+ * Returns the storage key to be saved on the receipt row (no data: URL).
+ */
+export async function uploadReceiptFileToStorage(
+  file: File
+): Promise<{ ok: boolean; storageKey?: string; error?: string }> {
+  const token = getMemberToken() || getAdminToken();
+  const presignedRes = await apiPost<any>(
+    '/storage/presigned-url',
+    {
+      bucket: 'receipts',
+      fileName: file.name,
+      fileType: file.type || 'image/jpeg',
+      fileSizeKb: Math.ceil(file.size / 1024),
+    },
+    token || undefined
+  );
+
+  if (!presignedRes.ok || !presignedRes.data?.uploadUrl) {
+    return {
+      ok: false,
+      error: presignedRes.error || presignedRes.message || 'Failed to acquire upload authorization.',
+    };
+  }
+
+  const { uploadUrl, key, method, headers } = presignedRes.data;
+
+  try {
+    const uploadRes = await fetch(uploadUrl, {
+      method: method || 'PUT',
+      headers: {
+        'Content-Type': file.type || 'image/jpeg',
+        ...(headers || {}),
+      },
+      body: file,
+    });
+
+    if (!uploadRes.ok) {
+      return {
+        ok: false,
+        error: `File upload failed with status ${uploadRes.status}`,
+      };
+    }
+
+    return {
+      ok: true,
+      storageKey: key,
+    };
+  } catch (err: any) {
+    return {
+      ok: false,
+      error: err?.message || 'Network error during file upload.',
+    };
+  }
+}
+
+/**
+ * Retrieve the viewable/signed file URL for a receipt on demand.
+ * Calls backend GET /receipts/:id/file.
+ */
+export async function getReceiptFileUrl(
+  receiptId: string
+): Promise<{ ok: boolean; fileUrl?: string; error?: string }> {
+  const token = getAdminToken() || getMemberToken();
+  const res = await apiGet<{ ok: boolean; receiptFileUrl: string }>(
+    `/receipts/${receiptId}/file`,
+    token || undefined
+  );
+
+  if (!res.ok || !res.data?.receiptFileUrl) {
+    return {
+      ok: false,
+      error: res.error || res.message || 'Failed to load receipt file.',
+    };
+  }
+
+  return { ok: true, fileUrl: res.data.receiptFileUrl };
+}
+

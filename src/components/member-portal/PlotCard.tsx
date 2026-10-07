@@ -39,6 +39,9 @@ const formatCategory = (cat: string) => {
 export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const isInstallment = plot.paymentSummary.paymentType === 'installment';
+  const progress = plot.paymentSummary.installmentProgress;
+
   const formattedPrice = new Intl.NumberFormat('en-PK', {
     style: 'currency',
     currency: 'PKR',
@@ -57,14 +60,21 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
     maximumFractionDigits: 0,
   }).format(plot.paymentSummary.remainingAmount);
 
-  const isInstallment = plot.paymentSummary.paymentType === 'installment';
-  const progress = plot.paymentSummary.installmentProgress;
-  const percentPaid = isInstallment && progress && progress.totalCount > 0
-    ? Math.round((progress.paidCount / progress.totalCount) * 100)
-    : plot.paymentSummary.totalAmount > 0
-    ? Math.round((plot.paymentSummary.paidAmount / plot.paymentSummary.totalAmount) * 100)
-    : 0;
-  const clampedPercent = Math.min(100, Math.max(0, percentPaid));
+  const agreedTotal = plot.paymentSummary.totalAmount > 0 ? plot.paymentSummary.totalAmount : plot.price;
+  const moneyPaid = plot.paymentSummary.paidAmount || 0;
+  const remainingAmount = plot.paymentSummary.remainingAmount !== undefined
+    ? Number(plot.paymentSummary.remainingAmount)
+    : Math.max(0, agreedTotal - moneyPaid);
+
+  let clampedPercent = 0;
+  if (agreedTotal > 0) {
+    if (remainingAmount <= 0) {
+      clampedPercent = 100;
+    } else {
+      const rawPercent = Math.floor((moneyPaid / agreedTotal) * 100);
+      clampedPercent = Math.min(99, Math.max(0, rawPercent));
+    }
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-black/[0.08] p-3.5 sm:p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.07)] transition-all min-w-0">

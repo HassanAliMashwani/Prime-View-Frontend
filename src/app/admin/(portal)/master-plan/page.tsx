@@ -207,16 +207,6 @@ export default function MasterPlanPage() {
                 </p>
 
 
-                {/* Disputed Plots Warning Indicator if any plots in conflict */}
-                {block.disputedCount && block.disputedCount > 0 ? (
-                  <div className="mb-4 px-3 py-1.5 rounded-xl bg-fuchsia-50 border border-fuchsia-200 text-fuchsia-950 flex items-center justify-between text-xs font-bold shadow-2xs">
-                    <span className="flex items-center gap-1.5">
-                      <AlertTriangle className="w-3.5 h-3.5 text-fuchsia-600 shrink-0" />
-                      <span>{block.disputedCount} Disputed Plot{block.disputedCount > 1 ? 's' : ''}</span>
-                    </span>
-                    <span className="text-[10px] uppercase font-mono tracking-wider bg-fuchsia-200/90 text-fuchsia-950 px-1.5 py-0.5 rounded-md font-bold">Action Req</span>
-                  </div>
-                ) : null}
 
                 {/* Progress Distribution Bar */}
                 <div className="mb-4">
@@ -280,7 +270,6 @@ export default function MasterPlanPage() {
                 className="w-full py-2.5 px-4 text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
               >
                 <span>Enter Plot Grid</span>
-                <ArrowRight className="w-4 h-4 text-white" />
               </Link>
             </div>
           );

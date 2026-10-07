@@ -23,7 +23,7 @@ export async function fetchPublicContent(
   section: 'plans' | 'events'
 ): Promise<ContentBlock[]> {
   try {
-    const res = await fetch(`${API_BASE_URL}/content?section=${section}`, {
+    const res = await fetch(`${API_BASE_URL}/content?section=${section}&_t=${Date.now()}`, {
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
     });

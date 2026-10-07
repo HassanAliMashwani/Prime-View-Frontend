@@ -1,5 +1,6 @@
 import { AdminSession, ContentBlock, ContentSection } from '../mock/types';
 import { apiGet, apiPost, apiDelete } from '../api';
+import { clearCachePrefix } from './apiCache';
 
 /**
  * Retrieve content blocks for CMS management, filtered optionally by section ('plans' | 'events').
@@ -102,6 +103,18 @@ export async function saveContentBlock(
     return { ok: false, error: res.error || 'SAVE_CONTENT_FAILED' };
   }
 
+  clearCachePrefix('/content');
+  clearCachePrefix('public:');
+
+  try {
+    const channel = new BroadcastChannel('cms_updates');
+    channel.postMessage({ type: 'CONTENT_UPDATED', blockId });
+    channel.close();
+  } catch {}
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cms-content-updated', { detail: { blockId } }));
+  }
+
   const block = (res.data as any)?.block || res.data;
   return { ok: true, block };
 }
@@ -127,6 +140,18 @@ export async function createContentBlock(
     return { ok: false, error: res.error || 'CREATE_CONTENT_FAILED' };
   }
 
+  clearCachePrefix('/content');
+  clearCachePrefix('public:');
+
+  try {
+    const channel = new BroadcastChannel('cms_updates');
+    channel.postMessage({ type: 'CONTENT_UPDATED' });
+    channel.close();
+  } catch {}
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cms-content-updated'));
+  }
+
   const block = (res.data as any)?.block || res.data;
   return { ok: true, block };
 }
@@ -143,6 +168,18 @@ export async function deleteContentBlock(
 
   if (!res.ok) {
     return { ok: false, error: res.error || 'DELETE_CONTENT_FAILED' };
+  }
+
+  clearCachePrefix('/content');
+  clearCachePrefix('public:');
+
+  try {
+    const channel = new BroadcastChannel('cms_updates');
+    channel.postMessage({ type: 'CONTENT_UPDATED', blockId });
+    channel.close();
+  } catch {}
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('cms-content-updated', { detail: { blockId } }));
   }
 
   return { ok: true };

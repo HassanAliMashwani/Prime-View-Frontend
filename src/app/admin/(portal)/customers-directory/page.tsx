@@ -414,7 +414,7 @@ function CustomersDirectoryContent() {
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>Society-Wide Access (All 8 Blocks)</span>
+              <span>Society-Wide Access (All 7 Blocks)</span>
             </span>
           )}
         </div>
@@ -688,7 +688,7 @@ function CustomersDirectoryContent() {
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-auto"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
-                      <span>Complete Reg</span>
+                      <span>Complete Registration</span>
                     </button>
                   )}
 
@@ -726,7 +726,7 @@ function CustomersDirectoryContent() {
                     {isSuspended ? <RotateCcw className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                   </button>
 
-                  {c.credentialsPending && canIssueCredentials && (
+                  {c.registrationStatus !== 'minimal' && Boolean(c.membershipNo && c.membershipNo !== 'PENDING') && c.credentialsPending && canIssueCredentials && (
                     <button
                       onClick={() => handleIssueCredentials(c)}
                       title="Issue Customer Portal Credentials"
@@ -966,10 +966,10 @@ function CustomersDirectoryContent() {
                             <button
                               onClick={() => openCompleteRegistration(c)}
                               title="Complete Member Registration (Super Admin)"
-                              className="inline-flex items-center gap-1 px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] shadow-xs transition-colors cursor-pointer mr-1"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-1"
                             >
                               <UserCheck className="w-3.5 h-3.5" />
-                              <span>Complete Reg</span>
+                              <span>Complete Registration</span>
                             </button>
                           )}
 
@@ -1007,7 +1007,7 @@ function CustomersDirectoryContent() {
                             {isSuspended ? <RotateCcw className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
                           </button>
 
-                          {c.credentialsPending && canIssueCredentials && (
+                          {c.registrationStatus !== 'minimal' && Boolean(c.membershipNo && c.membershipNo !== 'PENDING') && c.credentialsPending && canIssueCredentials && (
                             <button
                               onClick={() => handleIssueCredentials(c)}
                               title="Issue Customer Portal Credentials"
@@ -1188,7 +1188,7 @@ function CustomersDirectoryContent() {
                     </button>
                   )}
                 </div>
-              ) : dossierCustomer.credentialsPending ? (
+              ) : (Boolean(dossierCustomer.membershipNo && dossierCustomer.membershipNo !== 'PENDING') && dossierCustomer.credentialsPending) ? (
                 <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2 text-amber-900">
                     <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
@@ -1504,52 +1504,64 @@ function CustomersDirectoryContent() {
                 </ul>
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">
-                  To confirm, please type membership number <span className="font-mono font-bold text-slate-900">{deleteCustomerTarget.membershipNo}</span>:
-                </label>
-                <input
-                  type="text"
-                  value={deleteConfirmInput}
-                  onChange={(e) => setDeleteConfirmInput(e.target.value)}
-                  placeholder={deleteCustomerTarget.membershipNo}
-                  className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-hidden focus:border-rose-600 focus:ring-1 focus:ring-rose-600 text-xs"
-                />
-              </div>
+              {(() => {
+                const requiredConfirm = (deleteCustomerTarget.membershipNo && deleteCustomerTarget.membershipNo !== 'PENDING')
+                  ? deleteCustomerTarget.membershipNo
+                  : (deleteCustomerTarget.fullName || 'DELETE');
+                const isConfirmed = deleteConfirmInput.trim().toLowerCase() === requiredConfirm.trim().toLowerCase();
 
-              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setDeleteCustomerTarget(null)}
-                  className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  disabled={deleteConfirmInput.trim() !== deleteCustomerTarget.membershipNo || deleteSubmitting}
-                  onClick={async () => {
-                    if (!session || !deleteCustomerTarget) return;
-                    setDeleteSubmitting(true);
-                    const target = deleteCustomerTarget;
-                    const res = await deleteCustomer(session, target.id);
-                    setDeleteSubmitting(false);
-                    setDeleteCustomerTarget(null);
-                    if (!res.ok) {
-                      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to delete member.' });
-                    } else {
-                      setFeedback({ type: 'success', message: `Member ${target.fullName} (${target.membershipNo}) deleted successfully.` });
-                      if (dossierCustomer?.id === target.id) {
-                        setDossierCustomer(null);
-                      }
-                      loadData(session);
-                    }
-                  }}
-                  className="px-4 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
-                >
-                  {deleteSubmitting ? 'Deleting...' : 'Delete Member'}
-                </button>
-              </div>
+                return (
+                  <>
+                    <div>
+                      <label className="block font-semibold text-slate-700 mb-1">
+                        To confirm, please type {(deleteCustomerTarget.membershipNo && deleteCustomerTarget.membershipNo !== 'PENDING') ? 'membership number' : 'member name'}{' '}
+                        <span className="font-mono font-bold text-slate-900">{requiredConfirm}</span>:
+                      </label>
+                      <input
+                        type="text"
+                        value={deleteConfirmInput}
+                        onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                        placeholder={requiredConfirm}
+                        className="w-full p-2.5 rounded-xl border border-slate-300 font-mono focus:outline-hidden focus:border-rose-600 focus:ring-1 focus:ring-rose-600 text-xs"
+                      />
+                    </div>
+
+                    <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => setDeleteCustomerTarget(null)}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isConfirmed || deleteSubmitting}
+                        onClick={async () => {
+                          if (!session || !deleteCustomerTarget) return;
+                          setDeleteSubmitting(true);
+                          const target = deleteCustomerTarget;
+                          const res = await deleteCustomer(session, target.id);
+                          setDeleteSubmitting(false);
+                          setDeleteCustomerTarget(null);
+                          if (!res.ok) {
+                            setFeedback({ type: 'error', message: res.message || res.error || 'Failed to delete member.' });
+                          } else {
+                            setFeedback({ type: 'success', message: `Member ${target.fullName} deleted successfully.` });
+                            if (dossierCustomer?.id === target.id) {
+                              setDossierCustomer(null);
+                            }
+                            loadData(session);
+                          }
+                        }}
+                        className="px-4 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      >
+                        {deleteSubmitting ? 'Deleting...' : 'Delete Member'}
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>

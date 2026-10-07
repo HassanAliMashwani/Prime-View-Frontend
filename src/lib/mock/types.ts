@@ -297,7 +297,7 @@ export interface AuditEntry {
 }
 
 // ── Payment Receipt Upload & Verification (Customer & Admin) ──
-export type ReceiptStatus = 'pending' | 'verified' | 'rejected';
+export type ReceiptStatus = 'pending' | 'verified' | 'rejected' | 'Sending';
 
 export interface ReceiptSlipData {
   slipNumber: string;
@@ -325,8 +325,10 @@ export interface ReceiptSubmission {
   transactionRef: string;
   paymentDate: string;
   uploadedAt: string;
-  receiptFileUrl: string;
+  receiptFileUrl?: string;
   receiptFileName: string;
+  hasPhoto?: boolean;
+  paymentKind?: string;
   notes?: string;
   status: ReceiptStatus;
   verifiedByAdminId?: string;

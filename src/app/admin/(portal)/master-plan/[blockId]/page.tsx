@@ -1075,8 +1075,8 @@ function BlockPlotsContent() {
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Header Quick Adjustment Action (Super Admin) */}
-                {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
+                {/* Header Quick Adjustment Action (Super Admin) - Hidden for allotted plots */}
+                {session?.role === 'super_admin' && selectedPlot.status !== 'allotted' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
                   selectedPlot.isAdjustment ? (
                     <button
                       type="button"

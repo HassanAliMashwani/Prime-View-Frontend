@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  AlertCircle,
   RefreshCw,
   Search,
   Filter,
@@ -27,7 +28,7 @@ import {
 } from 'lucide-react';
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getAdminReceipts, verifyReceipt, rejectReceipt } from '@/lib/dal/receipts';
+import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
@@ -67,17 +68,19 @@ export default function AdminReceiptsPage() {
   const [assignStrike, setAssignStrike] = useState(false);
   const [strikeReason, setStrikeReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [loadingPhotoReceiptId, setLoadingPhotoReceiptId] = useState<string | null>(null);
+  const [bottomNotice, setBottomNotice] = useState<{
+    id: string;
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
   
   // Drift modal state
   const [driftReceipt, setDriftReceipt] = useState<ReceiptSubmission | null>(null);
   const [driftNewPreview, setDriftNewPreview] = useState<any>(null);
 
-  // A4 generation & fixed notification state
+  // A4 generation state
   const [generatingReceiptId, setGeneratingReceiptId] = useState<string | null>(null);
-  const [slipNotice, setSlipNotice] = useState<{
-    type: 'generating' | 'success' | 'error';
-    message: string;
-  } | null>(null);
 
   const reqIdRef = React.useRef(0);
   const [searchInput, setSearchInput] = useState('');
@@ -89,52 +92,72 @@ export default function AdminReceiptsPage() {
   useEffect(() => { statusRef.current = statusFilter; }, [statusFilter]);
   useEffect(() => { searchRef.current = searchQuery; }, [searchQuery]);
 
-
-
-  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchQuery) => {
-    const isSuper = currentSession.role === 'super_admin';
-    const hasAuth = Boolean(currentSession.permissions?.can_verify_receipts);
-
-    if (!isSuper && !hasAuth) {
-      setLoading(false);
-      return;
+  // Bottom notice auto-clear
+  useEffect(() => {
+    if (bottomNotice && bottomNotice.type === 'success') {
+      const t = setTimeout(() => {
+        setBottomNotice((curr) => (curr?.type === 'success' ? null : curr));
+      }, 5000);
+      return () => clearTimeout(t);
     }
-    const currentReq = ++reqIdRef.current;
-    
-    // Pass searchQuery or searchRef.current to getAdminReceipts if the mock/lib supports it.
-    const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
-    if (currentReq !== reqIdRef.current) return;
+  }, [bottomNotice]);
 
-    if (res.ok) {
-      if (!res.receipts || res.receipts.length === 0) {
-        setReceipts([]);
-      } else {
-        setReceipts((prev) => reconcileItems(prev, res.receipts || [], (r) => r.id));
+  const loadData = useCallback(
+    async (
+      currentSession: AdminSession,
+      p = 1,
+      st: 'all' | ReceiptStatus = 'pending',
+      search = ''
+    ) => {
+      const isSuper = currentSession.role === 'super_admin';
+      const hasAuth = Boolean(currentSession.permissions?.can_verify_receipts);
+
+      if (!isSuper && !hasAuth) {
+        setLoading(false);
+        return;
       }
-      setTotalCount(res.totalCount || 0);
-      if (p === 1 && st === 'all' && search === '') {
-        setCache(`/receipts:${currentSession.adminId}`, res.receipts || []);
-      }
-    }
-    if (currentReq === reqIdRef.current) {
-      setHasLoadedOnce(true);
-      setLoading(false);
-    }
-  }, [page, statusFilter, searchQuery]);
+      const currentReq = ++reqIdRef.current;
+      
+      const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
+      if (currentReq !== reqIdRef.current) return;
 
+      if (res.ok) {
+        setReceipts(res.receipts || []);
+        setTotalCount(res.totalCount || 0);
+        if (p === 1 && st === 'all' && search === '') {
+          setCache(`/receipts:${currentSession.adminId}`, res.receipts || []);
+        }
+      }
+      if (currentReq === reqIdRef.current) {
+        setHasLoadedOnce(true);
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const handleStatusFilterChange = (newStatus: 'all' | ReceiptStatus) => {
+    if (newStatus === statusFilter) return;
+    setStatusFilter(newStatus);
+    setPage(1);
+    if (session) {
+      loadData(session, 1, newStatus, searchQuery);
+    }
+  };
+
+  // Search input debounce (fires once per search change)
   useEffect(() => {
     const t = setTimeout(() => {
-      setSearchQuery(searchInput);
-      setPage(1);
-      if (session) loadData(session, 1, statusFilter, searchInput);
+      if (searchInput !== searchRef.current) {
+        setSearchQuery(searchInput);
+        setPage(1);
+        if (session) {
+          loadData(session, 1, statusRef.current, searchInput);
+        }
+      }
     }, 300);
     return () => clearTimeout(t);
-  }, [searchInput]);
-
-  useEffect(() => {
-    setPage(1);
-    if (session) loadData(session, 1, statusFilter, searchInput);
-  }, [statusFilter]);
+  }, [searchInput, session, loadData]);
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -143,7 +166,7 @@ export default function AdminReceiptsPage() {
       return;
     }
     setSession(cur);
-    loadData(cur);
+    loadData(cur, 1, 'pending', '');
 
     // Auto-refresh via polling
     const intervalId = setInterval(() => {
@@ -164,68 +187,108 @@ export default function AdminReceiptsPage() {
     }
   }, [feedback]);
 
+  const handleViewSlipImage = async (receiptId: string) => {
+    setLoadingPhotoReceiptId(receiptId);
+    try {
+      const res = await getReceiptFileUrl(receiptId);
+      if (res.ok && res.fileUrl) {
+        setPreviewImage(res.fileUrl);
+      } else {
+        setBottomNotice({
+          id: receiptId,
+          type: 'error',
+          message: res.error || 'Failed to load bank slip image.',
+        });
+      }
+    } catch {
+      setBottomNotice({
+        id: receiptId,
+        type: 'error',
+        message: 'Failed to load bank slip image.',
+      });
+    } finally {
+      setLoadingPhotoReceiptId(null);
+    }
+  };
+
   const handleVerify = async (receiptId: string, confirmPreviewDrift = false) => {
     if (!session) return;
     setIsProcessing(true);
     setGeneratingReceiptId(receiptId);
-    setSlipNotice({
-      type: 'generating',
-      message: 'Generating A4 slip… Linking verification record and security hash.',
+
+    // Optimistically update row to verified immediately
+    setReceipts((prev) =>
+      prev.map((r) =>
+        r.id === receiptId ? { ...r, status: 'verified' as const } : r
+      )
+    );
+
+    // Show bottom-right notice immediately
+    setBottomNotice({
+      id: receiptId,
+      type: 'success',
+      message: 'Receipt verified and approved. Generating official slip...',
     });
 
     try {
       const res = await verifyReceipt(session, receiptId, undefined, confirmPreviewDrift);
       if (res.ok && res.receipt) {
         const slipNumber = res.receipt.slip?.slipNumber || (res.receipt as any).slipNumber || 'PV-SLIP';
-        setSlipNotice({
+        setBottomNotice({
+          id: receiptId,
           type: 'success',
           message: `Official Slip #${slipNumber} was generated successfully!`,
         });
-        setTimeout(() => {
-          setSlipNotice(null);
-        }, 5000);
 
-        setFeedback({
-          type: 'success',
-          message: `Receipt approved! Generated official Slip #${slipNumber}.`,
-        });
-        await loadData(session);
+        // Update the row with server data without reloading whole photo list
+        setReceipts((prev) =>
+          prev.map((r) => (r.id === receiptId ? { ...r, ...res.receipt, status: 'verified' as const } : r))
+        );
+
         setDriftReceipt(null);
         setDriftNewPreview(null);
-        // Automatically open the verified A4 slip preview for review/print
         setActiveSlip(res.receipt);
       } else {
         if (res.error === 'PREVIEW_DRIFT') {
-          setSlipNotice(null);
-          const rec = receipts.find(r => r.id === receiptId);
+          // Revert row back to pending
+          setReceipts((prev) =>
+            prev.map((r) =>
+              r.id === receiptId ? { ...r, status: 'pending' as const } : r
+            )
+          );
+          setBottomNotice(null);
+          const rec = receipts.find((r) => r.id === receiptId);
           if (rec) {
             setDriftReceipt(rec);
             setDriftNewPreview(res.newPreview);
           }
         } else {
+          // Revert row back to pending on error
+          setReceipts((prev) =>
+            prev.map((r) =>
+              r.id === receiptId ? { ...r, status: 'pending' as const } : r
+            )
+          );
           const errMessage = res.message || res.error || 'Failed to verify receipt.';
-          setSlipNotice({
+          setBottomNotice({
+            id: receiptId,
             type: 'error',
-            message: `Error generating A4 slip: ${errMessage}`,
-          });
-          setTimeout(() => {
-            setSlipNotice(null);
-          }, 6000);
-          setFeedback({
-            type: 'error',
-            message: errMessage,
+            message: `Error verifying receipt: ${errMessage}`,
           });
         }
       }
     } catch {
-      setSlipNotice({
+      // Revert row back to pending on error
+      setReceipts((prev) =>
+        prev.map((r) =>
+          r.id === receiptId ? { ...r, status: 'pending' as const } : r
+        )
+      );
+      setBottomNotice({
+        id: receiptId,
         type: 'error',
         message: 'An unexpected error occurred during verification.',
       });
-      setTimeout(() => {
-        setSlipNotice(null);
-      }, 6000);
-      setFeedback({ type: 'error', message: 'An unexpected error occurred during verification.' });
     } finally {
       setIsProcessing(false);
       setGeneratingReceiptId(null);
@@ -369,7 +432,7 @@ export default function AdminReceiptsPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={() => { setStatusFilter('pending'); setPage(1); }}
+            onClick={() => handleStatusFilterChange('pending')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'pending'
                 ? 'bg-amber-500 text-white shadow-xs'
@@ -382,7 +445,7 @@ export default function AdminReceiptsPage() {
 
           <button
             type="button"
-            onClick={() => { setStatusFilter('verified'); setPage(1); }}
+            onClick={() => handleStatusFilterChange('verified')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'verified'
                 ? 'bg-emerald-700 text-white shadow-xs'
@@ -395,7 +458,7 @@ export default function AdminReceiptsPage() {
 
           <button
             type="button"
-            onClick={() => { setStatusFilter('rejected'); setPage(1); }}
+            onClick={() => handleStatusFilterChange('rejected')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               statusFilter === 'rejected'
                 ? 'bg-rose-700 text-white shadow-xs'
@@ -408,7 +471,7 @@ export default function AdminReceiptsPage() {
 
           <button
             type="button"
-            onClick={() => { setStatusFilter('all'); setPage(1); }}
+            onClick={() => handleStatusFilterChange('all')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               statusFilter === 'all'
                 ? 'bg-slate-900 text-white shadow-xs'
@@ -435,7 +498,7 @@ export default function AdminReceiptsPage() {
       {/* Receipts List */}
       <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false}>
       <div className="space-y-4">
-        {loading ? (
+        {!hasLoadedOnce && loading ? (
           <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3 shadow-xs flex flex-col items-center justify-center">
             <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
             <p className="text-xs font-medium text-slate-500">Loading receipts...</p>
@@ -610,14 +673,24 @@ export default function AdminReceiptsPage() {
               {/* Right Action buttons */}
               <div className="flex flex-col sm:flex-row lg:flex-col items-stretch lg:items-end gap-2 w-full lg:w-auto shrink-0">
                 {/* View attached slip thumbnail */}
-                {sub.receiptFileUrl && (
+                {(sub.hasPhoto !== false || Boolean(sub.receiptFileUrl)) && (
                   <button
                     type="button"
-                    onClick={() => setPreviewImage(sub.receiptFileUrl)}
+                    disabled={loadingPhotoReceiptId === sub.id}
+                    onClick={() => handleViewSlipImage(sub.id)}
                     className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
                   >
-                    <Eye className="w-3.5 h-3.5 text-slate-500" />
-                    <span>View Bank Slip Image</span>
+                    {loadingPhotoReceiptId === sub.id ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 text-slate-500 animate-spin" />
+                        <span>Loading slip…</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-3.5 h-3.5 text-slate-500" />
+                        <span>View Bank Slip Image</span>
+                      </>
+                    )}
                   </button>
                 )}
 
@@ -928,42 +1001,34 @@ export default function AdminReceiptsPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════════ */}
-      {/* FIXED BOTTOM-RIGHT A4 SLIP NOTICE (Phone Readable)            */}
+      {/* FIXED BOTTOM-RIGHT NOTICE (Phone Readable)                    */}
       {/* ══════════════════════════════════════════════════════════════ */}
-      {slipNotice && (
+      {bottomNotice && (
         <div
           role="status"
           aria-live="polite"
           className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[60] max-w-sm sm:max-w-md w-[calc(100vw-2rem)] p-4 rounded-2xl shadow-2xl border transition-all duration-300 pointer-events-auto backdrop-blur-md flex items-start gap-3 ${
-            slipNotice.type === 'generating'
-              ? 'bg-slate-900/95 border-slate-700 text-white shadow-slate-950/50'
-              : slipNotice.type === 'success'
+            bottomNotice.type === 'success'
               ? 'bg-emerald-950/95 border-emerald-500/80 text-emerald-100 shadow-emerald-950/50'
               : 'bg-rose-950/95 border-rose-500/80 text-rose-100 shadow-rose-950/50'
           }`}
         >
-          {slipNotice.type === 'generating' && (
-            <Loader2 className="w-5 h-5 text-emerald-400 animate-spin shrink-0 mt-0.5" />
-          )}
-          {slipNotice.type === 'success' && (
+          {bottomNotice.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-          )}
-          {slipNotice.type === 'error' && (
+          ) : (
             <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
           )}
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold tracking-tight">
-              {slipNotice.type === 'generating' && 'A4 Slip Generation In Progress'}
-              {slipNotice.type === 'success' && 'A4 Slip Successfully Generated'}
-              {slipNotice.type === 'error' && 'A4 Slip Generation Error'}
+              {bottomNotice.type === 'success' ? 'Receipt Action Complete' : 'Verification Issue'}
             </p>
             <p className="text-[11px] leading-relaxed mt-0.5 opacity-90 break-words">
-              {slipNotice.message}
+              {bottomNotice.message}
             </p>
           </div>
           <button
             type="button"
-            onClick={() => setSlipNotice(null)}
+            onClick={() => setBottomNotice(null)}
             className="text-white/60 hover:text-white p-1 rounded-lg shrink-0 cursor-pointer transition-colors"
             aria-label="Dismiss notice"
           >

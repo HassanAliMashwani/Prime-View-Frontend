@@ -7,7 +7,7 @@ import { PaymentScheduleTable } from '@/components/member-portal/PaymentSchedule
 import { MemberPaymentsSkeleton } from '@/components/ui/skeleton';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { PlotPaymentSchedule } from '@/lib/dal/payments';
-import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview } from '@/lib/dal/receipts';
+import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview, uploadReceiptFileToStorage } from '@/lib/dal/receipts';
 import { ReceiptSubmission } from '@/lib/mock/types';
 import {
   OfficialA4PaymentSlip,
@@ -32,6 +32,7 @@ import {
   ShieldCheck,
   Bell,
   Eye,
+  RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -74,6 +75,17 @@ function PaymentsContent() {
   const [isSubmittingReceipt, setIsSubmittingReceipt] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
+  const [selectedReceiptFile, setSelectedReceiptFile] = useState<File | null>(null);
+  const [bottomNotice, setBottomNotice] = useState<{ id: string; type: 'sending' | 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (bottomNotice && bottomNotice.type === 'success') {
+      const t = setTimeout(() => {
+        setBottomNotice((curr) => (curr?.type === 'success' ? null : curr));
+      }, 5000);
+      return () => clearTimeout(t);
+    }
+  }, [bottomNotice]);
 
   // Unified available plot files for selection in receipts and modal (plots with schedules fallback)
   const availablePlotOptions = React.useMemo(() => {
@@ -314,96 +326,186 @@ function PaymentsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    setSelectedReceiptFile(file);
     setFormFileName(file.name);
-    setIsCompressing(true);
     setUploadError(null);
-
-    try {
-      const compressedDataUrl = await compressAndEncodeReceipt(file, 1000, 0.75);
-      setFormFileUrl(compressedDataUrl);
-    } catch {
-      setUploadError('Failed to read and process receipt image. Please try another file.');
-    } finally {
-      setIsCompressing(false);
-    }
   };
 
-  const handleReceiptSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReceiptSubmit = async (e?: React.FormEvent, retrySub?: any) => {
+    if (e) e.preventDefault();
     if (!profile?.id) return;
     setUploadError(null);
     setUploadSuccess(null);
 
-    const amountNum = Number(formAmount);
-    if (!formPlotId || isNaN(amountNum) || amountNum <= 0 || !formTxnRef.trim()) {
+    const amountNum = retrySub ? Number(retrySub.amount) : Number(formAmount);
+    const plotIdToUse = retrySub ? retrySub.plotId : formPlotId;
+    const txnRefToUse = retrySub ? retrySub.transactionRef : formTxnRef.trim();
+    const fileToUpload = retrySub?._rawFile || selectedReceiptFile;
+
+    if (!plotIdToUse || isNaN(amountNum) || amountNum <= 0 || !txnRefToUse) {
       setUploadError('Please fill in all mandatory receipt information.');
       return;
     }
 
-    if (!formFileUrl) {
+    if (!fileToUpload && !retrySub?.receiptFileUrl) {
       setUploadError('Please select and upload your bank deposit receipt image or document.');
       return;
     }
 
-    setIsSubmittingReceipt(true);
-    try {
-      const res = await submitPaymentReceipt(profile.id, {
-        plotId: formPlotId,
-        paymentType: formPaymentType,
-        installmentNumber: formPaymentType === 'installment' ? Number(formInstallmentNo) : undefined,
-        amount: amountNum,
-        depositoryBank: formBankName,
-        bankName: formBankName,
-        transactionRef: formTxnRef.trim(),
-        paymentDate: formDate,
-        receiptFileUrl: formFileUrl,
-        receiptFileName: formFileName || 'deposit_receipt.jpg',
-        notes: formNotes,
-        paymentKind: formPaymentKind,
-        previewData: previewData,
-      });
+    const tempReceiptId = retrySub?.id || `rcpt-temp-${Date.now()}`;
+    const matchedPlot = availablePlotOptions.find((p) => p.id === plotIdToUse);
 
-      if (res.ok) {
-        setUploadSuccess(
-          'Payment receipt uploaded successfully! It has been dispatched to the society admin desk for verification.'
-        );
-        await loadReceipts();
-        fetchPayments();
-        fetchPlots();
-        fetchDashboardData();
-        setFormTxnRef('');
-        setFormAmount('');
-        setFormNotes('');
-        setFormFileName('');
-        setFormFileUrl('');
-        setPreviewData(null);
-        setBalloonError(null);
-        setTimeout(() => {
-          setShowUploadModal(false);
-          setUploadSuccess(null);
-        }, 2500);
-      } else {
-        if (res.error === 'ALREADY_PAID') {
-          setUploadError(
-            res.message || 'This installment has already been settled and marked paid in the society ledger.'
-          );
-        } else if (res.error === 'ALREADY_RECORDED') {
-          setUploadError(
-            res.message || 'A documentation receipt has already been submitted and recorded for this payment.'
-          );
-        } else if (res.error === 'RECEIPT_ALREADY_PENDING') {
-          setUploadError(
-            res.message || 'A receipt for this payment is already pending verification by the society desk.'
-          );
-        } else {
-          setUploadError(res.message || res.error || 'Failed to submit receipt.');
-        }
+    const optimisticReceipt: ReceiptSubmission = {
+      id: tempReceiptId,
+      customerId: profile.id,
+      customerName: profile.fullName,
+      membershipNo: profile.membershipNo,
+      plotId: plotIdToUse,
+      plotNumber: matchedPlot?.plotNumber || retrySub?.plotNumber || '',
+      blockName: matchedPlot?.blockName || retrySub?.blockName || '',
+      paymentType: retrySub ? retrySub.paymentType : formPaymentType,
+      installmentNumber: (retrySub ? retrySub.paymentType : formPaymentType) === 'installment'
+        ? Number(retrySub ? retrySub.installmentNumber : formInstallmentNo)
+        : undefined,
+      amount: amountNum,
+      depositoryBank: retrySub ? retrySub.depositoryBank : formBankName,
+      bankName: retrySub ? retrySub.bankName : formBankName,
+      transactionRef: txnRefToUse,
+      paymentDate: retrySub ? retrySub.paymentDate : formDate,
+      uploadedAt: new Date().toISOString(),
+      receiptFileUrl: '',
+      receiptFileName: fileToUpload?.name || formFileName || 'deposit_receipt.jpg',
+      notes: retrySub ? retrySub.notes : formNotes,
+      status: 'Sending' as any,
+      paymentKind: retrySub ? retrySub.paymentKind : formPaymentKind,
+    };
+
+    // Close the form modal immediately (no 2.5 second wait!)
+    setShowUploadModal(false);
+
+    // Add the receipt to the member's list at once with status Sending
+    setReceipts((prev) => {
+      const idx = prev.findIndex((r) => r.id === tempReceiptId);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...optimisticReceipt, _rawFile: fileToUpload } as any;
+        return copy;
       }
-    } catch {
-      setUploadError('An unexpected network error occurred.');
-    } finally {
-      setIsSubmittingReceipt(false);
+      return [{ ...optimisticReceipt, _rawFile: fileToUpload } as any, ...prev];
+    });
+
+    // Show a bottom-right notice that says Sending receipt
+    setBottomNotice({
+      id: tempReceiptId,
+      type: 'sending',
+      message: 'Sending receipt',
+    });
+
+    // Reset input states if not retrying
+    if (!retrySub) {
+      setFormTxnRef('');
+      setFormAmount('');
+      setFormNotes('');
+      setFormFileName('');
+      setSelectedReceiptFile(null);
+      setPreviewData(null);
+      setBalloonError(null);
     }
+
+    // Run upload & submission asynchronously in background
+    (async () => {
+      try {
+        let storageKey = retrySub?.receiptFileUrl;
+        if (!storageKey || storageKey.startsWith('data:') || storageKey.startsWith('blob:')) {
+          if (!fileToUpload) {
+            throw new Error('Receipt file is required.');
+          }
+          const uploadRes = await uploadReceiptFileToStorage(fileToUpload);
+          if (!uploadRes.ok || !uploadRes.storageKey) {
+            throw new Error(uploadRes.error || 'Failed to upload receipt file to storage.');
+          }
+          storageKey = uploadRes.storageKey;
+        }
+
+        const res = await submitPaymentReceipt(profile.id, {
+          plotId: optimisticReceipt.plotId,
+          paymentType: optimisticReceipt.paymentType as any,
+          installmentNumber: optimisticReceipt.installmentNumber,
+          amount: optimisticReceipt.amount,
+          depositoryBank: optimisticReceipt.depositoryBank,
+          bankName: optimisticReceipt.depositoryBank,
+          transactionRef: optimisticReceipt.transactionRef,
+          paymentDate: optimisticReceipt.paymentDate,
+          receiptFileUrl: storageKey, // Save only storage key!
+          receiptFileName: optimisticReceipt.receiptFileName,
+          notes: optimisticReceipt.notes,
+          paymentKind: (optimisticReceipt as any).paymentKind,
+          previewData: previewData,
+        });
+
+        if (res.ok && res.receipt) {
+          const accepted = res.receipt;
+          setReceipts((prev) =>
+            prev.map((r) =>
+              r.id === tempReceiptId
+                ? { ...accepted, status: 'pending' as const }
+                : r
+            )
+          );
+          setBottomNotice({
+            id: tempReceiptId,
+            type: 'success',
+            message: 'Receipt sent for verification',
+          });
+
+          // Refresh payments, plots, dashboard in background AFTER notice is up
+          fetchPayments();
+          fetchPlots();
+          fetchDashboardData();
+          loadReceipts();
+        } else {
+          const errMsg = res.message || res.error || 'Failed to submit receipt.';
+          setReceipts((prev) =>
+            prev.map((r) =>
+              r.id === tempReceiptId
+                ? {
+                    ...r,
+                    status: 'rejected' as const,
+                    rejectionReason: errMsg,
+                    canRetry: true,
+                    _rawFile: fileToUpload,
+                  }
+                : r
+            )
+          );
+          setBottomNotice({
+            id: tempReceiptId,
+            type: 'error',
+            message: errMsg,
+          });
+        }
+      } catch (err: any) {
+        const errMsg = err?.message || 'Failed to upload receipt.';
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === tempReceiptId
+              ? {
+                  ...r,
+                  status: 'rejected' as const,
+                  rejectionReason: errMsg,
+                  canRetry: true,
+                  _rawFile: fileToUpload,
+                }
+              : r
+          )
+        );
+        setBottomNotice({
+          id: tempReceiptId,
+          type: 'error',
+          message: errMsg,
+        });
+      }
+    })();
   };
 
   return (
@@ -645,11 +747,12 @@ function PaymentsContent() {
 
                           {/* Dynamic Payment Progress Track */}
                           {(() => {
-                            const plotPct = plotSchedule.percentSettled ?? (
-                              plotSchedule.totalPrice > 0
-                                ? Math.min(100, Math.max(0, Math.round((plotSchedule.paidAmount / plotSchedule.totalPrice) * 100)))
-                                : 0
-                            );
+                            const plotPct = (() => {
+                              if (plotSchedule.totalPrice <= 0) return 0;
+                              if (plotSchedule.remainingBalance <= 0) return 100;
+                              const raw = Math.floor((plotSchedule.paidAmount / plotSchedule.totalPrice) * 100);
+                              return Math.min(99, Math.max(0, raw));
+                            })();
                             return (
                               <div className="pt-1 space-y-1">
                                 <div className="flex items-center justify-between text-[11px] font-semibold">
@@ -945,7 +1048,12 @@ function PaymentsContent() {
                             </span>
                           )}
                           {/* Status Badge */}
-                          {sub.status === 'verified' ? (
+                          {sub.status === ('Sending' as any) ? (
+                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5 animate-pulse">
+                              <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
+                              <span>Sending</span>
+                            </span>
+                          ) : sub.status === 'verified' ? (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                               <CheckCircle2 className="w-3 h-3" />
                               <span>Verified &amp; Cleared</span>
@@ -953,7 +1061,7 @@ function PaymentsContent() {
                           ) : sub.status === 'rejected' ? (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
                               <AlertCircle className="w-3 h-3" />
-                              <span>Declined</span>
+                              <span>{(sub as any).canRetry ? 'Submission Failed' : 'Declined'}</span>
                             </span>
                           ) : (
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
@@ -977,7 +1085,7 @@ function PaymentsContent() {
 
                         {sub.status === 'rejected' && sub.rejectionReason && (
                           <p className="text-[11px] text-rose-700 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200">
-                            <strong>Reason for Rejection:</strong> {sub.rejectionReason}
+                            <strong>Reason:</strong> {sub.rejectionReason}
                           </p>
                         )}
                       </div>
@@ -993,18 +1101,34 @@ function PaymentsContent() {
                             <ShieldCheck className="w-4 h-4" />
                             <span>View Official Member Slip</span>
                           </button>
+                        ) : sub.status === ('Sending' as any) ? (
+                          <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-[11px] text-blue-700 font-medium px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200/60">
+                            Transmitting...
+                          </span>
                         ) : sub.status === 'pending' ? (
                           <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-[11px] text-amber-700 font-medium px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/60">
                             Under Committee Review
                           </span>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => openUploadModalWithPlot(sub.plotId, sub.installmentNumber, sub.amount)}
-                            className="w-full sm:w-auto min-h-[44px] justify-center px-3 py-1.5 rounded-xl text-xs font-bold text-[#43612B] hover:bg-[#EAF0E7] border border-[#43612B]/30 cursor-pointer"
-                          >
-                            Re-upload Receipt
-                          </button>
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            {(sub as any).canRetry && (
+                              <button
+                                type="button"
+                                onClick={() => handleReceiptSubmit(undefined, sub)}
+                                className="w-full sm:w-auto min-h-[44px] justify-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-100 bg-amber-50 border border-amber-300 flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                                <span>Retry</span>
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => openUploadModalWithPlot(sub.plotId, sub.installmentNumber, sub.amount)}
+                              className="w-full sm:w-auto min-h-[44px] justify-center px-3 py-1.5 rounded-xl text-xs font-bold text-[#43612B] hover:bg-[#EAF0E7] border border-[#43612B]/30 cursor-pointer"
+                            >
+                              Re-upload Receipt
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1380,6 +1504,33 @@ function PaymentsContent() {
           />
         );
       })()}
+
+      {/* Floating Bottom-Right Notice */}
+      {bottomNotice && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border bg-white text-xs font-semibold backdrop-blur-md">
+          {bottomNotice.type === 'sending' && (
+            <div className="w-4 h-4 border-2 border-[#43612B]/30 border-t-[#43612B] rounded-full animate-spin shrink-0" />
+          )}
+          {bottomNotice.type === 'success' && (
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          )}
+          {bottomNotice.type === 'error' && (
+            <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+          )}
+          <span className={bottomNotice.type === 'error' ? 'text-rose-900' : 'text-[#151914]'}>
+            {bottomNotice.message}
+          </span>
+          {bottomNotice.type !== 'sending' && (
+            <button
+              type="button"
+              onClick={() => setBottomNotice(null)}
+              className="ml-2 text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -245,7 +245,7 @@ export default function AdminProfilePage() {
             <div className="text-xs text-slate-500 font-medium">
               Jurisdiction:
               <strong className="block text-emerald-800 text-xs font-bold mt-0.5">
-                {isSuper ? 'Society-wide (All 8 Blocks)' : `${assignedBlocks.length} Assigned Blocks`}
+                {isSuper ? 'Society-wide (All 7 Blocks)' : `${assignedBlocks.length} Assigned Blocks`}
               </strong>
             </div>
           </div>
@@ -323,7 +323,7 @@ export default function AdminProfilePage() {
                 </div>
               </div>
               <span className="text-xs font-bold text-purple-800 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full">
-                {isSuper ? 'All 8 Blocks' : `${assignedBlocks.length} Blocks`}
+                {isSuper ? 'All 7 Blocks' : `${assignedBlocks.length} Blocks`}
               </span>
             </div>
 
