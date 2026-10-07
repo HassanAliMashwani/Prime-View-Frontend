@@ -229,10 +229,18 @@ export interface PublicSlipVerification {
   status: 'verified' | 'pending' | 'rejected' | 'not_found';
   slipNumber?: string;
   memberDisplayName?: string;
+  membershipNo?: string | null;
+  plotNumber?: string | null;
+  blockName?: string | null;
   installmentNumber?: number | null;
   paymentDetails?: string;
   amount?: number;
   paymentDate?: string;
+  securityHash?: string | null;
+  depositoryBank?: string | null;
+  bankName?: string | null;
+  transactionRef?: string | null;
+  verifiedAt?: string | null;
 }
 
 /**

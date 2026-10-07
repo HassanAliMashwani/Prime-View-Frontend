@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { verifySlipPublic } from '@/lib/dal/receipts';
+import { verifySlipPublic, PublicSlipVerification } from '@/lib/dal/receipts';
 import { ReceiptStatus } from '@/lib/mock/types';
 import {
   ShieldCheck,
@@ -20,7 +20,14 @@ import {
   ExternalLink,
   User,
   CreditCard,
+  Printer,
 } from 'lucide-react';
+import {
+  OfficialReceiptCopy,
+  formatAmountInWords,
+  getSlipVerifyUrl,
+  SlipRenderModel,
+} from '@/components/receipts/OfficialA4PaymentSlip';
 
 export default function VerifySlipPage() {
   const params = useParams();
@@ -29,16 +36,7 @@ export default function VerifySlipPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
-  const [submission, setSubmission] = useState<{
-    exists: boolean;
-    status: 'verified' | 'pending' | 'rejected' | 'not_found';
-    slipNumber?: string;
-    memberDisplayName?: string;
-    installmentNumber?: number | null;
-    paymentDetails?: string;
-    amount?: number;
-    paymentDate?: string;
-  } | null>(null);
+  const [submission, setSubmission] = useState<PublicSlipVerification | null>(null);
 
   useEffect(() => {
     async function fetchVerify() {
@@ -66,7 +64,7 @@ export default function VerifySlipPage() {
       </div>
 
       {/* Top Header */}
-      <header className="relative z-10 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md">
+      <header className="relative z-10 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md no-print">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link
             href="/"
@@ -95,8 +93,8 @@ export default function VerifySlipPage() {
         </div>
       </header>
 
-      {/* Main Verification Card */}
-      <main className="relative z-10 max-w-xl w-full mx-auto px-4 py-12 flex-1 flex flex-col justify-center">
+      {/* Main Verification Section */}
+      <main className={`relative z-10 ${submission?.status === 'verified' ? 'max-w-4xl' : 'max-w-xl'} w-full mx-auto px-2 sm:px-4 py-8 sm:py-12 flex-1 flex flex-col justify-center print:p-0 print:max-w-none`}>
         {isLoading ? (
           <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-8 space-y-4 backdrop-blur-xl shadow-2xl animate-pulse select-none">
             <div className="h-6 w-48 bg-slate-800 rounded-md mx-auto" />
@@ -135,111 +133,82 @@ export default function VerifySlipPage() {
             </div>
           </div>
         ) : submission?.status === 'verified' ? (
-          /* ── STATE 1: VERIFIED ─────────────────────────────────────────── */
-          <div className="bg-slate-950/90 border border-emerald-500/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl shadow-emerald-950/40 animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white flex items-center justify-between shadow-inner">
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-6 h-6 text-white shrink-0" />
-                <div>
-                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-100 block">
-                    Official Certification
-                  </span>
-                  <h1 className="text-base font-bold tracking-tight">Genuine &amp; Verified Society Record</h1>
+          /* ── STATE 1: VERIFIED OFFICIAL CASH RECEIPT ────────────────────── */
+          (() => {
+            const numAmount = Number(submission.amount) || 0;
+            const slipModel: SlipRenderModel = {
+              slipNumber: submission.slipNumber || slipNumber,
+              customerName: submission.memberDisplayName || 'Valued Member',
+              membershipNo: submission.membershipNo || '—',
+              plotNumber: submission.plotNumber || '—',
+              blockName: submission.blockName || '—',
+              installmentNumber: submission.installmentNumber,
+              amount: numAmount,
+              amountInWords: formatAmountInWords(numAmount),
+              bankName: submission.bankName || submission.depositoryBank || '',
+              transactionRef: submission.transactionRef || '',
+              depositDate: submission.paymentDate ? String(submission.paymentDate).split('T')[0] : '—',
+              verifiedDate: submission.verifiedAt
+                ? String(submission.verifiedAt).split('T')[0]
+                : (submission.paymentDate ? String(submission.paymentDate).split('T')[0] : '—'),
+              verifiedBy: 'Society Secretariat / Treasurer',
+              securityHash: submission.securityHash || '',
+              qrPayload: getSlipVerifyUrl(submission.slipNumber || slipNumber),
+            };
+
+            return (
+              <div className="w-full max-w-4xl mx-auto space-y-4 print:space-y-0">
+                {/* Verified Header & Controls */}
+                <div className="no-print bg-emerald-950/85 border border-emerald-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+                      <ShieldCheck className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">
+                          Official Certification
+                        </span>
+                        <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                          GENUINE &amp; VERIFIED
+                        </span>
+                      </div>
+                      <h1 className="text-sm sm:text-base font-bold text-white tracking-tight mt-0.5">
+                        Society Official Cash Receipt &bull; {slipModel.slipNumber}
+                      </h1>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer transition-all"
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span>Print Receipt</span>
+                    </button>
+                    <Link
+                      href="/"
+                      className="px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-all"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Home</span>
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Exact Filled Official Cash Receipt Paper (Read-only) */}
+                <div className="bg-white rounded-2xl shadow-2xl p-2 sm:p-6 print:p-0 print:shadow-none print:rounded-none overflow-hidden text-slate-900 border border-slate-800/40 print:border-none">
+                  <OfficialReceiptCopy
+                    slip={slipModel}
+                    copyLabel="MEMBER COPY (OFFICIAL VERIFIED RECEIPT)"
+                    isReadOnly={true}
+                  />
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-1 rounded-full text-xs font-mono font-medium backdrop-blur-sm">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
-                VERIFIED
-              </span>
-            </div>
-            <div className="p-6 md:p-8 space-y-6">
-              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                    <Hash className="w-4 h-4 text-emerald-400" />
-                    Verified Slip Number
-                  </span>
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
-                </div>
-                {submission.memberDisplayName && (
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                      <User className="w-4 h-4 text-emerald-400" />
-                      Member Name
-                    </span>
-                    <span className="font-semibold text-sm text-slate-200">{submission.memberDisplayName}</span>
-                  </div>
-                )}
-                {submission.paymentDetails && (
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                      <CreditCard className="w-4 h-4 text-emerald-400" />
-                      Payment
-                    </span>
-                    <span className="font-semibold text-sm text-slate-200">
-                      {submission.paymentDetails}
-                    </span>
-                  </div>
-                )}
-                {submission.amount !== undefined && submission.amount !== null && (
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                      <CreditCard className="w-4 h-4 text-emerald-400" />
-                      Amount
-                    </span>
-                    <span className="font-mono font-bold text-sm text-emerald-300">
-                      PKR {Number(submission.amount).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                {submission.paymentDate && (
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-emerald-400" />
-                      Payment Date
-                    </span>
-                    <span className="font-mono text-xs text-slate-200">
-                      {new Date(submission.paymentDate).toLocaleDateString('en-PK', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </span>
-                  </div>
-                )}
-                <div className="pt-2 text-[11px] text-slate-400 flex items-center justify-between">
-                  <span>Clearing Authority:</span>
-                  <span className="font-semibold text-slate-300">Society Secretariat &amp; Finance Desk</span>
-                </div>
-              </div>
-              <div className="rounded-xl border border-blue-500/20 bg-blue-950/20 p-4 text-xs text-blue-200/90 flex gap-3">
-                <Lock className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="font-semibold text-blue-300">Privacy &amp; Financial Data Protection</p>
-                  <p className="text-[11px] leading-relaxed text-blue-200/80">
-                    In compliance with member privacy standards, individual customer identities, plot allotment
-                    numbers, and full transaction details are masked or not displayed on this public registry.
-                  </p>
-                </div>
-              </div>
-              <div className="pt-2 flex flex-col sm:flex-row gap-3">
-                <Link
-                  href="/society-members/login"
-                  className="flex-1 text-center py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-900/30"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  Sign In to Member Portal
-                </Link>
-                <Link
-                  href="/"
-                  className="py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  Society Home
-                </Link>
-              </div>
-            </div>
-          </div>
+            );
+          })()
         ) : submission?.status === 'pending' ? (
           /* ── STATE 2: PENDING ──────────────────────────────────────────── */
           <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
@@ -504,9 +473,27 @@ export default function VerifySlipPage() {
       </main>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500 font-mono">
+      <footer className="relative z-10 border-t border-slate-800/80 py-4 text-center text-xs text-slate-500 font-mono no-print">
         &copy; {new Date().getFullYear()} Prime View Housing Society &bull; All Rights Reserved
       </footer>
+
+      {/* Global print style */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 0;
+          }
+          body {
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

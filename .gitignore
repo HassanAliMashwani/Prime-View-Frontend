@@ -54,4 +54,5 @@ website_screenshots/
 # Large binaries & non-code assets
 *.pdf
 !public/assets/masterplan/prime-view-abbottabad-final-master-plan.pdf
+!public/new assests/invoice/INVOICE.pdf
 public/new assests/booklets/

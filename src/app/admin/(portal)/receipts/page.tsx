@@ -72,6 +72,13 @@ export default function AdminReceiptsPage() {
   const [driftReceipt, setDriftReceipt] = useState<ReceiptSubmission | null>(null);
   const [driftNewPreview, setDriftNewPreview] = useState<any>(null);
 
+  // A4 generation & fixed notification state
+  const [generatingReceiptId, setGeneratingReceiptId] = useState<string | null>(null);
+  const [slipNotice, setSlipNotice] = useState<{
+    type: 'generating' | 'success' | 'error';
+    message: string;
+  } | null>(null);
+
   const reqIdRef = React.useRef(0);
   const [searchInput, setSearchInput] = useState('');
 
@@ -160,12 +167,27 @@ export default function AdminReceiptsPage() {
   const handleVerify = async (receiptId: string, confirmPreviewDrift = false) => {
     if (!session) return;
     setIsProcessing(true);
+    setGeneratingReceiptId(receiptId);
+    setSlipNotice({
+      type: 'generating',
+      message: 'Generating A4 slip… Linking verification record and security hash.',
+    });
+
     try {
       const res = await verifyReceipt(session, receiptId, undefined, confirmPreviewDrift);
       if (res.ok && res.receipt) {
+        const slipNumber = res.receipt.slip?.slipNumber || (res.receipt as any).slipNumber || 'PV-SLIP';
+        setSlipNotice({
+          type: 'success',
+          message: `Official Slip #${slipNumber} was generated successfully!`,
+        });
+        setTimeout(() => {
+          setSlipNotice(null);
+        }, 5000);
+
         setFeedback({
           type: 'success',
-          message: `Receipt approved! Generated official Slip #${res.receipt.slip?.slipNumber}. Upper part secured in admin records; Lower part sent to customer.`,
+          message: `Receipt approved! Generated official Slip #${slipNumber}.`,
         });
         await loadData(session);
         setDriftReceipt(null);
@@ -174,22 +196,39 @@ export default function AdminReceiptsPage() {
         setActiveSlip(res.receipt);
       } else {
         if (res.error === 'PREVIEW_DRIFT') {
+          setSlipNotice(null);
           const rec = receipts.find(r => r.id === receiptId);
           if (rec) {
             setDriftReceipt(rec);
             setDriftNewPreview(res.newPreview);
           }
         } else {
+          const errMessage = res.message || res.error || 'Failed to verify receipt.';
+          setSlipNotice({
+            type: 'error',
+            message: `Error generating A4 slip: ${errMessage}`,
+          });
+          setTimeout(() => {
+            setSlipNotice(null);
+          }, 6000);
           setFeedback({
             type: 'error',
-            message: res.message || res.error || 'Failed to verify receipt.',
+            message: errMessage,
           });
         }
       }
     } catch {
+      setSlipNotice({
+        type: 'error',
+        message: 'An unexpected error occurred during verification.',
+      });
+      setTimeout(() => {
+        setSlipNotice(null);
+      }, 6000);
       setFeedback({ type: 'error', message: 'An unexpected error occurred during verification.' });
     } finally {
       setIsProcessing(false);
+      setGeneratingReceiptId(null);
     }
   };
 
@@ -586,12 +625,21 @@ export default function AdminReceiptsPage() {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      disabled={isProcessing}
+                      disabled={isProcessing || generatingReceiptId === sub.id}
                       onClick={() => handleVerify(sub.id)}
-                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-75 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                     >
-                      <Check className="w-3.5 h-3.5" />
-                      <span>Approve &amp; Generate A4 Slip</span>
+                      {generatingReceiptId === sub.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Generating A4 slip…</span>
+                        </>
+                      ) : (
+                        <>
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Approve &amp; Generate A4 Slip</span>
+                        </>
+                      )}
                     </button>
 
                     <button
@@ -877,6 +925,51 @@ export default function AdminReceiptsPage() {
           viewMode="full"
           onClose={() => setActiveSlip(null)}
         />
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* FIXED BOTTOM-RIGHT A4 SLIP NOTICE (Phone Readable)            */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {slipNotice && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[60] max-w-sm sm:max-w-md w-[calc(100vw-2rem)] p-4 rounded-2xl shadow-2xl border transition-all duration-300 pointer-events-auto backdrop-blur-md flex items-start gap-3 ${
+            slipNotice.type === 'generating'
+              ? 'bg-slate-900/95 border-slate-700 text-white shadow-slate-950/50'
+              : slipNotice.type === 'success'
+              ? 'bg-emerald-950/95 border-emerald-500/80 text-emerald-100 shadow-emerald-950/50'
+              : 'bg-rose-950/95 border-rose-500/80 text-rose-100 shadow-rose-950/50'
+          }`}
+        >
+          {slipNotice.type === 'generating' && (
+            <Loader2 className="w-5 h-5 text-emerald-400 animate-spin shrink-0 mt-0.5" />
+          )}
+          {slipNotice.type === 'success' && (
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+          )}
+          {slipNotice.type === 'error' && (
+            <XCircle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold tracking-tight">
+              {slipNotice.type === 'generating' && 'A4 Slip Generation In Progress'}
+              {slipNotice.type === 'success' && 'A4 Slip Successfully Generated'}
+              {slipNotice.type === 'error' && 'A4 Slip Generation Error'}
+            </p>
+            <p className="text-[11px] leading-relaxed mt-0.5 opacity-90 break-words">
+              {slipNotice.message}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSlipNotice(null)}
+            className="text-white/60 hover:text-white p-1 rounded-lg shrink-0 cursor-pointer transition-colors"
+            aria-label="Dismiss notice"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
       )}
     </div>
   );
