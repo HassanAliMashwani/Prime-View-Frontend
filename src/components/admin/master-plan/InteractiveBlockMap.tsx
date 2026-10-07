@@ -521,6 +521,12 @@ export default function InteractiveBlockMap({
                     strokeWidth = 2;
                   }
                 }
+              } else if (area.category === 'amenity') {
+                const style = SPECIAL_PLOT_STYLES.amenity;
+                fillColor = style.fill;
+                fillOpacity = isHovered ? 0.6 : 0.35;
+                strokeColor = style.stroke;
+                strokeWidth = 2;
               } else {
                 // Not registered fallback
                 fillColor = '#64748b';
@@ -657,6 +663,19 @@ export default function InteractiveBlockMap({
                 : null;
 
               if (!plot) {
+                if (hoveredArea.category === 'amenity') {
+                  const title =
+                    hoveredArea.amenityName === 'primeViewClub' || hoveredArea.amenityType === 'primeViewClub'
+                      ? 'Prime View Club'
+                      : hoveredArea.amenityName || hoveredArea.amenityType || 'Public Amenity';
+                  return (
+                    <div className="w-56 rounded-2xl border border-purple-500/40 bg-slate-900/95 p-3 text-white shadow-2xl backdrop-blur-md">
+                      <div className="text-[10px] font-mono text-purple-400 uppercase font-bold">Public Amenity</div>
+                      <div className="font-bold text-sm text-slate-100">{title}</div>
+                      <div className="text-xs text-slate-400 mt-1">Size: {hoveredArea.sizeLabel}</div>
+                    </div>
+                  );
+                }
                 return (
                   <div className="w-56 rounded-2xl border border-slate-700 bg-slate-900/95 p-3 text-white shadow-2xl backdrop-blur-md">
                     <div className="text-[10px] font-mono text-slate-400 uppercase font-bold">Unregistered Plot</div>

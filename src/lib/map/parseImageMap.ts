@@ -48,9 +48,18 @@ export function parseSlug(
     numberOrRange = parts[2];
     rawSize = parts.slice(3).join('_');
   } else if (parts.length === 3) {
-    type = parts[0];
-    numberOrRange = parts[1];
-    rawSize = parts[2];
+    if (
+      parts[0].toLowerCase() === defaultBlockId.toLowerCase() ||
+      ['elite', 'abbott', 'royal', 'overseas', 'commercial'].includes(parts[0].toLowerCase())
+    ) {
+      type = parts[1];
+      numberOrRange = 'notMentioned';
+      rawSize = parts[2];
+    } else {
+      type = parts[0];
+      numberOrRange = parts[1];
+      rawSize = parts[2];
+    }
   } else if (parts.length === 2) {
     type = parts[0];
     numberOrRange = parts[1];

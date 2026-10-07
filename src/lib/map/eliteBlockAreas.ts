@@ -2,10 +2,10 @@ import { BlockMapConfig, TracedPlotArea } from './types';
 
 export const eliteBlockAreas: TracedPlotArea[] = [
   {
-    "slug": "elite_chalet_171_4M",
+    "slug": "elite_chalet_170_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "171",
+    "plotNumber": "170",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -28,10 +28,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_172_4M",
+    "slug": "elite_chalet_171_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "172",
+    "plotNumber": "171",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -54,10 +54,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_173_4M",
+    "slug": "elite_chalet_172_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "173",
+    "plotNumber": "172",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -80,10 +80,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_174_4M",
+    "slug": "elite_chalet_173_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "174",
+    "plotNumber": "173",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -106,10 +106,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_175_4M",
+    "slug": "elite_chalet_174_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "175",
+    "plotNumber": "174",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -132,10 +132,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_177_4M",
+    "slug": "elite_chalet_176_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "177",
+    "plotNumber": "176",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -158,10 +158,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_178_4M",
+    "slug": "elite_chalet_177_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "178",
+    "plotNumber": "177",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -184,10 +184,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_179_4M",
+    "slug": "elite_chalet_178_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "179",
+    "plotNumber": "178",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -210,10 +210,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_180_4M",
+    "slug": "elite_chalet_179_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "180",
+    "plotNumber": "179",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -236,10 +236,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_181_4M",
+    "slug": "elite_chalet_180_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "181",
+    "plotNumber": "180",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -262,10 +262,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_182_4M",
+    "slug": "elite_chalet_181_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "182",
+    "plotNumber": "181",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -288,10 +288,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_183_4M",
+    "slug": "elite_chalet_182_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "183",
+    "plotNumber": "182",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -314,10 +314,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_184_4M",
+    "slug": "elite_chalet_183_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "184",
+    "plotNumber": "183",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -340,10 +340,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_185_4M",
+    "slug": "elite_chalet_184_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "185",
+    "plotNumber": "184",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -366,10 +366,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_186_4M",
+    "slug": "elite_chalet_185_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "186",
+    "plotNumber": "185",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -392,10 +392,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_187_4M",
+    "slug": "elite_chalet_186_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "187",
+    "plotNumber": "186",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -418,10 +418,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_188_4M",
+    "slug": "elite_chalet_187_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "188",
+    "plotNumber": "187",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -444,10 +444,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_189_4M",
+    "slug": "elite_chalet_188_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "189",
+    "plotNumber": "188",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -470,10 +470,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_190_4M",
+    "slug": "elite_chalet_189_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "190",
+    "plotNumber": "189",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -496,10 +496,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_176_4M",
+    "slug": "elite_chalet_175_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "176",
+    "plotNumber": "175",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -522,10 +522,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_193_4M",
+    "slug": "elite_chalet_192_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "193",
+    "plotNumber": "192",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -548,10 +548,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_194_4M",
+    "slug": "elite_chalet_193_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "194",
+    "plotNumber": "193",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -574,10 +574,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_196_4M",
+    "slug": "elite_chalet_195_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "196",
+    "plotNumber": "195",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -600,10 +600,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_197_4M",
+    "slug": "elite_chalet_196_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "197",
+    "plotNumber": "196",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -626,10 +626,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_198_4M",
+    "slug": "elite_chalet_197_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "198",
+    "plotNumber": "197",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -652,10 +652,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_199_4M",
+    "slug": "elite_chalet_198_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "199",
+    "plotNumber": "198",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -678,10 +678,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_200_4M",
+    "slug": "elite_chalet_199_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "200",
+    "plotNumber": "199",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -704,10 +704,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_191_4M",
+    "slug": "elite_chalet_190_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "191",
+    "plotNumber": "190",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -730,10 +730,36 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_195_4M",
+    "slug": "elite_chalet_191_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "195",
+    "plotNumber": "191",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 831,
+        "y": 425
+      },
+      {
+        "x": 849,
+        "y": 423
+      },
+      {
+        "x": 854,
+        "y": 450
+      },
+      {
+        "x": 835,
+        "y": 452
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_194_4M",
+    "blockId": "elite",
+    "category": "residential",
+    "plotNumber": "194",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -756,10 +782,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_201_4M",
+    "slug": "elite_chalet_200_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "201",
+    "plotNumber": "200",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -782,10 +808,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_202_4M",
+    "slug": "elite_chalet_201_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "202",
+    "plotNumber": "201",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -808,10 +834,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_203_4M",
+    "slug": "elite_chalet_202_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "203",
+    "plotNumber": "202",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -834,10 +860,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_204_4M",
+    "slug": "elite_chalet_203_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "204",
+    "plotNumber": "203",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -860,10 +886,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_205_4M",
+    "slug": "elite_chalet_204_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "205",
+    "plotNumber": "204",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -886,10 +912,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_206_4M",
+    "slug": "elite_chalet_205_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "206",
+    "plotNumber": "205",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -912,10 +938,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_207_4M",
+    "slug": "elite_chalet_206_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "207",
+    "plotNumber": "206",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -938,10 +964,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_208_4M",
+    "slug": "elite_chalet_207_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "208",
+    "plotNumber": "207",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -964,10 +990,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_209_4M",
+    "slug": "elite_chalet_208_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "209",
+    "plotNumber": "208",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -990,10 +1016,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_210_4M",
+    "slug": "elite_chalet_209_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "210",
+    "plotNumber": "209",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1016,10 +1042,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_211_4M",
+    "slug": "elite_chalet_210_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "211",
+    "plotNumber": "210",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1042,10 +1068,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_212_4M",
+    "slug": "elite_chalet_211_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "212",
+    "plotNumber": "211",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1068,10 +1094,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_213_4M",
+    "slug": "elite_chalet_212_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "213",
+    "plotNumber": "212",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1094,10 +1120,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_214_4M",
+    "slug": "elite_chalet_213_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "214",
+    "plotNumber": "213",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1120,10 +1146,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_215_4M",
+    "slug": "elite_chalet_214_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "215",
+    "plotNumber": "214",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1146,10 +1172,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_216_4M",
+    "slug": "elite_chalet_215_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "216",
+    "plotNumber": "215",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1172,10 +1198,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_217_4M",
+    "slug": "elite_chalet_216_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "217",
+    "plotNumber": "216",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1198,10 +1224,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_218_4M",
+    "slug": "elite_chalet_217_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "218",
+    "plotNumber": "217",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1224,10 +1250,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_219_4M",
+    "slug": "elite_chalet_218_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "219",
+    "plotNumber": "218",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1250,10 +1276,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_220_4M",
+    "slug": "elite_chalet_219_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "220",
+    "plotNumber": "219",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1276,10 +1302,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_221_4M",
+    "slug": "elite_chalet_220_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "221",
+    "plotNumber": "220",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1302,10 +1328,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_222_4M",
+    "slug": "elite_chalet_221_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "222",
+    "plotNumber": "221",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1328,10 +1354,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_223_4M",
+    "slug": "elite_chalet_222_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "223",
+    "plotNumber": "222",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1354,10 +1380,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_224_4M",
+    "slug": "elite_chalet_223_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "224",
+    "plotNumber": "223",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1380,10 +1406,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_225_4M",
+    "slug": "elite_chalet_224_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "225",
+    "plotNumber": "224",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1406,10 +1432,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_226_4M",
+    "slug": "elite_chalet_225_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "226",
+    "plotNumber": "225",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1432,10 +1458,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_227_4M",
+    "slug": "elite_chalet_226_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "227",
+    "plotNumber": "226",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1458,10 +1484,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_228_4M",
+    "slug": "elite_chalet_227_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "228",
+    "plotNumber": "227",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1484,10 +1510,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_229_4M",
+    "slug": "elite_chalet_228_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "229",
+    "plotNumber": "228",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1510,10 +1536,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_230_4M",
+    "slug": "elite_chalet_229_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "230",
+    "plotNumber": "229",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1536,10 +1562,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_231_4M",
+    "slug": "elite_chalet_230_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "231",
+    "plotNumber": "230",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1562,10 +1588,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_232_4M",
+    "slug": "elite_chalet_231_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "232",
+    "plotNumber": "231",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -1588,10 +1614,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_233_4M",
+    "slug": "elite_chalet_232_4M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "233",
+    "plotNumber": "232",
     "isGroupedRange": false,
     "sizeLabel": "4 Marla",
     "points": [
@@ -6682,12 +6708,12 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_primeViewClub_170_17.31k",
+    "slug": "elite_primeViewClub_17.31k",
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "primeViewClub",
     "amenityName": "primeViewClub",
-    "plotNumber": "170",
+    "plotNumber": null,
     "isGroupedRange": false,
     "sizeLabel": "17.31 Kanal",
     "points": [
@@ -6822,85 +6848,6 @@ export const eliteBlockAreas: TracedPlotArea[] = [
       {
         "x": 1937,
         "y": 467
-      }
-    ]
-  },
-  {
-    "slug": "elite_primeViewClub_170_17.31k",
-    "blockId": "elite",
-    "category": "amenity",
-    "amenityType": "primeViewClub",
-    "plotNumber": "170",
-    "isGroupedRange": false,
-    "sizeLabel": "17.31 Kanal",
-    "points": [
-      {
-        "x": 1323,
-        "y": 254
-      },
-      {
-        "x": 1346,
-        "y": 244
-      },
-      {
-        "x": 1391,
-        "y": 208
-      },
-      {
-        "x": 1454,
-        "y": 183
-      },
-      {
-        "x": 1506,
-        "y": 181
-      },
-      {
-        "x": 1551,
-        "y": 170
-      },
-      {
-        "x": 1603,
-        "y": 132
-      },
-      {
-        "x": 1646,
-        "y": 82
-      },
-      {
-        "x": 1709,
-        "y": 53
-      },
-      {
-        "x": 1761,
-        "y": 80
-      },
-      {
-        "x": 1794,
-        "y": 107
-      },
-      {
-        "x": 1756,
-        "y": 136
-      },
-      {
-        "x": 1677,
-        "y": 190
-      },
-      {
-        "x": 1585,
-        "y": 238
-      },
-      {
-        "x": 1492,
-        "y": 274
-      },
-      {
-        "x": 1411,
-        "y": 296
-      },
-      {
-        "x": 1350,
-        "y": 308
       }
     ]
   }
