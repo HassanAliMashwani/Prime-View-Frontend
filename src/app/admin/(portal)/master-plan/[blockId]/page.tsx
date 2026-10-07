@@ -1567,7 +1567,7 @@ function BlockPlotsContent() {
                       className="w-full py-2 px-3 bg-white hover:bg-blue-50/80 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-medium text-xs rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs"
                     >
                       <AlertTriangle className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Town Planning Boundary Adjustment</span>
+                      <span>Adjustment</span>
                     </button>
                   )}
                 </>
