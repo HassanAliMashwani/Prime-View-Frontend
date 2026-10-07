@@ -6824,13 +6824,92 @@ export const eliteBlockAreas: TracedPlotArea[] = [
         "y": 467
       }
     ]
+  },
+  {
+    "slug": "elite_primeViewClub_170_17.31k",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "primeViewClub",
+    "plotNumber": "170",
+    "isGroupedRange": false,
+    "sizeLabel": "17.31 Kanal",
+    "points": [
+      {
+        "x": 1323,
+        "y": 254
+      },
+      {
+        "x": 1346,
+        "y": 244
+      },
+      {
+        "x": 1391,
+        "y": 208
+      },
+      {
+        "x": 1454,
+        "y": 183
+      },
+      {
+        "x": 1506,
+        "y": 181
+      },
+      {
+        "x": 1551,
+        "y": 170
+      },
+      {
+        "x": 1603,
+        "y": 132
+      },
+      {
+        "x": 1646,
+        "y": 82
+      },
+      {
+        "x": 1709,
+        "y": 53
+      },
+      {
+        "x": 1761,
+        "y": 80
+      },
+      {
+        "x": 1794,
+        "y": 107
+      },
+      {
+        "x": 1756,
+        "y": 136
+      },
+      {
+        "x": 1677,
+        "y": 190
+      },
+      {
+        "x": 1585,
+        "y": 238
+      },
+      {
+        "x": 1492,
+        "y": 274
+      },
+      {
+        "x": 1411,
+        "y": 296
+      },
+      {
+        "x": 1350,
+        "y": 308
+      }
+    ]
   }
 ];
 
 export const eliteBlockConfig: BlockMapConfig = {
   blockId: 'elite',
   blockName: 'Elite Block',
-  imageSrc: '/master-plan/elite-block-map.png',
+  imageSrc: '/Maps/Elite/elite-block-map.png',
   naturalWidth: 2033,
   naturalHeight: 1637,
   areas: eliteBlockAreas,
