@@ -141,7 +141,7 @@ export default function AdminReceiptsPage() {
     setStatusFilter(newStatus);
     setPage(1);
     if (session) {
-      loadData(session, 1, newStatus, searchQuery);
+      loadData(session, 1, newStatus, searchInput);
     }
   };
 
