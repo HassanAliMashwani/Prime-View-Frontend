@@ -2,13 +2,636 @@ import { Plot } from '../mock/types';
 
 export const eliteSeedPlots: Plot[] = [
   {
+    "id": "plot-el-171",
+    "blockId": "elite",
+    "plotNumber": "171",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-172",
+    "blockId": "elite",
+    "plotNumber": "172",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-173",
+    "blockId": "elite",
+    "plotNumber": "173",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-174",
+    "blockId": "elite",
+    "plotNumber": "174",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-175",
+    "blockId": "elite",
+    "plotNumber": "175",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-177",
+    "blockId": "elite",
+    "plotNumber": "177",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "booked",
+    "currentOwnerId": "cust-1"
+  },
+  {
+    "id": "plot-el-178",
+    "blockId": "elite",
+    "plotNumber": "178",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-179",
+    "blockId": "elite",
+    "plotNumber": "179",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-180",
+    "blockId": "elite",
+    "plotNumber": "180",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-181",
+    "blockId": "elite",
+    "plotNumber": "181",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-182",
+    "blockId": "elite",
+    "plotNumber": "182",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "reserved"
+  },
+  {
+    "id": "plot-el-183",
+    "blockId": "elite",
+    "plotNumber": "183",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-184",
+    "blockId": "elite",
+    "plotNumber": "184",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-185",
+    "blockId": "elite",
+    "plotNumber": "185",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-186",
+    "blockId": "elite",
+    "plotNumber": "186",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-187",
+    "blockId": "elite",
+    "plotNumber": "187",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-188",
+    "blockId": "elite",
+    "plotNumber": "188",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-189",
+    "blockId": "elite",
+    "plotNumber": "189",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-190",
+    "blockId": "elite",
+    "plotNumber": "190",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-176",
+    "blockId": "elite",
+    "plotNumber": "176",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-192",
+    "blockId": "elite",
+    "plotNumber": "192",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-193",
+    "blockId": "elite",
+    "plotNumber": "193",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-194",
+    "blockId": "elite",
+    "plotNumber": "194",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-196",
+    "blockId": "elite",
+    "plotNumber": "196",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-197",
+    "blockId": "elite",
+    "plotNumber": "197",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-198",
+    "blockId": "elite",
+    "plotNumber": "198",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "reserved"
+  },
+  {
+    "id": "plot-el-199",
+    "blockId": "elite",
+    "plotNumber": "199",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-200",
+    "blockId": "elite",
+    "plotNumber": "200",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-191",
+    "blockId": "elite",
+    "plotNumber": "191",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-195",
+    "blockId": "elite",
+    "plotNumber": "195",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-201",
+    "blockId": "elite",
+    "plotNumber": "201",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "booked",
+    "currentOwnerId": "cust-1"
+  },
+  {
+    "id": "plot-el-202",
+    "blockId": "elite",
+    "plotNumber": "202",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-203",
+    "blockId": "elite",
+    "plotNumber": "203",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-204",
+    "blockId": "elite",
+    "plotNumber": "204",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-205",
+    "blockId": "elite",
+    "plotNumber": "205",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-206",
+    "blockId": "elite",
+    "plotNumber": "206",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-207",
+    "blockId": "elite",
+    "plotNumber": "207",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-208",
+    "blockId": "elite",
+    "plotNumber": "208",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-209",
+    "blockId": "elite",
+    "plotNumber": "209",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-210",
+    "blockId": "elite",
+    "plotNumber": "210",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-211",
+    "blockId": "elite",
+    "plotNumber": "211",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-212",
+    "blockId": "elite",
+    "plotNumber": "212",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-213",
+    "blockId": "elite",
+    "plotNumber": "213",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-214",
+    "blockId": "elite",
+    "plotNumber": "214",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-215",
+    "blockId": "elite",
+    "plotNumber": "215",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-216",
+    "blockId": "elite",
+    "plotNumber": "216",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-217",
+    "blockId": "elite",
+    "plotNumber": "217",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-218",
+    "blockId": "elite",
+    "plotNumber": "218",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-219",
+    "blockId": "elite",
+    "plotNumber": "219",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-220",
+    "blockId": "elite",
+    "plotNumber": "220",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-221",
+    "blockId": "elite",
+    "plotNumber": "221",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "reserved"
+  },
+  {
+    "id": "plot-el-222",
+    "blockId": "elite",
+    "plotNumber": "222",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-223",
+    "blockId": "elite",
+    "plotNumber": "223",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-224",
+    "blockId": "elite",
+    "plotNumber": "224",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-225",
+    "blockId": "elite",
+    "plotNumber": "225",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-226",
+    "blockId": "elite",
+    "plotNumber": "226",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-227",
+    "blockId": "elite",
+    "plotNumber": "227",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-228",
+    "blockId": "elite",
+    "plotNumber": "228",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-229",
+    "blockId": "elite",
+    "plotNumber": "229",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-230",
+    "blockId": "elite",
+    "plotNumber": "230",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-231",
+    "blockId": "elite",
+    "plotNumber": "231",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "booked",
+    "currentOwnerId": "cust-1"
+  },
+  {
+    "id": "plot-el-232",
+    "blockId": "elite",
+    "plotNumber": "232",
+    "size": "4 Marla",
+    "category": "residential",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
     "id": "plot-el-233",
     "blockId": "elite",
     "plotNumber": "233",
-    "size": "2 Kanal",
+    "size": "4 Marla",
     "category": "residential",
-    "plotType": "2_kanal",
-    "price": 25000000,
+    "plotType": "5_marla",
+    "price": 2900000,
     "status": "available"
   },
   {
@@ -29,7 +652,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-236",
@@ -52,6 +675,16 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
+    "id": "plot-el-238",
+    "blockId": "elite",
+    "plotNumber": "238",
+    "size": "2 Kanal",
+    "category": "residential",
+    "plotType": "2_kanal",
+    "price": 25000000,
+    "status": "available"
+  },
+  {
     "id": "plot-el-254",
     "blockId": "elite",
     "plotNumber": "254",
@@ -59,8 +692,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 31100000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-253",
@@ -110,7 +742,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-248",
@@ -130,7 +762,18 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 26400000,
-    "status": "available"
+    "status": "reserved"
+  },
+  {
+    "id": "plot-el-246",
+    "blockId": "elite",
+    "plotNumber": "246",
+    "size": "12 Marla",
+    "category": "amenity",
+    "plotType": "amenity_filtrationPlant",
+    "price": 0,
+    "status": "available",
+    "amenityName": "Amenity"
   },
   {
     "id": "plot-el-245",
@@ -260,7 +903,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-143",
@@ -270,7 +913,8 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "available"
+    "status": "booked",
+    "currentOwnerId": "cust-1"
   },
   {
     "id": "plot-el-144",
@@ -310,8 +954,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-148",
@@ -377,16 +1020,6 @@ export const eliteSeedPlots: Plot[] = [
     "id": "plot-el-155",
     "blockId": "elite",
     "plotNumber": "155",
-    "size": "2 Kanal",
-    "category": "residential",
-    "plotType": "2_kanal",
-    "price": 25000000,
-    "status": "available"
-  },
-  {
-    "id": "plot-el-155-2",
-    "blockId": "elite",
-    "plotNumber": "155-2",
     "size": "2 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -481,7 +1114,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "available"
+    "status": "reserved"
   },
   {
     "id": "plot-el-165",
@@ -507,11 +1140,21 @@ export const eliteSeedPlots: Plot[] = [
     "id": "plot-el-167",
     "blockId": "elite",
     "plotNumber": "167",
+    "size": "2 Kanal",
+    "category": "residential",
+    "plotType": "2_kanal",
+    "price": 25000000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-169",
+    "blockId": "elite",
+    "plotNumber": "169",
     "size": "42.5 Marla",
     "category": "residential",
     "plotType": "2_kanal",
     "price": 26600000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-168",
@@ -611,8 +1254,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 26400000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-127",
@@ -762,7 +1404,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-112",
@@ -772,7 +1414,8 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "available"
+    "status": "booked",
+    "currentOwnerId": "cust-1"
   },
   {
     "id": "plot-el-111",
@@ -912,8 +1555,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-95",
@@ -1113,7 +1755,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-73",
@@ -1306,9 +1948,9 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-01",
+    "id": "plot-el-1",
     "blockId": "elite",
-    "plotNumber": "01",
+    "plotNumber": "1",
     "size": "3 Kanal",
     "category": "amenity",
     "plotType": "amenity_office",
@@ -1317,9 +1959,9 @@ export const eliteSeedPlots: Plot[] = [
     "amenityName": "Society Administrative Office"
   },
   {
-    "id": "plot-el-02",
+    "id": "plot-el-2",
     "blockId": "elite",
-    "plotNumber": "02",
+    "plotNumber": "2",
     "size": "2.4 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1327,9 +1969,9 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-03",
+    "id": "plot-el-3",
     "blockId": "elite",
-    "plotNumber": "03",
+    "plotNumber": "3",
     "size": "2.15 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1337,9 +1979,9 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-04",
+    "id": "plot-el-4",
     "blockId": "elite",
-    "plotNumber": "04",
+    "plotNumber": "4",
     "size": "2.28 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1347,9 +1989,9 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-05",
+    "id": "plot-el-5",
     "blockId": "elite",
-    "plotNumber": "05",
+    "plotNumber": "5",
     "size": "2.27 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1357,9 +1999,19 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-06",
+    "id": "plot-el-6",
     "blockId": "elite",
-    "plotNumber": "06",
+    "plotNumber": "6",
+    "size": "2.27 Kanal",
+    "category": "residential",
+    "plotType": "2_kanal",
+    "price": 28400000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-7",
+    "blockId": "elite",
+    "plotNumber": "7",
     "size": "2 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1367,9 +2019,9 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-07",
+    "id": "plot-el-8",
     "blockId": "elite",
-    "plotNumber": "07",
+    "plotNumber": "8",
     "size": "2 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1377,19 +2029,9 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-08",
+    "id": "plot-el-9",
     "blockId": "elite",
-    "plotNumber": "08",
-    "size": "2 Kanal",
-    "category": "residential",
-    "plotType": "2_kanal",
-    "price": 25000000,
-    "status": "available"
-  },
-  {
-    "id": "plot-el-09",
-    "blockId": "elite",
-    "plotNumber": "09",
+    "plotNumber": "9",
     "size": "2 Kanal",
     "category": "residential",
     "plotType": "2_kanal",
@@ -1414,8 +2056,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-35",
@@ -1721,10 +2362,10 @@ export const eliteSeedPlots: Plot[] = [
     "id": "plot-el-13",
     "blockId": "elite",
     "plotNumber": "13",
-    "size": "58.7 Marla",
+    "size": "63.2 Marla",
     "category": "residential",
     "plotType": "2_kanal",
-    "price": 36700000,
+    "price": 39500000,
     "status": "available"
   },
   {
@@ -1801,6 +2442,76 @@ export const eliteSeedPlots: Plot[] = [
     "amenityName": "Community Centre"
   },
   {
+    "id": "plot-el-59",
+    "blockId": "elite",
+    "plotNumber": "59",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-60",
+    "blockId": "elite",
+    "plotNumber": "60",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-61",
+    "blockId": "elite",
+    "plotNumber": "61",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-62",
+    "blockId": "elite",
+    "plotNumber": "62",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-63",
+    "blockId": "elite",
+    "plotNumber": "63",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-64",
+    "blockId": "elite",
+    "plotNumber": "64",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
+    "id": "plot-el-65",
+    "blockId": "elite",
+    "plotNumber": "65",
+    "size": "4 Marla",
+    "category": "commercial",
+    "plotType": "5_marla",
+    "price": 2900000,
+    "status": "available"
+  },
+  {
     "id": "plot-el-152",
     "blockId": "elite",
     "plotNumber": "152",
@@ -1812,9 +2523,9 @@ export const eliteSeedPlots: Plot[] = [
     "amenityName": "School"
   },
   {
-    "id": "plot-el-169",
+    "id": "plot-el-170",
     "blockId": "elite",
-    "plotNumber": "169",
+    "plotNumber": "170",
     "size": "17.31 Kanal",
     "category": "amenity",
     "plotType": "amenity_primeViewClub",

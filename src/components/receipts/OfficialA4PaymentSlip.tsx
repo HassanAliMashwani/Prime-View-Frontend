@@ -348,9 +348,7 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
           style={{ left: '6.5%', right: '6.5%', top: '55.5%' }}
         >
           <div className="space-y-1">
-            <div className="text-[9px] sm:text-[10px] print:text-[8pt] font-bold text-slate-500 uppercase tracking-wider font-mono">
-              Cryptographic Anti-Tamper Security Hash
-            </div>
+            
             <div className="font-mono font-bold text-[11px] sm:text-[12px] print:text-[10pt] bg-slate-50 border border-slate-200/90 text-slate-900 px-3 py-1.5 rounded-lg inline-block select-all shadow-2xs">
               {slip.securityHash || '—'}
             </div>

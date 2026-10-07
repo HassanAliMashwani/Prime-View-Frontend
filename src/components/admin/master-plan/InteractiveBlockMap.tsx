@@ -201,9 +201,7 @@ export default function InteractiveBlockMap({
 
   const handleAreaClick = (area: TracedPlotArea) => {
     if (area.isGroupedRange) {
-      const msg = area.slug.includes('parkWithChalets')
-        ? 'These are Elite Block plots 170–232, not yet individually mapped.'
-        : area.slug.includes('commercial')
+      const msg = area.slug.includes('commercial')
         ? 'Commercial retail strip — plots 59–65, 4 Marla each.'
         : `Grouped region (${area.rangeSpan || 'range'}) — not individually actionable.`;
       setGroupedToast(msg);
@@ -645,9 +643,7 @@ export default function InteractiveBlockMap({
                       <span>Grouped Area ({hoveredArea.rangeSpan})</span>
                     </div>
                     <div className="mt-1 font-serif text-sm font-bold text-slate-100">
-                      {hoveredArea.slug.includes('parkWithChalets')
-                        ? 'Elite Block Plots 170–232'
-                        : 'Commercial Retail Strip'}
+                      Commercial Retail Strip
                     </div>
                     <p className="mt-1 text-[11px] text-slate-400 leading-snug">
                       Visual placeholder area covering unplotted span {hoveredArea.rangeSpan}. Click for information.

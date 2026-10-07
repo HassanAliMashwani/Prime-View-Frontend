@@ -31,7 +31,7 @@ export function parseSlug(
   sizeLabel: string;
 } {
   let clean = rawSlug.trim();
-  // Handle cases like elite_parkWithChalets_170..232##
+  // Normalize malformed slugs ending with ##
   if (clean.includes('##') && !clean.includes('_##')) {
     clean = clean.replace('##', '_##');
   }
@@ -65,7 +65,7 @@ export function parseSlug(
   let amenityType: string | undefined = undefined;
 
   const lowerType = type.toLowerCase();
-  if (lowerType === 'plot' || lowerType === 'residential') {
+  if (lowerType === 'plot' || lowerType === 'residential' || lowerType === 'chalet') {
     category = 'residential';
   } else if (lowerType === 'commercial') {
     category = 'commercial';

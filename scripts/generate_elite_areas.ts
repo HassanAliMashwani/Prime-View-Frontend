@@ -2,17 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { parseImageMapHtml } from '../src/lib/map/parseImageMap';
 
-const docPath = path.resolve('docs/system-design/04-INTERACTIVE-MASTER-PLAN-MAP.md');
-const content = fs.readFileSync(docPath, 'utf8');
-
-// Extract the html block from section 3.6
-const htmlMatch = content.match(/<map name="image-map">([\s\S]*?)<\/map>/i);
-if (!htmlMatch) {
-  console.error('Could not find <map name="image-map"> in 04 doc!');
-  process.exit(1);
-}
-
-const mapHtml = htmlMatch[0];
+const mapHtmlPath = path.resolve('public/Maps/Elite/elite_block_updated.html');
+const mapHtml = fs.readFileSync(mapHtmlPath, 'utf8');
 const areas = parseImageMapHtml(mapHtml, 'elite');
 console.log(`Successfully parsed ${areas.length} area elements for Elite Block.`);
 
