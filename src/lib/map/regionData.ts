@@ -1,10 +1,7 @@
 import { Region } from './types';
 import { BlockId } from '../mock/types';
 
-export const CHALET_PATH = "M229,241 L255,241 L248,268 L237,268 L228,292 L233,302 L215,358 L194,398 L150,511 L130,500 L167,368 L189,302 L213,255 Z";
-
 export const BLOCK_ID_BY_REGION_NAME: Record<string, BlockId> = {
-  'Chalet Block': 'chalet',
   'Elite Block': 'elite',
   'Commercial Area': 'commercial',
   'Overseas Block': 'overseas',
@@ -15,7 +12,6 @@ export const BLOCK_ID_BY_REGION_NAME: Record<string, BlockId> = {
 };
 
 export const REGION_NAME_BY_BLOCK_ID: Record<string, string> = {
-  chalet: 'Chalet Block',
   elite: 'Elite Block',
   commercial: 'Commercial Block',
   overseas: 'Overseas Block',

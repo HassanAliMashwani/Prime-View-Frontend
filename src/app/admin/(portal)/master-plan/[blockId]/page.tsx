@@ -407,6 +407,12 @@ function BlockPlotsContent() {
   const handleMinimalBookSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session || !selectedPlot) return;
+
+    if (Number(selectedPlot.price) <= 0) {
+      setActionError('This plot has an official price of PKR 0. Official pricing must be established before booking.');
+      return;
+    }
+
     setActionLoading(true);
     setActionError(null);
 
@@ -571,6 +577,12 @@ function BlockPlotsContent() {
   // Open Booking Flow (Acquires Soft Lock Layer 1 and redirects to Customer Booking Form)
   const openBook = async (prefillReservation?: Reservation) => {
     if (!session || !selectedPlot) return;
+
+    if (Number(selectedPlot.price) <= 0) {
+      setActionError('This plot has an official price of PKR 0. Official pricing must be established before locking or booking.');
+      return;
+    }
+
     setActionLoading(true);
     setActionError(null);
 
@@ -578,7 +590,9 @@ function BlockPlotsContent() {
     const lockRes = await acquireLock(session, selectedPlot.id);
     if (!lockRes.ok) {
       let lockMsg = 'Failed to acquire booking lock. Please try again.';
-      if (lockRes.error === 'LOCKED_BY_ANOTHER') {
+      if (lockRes.error === 'PRICE_NOT_SET') {
+        lockMsg = 'This plot has an official price of PKR 0 and cannot be locked or booked.';
+      } else if (lockRes.error === 'LOCKED_BY_ANOTHER') {
         lockMsg = `Plot is currently locked by ${lockRes.lockedByName}. Please wait for lock expiration.`;
       } else if (lockRes.error === 'PLOT_UNDER_ADJUSTMENT') {
         lockMsg = 'This plot is frozen under Town Planning boundary adjustment and cannot be booked.';
@@ -1550,7 +1564,8 @@ function BlockPlotsContent() {
                     <button
                       type="button"
                       onClick={() => openBook()}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId)}
+                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId) || Number(selectedPlot.price) <= 0}
+                      title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
                       className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap min-h-[38px]"
                     >
                       <Lock className="w-3.5 h-3.5 text-emerald-200 shrink-0" />

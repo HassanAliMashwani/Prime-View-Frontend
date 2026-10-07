@@ -23,7 +23,6 @@ const blockDisplayNames: Record<string, string> = {
   royal: 'Royal Block',
   overseas: 'Overseas Block',
   elite: 'Elite Block',
-  chalet: 'Chalet Block',
   commercial: 'Commercial Block',
   'npf-phase-1': 'NPF Phase 1',
   'npf-phase-2': 'NPF Phase 2',

@@ -35,7 +35,6 @@ const BLOCK_COLORS: Record<string, string> = {
   royal: 'bg-amber-50 text-amber-800 border-amber-200',
   overseas: 'bg-sky-50 text-sky-800 border-sky-200',
   elite: 'bg-purple-50 text-purple-800 border-purple-200',
-  chalet: 'bg-rose-50 text-rose-800 border-rose-200',
   commercial: 'bg-indigo-50 text-indigo-800 border-indigo-200',
   'npf-phase-1': 'bg-teal-50 text-teal-800 border-teal-200',
   'npf-phase-2': 'bg-cyan-50 text-cyan-800 border-cyan-200',

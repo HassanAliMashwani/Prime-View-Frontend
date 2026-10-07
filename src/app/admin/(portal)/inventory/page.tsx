@@ -26,6 +26,67 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 
+function RollingCounter({
+  value,
+  loading,
+  hasLoaded,
+}: {
+  value: number;
+  loading: boolean;
+  hasLoaded: boolean;
+}) {
+  const [displayValue, setDisplayValue] = useState<number>(value);
+  const displayValueRef = React.useRef<number>(value);
+  const isFirstLoadRef = React.useRef<boolean>(true);
+
+  useEffect(() => {
+    if (!hasLoaded) return;
+
+    if (isFirstLoadRef.current) {
+      isFirstLoadRef.current = false;
+      displayValueRef.current = value;
+      setDisplayValue(value);
+      return;
+    }
+
+    const startValue = displayValueRef.current;
+    const endValue = value;
+    if (startValue === endValue) return;
+
+    const duration = 600;
+    const startTime = performance.now();
+    let animationFrameId: number;
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(startValue + (endValue - startValue) * ease);
+      displayValueRef.current = current;
+      setDisplayValue(current);
+
+      if (progress < 1) {
+        animationFrameId = requestAnimationFrame(step);
+      } else {
+        displayValueRef.current = endValue;
+        setDisplayValue(endValue);
+      }
+    };
+
+    animationFrameId = requestAnimationFrame(step);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [value, hasLoaded]);
+
+  if (!hasLoaded && loading) {
+    return <span className="inline-block h-8 w-24 bg-slate-200/60 animate-pulse rounded-lg align-middle" />;
+  }
+
+  return <span>{displayValue.toLocaleString()}</span>;
+}
+
 const PAGE_SIZE = 10;
 
 export default function InventoryOverviewPage() {
@@ -35,6 +96,7 @@ export default function InventoryOverviewPage() {
 
   // Live Inventory State (zero cache, no allowStale)
   const [loadingLive, setLoadingLive] = useState<boolean>(true);
+  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(false);
   const [liveStats, setLiveStats] = useState<InventoryStats[]>([]);
   const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(null);
   const [livePage, setLivePage] = useState<number>(1);
@@ -73,6 +135,7 @@ export default function InventoryOverviewPage() {
       setLiveTotals(data.totals || null);
       setTotalRecords(data.total || 0);
       setLastUpdated(new Date());
+      setHasLoadedLiveOnce(true);
     } catch {
       setLiveError('Failed to fetch live inventory counts. Please try again.');
     } finally {
@@ -280,8 +343,8 @@ export default function InventoryOverviewPage() {
               </div>
               <h3 className="text-green-800 font-bold text-sm">Available</h3>
             </div>
-            <div className="text-3xl font-bold text-green-700">
-              {loadingLive ? '...' : totalAvailable.toLocaleString()}
+            <div className="text-3xl font-bold text-green-700 min-h-[36px] flex items-center">
+              <RollingCounter value={totalAvailable} loading={loadingLive} hasLoaded={hasLoadedLiveOnce} />
             </div>
             <p className="text-xs text-green-700/80 mt-2 font-medium">Ready to book</p>
           </div>
@@ -294,8 +357,8 @@ export default function InventoryOverviewPage() {
               </div>
               <h3 className="text-amber-800 font-bold text-sm">Reserved</h3>
             </div>
-            <div className="text-3xl font-bold text-amber-700">
-              {loadingLive ? '...' : totalReserved.toLocaleString()}
+            <div className="text-3xl font-bold text-amber-700 min-h-[36px] flex items-center">
+              <RollingCounter value={totalReserved} loading={loadingLive} hasLoaded={hasLoadedLiveOnce} />
             </div>
             <p className="text-xs text-amber-700/80 mt-2 font-medium">Held for 24 hours</p>
           </div>
@@ -308,8 +371,8 @@ export default function InventoryOverviewPage() {
               </div>
               <h3 className="text-blue-800 font-bold text-sm">Booked</h3>
             </div>
-            <div className="text-3xl font-bold text-blue-700">
-              {loadingLive ? '...' : totalBooked.toLocaleString()}
+            <div className="text-3xl font-bold text-blue-700 min-h-[36px] flex items-center">
+              <RollingCounter value={totalBooked} loading={loadingLive} hasLoaded={hasLoadedLiveOnce} />
             </div>
             <p className="text-xs text-blue-700/80 mt-2 font-medium">Installment plan active</p>
           </div>
@@ -322,8 +385,8 @@ export default function InventoryOverviewPage() {
               </div>
               <h3 className="text-purple-800 font-bold text-sm">Allotted</h3>
             </div>
-            <div className="text-3xl font-bold text-purple-700">
-              {loadingLive ? '...' : totalAllotted.toLocaleString()}
+            <div className="text-3xl font-bold text-purple-700 min-h-[36px] flex items-center">
+              <RollingCounter value={totalAllotted} loading={loadingLive} hasLoaded={hasLoadedLiveOnce} />
             </div>
             <p className="text-xs text-purple-700/80 mt-2 font-medium">Paid in full (One-time)</p>
           </div>

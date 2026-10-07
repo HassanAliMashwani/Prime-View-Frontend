@@ -45,7 +45,6 @@ const SOCIETY_BLOCKS = [
   { id: 'royal', name: 'Royal Block' },
   { id: 'overseas', name: 'Overseas Block' },
   { id: 'elite', name: 'Elite Block' },
-  { id: 'chalet', name: 'Chalet Block' },
   { id: 'commercial', name: 'Commercial Block' },
   { id: 'npf-phase-1', name: 'NPF Phase 1' },
   { id: 'npf-phase-2', name: 'NPF Phase 2' },

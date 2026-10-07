@@ -42,7 +42,6 @@ const BLOCK_COLORS: Record<string, string> = {
   royal: 'bg-amber-50 text-amber-800 border-amber-200',
   overseas: 'bg-sky-50 text-sky-800 border-sky-200',
   elite: 'bg-purple-50 text-purple-800 border-purple-200',
-  chalet: 'bg-rose-50 text-rose-800 border-rose-200',
   commercial: 'bg-indigo-50 text-indigo-800 border-indigo-200',
   'npf-phase-1': 'bg-teal-50 text-teal-800 border-teal-200',
   'npf-phase-2': 'bg-cyan-50 text-cyan-800 border-cyan-200',
@@ -166,10 +165,9 @@ export default function AdminProfilePage() {
     { id: 'royal', name: 'Royal Block', desc: 'Premium Boulevard Residences' },
     { id: 'overseas', name: 'Overseas Block', desc: 'Expatriate Executive Sector' },
     { id: 'elite', name: 'Elite Block', desc: 'Luxury Parkside Enclave' },
-    { id: 'chalet', name: 'Chalet Block', desc: 'Scenic Hillside Terraces' },
-    { id: 'civic', name: 'Civic Block', desc: 'Central Amenities & Commercial Plaza' },
-    { id: 'executive', name: 'Executive Block', desc: 'Corporate & Administrative Sector' },
-    { id: 'general', name: 'General Block', desc: 'Standard Residential Sector' },
+    { id: 'commercial', name: 'Commercial Block', desc: 'Main Boulevard Commercial Hub' },
+    { id: 'npf-phase-1', name: 'NPF Phase 1', desc: 'Co-operative Housing Division' },
+    { id: 'npf-phase-2', name: 'NPF Phase 2', desc: 'Mixed-Use Development Expansion' },
   ];
 
   const permissionList = [

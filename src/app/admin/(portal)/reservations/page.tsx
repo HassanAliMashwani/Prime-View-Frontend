@@ -36,7 +36,6 @@ const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: str
   royal: { badge: 'bg-amber-100 text-amber-900 border-amber-300', border: 'border-amber-200', accent: 'text-amber-800' },
   overseas: { badge: 'bg-sky-100 text-sky-900 border-sky-300', border: 'border-sky-200', accent: 'text-sky-800' },
   elite: { badge: 'bg-purple-100 text-purple-900 border-purple-300', border: 'border-purple-200', accent: 'text-purple-800' },
-  chalet: { badge: 'bg-rose-100 text-rose-900 border-rose-300', border: 'border-rose-200', accent: 'text-rose-800' },
   commercial: { badge: 'bg-indigo-100 text-indigo-900 border-indigo-300', border: 'border-indigo-200', accent: 'text-indigo-800' },
   'npf-phase-1': { badge: 'bg-teal-100 text-teal-900 border-teal-300', border: 'border-teal-200', accent: 'text-teal-800' },
   'npf-phase-2': { badge: 'bg-cyan-100 text-cyan-900 border-cyan-300', border: 'border-cyan-200', accent: 'text-cyan-800' },
@@ -323,7 +322,6 @@ export default function ReservationsPage() {
               <option value="royal">Royal Block</option>
               <option value="overseas">Overseas Block</option>
               <option value="elite">Elite Block</option>
-              <option value="chalet">Chalet Block</option>
               <option value="commercial">Commercial Block</option>
               <option value="npf-phase-1">NPF Phase 1</option>
               <option value="npf-phase-2">NPF Phase 2</option>
