@@ -1200,49 +1200,49 @@ function BlockPlotsContent() {
               )}
 
               {/* Plot Specs (Compact & Adaptable Responsive Grid) */}
-              <div className="grid grid-cols-3 gap-2 bg-slate-50/90 p-2.5 sm:p-3 rounded-xl border border-slate-200">
-                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
-                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Plot Size</span>
-                  <div className="text-xs sm:text-sm font-bold text-slate-900 truncate">{selectedPlot.size}</div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-slate-50/90 p-2.5 sm:p-3 rounded-xl border border-slate-200">
+                <div className="bg-white/90 p-2.5 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
+                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-wider">Plot Size</span>
+                  <div className="text-sm font-bold text-slate-900 mt-0.5">{selectedPlot.size}</div>
                 </div>
 
-                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
-                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Official Price</span>
+                <div className="bg-white/90 p-2.5 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs sm:col-span-1">
+                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-wider">Official Price</span>
                   {isEditingPrice ? (
-                    <div className="mt-1 space-y-1">
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px] font-mono font-bold text-slate-500">PKR</span>
+                    <div className="mt-1 space-y-1.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-mono font-bold text-slate-500">PKR</span>
                         <input
                           type="number"
                           min={100000}
                           step={50000}
                           value={newPriceInput}
                           onChange={(e) => setNewPriceInput(e.target.value)}
-                          className="w-20 px-1 py-0.5 text-xs font-mono font-bold bg-white border border-emerald-400 rounded focus:outline-hidden"
+                          className="w-full px-2 py-1 text-xs font-mono font-bold bg-white border border-emerald-400 rounded-md focus:outline-hidden"
                           autoFocus
                         />
                       </div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={handleSavePrice}
                           disabled={priceSaving}
-                          className="px-1.5 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[9px] font-bold rounded cursor-pointer"
+                          className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded cursor-pointer"
                         >
                           {priceSaving ? '...' : 'Save'}
                         </button>
                         <button
                           type="button"
                           onClick={() => setIsEditingPrice(false)}
-                          className="px-1 py-0.5 text-slate-500 hover:text-slate-800 text-[9px] cursor-pointer"
+                          className="px-2 py-0.5 text-slate-500 hover:text-slate-800 text-[10px] font-medium cursor-pointer"
                         >
                           Cancel
                         </button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between gap-1">
-                      <span className={`text-xs sm:text-sm font-bold font-mono truncate ${
+                    <div className="flex items-center justify-between gap-1.5 mt-0.5 flex-wrap">
+                      <span className={`text-sm font-bold font-mono tracking-tight whitespace-nowrap ${
                         selectedPlot.category === 'amenity' || Number(selectedPlot.price) <= 0
                           ? 'text-slate-500'
                           : 'text-emerald-800'
@@ -1260,7 +1260,7 @@ function BlockPlotsContent() {
                             setNewPriceInput(Number(selectedPlot.price) > 0 ? String(selectedPlot.price) : '');
                             setIsEditingPrice(true);
                           }}
-                          className="text-[9px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer shrink-0"
+                          className="text-[10px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 transition-colors cursor-pointer shrink-0"
                         >
                           {Number(selectedPlot.price) > 0 ? 'Edit' : 'Set Price'}
                         </button>
@@ -1269,9 +1269,9 @@ function BlockPlotsContent() {
                   )}
                 </div>
 
-                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
-                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Status</span>
-                  <div className="text-xs sm:text-sm font-bold capitalize text-slate-900 truncate">
+                <div className="bg-white/90 p-2.5 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
+                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-wider">Status</span>
+                  <div className="text-sm font-bold capitalize text-slate-900 truncate mt-0.5">
                     {selectedPlot.displayStatus || selectedPlot.status}
                   </div>
                 </div>
@@ -1506,10 +1506,10 @@ function BlockPlotsContent() {
             </div>
 
             {/* Modal Fixed / Pinned Action Footer */}
-            <div className="p-3 sm:p-3.5 border-t border-slate-200 bg-white/95 backdrop-blur-xs shrink-0 flex flex-col gap-2 shadow-xs">
+            <div className="p-3 sm:px-5 sm:py-3.5 border-t border-slate-200/90 bg-slate-50/90 backdrop-blur-xs shrink-0 flex flex-col gap-2 shadow-xs">
               {selectedPlot.isAdjustment ? (
                 <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <div className="flex-1 p-2 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-1.5 w-full">
+                  <div className="flex-1 py-2 px-3 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-1.5 w-full">
                     <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                     <span>Operations Locked Under Town Planning Freeze</span>
                   </div>
@@ -1527,32 +1527,36 @@ function BlockPlotsContent() {
                 </div>
               ) : (
                 <>
-                  {/* Reserve Button: Available plots only */}
-                  {selectedPlot.category !== 'amenity' && selectedPlot.status === 'available' && !selectedPlot.isAdjustment && (
-                    <button
-                      type="button"
-                      onClick={openReserve}
-                      disabled={actionLoading}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs whitespace-nowrap min-h-[38px]"
-                    >
-                      <BookmarkCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                      <span>Reserve Plot (Token)</span>
-                    </button>
-                  )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {/* Reserve Button: Available plots only */}
+                    {selectedPlot.category !== 'amenity' && selectedPlot.status === 'available' && !selectedPlot.isAdjustment && (
+                      <button
+                        type="button"
+                        onClick={openReserve}
+                        disabled={actionLoading}
+                        className="inline-flex items-center justify-center gap-2 py-2 px-4 bg-amber-50 hover:bg-amber-100/90 active:bg-amber-200/80 border border-amber-300 hover:border-amber-400 text-amber-950 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-xs disabled:opacity-50"
+                      >
+                        <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Reserve Plot (Token)</span>
+                      </button>
+                    )}
 
-                  {/* Lock & Book Button: Available or Reserved plots only */}
-                  {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
-                    <button
-                      type="button"
-                      onClick={() => openBook()}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId) || Number(selectedPlot.price) <= 0}
-                      title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap min-h-[38px]"
-                    >
-                      <Lock className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
-                      <span>Lock & Book Now</span>
-                    </button>
-                  )}
+                    {/* Lock & Book Button: Available or Reserved plots only */}
+                    {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
+                      <button
+                        type="button"
+                        onClick={() => openBook()}
+                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId) || Number(selectedPlot.price) <= 0}
+                        title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
+                        className={`inline-flex items-center justify-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50 ${
+                          selectedPlot.status !== 'available' ? 'sm:col-span-2' : ''
+                        }`}
+                      >
+                        <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
+                        <span>Lock & Book Now</span>
+                      </button>
+                    )}
+                  </div>
 
                   {/* Super Admin Master Plan Adjustment Button: Stays for booked, HIDDEN for allotted */}
                   {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && !selectedPlot.isAdjustment && (
@@ -1560,9 +1564,9 @@ function BlockPlotsContent() {
                       type="button"
                       onClick={() => setIsAdjustmentModalOpen(true)}
                       disabled={actionLoading}
-                      className="w-full py-2 px-3 bg-blue-50/80 hover:bg-blue-100 border border-blue-200 hover:border-blue-400 text-blue-900 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs min-h-[38px]"
+                      className="w-full py-2 px-3 bg-white hover:bg-blue-50/80 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-medium text-xs rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs"
                     >
-                      <AlertTriangle className="w-4 h-4 text-blue-600" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-blue-600" />
                       <span>Town Planning Boundary Adjustment</span>
                     </button>
                   )}
