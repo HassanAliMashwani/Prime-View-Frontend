@@ -1427,7 +1427,7 @@ function BlockPlotsContent() {
                         {booking && (
                           <div className="text-[11px] text-amber-900/80 font-mono pt-1 border-t border-amber-100 flex items-center justify-between">
                             <span>Booked: {new Date(booking.bookingDate).toLocaleDateString()}</span>
-                            <span className="capitalize font-semibold">Plan: {booking.paymentType.replace('_', ' ')}</span>
+                            <span className="capitalize font-semibold">Plan: {booking.paymentType === 'one_time' ? 'Full Time' : booking.paymentType.replace('_', ' ')}</span>
                           </div>
                         )}
                       </div>
@@ -1492,7 +1492,7 @@ function BlockPlotsContent() {
                             isAllotted ? 'border-slate-200' : 'border-rose-200/60'
                           } flex items-center justify-between`}>
                             <span>Booked on: {new Date(booking.bookingDate).toLocaleDateString()}</span>
-                            <span className="capitalize font-semibold">Plan: {booking.paymentType.replace('_', ' ')}</span>
+                            <span className="capitalize font-semibold">Plan: {booking.paymentType === 'one_time' ? 'Full Time' : booking.paymentType.replace('_', ' ')}</span>
                           </div>
                         )}
                       </div>
