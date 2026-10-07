@@ -113,6 +113,8 @@ export interface CreateMinimalBookingInput {
 export interface CompleteMemberRegistrationInput {
   customerId: string;
   bookingId?: string;
+  plotId?: string;
+  city?: string;
   membershipNo: string;
   fatherOrHusbandName: string;
   phone: string;
@@ -502,6 +504,20 @@ export async function getCustomersDirectory(
     page: res.data.page,
     pageSize: res.data.pageSize
   };
+}
+
+/**
+ * Fetch a single customer by ID (Super Admin / Admin view).
+ */
+export async function getAdminCustomerById(
+  session: AdminSession,
+  customerId: string
+): Promise<{ ok: boolean; data?: any; error?: string }> {
+  const res = await apiGet<any>(`/customers/${customerId}`, session?.token);
+  if (!res.ok || !res.data) {
+    return { ok: false, error: res.error || 'Failed to fetch customer.' };
+  }
+  return { ok: true, data: res.data };
 }
 
 /**

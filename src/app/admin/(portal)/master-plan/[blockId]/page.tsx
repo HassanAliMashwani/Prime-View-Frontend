@@ -1213,7 +1213,7 @@ function BlockPlotsContent() {
               )}
 
               {/* Plot Specs (Compact & Adaptable Responsive Grid) */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50/90 p-2.5 sm:p-3 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-3 gap-2 bg-slate-50/90 p-2.5 sm:p-3 rounded-xl border border-slate-200">
                 <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
                   <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Plot Size</span>
                   <div className="text-xs sm:text-sm font-bold text-slate-900 truncate">{selectedPlot.size}</div>
@@ -1280,31 +1280,30 @@ function BlockPlotsContent() {
                     {selectedPlot.displayStatus || selectedPlot.status}
                   </div>
                 </div>
-
-                <div className="bg-white/90 p-2 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
-                  <span className="text-[9px] uppercase font-mono text-slate-400 font-bold tracking-wider">Type</span>
-                  <div className="text-xs sm:text-sm font-bold capitalize text-slate-700 font-mono truncate">
-                    {selectedPlot.plotType || selectedPlot.category}
-                  </div>
-                </div>
               </div>
 
-              {/* Active Reservations Details (With Duplicate Conflict Banner) */}
-              {plotReservations.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
-                      <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
-                      Active Reservations ({plotReservations.length})
-                    </span>
-                    {plotReservations.length > 1 && (
-                      <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300">
-                        Dispute Race Conflict
-                      </span>
-                    )}
-                  </div>
+              {/* Active Reservations Details (Only when active and hold not expired; hidden on booked and allotted plots) */}
+              {(() => {
+                if (selectedPlot.status === 'booked' || selectedPlot.status === 'allotted') return null;
+                const activeList = plotReservations.filter((r) => r.status === 'active' && r.validUntil && new Date(r.validUntil).getTime() > Date.now());
+                const displayedList = selectedPlot.status === 'reserved' ? activeList.slice(0, 1) : activeList;
+                if (displayedList.length === 0) return null;
 
-                  {plotReservations.map((res, idx) => (
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <BookmarkCheck className="w-3.5 h-3.5 text-amber-600" />
+                        Active Reservation{displayedList.length > 1 ? `s (${displayedList.length})` : ''}
+                      </span>
+                      {displayedList.length > 1 && (
+                        <span className="text-[10px] bg-rose-100 text-rose-800 font-bold px-2 py-0.5 rounded-full border border-rose-300">
+                          Dispute Race Conflict
+                        </span>
+                      )}
+                    </div>
+
+                    {displayedList.map((res, idx) => (
                     <div
                       key={res.id}
                       className="bg-amber-50/90 border border-amber-200 p-2.5 sm:p-3 rounded-xl space-y-2 shadow-2xs hover:bg-amber-50 transition-all"
@@ -1393,9 +1392,10 @@ function BlockPlotsContent() {
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* Allocated Member Card for Booked or Allotted Plot */}
               {(selectedPlot.status === 'booked' || selectedPlot.status === 'allotted') && (() => {
@@ -1439,7 +1439,7 @@ function BlockPlotsContent() {
 
                       {session?.role === 'super_admin' && (
                         <Link
-                          href={`/admin/customers?completeCustomer=${bookedCustomer.id}`}
+                          href={`/admin/customers?completeCustomer=${bookedCustomer.id}&plotId=${selectedPlot.id}`}
                           className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-xs transition-colors"
                         >
                           <ShieldCheck className="w-3.5 h-3.5" />
@@ -1532,32 +1532,34 @@ function BlockPlotsContent() {
                 </div>
               ) : (
                 <>
-                  {selectedPlot.category !== 'amenity' && selectedPlot.status !== 'booked' && selectedPlot.status !== 'allotted' && (
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={openReserve}
-                        disabled={actionLoading}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs whitespace-nowrap min-h-[38px]"
-                      >
-                        <BookmarkCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        <span>Reserve Plot (Token)</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => openBook()}
-                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId)}
-                        className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap min-h-[38px]"
-                      >
-                        <Lock className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
-                        <span>Lock & Book Now</span>
-                      </button>
-                    </div>
+                  {/* Reserve Button: Available plots only */}
+                  {selectedPlot.category !== 'amenity' && selectedPlot.status === 'available' && !selectedPlot.isAdjustment && (
+                    <button
+                      type="button"
+                      onClick={openReserve}
+                      disabled={actionLoading}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-50 hover:bg-amber-100 border-2 border-amber-300 text-amber-950 font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs whitespace-nowrap min-h-[38px]"
+                    >
+                      <BookmarkCheck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Reserve Plot (Token)</span>
+                    </button>
                   )}
 
-                  {/* Super Admin Master Plan Adjustment Button */}
-                  {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
+                  {/* Lock & Book Button: Available or Reserved plots only */}
+                  {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
+                    <button
+                      type="button"
+                      onClick={() => openBook()}
+                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer text-center disabled:opacity-50 whitespace-nowrap min-h-[38px]"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+                      <span>Lock & Book Now</span>
+                    </button>
+                  )}
+
+                  {/* Super Admin Master Plan Adjustment Button: Stays for booked, HIDDEN for allotted */}
+                  {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && !selectedPlot.isAdjustment && (
                     <button
                       type="button"
                       onClick={() => setIsAdjustmentModalOpen(true)}

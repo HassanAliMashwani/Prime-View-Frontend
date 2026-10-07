@@ -46,6 +46,7 @@ import {
   CustomerDisambiguation,
   CreateCustomerWithBookingInput,
   setRegisteredPlotsCache,
+  getAdminCustomerById,
 } from '@/lib/dal/customers';
 import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
@@ -139,6 +140,7 @@ function CustomersPageContent() {
   const sessionRef = useRef<AdminSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [completeTargetCustomer, setCompleteTargetCustomer] = useState<Customer | null>(null);
+  const [memberCity, setMemberCity] = useState<string>('');
 
   // Active Tab: 'path_a' (New Customer), 'path_b' (Existing Customer)
   const [activeTab, setActiveTab] = useState<'path_a' | 'path_b'>(
@@ -303,9 +305,57 @@ function CustomersPageContent() {
     }
 
     // Handle Complete Registration for quick-booked member (CR 07 §5)
-    if (queryCompleteCustomer) {
-      // For now, if we don't have the full customer, we cannot pre-populate.
-      // This is expected to be launched from the Customers Directory where we pass more context in the future.
+    if (queryCompleteCustomer && cur) {
+      getAdminCustomerById(cur, queryCompleteCustomer).then((res) => {
+        if (res.ok && res.data) {
+          const cust = res.data;
+          setCompleteTargetCustomer(cust);
+          setActiveTab('path_a');
+
+          // Find the target booking & plot locked to queryPlotId
+          let targetBooking = queryPlotId
+            ? cust.bookings?.find((b: any) => b.plotId === queryPlotId || b.plot?.id === queryPlotId)
+            : cust.bookings?.[0];
+
+          if (!targetBooking && cust.bookings?.length > 0) {
+            targetBooking = cust.bookings[0];
+          }
+
+          const targetPlot = targetBooking?.plot;
+          if (targetPlot) {
+            setSelectedPlotA(targetPlot);
+            setLockedPlot(targetPlot);
+            setIsLockedFromMap(true);
+            setTotalPaymentA(
+              targetBooking?.installmentPlan?.totalPayment
+                ? Number(targetBooking.installmentPlan.totalPayment)
+                : targetPlot.price
+            );
+          }
+
+          const currentCity = cust.city || cust.mailingAddress || '';
+          setMemberCity(currentCity);
+
+          setPathAForm((prev) => ({
+            ...prev,
+            plotId: queryPlotId || targetPlot?.id || prev.plotId,
+            fullName: cust.fullName || '',
+            cnic: cust.cnic || '',
+            phone: cust.phone || '',
+            email: cust.email || '',
+            mailingAddress: cust.mailingAddress || currentCity,
+            membershipNo: cust.membershipNo || '',
+            fatherOrHusbandName: (cust.fatherOrHusbandName && cust.fatherOrHusbandName !== 'Pending Information') ? cust.fatherOrHusbandName : '',
+            nokName: cust.nokName || '',
+            nokCnic: cust.nokCnic || '',
+            portalPassword: '',
+            paymentType: (targetBooking?.paymentType as PaymentType) || 'installment',
+            applicantPhotoUrl: undefined,
+            cnicCopyUrl: undefined,
+            nokCnicCopyUrl: undefined,
+          }));
+        }
+      });
     }
 
     setLoading(false);
@@ -573,12 +623,6 @@ function CustomersPageContent() {
 
     const finalPriceA = (session.role === 'super_admin' && totalPaymentA > 0) ? totalPaymentA : plot.price;
 
-    // Synchronize price if Super Admin updated plot price
-    if (session.role === 'super_admin' && totalPaymentA > 0 && totalPaymentA !== plot.price) {
-      await updatePlotPrice(session, plot.id, totalPaymentA);
-      plot.price = totalPaymentA;
-    }
-
     // Build installment plan config if installment type
     let installmentPlan: InstallmentPlanConfig | undefined = undefined;
     if (pathAForm.paymentType === 'installment') {
@@ -597,6 +641,8 @@ function CustomersPageContent() {
       setPathASubmitting(true);
       const res = await completeMemberRegistration(session, {
         customerId: completeTargetCustomer.id,
+        plotId: pathAForm.plotId || queryPlotId,
+        city: memberCity,
         membershipNo: pathAForm.membershipNo,
         fatherOrHusbandName: pathAForm.fatherOrHusbandName,
         phone: pathAForm.phone,
@@ -604,9 +650,9 @@ function CustomersPageContent() {
         mailingAddress: pathAForm.mailingAddress,
         nokName: pathAForm.nokName,
         nokCnic: pathAForm.nokCnic,
-        applicantPhotoUrl: pathAForm.applicantPhotoUrl,
-        cnicCopyUrl: pathAForm.cnicCopyUrl,
-        nokCnicCopyUrl: pathAForm.nokCnicCopyUrl,
+        applicantPhotoUrl: pathAForm.applicantPhotoUrl?.includes('placeholder') ? undefined : pathAForm.applicantPhotoUrl,
+        cnicCopyUrl: pathAForm.cnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.cnicCopyUrl,
+        nokCnicCopyUrl: pathAForm.nokCnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.nokCnicCopyUrl,
         portalPassword: pathAForm.portalPassword,
         paymentType: pathAForm.paymentType,
         paperInstallmentRef: pathAForm.paperInstallmentRef,
@@ -625,15 +671,13 @@ function CustomersPageContent() {
         message: `Member registration completed successfully for ${res.customer?.fullName} on Plot ${plot.plotNumber}!`,
       });
 
-      if (res.credentials && res.customer) {
-        setCredentialsModal({
-          open: true,
-          username: res.credentials.username,
-          password: res.credentials.password,
-          customerName: res.customer.fullName,
-          membershipNo: res.customer.membershipNo,
-        });
-      }
+      setCredentialsModal({
+        open: true,
+        username: res.credentials?.username || res.customer?.membershipNo || pathAForm.membershipNo,
+        password: res.credentials?.password || pathAForm.portalPassword || '',
+        customerName: res.customer?.fullName || pathAForm.fullName,
+        membershipNo: res.customer?.membershipNo || pathAForm.membershipNo,
+      });
 
       if (res.customer && plot) {
         setAgreementModal({
@@ -1329,18 +1373,33 @@ function CustomersPageContent() {
                 />
               </div>
 
-              <div className="md:col-span-3">
+              <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Permanent / Mailing Address *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="House #, Street #, Sector/Area, City"
+                  placeholder="House #, Street #, Sector/Area"
                   value={pathAForm.mailingAddress}
                   onChange={(e) => setPathAForm({ ...pathAForm, mailingAddress: e.target.value })}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  City *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Islamabad, Peshawar"
+                  value={memberCity}
+                  onChange={(e) => setMemberCity(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                />
+                <span className="text-[10px] text-slate-400">City is saved on member profile</span>
               </div>
 
               {/* Member Portal Login Credentials Gate (Item 4) */}
@@ -1472,14 +1531,16 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Select Registered Plot *
                 </label>
-                {isLockedFromMap && lockedPlot ? (
+                {completeTargetCustomer || (isLockedFromMap && lockedPlot) ? (
                   <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl space-y-1">
                     <div className="text-xs font-bold text-slate-900 font-mono flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-emerald-700" />
-                      <span>Plot {lockedPlot.plotNumber} ({lockedPlot.blockId.toUpperCase()}) - Locked from Master Plan</span>
+                      <span>
+                        Plot {selectedPlotA?.plotNumber || lockedPlot?.plotNumber || pathAForm.plotId} ({((selectedPlotA?.blockId || lockedPlot?.blockId || '').toUpperCase())}) - Locked to Existing Booking
+                      </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Selection prefilled and locked read-only via Master Plan lock token.
+                      Selection locked to the plot already booked for this member.
                     </p>
                   </div>
                 ) : (

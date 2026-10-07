@@ -124,7 +124,8 @@ function CustomersDirectoryContent() {
 
   // Helper to redirect to Customer Booking page to complete registration (CR 07 §5)
   const openCompleteRegistration = (cust: CustomerDirectoryEntry) => {
-    router.push(`/admin/customers?completeCustomer=${cust.id}`);
+    const plotId = cust.plots?.[0]?.plotId || '';
+    router.push(`/admin/customers?completeCustomer=${cust.id}&plotId=${plotId}`);
   };
 
   // Redirect to customers booking page if completeCustomer query param is present

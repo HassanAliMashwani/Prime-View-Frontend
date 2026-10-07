@@ -49,7 +49,10 @@ export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[];
         ? apiBooking.payments
         : [];
 
-      const ledger = computePlotLedger(plot.price, bookingPayments);
+      const effectivePrice = apiBooking?.installmentPlan?.totalPayment
+        ? Number(apiBooking.installmentPlan.totalPayment)
+        : plot.price;
+      const ledger = computePlotLedger(effectivePrice, bookingPayments);
 
       let installmentProgress = undefined;
       if (booking.paymentType === 'installment') {
