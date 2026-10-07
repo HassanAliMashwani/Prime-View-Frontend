@@ -2,10 +2,1746 @@ import { BlockMapConfig, TracedPlotArea } from './types';
 
 export const eliteBlockAreas: TracedPlotArea[] = [
   {
-    "slug": "elite_plot_233_2k",
+    "slug": "elite_chalet_171_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "171",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1278,
+        "y": 291
+      },
+      {
+        "x": 1282,
+        "y": 318
+      },
+      {
+        "x": 1303,
+        "y": 312
+      },
+      {
+        "x": 1296,
+        "y": 287
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_172_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "172",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1278,
+        "y": 290
+      },
+      {
+        "x": 1258,
+        "y": 292
+      },
+      {
+        "x": 1260,
+        "y": 319
+      },
+      {
+        "x": 1282,
+        "y": 317
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_173_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "173",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1237,
+        "y": 292
+      },
+      {
+        "x": 1257,
+        "y": 292
+      },
+      {
+        "x": 1260,
+        "y": 319
+      },
+      {
+        "x": 1239,
+        "y": 319
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_174_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "174",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1235,
+        "y": 293
+      },
+      {
+        "x": 1217,
+        "y": 294
+      },
+      {
+        "x": 1219,
+        "y": 321
+      },
+      {
+        "x": 1239,
+        "y": 320
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_175_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "175",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1195,
+        "y": 298
+      },
+      {
+        "x": 1215,
+        "y": 294
+      },
+      {
+        "x": 1217,
+        "y": 321
+      },
+      {
+        "x": 1199,
+        "y": 325
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_177_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "177",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1172,
+        "y": 302
+      },
+      {
+        "x": 1152,
+        "y": 308
+      },
+      {
+        "x": 1161,
+        "y": 333
+      },
+      {
+        "x": 1178,
+        "y": 329
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_178_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "178",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1133,
+        "y": 316
+      },
+      {
+        "x": 1151,
+        "y": 309
+      },
+      {
+        "x": 1161,
+        "y": 334
+      },
+      {
+        "x": 1142,
+        "y": 339
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_179_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "179",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1111,
+        "y": 325
+      },
+      {
+        "x": 1131,
+        "y": 316
+      },
+      {
+        "x": 1142,
+        "y": 339
+      },
+      {
+        "x": 1125,
+        "y": 348
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_180_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "180",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1093,
+        "y": 336
+      },
+      {
+        "x": 1109,
+        "y": 324
+      },
+      {
+        "x": 1124,
+        "y": 349
+      },
+      {
+        "x": 1107,
+        "y": 358
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_181_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "181",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1075,
+        "y": 347
+      },
+      {
+        "x": 1093,
+        "y": 336
+      },
+      {
+        "x": 1106,
+        "y": 358
+      },
+      {
+        "x": 1091,
+        "y": 369
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_182_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "182",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1057,
+        "y": 360
+      },
+      {
+        "x": 1075,
+        "y": 347
+      },
+      {
+        "x": 1090,
+        "y": 370
+      },
+      {
+        "x": 1073,
+        "y": 383
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_183_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "183",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1057,
+        "y": 360
+      },
+      {
+        "x": 1039,
+        "y": 371
+      },
+      {
+        "x": 1055,
+        "y": 393
+      },
+      {
+        "x": 1073,
+        "y": 382
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_184_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "184",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1023,
+        "y": 381
+      },
+      {
+        "x": 1039,
+        "y": 372
+      },
+      {
+        "x": 1054,
+        "y": 394
+      },
+      {
+        "x": 1039,
+        "y": 403
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_185_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "185",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1007,
+        "y": 393
+      },
+      {
+        "x": 1025,
+        "y": 381
+      },
+      {
+        "x": 1039,
+        "y": 402
+      },
+      {
+        "x": 1021,
+        "y": 415
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_186_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "186",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 955,
+        "y": 410
+      },
+      {
+        "x": 973,
+        "y": 408
+      },
+      {
+        "x": 978,
+        "y": 435
+      },
+      {
+        "x": 958,
+        "y": 437
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_187_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "187",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 933,
+        "y": 413
+      },
+      {
+        "x": 955,
+        "y": 409
+      },
+      {
+        "x": 958,
+        "y": 436
+      },
+      {
+        "x": 937,
+        "y": 440
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_188_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "188",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 914,
+        "y": 414
+      },
+      {
+        "x": 933,
+        "y": 412
+      },
+      {
+        "x": 937,
+        "y": 439
+      },
+      {
+        "x": 917,
+        "y": 441
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_189_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "189",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 914,
+        "y": 414
+      },
+      {
+        "x": 892,
+        "y": 418
+      },
+      {
+        "x": 896,
+        "y": 445
+      },
+      {
+        "x": 917,
+        "y": 441
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_190_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "190",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 872,
+        "y": 421
+      },
+      {
+        "x": 890,
+        "y": 419
+      },
+      {
+        "x": 896,
+        "y": 446
+      },
+      {
+        "x": 874,
+        "y": 448
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_176_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "176",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1174,
+        "y": 301
+      },
+      {
+        "x": 1192,
+        "y": 297
+      },
+      {
+        "x": 1199,
+        "y": 324
+      },
+      {
+        "x": 1179,
+        "y": 328
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_193_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "193",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 831,
+        "y": 425
+      },
+      {
+        "x": 811,
+        "y": 427
+      },
+      {
+        "x": 813,
+        "y": 454
+      },
+      {
+        "x": 835,
+        "y": 452
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_194_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "194",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 811,
+        "y": 428
+      },
+      {
+        "x": 791,
+        "y": 430
+      },
+      {
+        "x": 791,
+        "y": 457
+      },
+      {
+        "x": 813,
+        "y": 455
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_196_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "196",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 775,
+        "y": 428
+      },
+      {
+        "x": 750,
+        "y": 423
+      },
+      {
+        "x": 750,
+        "y": 450
+      },
+      {
+        "x": 766,
+        "y": 454
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_197_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "197",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 727,
+        "y": 426
+      },
+      {
+        "x": 750,
+        "y": 424
+      },
+      {
+        "x": 750,
+        "y": 451
+      },
+      {
+        "x": 732,
+        "y": 453
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_198_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "198",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 727,
+        "y": 425
+      },
+      {
+        "x": 703,
+        "y": 434
+      },
+      {
+        "x": 716,
+        "y": 458
+      },
+      {
+        "x": 732,
+        "y": 452
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_199_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "199",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 685,
+        "y": 448
+      },
+      {
+        "x": 702,
+        "y": 434
+      },
+      {
+        "x": 718,
+        "y": 457
+      },
+      {
+        "x": 702,
+        "y": 466
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_200_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "200",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 669,
+        "y": 461
+      },
+      {
+        "x": 684,
+        "y": 448
+      },
+      {
+        "x": 702,
+        "y": 466
+      },
+      {
+        "x": 685,
+        "y": 482
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_191_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "191",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 872,
+        "y": 421
+      },
+      {
+        "x": 852,
+        "y": 423
+      },
+      {
+        "x": 854,
+        "y": 450
+      },
+      {
+        "x": 874,
+        "y": 448
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_195_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "195",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 775,
+        "y": 427
+      },
+      {
+        "x": 790,
+        "y": 430
+      },
+      {
+        "x": 790,
+        "y": 457
+      },
+      {
+        "x": 766,
+        "y": 454
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_201_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "201",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 574,
+        "y": 490
+      },
+      {
+        "x": 595,
+        "y": 483
+      },
+      {
+        "x": 603,
+        "y": 510
+      },
+      {
+        "x": 588,
+        "y": 513
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_202_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "202",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 556,
+        "y": 503
+      },
+      {
+        "x": 574,
+        "y": 492
+      },
+      {
+        "x": 588,
+        "y": 515
+      },
+      {
+        "x": 572,
+        "y": 524
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_203_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "203",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 538,
+        "y": 517
+      },
+      {
+        "x": 556,
+        "y": 503
+      },
+      {
+        "x": 570,
+        "y": 524
+      },
+      {
+        "x": 554,
+        "y": 537
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_204_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "204",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 554,
+        "y": 537
+      },
+      {
+        "x": 543,
+        "y": 549
+      },
+      {
+        "x": 520,
+        "y": 531
+      },
+      {
+        "x": 538,
+        "y": 517
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_205_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "205",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 522,
+        "y": 530
+      },
+      {
+        "x": 509,
+        "y": 551
+      },
+      {
+        "x": 531,
+        "y": 565
+      },
+      {
+        "x": 541,
+        "y": 549
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_206_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "206",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 507,
+        "y": 551
+      },
+      {
+        "x": 497,
+        "y": 569
+      },
+      {
+        "x": 522,
+        "y": 582
+      },
+      {
+        "x": 531,
+        "y": 564
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_207_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "207",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 522,
+        "y": 582
+      },
+      {
+        "x": 509,
+        "y": 601
+      },
+      {
+        "x": 488,
+        "y": 585
+      },
+      {
+        "x": 498,
+        "y": 569
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_208_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "208",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 488,
+        "y": 585
+      },
+      {
+        "x": 475,
+        "y": 603
+      },
+      {
+        "x": 497,
+        "y": 617
+      },
+      {
+        "x": 509,
+        "y": 601
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_209_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "209",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 464,
+        "y": 619
+      },
+      {
+        "x": 475,
+        "y": 603
+      },
+      {
+        "x": 498,
+        "y": 617
+      },
+      {
+        "x": 486,
+        "y": 635
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_210_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "210",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 462,
+        "y": 619
+      },
+      {
+        "x": 452,
+        "y": 635
+      },
+      {
+        "x": 473,
+        "y": 652
+      },
+      {
+        "x": 486,
+        "y": 635
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_211_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "211",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 473,
+        "y": 653
+      },
+      {
+        "x": 464,
+        "y": 668
+      },
+      {
+        "x": 441,
+        "y": 655
+      },
+      {
+        "x": 452,
+        "y": 635
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_212_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "212",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 434,
+        "y": 743
+      },
+      {
+        "x": 430,
+        "y": 763
+      },
+      {
+        "x": 403,
+        "y": 754
+      },
+      {
+        "x": 409,
+        "y": 738
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_213_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "213",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 430,
+        "y": 763
+      },
+      {
+        "x": 423,
+        "y": 783
+      },
+      {
+        "x": 398,
+        "y": 774
+      },
+      {
+        "x": 403,
+        "y": 756
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_214_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "214",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 391,
+        "y": 792
+      },
+      {
+        "x": 398,
+        "y": 772
+      },
+      {
+        "x": 423,
+        "y": 783
+      },
+      {
+        "x": 414,
+        "y": 804
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_215_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "215",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 391,
+        "y": 792
+      },
+      {
+        "x": 383,
+        "y": 811
+      },
+      {
+        "x": 405,
+        "y": 824
+      },
+      {
+        "x": 414,
+        "y": 804
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_216_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "216",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 405,
+        "y": 824
+      },
+      {
+        "x": 396,
+        "y": 840
+      },
+      {
+        "x": 371,
+        "y": 827
+      },
+      {
+        "x": 383,
+        "y": 810
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_217_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "217",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 396,
+        "y": 842
+      },
+      {
+        "x": 385,
+        "y": 860
+      },
+      {
+        "x": 362,
+        "y": 845
+      },
+      {
+        "x": 373,
+        "y": 827
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_218_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "218",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 362,
+        "y": 845
+      },
+      {
+        "x": 349,
+        "y": 862
+      },
+      {
+        "x": 371,
+        "y": 878
+      },
+      {
+        "x": 383,
+        "y": 860
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_219_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "219",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 349,
+        "y": 863
+      },
+      {
+        "x": 337,
+        "y": 876
+      },
+      {
+        "x": 360,
+        "y": 894
+      },
+      {
+        "x": 371,
+        "y": 878
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_220_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "220",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 326,
+        "y": 890
+      },
+      {
+        "x": 339,
+        "y": 878
+      },
+      {
+        "x": 358,
+        "y": 894
+      },
+      {
+        "x": 342,
+        "y": 912
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_221_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "221",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 326,
+        "y": 890
+      },
+      {
+        "x": 310,
+        "y": 905
+      },
+      {
+        "x": 328,
+        "y": 924
+      },
+      {
+        "x": 342,
+        "y": 912
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_222_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "222",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 310,
+        "y": 903
+      },
+      {
+        "x": 295,
+        "y": 921
+      },
+      {
+        "x": 315,
+        "y": 939
+      },
+      {
+        "x": 326,
+        "y": 924
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_223_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "223",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 315,
+        "y": 941
+      },
+      {
+        "x": 301,
+        "y": 955
+      },
+      {
+        "x": 279,
+        "y": 937
+      },
+      {
+        "x": 294,
+        "y": 921
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_224_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "224",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 301,
+        "y": 955
+      },
+      {
+        "x": 290,
+        "y": 969
+      },
+      {
+        "x": 268,
+        "y": 953
+      },
+      {
+        "x": 279,
+        "y": 939
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_225_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "225",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 256,
+        "y": 973
+      },
+      {
+        "x": 267,
+        "y": 953
+      },
+      {
+        "x": 290,
+        "y": 971
+      },
+      {
+        "x": 279,
+        "y": 987
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_226_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "226",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 247,
+        "y": 1029
+      },
+      {
+        "x": 240,
+        "y": 1046
+      },
+      {
+        "x": 213,
+        "y": 1043
+      },
+      {
+        "x": 218,
+        "y": 1023
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_227_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "227",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 240,
+        "y": 1046
+      },
+      {
+        "x": 238,
+        "y": 1068
+      },
+      {
+        "x": 211,
+        "y": 1064
+      },
+      {
+        "x": 213,
+        "y": 1043
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_228_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "228",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 238,
+        "y": 1068
+      },
+      {
+        "x": 231,
+        "y": 1090
+      },
+      {
+        "x": 206,
+        "y": 1081
+      },
+      {
+        "x": 211,
+        "y": 1064
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_229_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "229",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 207,
+        "y": 1081
+      },
+      {
+        "x": 197,
+        "y": 1097
+      },
+      {
+        "x": 222,
+        "y": 1109
+      },
+      {
+        "x": 231,
+        "y": 1088
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_230_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "230",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 198,
+        "y": 1099
+      },
+      {
+        "x": 188,
+        "y": 1115
+      },
+      {
+        "x": 211,
+        "y": 1129
+      },
+      {
+        "x": 222,
+        "y": 1109
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_231_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "231",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 211,
+        "y": 1131
+      },
+      {
+        "x": 195,
+        "y": 1147
+      },
+      {
+        "x": 177,
+        "y": 1129
+      },
+      {
+        "x": 188,
+        "y": 1115
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_232_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "232",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 197,
+        "y": 1145
+      },
+      {
+        "x": 182,
+        "y": 1163
+      },
+      {
+        "x": 163,
+        "y": 1143
+      },
+      {
+        "x": 177,
+        "y": 1129
+      }
+    ]
+  },
+  {
+    "slug": "elite_chalet_233_4M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "chalet",
+    "amenityName": "chalet",
+    "plotNumber": "233",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 161,
+        "y": 1143
+      },
+      {
+        "x": 148,
+        "y": 1160
+      },
+      {
+        "x": 170,
+        "y": 1179
+      },
+      {
+        "x": 180,
+        "y": 1163
+      }
+    ]
+  },
+  {
+    "slug": "elite_plot_234_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "233",
+    "plotNumber": "234",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -32,10 +1768,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_234_2k",
+    "slug": "elite_plot_235_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "234",
+    "plotNumber": "235",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -62,10 +1798,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_235_2k",
+    "slug": "elite_plot_236_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "235",
+    "plotNumber": "236",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -88,10 +1824,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_236_2k",
+    "slug": "elite_plot_237_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "236",
+    "plotNumber": "237",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -114,10 +1850,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_237_2k",
+    "slug": "elite_plot_238_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "237",
+    "plotNumber": "238",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -348,6 +2084,34 @@ export const eliteBlockAreas: TracedPlotArea[] = [
       {
         "x": 355,
         "y": 972
+      }
+    ]
+  },
+  {
+    "slug": "elite_filtrationPlant_246_12M",
+    "blockId": "elite",
+    "category": "amenity",
+    "amenityType": "filtrationPlant",
+    "amenityName": "filtrationPlant",
+    "plotNumber": "246",
+    "isGroupedRange": false,
+    "sizeLabel": "12 Marla",
+    "points": [
+      {
+        "x": 411,
+        "y": 892
+      },
+      {
+        "x": 427,
+        "y": 876
+      },
+      {
+        "x": 486,
+        "y": 930
+      },
+      {
+        "x": 477,
+        "y": 942
       }
     ]
   },
@@ -1006,10 +2770,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_155-2_2k",
+    "slug": "elite_plot_156_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "155-2",
+    "plotNumber": "156",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1032,10 +2796,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_156_2k",
+    "slug": "elite_plot_157_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "156",
+    "plotNumber": "157",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1058,10 +2822,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_157_2k",
+    "slug": "elite_plot_158_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "157",
+    "plotNumber": "158",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1084,10 +2848,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_158_2k",
+    "slug": "elite_plot_159_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "158",
+    "plotNumber": "159",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1110,10 +2874,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_159_2k",
+    "slug": "elite_plot_160_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "159",
+    "plotNumber": "160",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1136,10 +2900,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_160_2k",
+    "slug": "elite_plot_161_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "160",
+    "plotNumber": "161",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1162,10 +2926,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_161_2k",
+    "slug": "elite_plot_162_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "161",
+    "plotNumber": "162",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1188,10 +2952,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_162_2k",
+    "slug": "elite_plot_163_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "162",
+    "plotNumber": "163",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1214,10 +2978,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_163_2k",
+    "slug": "elite_plot_164_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "163",
+    "plotNumber": "164",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1240,10 +3004,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_164_2k",
+    "slug": "elite_plot_165_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "164",
+    "plotNumber": "165",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1266,10 +3030,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_165_2k",
+    "slug": "elite_plot_166_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "165",
+    "plotNumber": "166",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1292,10 +3056,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_166_2k",
+    "slug": "elite_plot_167_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "166",
+    "plotNumber": "167",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -1318,10 +3082,10 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_167_42.5M",
+    "slug": "elite_plot_169_42.5M",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "167",
+    "plotNumber": "169",
     "isGroupedRange": false,
     "sizeLabel": "42.5 Marla",
     "points": [
@@ -3446,7 +5210,8 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "office",
-    "plotNumber": "01",
+    "amenityName": "office",
+    "plotNumber": "1",
     "isGroupedRange": false,
     "sizeLabel": "3 Kanal",
     "points": [
@@ -3480,7 +5245,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_02_2.4k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "02",
+    "plotNumber": "2",
     "isGroupedRange": false,
     "sizeLabel": "2.4 Kanal",
     "points": [
@@ -3506,7 +5271,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_03_2.15k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "03",
+    "plotNumber": "3",
     "isGroupedRange": false,
     "sizeLabel": "2.15 Kanal",
     "points": [
@@ -3532,7 +5297,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_04_2.28k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "04",
+    "plotNumber": "4",
     "isGroupedRange": false,
     "sizeLabel": "2.28 Kanal",
     "points": [
@@ -3562,7 +5327,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_05_2.27k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "05",
+    "plotNumber": "5",
     "isGroupedRange": false,
     "sizeLabel": "2.27 Kanal",
     "points": [
@@ -3597,12 +5362,12 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_06_2k",
+    "slug": "elite_plot_06_2.27k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "06",
+    "plotNumber": "6",
     "isGroupedRange": false,
-    "sizeLabel": "2 Kanal",
+    "sizeLabel": "2.27 Kanal",
     "points": [
       {
         "x": 682,
@@ -3634,7 +5399,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_07_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "07",
+    "plotNumber": "7",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -3660,7 +5425,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_08_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "08",
+    "plotNumber": "8",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -3686,7 +5451,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "slug": "elite_plot_09_2k",
     "blockId": "elite",
     "category": "residential",
-    "plotNumber": "09",
+    "plotNumber": "9",
     "isGroupedRange": false,
     "sizeLabel": "2 Kanal",
     "points": [
@@ -4557,12 +6322,12 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_plot_13_58.7M",
+    "slug": "elite_plot_13_63.2M",
     "blockId": "elite",
     "category": "residential",
     "plotNumber": "13",
     "isGroupedRange": false,
-    "sizeLabel": "58.7 Marla",
+    "sizeLabel": "63.2 Marla",
     "points": [
       {
         "x": 1165,
@@ -4715,6 +6480,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "graveYard",
+    "amenityName": "graveYard",
     "plotNumber": "10",
     "isGroupedRange": false,
     "sizeLabel": "11.7 Kanal",
@@ -4762,6 +6528,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "masjid",
+    "amenityName": "masjid",
     "plotNumber": "87",
     "isGroupedRange": false,
     "sizeLabel": "5.02 Kanal",
@@ -4797,6 +6564,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "communityCentre",
+    "amenityName": "communityCentre",
     "plotNumber": "86",
     "isGroupedRange": false,
     "sizeLabel": "5.02 Kanal",
@@ -4824,61 +6592,24 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_commercial_59..65_4M/p",
+    "slug": "elite_commercial_59_4M",
     "blockId": "elite",
     "category": "commercial",
-    "plotNumber": null,
-    "isGroupedRange": true,
-    "rangeSpan": "59..65",
-    "sizeLabel": "4 Marla / plot",
+    "plotNumber": "59",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
     "points": [
       {
         "x": 1212,
-        "y": 861
+        "y": 863
       },
       {
         "x": 1246,
         "y": 841
       },
       {
-        "x": 1275,
-        "y": 825
-      },
-      {
-        "x": 1316,
-        "y": 807
-      },
-      {
-        "x": 1348,
-        "y": 793
-      },
-      {
-        "x": 1402,
-        "y": 777
-      },
-      {
-        "x": 1454,
-        "y": 769
-      },
-      {
-        "x": 1465,
+        "x": 1258,
         "y": 841
-      },
-      {
-        "x": 1425,
-        "y": 847
-      },
-      {
-        "x": 1382,
-        "y": 852
-      },
-      {
-        "x": 1339,
-        "y": 856
-      },
-      {
-        "x": 1300,
-        "y": 859
       },
       {
         "x": 1258,
@@ -4887,10 +6618,167 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
+    "slug": "elite_commercial_60_4M",
+    "blockId": "elite",
+    "category": "commercial",
+    "plotNumber": "60",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1258,
+        "y": 842
+      },
+      {
+        "x": 1298,
+        "y": 840
+      },
+      {
+        "x": 1300,
+        "y": 860
+      },
+      {
+        "x": 1258,
+        "y": 862
+      }
+    ]
+  },
+  {
+    "slug": "elite_commercial_61_4M",
+    "blockId": "elite",
+    "category": "commercial",
+    "plotNumber": "61",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1301,
+        "y": 840
+      },
+      {
+        "x": 1301,
+        "y": 860
+      },
+      {
+        "x": 1341,
+        "y": 856
+      },
+      {
+        "x": 1339,
+        "y": 836
+      }
+    ]
+  },
+  {
+    "slug": "elite_commercial_62_4M",
+    "blockId": "elite",
+    "category": "commercial",
+    "plotNumber": "62",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1341,
+        "y": 837
+      },
+      {
+        "x": 1382,
+        "y": 832
+      },
+      {
+        "x": 1382,
+        "y": 853
+      },
+      {
+        "x": 1343,
+        "y": 857
+      }
+    ]
+  },
+  {
+    "slug": "elite_commercial_63_4M",
+    "blockId": "elite",
+    "category": "commercial",
+    "plotNumber": "63",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1382,
+        "y": 833
+      },
+      {
+        "x": 1382,
+        "y": 853
+      },
+      {
+        "x": 1424,
+        "y": 847
+      },
+      {
+        "x": 1422,
+        "y": 827
+      }
+    ]
+  },
+  {
+    "slug": "elite_commercial_64_4M",
+    "blockId": "elite",
+    "category": "commercial",
+    "plotNumber": "64",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1422,
+        "y": 828
+      },
+      {
+        "x": 1424,
+        "y": 848
+      },
+      {
+        "x": 1465,
+        "y": 841
+      },
+      {
+        "x": 1461,
+        "y": 821
+      }
+    ]
+  },
+  {
+    "slug": "elite_commercial_65_4M",
+    "blockId": "elite",
+    "category": "commercial",
+    "plotNumber": "65",
+    "isGroupedRange": false,
+    "sizeLabel": "4 Marla",
+    "points": [
+      {
+        "x": 1434,
+        "y": 774
+      },
+      {
+        "x": 1454,
+        "y": 768
+      },
+      {
+        "x": 1461,
+        "y": 810
+      },
+      {
+        "x": 1440,
+        "y": 813
+      }
+    ]
+  },
+  {
     "slug": "elite_parkWithChalets_170..232##",
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "parkWithChalets",
+    "amenityName": "parkWithChalets",
     "plotNumber": null,
     "isGroupedRange": true,
     "rangeSpan": "170..232",
@@ -5159,6 +7047,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "school",
+    "amenityName": "school",
     "plotNumber": "152",
     "isGroupedRange": false,
     "sizeLabel": "5.79 Kanal",
@@ -5186,11 +7075,12 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_primeViewClub_169_17.31k",
+    "slug": "elite_primeViewClub_170_17.31k",
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "primeViewClub",
-    "plotNumber": "169",
+    "amenityName": "primeViewClub",
+    "plotNumber": "170",
     "isGroupedRange": false,
     "sizeLabel": "17.31 Kanal",
     "points": [
@@ -5269,6 +7159,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "hospital",
+    "amenityName": "hospital",
     "plotNumber": "85",
     "isGroupedRange": false,
     "sizeLabel": "4.86 Kanal",
@@ -5296,6 +7187,7 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     "blockId": "elite",
     "category": "amenity",
     "amenityType": "amenities",
+    "amenityName": "amenities",
     "plotNumber": "104",
     "isGroupedRange": false,
     "sizeLabel": "1.77 Kanal",
