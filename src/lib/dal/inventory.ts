@@ -19,10 +19,20 @@ export interface InventoryTotals {
   total: number;
 }
 
+export interface MonthlyHistoryPoint {
+  month: string;
+  label: string;
+  year: number;
+  available: number;
+  reserved: number;
+  booked: number;
+}
+
 export interface InventoryResponse {
   ok: boolean;
   stats: InventoryStats[];
   totals?: InventoryTotals;
+  monthly?: MonthlyHistoryPoint[];
   total?: number;
   page?: number;
   pageSize?: number;
@@ -129,4 +139,19 @@ export async function getInventoryStats(
     return getInventoryHistory(from, to, blockId, token, page, pageSize);
   }
   return getLiveInventoryStats(blockId, token, page, pageSize);
+}
+
+/**
+ * Fetch monthly series for inventory chart (6_months, 1_year, all_time)
+ */
+export async function getInventoryMonthlyHistory(
+  range: '6_months' | '1_year' | 'all_time' = '6_months',
+  token?: string
+): Promise<{ ok: boolean; monthly: MonthlyHistoryPoint[] }> {
+  const authToken = token || getAdminToken() || undefined;
+  const res = await apiGet<any>(`/inventory/history?range=${range}`, authToken);
+  if (res.ok && res.data?.monthly) {
+    return { ok: true, monthly: res.data.monthly };
+  }
+  return { ok: false, monthly: [] };
 }

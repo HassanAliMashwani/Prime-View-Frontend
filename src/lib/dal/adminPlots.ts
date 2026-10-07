@@ -50,7 +50,7 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
         return { ok: false, blocks: [], error: apiRes.error || 'Failed to fetch blocks' };
       }
 
-      const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id) && b.id !== 'chalet');
+      const accessibleBlocks = apiRes.data.filter((b) => canAccessBlock(session, b.id));
       const summaries: BlockSummary[] = accessibleBlocks.map((block: any) => {
         const total = typeof block.totalCount === 'number' ? block.totalCount : block.totalPlots || 0;
         const reserved = typeof block.reservedCount === 'number' ? block.reservedCount : 0;

@@ -522,32 +522,6 @@ export const eliteBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "elite_chalet_192_4M",
-    "blockId": "elite",
-    "category": "residential",
-    "plotNumber": "192",
-    "isGroupedRange": false,
-    "sizeLabel": "4 Marla",
-    "points": [
-      {
-        "x": 831,
-        "y": 425
-      },
-      {
-        "x": 849,
-        "y": 423
-      },
-      {
-        "x": 854,
-        "y": 450
-      },
-      {
-        "x": 835,
-        "y": 452
-      }
-    ]
-  },
-  {
     "slug": "elite_chalet_193_4M",
     "blockId": "elite",
     "category": "residential",

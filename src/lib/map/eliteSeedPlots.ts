@@ -203,16 +203,6 @@ export const eliteSeedPlots: Plot[] = [
     "status": "available"
   },
   {
-    "id": "plot-el-192",
-    "blockId": "elite",
-    "plotNumber": "192",
-    "size": "4 Marla",
-    "category": "residential",
-    "plotType": "5_marla",
-    "price": 2900000,
-    "status": "available"
-  },
-  {
     "id": "plot-el-193",
     "blockId": "elite",
     "plotNumber": "193",
@@ -260,7 +250,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-199",
@@ -270,7 +260,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "available"
+    "status": "reserved"
   },
   {
     "id": "plot-el-200",
@@ -310,8 +300,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-202",
@@ -321,7 +310,8 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "available"
+    "status": "booked",
+    "currentOwnerId": "cust-1"
   },
   {
     "id": "plot-el-203",
@@ -511,7 +501,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-222",
@@ -521,7 +511,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "available"
+    "status": "reserved"
   },
   {
     "id": "plot-el-223",
@@ -611,8 +601,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-232",
@@ -622,7 +611,8 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "5_marla",
     "price": 2900000,
-    "status": "available"
+    "status": "booked",
+    "currentOwnerId": "cust-1"
   },
   {
     "id": "plot-el-233",
@@ -762,7 +752,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 26400000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-246",
@@ -913,8 +903,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-144",
@@ -924,7 +913,8 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 29300000,
-    "status": "available"
+    "status": "booked",
+    "currentOwnerId": "cust-1"
   },
   {
     "id": "plot-el-145",
@@ -1114,7 +1104,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "reserved"
+    "status": "available"
   },
   {
     "id": "plot-el-165",
@@ -1124,7 +1114,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "available"
+    "status": "reserved"
   },
   {
     "id": "plot-el-166",
@@ -1414,8 +1404,7 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "booked",
-    "currentOwnerId": "cust-1"
+    "status": "available"
   },
   {
     "id": "plot-el-111",
@@ -1425,7 +1414,8 @@ export const eliteSeedPlots: Plot[] = [
     "category": "residential",
     "plotType": "2_kanal",
     "price": 25000000,
-    "status": "available"
+    "status": "booked",
+    "currentOwnerId": "cust-1"
   },
   {
     "id": "plot-el-110",

@@ -24,6 +24,8 @@ import dynamic from 'next/dynamic';
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminDashboardSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { getInventoryMonthlyHistory, MonthlyHistoryPoint } from '@/lib/dal/inventory';
+import type { TimeRange } from '@/components/admin/dashboard/InventoryOverviewChart';
 
 const InventoryOverviewChart = dynamic(
   () => import('@/components/admin/dashboard/InventoryOverviewChart'),
@@ -46,6 +48,23 @@ export default function AdminDashboardPage() {
   const [blocks, setBlocks] = useState<BlockSummary[]>(init?.blocks || []);
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
   const [loading, setLoading] = useState<boolean>(!init);
+  const [chartRange, setChartRange] = useState<TimeRange>('6_months');
+  const [monthlyPoints, setMonthlyPoints] = useState<MonthlyHistoryPoint[]>([]);
+  const [chartLoading, setChartLoading] = useState<boolean>(false);
+
+  const loadChartData = useCallback(async (activeSession: AdminSession, range: TimeRange) => {
+    try {
+      setChartLoading(true);
+      const res = await getInventoryMonthlyHistory(range, activeSession.token);
+      if (res.ok && res.monthly) {
+        setMonthlyPoints(res.monthly);
+      }
+    } catch {
+      // non-blocking
+    } finally {
+      setChartLoading(false);
+    }
+  }, []);
 
   const loadData = useCallback(async (activeSession: AdminSession) => {
     try {
@@ -73,8 +92,9 @@ export default function AdminDashboardPage() {
     if (s) {
       setSession(s);
       loadData(s);
+      loadChartData(s, chartRange);
     }
-  }, [loadData]);
+  }, [loadData, loadChartData, chartRange]);
 
   // Real-time sync via interval
   useEffect(() => {
@@ -82,11 +102,12 @@ export default function AdminDashboardPage() {
       const s = getActiveAdminSession();
       if (s) {
         loadData(s);
+        loadChartData(s, chartRange);
       }
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [loadData]);
+  }, [loadData, loadChartData, chartRange]);
 
   const isSuper = session?.role === 'super_admin';
   const canAccess = !session || isSuper || Boolean(session.permissions?.can_view_master_plan);
@@ -274,6 +295,13 @@ export default function AdminDashboardPage() {
           currentAvailable={availablePlots}
           currentReserved={reservedPlots}
           currentBooked={bookedPlots}
+          monthlyData={monthlyPoints}
+          timeRange={chartRange}
+          onRangeChange={(range) => {
+            setChartRange(range);
+            if (session) loadChartData(session, range);
+          }}
+          isLoading={chartLoading}
         />
       )}
 

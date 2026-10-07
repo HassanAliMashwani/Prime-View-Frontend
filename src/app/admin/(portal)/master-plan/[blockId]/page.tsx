@@ -1017,7 +1017,7 @@ function BlockPlotsContent() {
 
               <div className="mt-2 pt-1.5 border-t border-black/5 flex items-center justify-between text-[10px]">
                 <span className="font-mono font-bold">
-                  {isAmenity ? 'Public Amenity' : `PKR ${(plot.price / 100000).toFixed(1)}M`}
+                  {isAmenity ? 'Public Amenity' : (plot.price > 0 ? `PKR ${(plot.price / 100000).toFixed(1)}M` : 'Price not set')}
                 </span>
                 {isLocked ? (
                   <span className="text-rose-700 font-mono text-[9px] font-bold flex items-center gap-0.5">
@@ -1075,33 +1075,6 @@ function BlockPlotsContent() {
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Header Quick Adjustment Action (Super Admin) - Hidden for allotted plots */}
-                {session?.role === 'super_admin' && selectedPlot.status !== 'allotted' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
-                  selectedPlot.isAdjustment ? (
-                    <button
-                      type="button"
-                      onClick={handleReleaseAdjustment}
-                      disabled={actionLoading}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-800 text-[11px] font-bold rounded-lg transition-colors cursor-pointer shadow-2xs"
-                      title="Release Master Plan Adjustment Freeze"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span>Release Freeze</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsAdjustmentModalOpen(true)}
-                      disabled={actionLoading}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-300 text-blue-900 text-[11px] font-bold rounded-lg transition-colors cursor-pointer shadow-2xs hover:shadow-xs"
-                      title="Town Planning Boundary Re-survey Adjustment"
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span>Adjustment</span>
-                    </button>
-                  )
-                )}
-
                 <button
                   data-testid="close-drawer-btn"
                   aria-label="Close plot details"
@@ -1269,19 +1242,27 @@ function BlockPlotsContent() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs sm:text-sm font-bold text-emerald-800 font-mono truncate">
-                        {selectedPlot.price > 0 ? `PKR ${selectedPlot.price.toLocaleString()}` : 'Amenity'}
+                      <span className={`text-xs sm:text-sm font-bold font-mono truncate ${
+                        selectedPlot.category === 'amenity' || Number(selectedPlot.price) <= 0
+                          ? 'text-slate-500'
+                          : 'text-emerald-800'
+                      }`}>
+                        {selectedPlot.category === 'amenity'
+                          ? 'Amenity'
+                          : Number(selectedPlot.price) > 0
+                          ? `PKR ${Number(selectedPlot.price).toLocaleString()}`
+                          : 'Price not set'}
                       </span>
-                      {session?.role === 'super_admin' && selectedPlot.price > 0 && (
+                      {session?.role === 'super_admin' && selectedPlot.category !== 'amenity' && (
                         <button
                           type="button"
                           onClick={() => {
-                            setNewPriceInput(String(selectedPlot.price));
+                            setNewPriceInput(Number(selectedPlot.price) > 0 ? String(selectedPlot.price) : '');
                             setIsEditingPrice(true);
                           }}
                           className="text-[9px] font-bold text-emerald-700 hover:text-emerald-900 underline cursor-pointer shrink-0"
                         >
-                          Edit
+                          {Number(selectedPlot.price) > 0 ? 'Edit' : 'Set Price'}
                         </button>
                       )}
                     </div>
@@ -1532,7 +1513,7 @@ function BlockPlotsContent() {
                     <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                     <span>Operations Locked Under Town Planning Freeze</span>
                   </div>
-                  {session?.role === 'super_admin' && (
+                  {session?.role === 'super_admin' && selectedPlot.status !== 'allotted' && (
                     <button
                       type="button"
                       onClick={handleReleaseAdjustment}
