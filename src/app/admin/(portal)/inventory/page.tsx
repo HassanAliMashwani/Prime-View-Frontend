@@ -81,7 +81,7 @@ function RollingCounter({
     };
   }, [value, hasLoaded]);
 
-  if (!hasLoaded && loading) {
+  if ((!hasLoaded && loading) || (loading && value === 0)) {
     return <span className="inline-block h-8 w-24 bg-slate-200/60 animate-pulse rounded-lg align-middle" />;
   }
 
@@ -102,7 +102,10 @@ export default function InventoryOverviewPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getActiveAdminSession();
+  });
 
   // Live Inventory State
   const [loadingLive, setLoadingLive] = useState<boolean>(!init);
@@ -619,7 +622,7 @@ export default function InventoryOverviewPage() {
                   className="bg-transparent border-none text-slate-800 text-xs font-medium focus:outline-hidden p-0 w-32 cursor-pointer"
                 />
               </div>
-              <span className="text-slate-300">•</span>
+              <span className="text-slate-400 font-mono font-bold lowercase text-xs px-1">to</span>
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-slate-400 font-mono font-bold uppercase text-[10px]">To</span>
                 <input 

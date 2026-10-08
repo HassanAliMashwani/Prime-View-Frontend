@@ -155,12 +155,55 @@ export default function PaymentHistoryPage() {
         </div>
 
         {/* Transactions Table / List */}
-        {!hasLoadedOnce && isLoading && transactions.length === 0 ? (
-          <MemberHistorySkeleton />
-        ) : isLoading ? (
-          <div className="bg-white rounded-2xl border border-black/[0.08] p-12 sm:p-16 text-center space-y-3 shadow-xs flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 text-[#43612B] animate-spin" />
-            <p className="text-xs font-medium text-[#6B7462]">Loading transaction history...</p>
+        {isLoading && transactions.length === 0 ? (
+          <div className="md:bg-white md:rounded-2xl md:border md:border-black/[0.08] md:overflow-hidden md:shadow-xs">
+            {/* Mobile Stacked Cards (< 768px) */}
+            <div className="md:hidden space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-black/[0.08] p-3.5 shadow-2xs space-y-2 animate-pulse"
+                >
+                  <div className="flex items-center justify-between pb-1.5 border-b border-black/[0.05]">
+                    <div className="h-4 w-24 bg-slate-200 rounded" />
+                    <div className="h-4 w-16 bg-slate-100 rounded-full" />
+                  </div>
+                  <div className="flex items-center justify-between pt-0.5">
+                    <div className="h-4 w-20 bg-slate-200 rounded" />
+                    <div className="h-5 w-24 bg-slate-200 rounded" />
+                  </div>
+                  <div className="h-3 w-44 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table (>= 768px) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="bg-[#FAF9F5] border-b border-black/[0.06] text-[#6B7462] font-semibold uppercase tracking-wider text-[11px]">
+                    <th className="py-4 px-5">Date</th>
+                    <th className="py-4 px-5">Plot</th>
+                    <th className="py-4 px-5">Description</th>
+                    <th className="py-4 px-5">Amount</th>
+                    <th className="py-4 px-5">Status</th>
+                    <th className="py-4 px-5">Receipt Ref</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/[0.05]">
+                  {[...Array(5)].map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-4 px-5"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
+                      <td className="py-4 px-5"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                      <td className="py-4 px-5"><div className="h-4 w-40 bg-slate-100 rounded" /></td>
+                      <td className="py-4 px-5"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
+                      <td className="py-4 px-5"><div className="h-4 w-16 bg-slate-100 rounded-full" /></td>
+                      <td className="py-4 px-5"><div className="h-4 w-28 bg-slate-100 rounded" /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         ) : transactions.length === 0 ? (
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-8 sm:p-12 text-center space-y-3">

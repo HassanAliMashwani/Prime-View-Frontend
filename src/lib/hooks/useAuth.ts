@@ -7,8 +7,8 @@ import { login as dalLogin, logout as dalLogout, getActiveSession, LoginResult }
 import { useMemberStore } from '../store/useMemberStore';
 
 export function useAuth() {
-  const [session, setSession] = useState<MemberSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [session, setSession] = useState<MemberSession | null>(() => (typeof window === 'undefined' ? null : getActiveSession()));
+  const [isLoading, setIsLoading] = useState(() => (typeof window === 'undefined' ? true : !getActiveSession()));
   const router = useRouter();
   const resetMemberStore = useMemberStore((state) => state.reset);
 

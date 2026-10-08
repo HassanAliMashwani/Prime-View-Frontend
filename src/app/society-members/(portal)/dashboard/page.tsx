@@ -106,19 +106,11 @@ export default function MemberDashboardPage() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  if (isLoading && !profile) {
-    return (
-      <div className="p-4 md:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-        <MemberDashboardSkeleton />
-      </div>
-    );
-  }
-
   return (
     <div className="flex-1 flex flex-col min-h-screen">
       <MemberHeader
         title="Member Dashboard"
-        subtitle={`Welcome back, ${profile?.fullName || 'Member'}`}
+        subtitle={profile?.fullName ? `Welcome back, ${profile.fullName}` : 'Welcome back'}
       />
 
       <main className="px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-3 sm:space-y-8">
@@ -129,7 +121,11 @@ export default function MemberDashboardPage() {
               Member Overview
             </span>
             <h2 className="font-display font-bold text-xl sm:text-3xl text-[#151914] tracking-tight">
-              Hello, {profile?.fullName || 'Valued Member'}
+              Hello, {profile?.fullName ? (
+                profile.fullName
+              ) : (
+                <span className="inline-block w-40 h-7 bg-slate-200 animate-pulse rounded align-middle" />
+              )}
             </h2>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -241,7 +237,7 @@ export default function MemberDashboardPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <StatCard
             title="Total Properties"
-            value={`${totalProperties} ${totalProperties === 1 ? 'Plot' : 'Plots'}`}
+            value={isLoading && totalProperties === 0 ? <span className="inline-block w-14 h-6 bg-slate-200 animate-pulse rounded" /> : `${totalProperties} ${totalProperties === 1 ? 'Plot' : 'Plots'}`}
             subtitle={totalProperties > 0 ? 'Active files' : 'No properties yet'}
             icon={Home}
             badge={{
@@ -252,14 +248,14 @@ export default function MemberDashboardPage() {
 
           <StatCard
             title="Total Value"
-            value={formatPKR(totalInvestment)}
+            value={isLoading && totalInvestment === 0 ? <span className="inline-block w-24 h-6 bg-slate-200 animate-pulse rounded" /> : formatPKR(totalInvestment)}
             subtitle="Combined value"
             icon={Wallet}
           />
 
           <StatCard
             title="Total Paid"
-            value={formatPKR(totalPaid)}
+            value={isLoading && totalPaid === 0 ? <span className="inline-block w-24 h-6 bg-slate-200 animate-pulse rounded" /> : formatPKR(totalPaid)}
             subtitle={`${totalInvestment > 0 ? Math.round((totalPaid / totalInvestment) * 100) : 0}% settled`}
             icon={CheckCircle}
             badge={{
@@ -270,7 +266,7 @@ export default function MemberDashboardPage() {
 
           <StatCard
             title="Upcoming Due"
-            value={nearestDueDate ? nearestDueDate.split('T')[0] : 'None'}
+            value={isLoading && !nearestDueDate ? <span className="inline-block w-20 h-6 bg-slate-200 animate-pulse rounded" /> : nearestDueDate ? nearestDueDate.split('T')[0] : 'None'}
             subtitle={
               hasOverdue
                 ? 'Action Required'

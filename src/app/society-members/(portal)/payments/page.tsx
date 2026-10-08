@@ -516,8 +516,55 @@ function PaymentsContent() {
       />
 
       <main className="px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] sm:p-8 max-w-7xl w-full mx-auto space-y-3 sm:space-y-8">
-        {!hasLoadedOnce && isLoading && schedules.length === 0 ? (
-          <MemberPaymentsSkeleton />
+        {isLoading && schedules.length === 0 ? (
+          <div className="space-y-6">
+            {/* ── Top-Level Payment Type Tabs (Equal buttons in 1 row) ── */}
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 border-b border-black/[0.08] pb-3">
+              <button
+                type="button"
+                onClick={() => handleTabChange('installment')}
+                className={`w-full sm:w-auto min-h-[44px] justify-center px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'installment'
+                    ? 'bg-[#43612B] text-white shadow-[0_4px_16px_rgba(67,97,43,0.25)]'
+                    : 'bg-white text-[#6B7462] hover:text-[#151914] border border-black/[0.08] hover:bg-black/5'
+                }`}
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Installment</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabChange('one_time')}
+                className={`w-full sm:w-auto min-h-[44px] justify-center px-4 sm:px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'one_time'
+                    ? 'bg-[#43612B] text-white shadow-[0_4px_16px_rgba(67,97,43,0.25)]'
+                    : 'bg-white text-[#6B7462] hover:text-[#151914] border border-black/[0.08] hover:bg-black/5'
+                }`}
+              >
+                <Receipt className="w-4 h-4" />
+                <span>Full Payment</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-white rounded-2xl p-5 border border-black/[0.08] shadow-xs space-y-2 animate-pulse">
+                  <div className="h-3.5 w-28 bg-slate-200 rounded" />
+                  <div className="h-8 w-36 bg-slate-200 rounded-xl" />
+                  <div className="h-3 w-20 bg-slate-100 rounded" />
+                </div>
+              ))}
+            </div>
+            <div className="bg-white rounded-2xl border border-black/[0.08] p-6 shadow-xs space-y-4 animate-pulse">
+              <div className="h-6 w-48 bg-slate-200 rounded" />
+              <div className="space-y-3">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-12 bg-slate-100 rounded-xl w-full" />
+                ))}
+              </div>
+            </div>
+          </div>
         ) : schedules.length === 0 ? (
           /* Single unified empty state for zero-plot accounts */
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-12 text-center space-y-3 sm:space-y-4 shadow-xs">

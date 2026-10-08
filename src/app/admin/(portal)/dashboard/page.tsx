@@ -219,12 +219,14 @@ export default function AdminDashboardPage() {
           ) : (
             <div className="text-3xl font-bold text-purple-700">{totalPlots}</div>
           )}
-          <p className="text-xs text-purple-700/80 mt-2 font-medium">
+          <p className="text-xs text-purple-700/80 mt-2 font-medium flex items-center gap-1">
+            <span>Across</span>
             {isInitialLoading ? (
-              <span className="inline-block h-3 w-32 bg-purple-500/20 rounded-md animate-pulse" />
+              <span className="inline-block h-3.5 w-4 bg-purple-500/20 rounded-xs animate-pulse" />
             ) : (
-              `Across ${blocks.length} accessible blocks`
+              <span>{blocks.length}</span>
             )}
+            <span>accessible blocks</span>
           </p>
         </div>
 
@@ -242,11 +244,7 @@ export default function AdminDashboardPage() {
             <div className="text-3xl font-bold text-green-700">{availablePlots}</div>
           )}
           <p className="text-xs text-green-700/80 mt-2 font-medium">
-            {isInitialLoading ? (
-              <span className="inline-block h-3 w-36 bg-green-500/20 rounded-md animate-pulse" />
-            ) : (
-              'Ready for immediate booking'
-            )}
+            Ready for immediate booking
           </p>
         </div>
 
@@ -271,11 +269,7 @@ export default function AdminDashboardPage() {
             </div>
           )}
           <p className="text-xs text-amber-700/80 mt-2 font-medium">
-            {isInitialLoading ? (
-              <span className="inline-block h-3 w-28 bg-amber-500/20 rounded-md animate-pulse" />
-            ) : (
-              'Token deposits on hold'
-            )}
+            Token deposits on hold
           </p>
         </div>
 
@@ -293,64 +287,31 @@ export default function AdminDashboardPage() {
             <div className="text-3xl font-bold text-blue-700">{bookedPlots}</div>
           )}
           <p className="text-xs text-blue-700/80 mt-2 font-medium">
-            {isInitialLoading ? (
-              <span className="inline-block h-3 w-36 bg-blue-500/20 rounded-md animate-pulse" />
-            ) : (
-              'Verified member allocations'
-            )}
+            Verified member allocations
           </p>
         </div>
       </div>
 
       {/* Inventory Overview Trend Chart */}
-      {isInitialLoading ? (
-        <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1.5">
-              <div className="h-7 w-48 bg-slate-200/80 rounded-lg animate-pulse" />
-              <div className="h-3.5 w-64 bg-slate-200/60 rounded-md animate-pulse" />
-            </div>
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100/70 border border-slate-200/80 rounded-xl">
-              <div className="h-7 w-20 bg-slate-200/80 rounded-lg animate-pulse" />
-              <div className="h-7 w-16 bg-slate-200/80 rounded-lg animate-pulse" />
-              <div className="h-7 w-16 bg-slate-200/80 rounded-lg animate-pulse" />
-            </div>
-          </div>
-          <div className="h-64 sm:h-72 w-full bg-slate-50/70 border border-dashed border-slate-200 rounded-2xl p-6 flex flex-col justify-end space-y-4">
-            <div className="flex items-end justify-between gap-2 h-44 w-full">
-              {[45, 60, 52, 75, 68, 85, 92, 78, 65, 88, 95, 70].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                  <div
-                    className="w-full rounded-t-lg bg-slate-200/90 animate-pulse"
-                    style={{ height: `${h}%` }}
-                  />
-                  <div className="h-2.5 w-6 rounded-xs bg-slate-200/60 animate-pulse" />
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ) : (
-        <InventoryOverviewChart
-          currentAvailable={availablePlots}
-          currentReserved={reservedPlots}
-          currentBooked={bookedPlots}
-          monthlyData={monthlyPoints}
-          timeRange={chartRange}
-          onRangeChange={(range) => {
-            setChartRange(range);
-            if (session) {
-              const adminId = session.adminId || 'admin';
-              const cached = getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, range), true);
-              if (cached) {
-                setMonthlyPoints(cached);
-              }
-              loadChartData(session, range);
+      <InventoryOverviewChart
+        currentAvailable={availablePlots}
+        currentReserved={reservedPlots}
+        currentBooked={bookedPlots}
+        monthlyData={monthlyPoints}
+        timeRange={chartRange}
+        onRangeChange={(range) => {
+          setChartRange(range);
+          if (session) {
+            const adminId = session.adminId || 'admin';
+            const cached = getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, range), true);
+            if (cached) {
+              setMonthlyPoints(cached);
             }
-          }}
-          isLoading={chartLoading}
-        />
-      )}
+            loadChartData(session, range);
+          }
+        }}
+        isLoading={chartLoading}
+      />
 
       {/* Accessible Blocks Overview - Distinct Colored Sectors */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs">
@@ -364,7 +325,7 @@ export default function AdminDashboardPage() {
             href="/admin/master-plan"
             className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
           >
-            <span>View Interactive Map</span>
+            <span>View Interactive Grid</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>

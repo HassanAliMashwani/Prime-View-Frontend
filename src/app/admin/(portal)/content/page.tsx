@@ -54,7 +54,7 @@ export default function ContentCMSPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const [loading, setLoading] = useState(!init);
   const [activeSection, setActiveSection] = useState<ContentSection>('plans');
   const [blocks, setBlocks] = useState<ContentBlock[]>(init || []);
@@ -514,8 +514,8 @@ export default function ContentCMSPage() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (loading && blocks.length === 0) {
-    return <AdminContentCrmSkeleton />;
+  if (!session) {
+    return null;
   }
 
   // Permission Guard
@@ -624,7 +624,24 @@ export default function ContentCMSPage() {
 
       {/* Content Blocks Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-1">
-        {blocks.map((block) => {
+        {loading && blocks.length === 0 ? (
+          [...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs animate-pulse space-y-4"
+            >
+              <div className="h-40 bg-slate-100 rounded-xl w-full" />
+              <div className="h-5 bg-slate-200 rounded w-2/3" />
+              <div className="h-4 bg-slate-100 rounded w-1/2" />
+              <div className="h-16 bg-slate-50 rounded w-full" />
+            </div>
+          ))
+        ) : blocks.length === 0 ? (
+          <div className="col-span-full py-12 text-center text-slate-400">
+            No content cards found.
+          </div>
+        ) : (
+          blocks.map((block) => {
           const isLockedByMe = block.lockedBy === session?.adminId;
           const isLockedByOther = block.lockedBy && block.lockedBy !== session?.adminId;
 
@@ -831,7 +848,7 @@ export default function ContentCMSPage() {
               </div>
             </div>
           );
-        })}
+        }))}
       </div>
 
       {/* Infinite Scroll Trigger */}

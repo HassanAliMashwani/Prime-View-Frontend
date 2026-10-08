@@ -56,7 +56,7 @@ export default function AdminProfilePage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const [details, setDetails] = useState<AdminProfileDetails | null>(init || null);
   const [loading, setLoading] = useState(!init);
 
@@ -125,10 +125,6 @@ export default function AdminProfilePage() {
       setPasswordLoading(false);
     }
   };
-
-  if (loading && !details) {
-    return <AdminProfileSkeleton />;
-  }
 
   if (!session) {
     return (
@@ -296,7 +292,11 @@ export default function AdminProfilePage() {
               <span>Charter Appointed</span>
             </div>
             <p className="font-medium text-sm text-[#151914]">
-              {formattedDate}
+              {loading && !details?.createdDate ? (
+                <span className="inline-block w-24 h-4 bg-slate-200 animate-pulse rounded align-middle" />
+              ) : (
+                formattedDate
+              )}
             </p>
             <p className="text-[10px] text-[#6B7462]">Original commission registry</p>
           </div>

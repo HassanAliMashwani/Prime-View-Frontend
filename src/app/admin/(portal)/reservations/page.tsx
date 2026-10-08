@@ -51,7 +51,10 @@ export default function ReservationsPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getActiveAdminSession();
+  });
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
@@ -264,8 +267,8 @@ export default function ReservationsPage() {
     }
   };
 
-  if ((!hasLoadedOnce && loading && reservations.length === 0) || !session) {
-    return <AdminTableSkeleton rows={6} columns={6} />;
+  if (!session) {
+    return null;
   }
 
   const activeReservations = reservations.filter((r) => r.status === 'active');
@@ -353,7 +356,7 @@ export default function ReservationsPage() {
           className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white"
         >
           <option value="all">All Accessible Blocks</option>
-          {session.role === 'super_admin' ? (
+          {session?.role === 'super_admin' ? (
             <>
               <option value="abbott">Abbott Block</option>
               <option value="royal">Royal Block</option>
@@ -364,7 +367,7 @@ export default function ReservationsPage() {
               <option value="npf-phase-2">NPF Phase 2</option>
             </>
           ) : (
-            session.assignedBlocks.map((b) => (
+            session?.assignedBlocks?.map((b) => (
               <option key={b} value={b}>
                 {getBlockDisplayName(b)}
               </option>
@@ -375,10 +378,20 @@ export default function ReservationsPage() {
 
       {/* Reservations Table / Cards - Crisp White List */}
       <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false}>
-        {loading ? (
-          <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
-            <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
-            <span className="text-xs font-medium">Loading reservations...</span>
+        {loading && displayedReservations.length === 0 ? (
+          <div className="divide-y divide-slate-100">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-5 animate-pulse flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-2 flex-1">
+                  <div className="h-5 w-48 bg-slate-200 rounded" />
+                  <div className="h-3 w-64 bg-slate-100 rounded" />
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-8 w-20 bg-slate-200 rounded-xl" />
+                  <div className="h-8 w-20 bg-slate-200 rounded-xl" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : displayedReservations.length === 0 ? (
           <div className="p-12 text-center text-slate-500">

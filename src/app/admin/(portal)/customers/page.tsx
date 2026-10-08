@@ -143,9 +143,9 @@ function CustomersPageContent() {
   const queryTab = searchParams.get('tab') || '';
   const queryCompleteCustomer = searchParams.get('completeCustomer') || searchParams.get('completeCustomerId') || '';
 
-  const [session, setSession] = useState<AdminSession | null>(null);
-  const sessionRef = useRef<AdminSession | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
+  const sessionRef = useRef<AdminSession | null>(session);
+  const [loading, setLoading] = useState(false);
   const [completeTargetCustomer, setCompleteTargetCustomer] = useState<Customer | null>(null);
   const [memberCity, setMemberCity] = useState<string>('');
 
@@ -972,8 +972,8 @@ function CustomersPageContent() {
     }
   };
 
-  if (loading) {
-    return <AdminCustomerRegistrationSkeleton />;
+  if (!session) {
+    return null;
   }
 
   // Permission Guard
@@ -1193,7 +1193,7 @@ function CustomersPageContent() {
       ) : (
         <>
           {/* Header & Navigation Pills / Completion Mode Banner */}
-          {completeTargetCustomer ? (
+          {completeTargetCustomer || queryCompleteCustomer ? (
             <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-50 border-2 border-amber-500/40 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
@@ -1209,7 +1209,11 @@ function CustomersPageContent() {
                     </span>
                   </div>
                   <h1 className="text-lg font-bold text-slate-900 font-serif">
-                    {completeTargetCustomer.fullName} ({completeTargetCustomer.cnic})
+                    {completeTargetCustomer ? (
+                      `${completeTargetCustomer.fullName} (${completeTargetCustomer.cnic})`
+                    ) : (
+                      <span className="inline-block h-5 w-48 bg-amber-300/40 animate-pulse rounded align-middle" />
+                    )}
                   </h1>
                   <p className="text-xs text-slate-600 mt-0.5">
                     Complete statutory fee allocation, establish installment schedule on the 5th of each month, and issue official portal access credentials.
@@ -1538,12 +1542,16 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Select Registered Plot *
                 </label>
-                {completeTargetCustomer || (isLockedFromMap && lockedPlot) ? (
+                {completeTargetCustomer || queryCompleteCustomer || (isLockedFromMap && lockedPlot) || (queryPlotId && queryLockToken) ? (
                   <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl space-y-1">
                     <div className="text-xs font-bold text-slate-900 font-mono flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-emerald-700" />
                       <span>
-                        Plot {selectedPlotA?.plotNumber || lockedPlot?.plotNumber || pathAForm.plotId} ({((selectedPlotA?.blockId || lockedPlot?.blockId || '').toUpperCase())}) - Locked to Existing Booking
+                        {selectedPlotA || lockedPlot ? (
+                          `Plot ${selectedPlotA?.plotNumber || lockedPlot?.plotNumber || pathAForm.plotId} (${((selectedPlotA?.blockId || lockedPlot?.blockId || '').toUpperCase())}) - Locked to Existing Booking`
+                        ) : (
+                          <span className="inline-block h-4 w-44 bg-slate-200 animate-pulse rounded align-middle" />
+                        )}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
@@ -3172,7 +3180,7 @@ function CustomersPageContent() {
 
 export default function CustomersPage() {
   return (
-    <Suspense fallback={<AdminCustomerRegistrationSkeleton />}>
+    <Suspense fallback={null}>
       <CustomersPageContent />
     </Suspense>
   );

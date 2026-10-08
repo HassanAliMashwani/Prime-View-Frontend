@@ -51,7 +51,7 @@ export default function AdminReceiptsPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init?.receipts || []);
   const [totalCount, setTotalCount] = useState(init?.totalCount || 0);
@@ -381,8 +381,8 @@ export default function AdminReceiptsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  if (!hasLoadedOnce && loading && receipts.length === 0) {
-    return <AdminTableSkeleton rows={5} columns={6} />;
+  if (!session) {
+    return null;
   }
 
   // Authorization Guard (Receipt Verification Authority)
@@ -534,12 +534,24 @@ export default function AdminReceiptsPage() {
       </div>
 
       {/* Receipts List */}
-      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false}>
+      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false} loading={loading}>
       <div className="space-y-4">
-        {!hasLoadedOnce && loading ? (
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3 shadow-xs flex flex-col items-center justify-center">
-            <Loader2 className="w-8 h-8 text-teal-600 animate-spin" />
-            <p className="text-xs font-medium text-slate-500">Loading receipts...</p>
+        {loading && filteredReceipts.length === 0 ? (
+          <div className="space-y-4">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-6 shadow-xs animate-pulse space-y-3"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-5 w-36 bg-slate-200 rounded" />
+                  <div className="h-4 w-20 bg-slate-100 rounded" />
+                  <div className="h-4 w-28 bg-slate-100 rounded" />
+                </div>
+                <div className="h-4 w-64 bg-slate-100 rounded" />
+                <div className="h-4 w-48 bg-slate-100 rounded" />
+              </div>
+            ))}
           </div>
         ) : filteredReceipts.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200/80 p-12 text-center space-y-3 shadow-xs">

@@ -44,6 +44,7 @@ export default function InteractiveBlockMap({
 }: InteractiveBlockMapProps) {
   const [config, setConfig] = useState<BlockMapConfig | null>(() => getBlockMapConfig(blockId) || null);
   const [loadingMap, setLoadingMap] = useState<boolean>(() => !config);
+  const [imageLoaded, setImageLoaded] = useState<boolean>(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -362,6 +363,13 @@ export default function InteractiveBlockMap({
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
           }}
         >
+          {/* Pulsing placeholder until map image loads */}
+          {!imageLoaded && (
+            <div className="absolute inset-0 bg-slate-100 flex items-center justify-center animate-pulse z-10">
+              <div className="w-16 h-16 rounded-2xl bg-slate-200 animate-pulse" />
+            </div>
+          )}
+
           {/* Base PNG Map Layer */}
           <Image
             src={imageSrc}
@@ -370,6 +378,7 @@ export default function InteractiveBlockMap({
             priority
             sizes="(max-width: 2048px) 100vw, 2048px"
             className="object-contain pointer-events-none select-none"
+            onLoad={() => setImageLoaded(true)}
           />
 
           {/* Scalable SVG Polygon Overlay */}

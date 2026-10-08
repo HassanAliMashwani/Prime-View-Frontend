@@ -267,7 +267,11 @@ export default function InventoryOverviewChart({
 
           <div className="text-right shrink-0">
             <div className="text-xs font-semibold text-slate-500">Total Active Plots</div>
-            <div className="text-2xl font-bold font-mono text-slate-900">{total}</div>
+            {total > 0 || !loading ? (
+              <div className="text-2xl font-bold font-mono text-slate-900">{total}</div>
+            ) : (
+              <div className="h-7 w-16 bg-slate-200/80 rounded-lg animate-pulse ml-auto" />
+            )}
           </div>
         </div>
       </div>
@@ -297,11 +301,26 @@ export default function InventoryOverviewChart({
         </div>
 
         <div className="relative w-full select-none">
-          <svg
-            viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-            className="w-full h-auto overflow-visible"
-            onMouseLeave={() => setHoveredIndex(null)}
-          >
+          {rawData.length === 0 && loading ? (
+            <div className="h-64 sm:h-72 w-full bg-slate-50/70 border border-dashed border-slate-200 rounded-2xl p-6 flex flex-col justify-end space-y-4 animate-pulse">
+              <div className="flex items-end justify-between gap-2 h-44 w-full">
+                {[45, 60, 52, 75, 68, 85, 92, 78, 65, 88, 95, 70].map((h, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
+                    <div
+                      className="w-full rounded-t-lg bg-slate-200/90"
+                      style={{ height: `${h}%` }}
+                    />
+                    <div className="h-2.5 w-6 rounded-xs bg-slate-200/60" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <svg
+              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              className="w-full h-auto overflow-visible"
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
             <defs>
               <linearGradient id="availableAreaGrad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor={PLOT_STATUS_STYLES.available.stroke} stopOpacity="0.22" />
@@ -480,6 +499,7 @@ export default function InventoryOverviewChart({
               );
             })}
           </svg>
+        )}
 
           {/* Rich Interactive Floating Tooltip */}
           {activeItem && hoveredIndex !== null && activeX !== null && (

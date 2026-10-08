@@ -8,6 +8,7 @@ interface AdminTableShellProps {
   total: number;
   onPageChange: (page: number) => void;
   isTable?: boolean;
+  loading?: boolean;
 }
 
 export function AdminTableShell({
@@ -17,6 +18,7 @@ export function AdminTableShell({
   total,
   onPageChange,
   isTable = true,
+  loading = false,
 }: AdminTableShellProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
@@ -39,7 +41,15 @@ export function AdminTableShell({
       </div>
       <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-3 shrink-0 print:hidden">
         <div className="text-xs text-slate-500 font-semibold">
-          Showing <span className="text-slate-900 font-bold">{from}</span>–<span className="text-slate-900 font-bold">{to}</span> of <span className="text-slate-900 font-bold">{total}</span>
+          {loading && total === 0 ? (
+            <span>
+              Showing <span className="inline-block w-6 h-3 bg-slate-200 animate-pulse rounded align-middle" />–<span className="inline-block w-6 h-3 bg-slate-200 animate-pulse rounded align-middle" /> of <span className="inline-block w-8 h-3 bg-slate-200 animate-pulse rounded align-middle" />
+            </span>
+          ) : (
+            <span>
+              Showing <span className="text-slate-900 font-bold">{from}</span>–<span className="text-slate-900 font-bold">{to}</span> of <span className="text-slate-900 font-bold">{total}</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

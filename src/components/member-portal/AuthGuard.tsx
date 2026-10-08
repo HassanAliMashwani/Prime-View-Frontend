@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { MemberAuthGuardSkeleton } from '@/components/ui/skeleton';
 
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, session } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -14,6 +14,10 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
       router.replace('/society-members/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  if (session && isAuthenticated) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return <MemberAuthGuardSkeleton />;

@@ -130,14 +130,10 @@ export default function MasterPlanPage() {
     };
   }, [loadBlocks]);
 
-  if (!session) {
-    return <AdminMasterPlanSkeleton />;
-  }
+  const isSuper = session?.role === 'super_admin';
+  const canAccess = !session || isSuper || Boolean(session?.permissions?.can_view_master_plan);
 
-  const isSuper = session.role === 'super_admin';
-  const canAccess = isSuper || Boolean(session.permissions?.can_view_master_plan);
-
-  if (!canAccess) {
+  if (session && !canAccess) {
     return (
       <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
@@ -157,19 +153,41 @@ export default function MasterPlanPage() {
     );
   }
 
+  const ALL_SECTORS: BlockSummary[] = [
+    { id: 'abbott', name: 'Abbott Block', description: 'Scenic Elevated Living', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    { id: 'royal', name: 'Royal Block', description: 'Executive Residences & Palatial Mansions', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    { id: 'overseas', name: 'Overseas Prime', description: 'Designed for Expatriates', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    { id: 'elite', name: 'Elite Block', description: 'Premium Residential Enclave', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    { id: 'commercial', name: 'Commercial Square', description: 'Prime Business & Corporate Hub', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    { id: 'npf-phase-1', name: 'NPF Phase 1', description: 'National Police Foundation Sector', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    { id: 'npf-phase-2', name: 'NPF Phase 2', description: 'Mixed-Use Development Expansion', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+  ];
+
+  const displayBlocks = blocks.length > 0
+    ? blocks
+    : (session?.assignedBlocks && session.assignedBlocks.length > 0 && !isSuper
+        ? ALL_SECTORS.filter((s) => session.assignedBlocks.includes(s.id))
+        : ALL_SECTORS);
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header Banner - Light Indigo/Emerald Modern Executive Theme */}
       <div className="bg-gradient-to-r from-indigo-50/90 via-white to-emerald-50/70 border-2 border-indigo-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            
-            
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-slate-900">
             {isSuper
               ? 'All Society Blocks (8 Sectors)'
-              : `Assigned Block Enclaves (${blocks.length} Sectors)`}
+              : (
+                <span>
+                  Assigned Block Enclaves ({loading && blocks.length === 0 ? (
+                    <span className="inline-block w-4 h-5 bg-indigo-200 animate-pulse rounded align-middle" />
+                  ) : (
+                    blocks.length
+                  )} Sectors)
+                </span>
+              )}
           </h2>
           <p className="text-xs text-slate-600 mt-1 max-w-2xl">
             Select a block to inspect real-time plot allocations, acquire locking privileges for direct bookings, or reserve plots with customizable token fees.
@@ -199,13 +217,19 @@ export default function MasterPlanPage() {
               }`}
             >
               <LayoutGrid className="w-3.5 h-3.5" />
-              <span>Cards ({blocks.length})</span>
+              <span>
+                Cards ({loading && blocks.length === 0 ? (
+                  <span className="inline-block w-3 h-3 bg-slate-200 animate-pulse rounded align-middle" />
+                ) : (
+                  blocks.length
+                )})
+              </span>
             </button>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-mono bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-slate-700 shadow-2xs">
             <ShieldCheck className="w-4 h-4 text-indigo-600" />
-            <span>Scope: <strong className="text-slate-900">{isSuper ? 'Society-Wide' : session.assignedBlocks.join(', ').toUpperCase()}</strong></span>
+            <span>Scope: <strong className="text-slate-900">{isSuper ? 'Society-Wide' : session?.assignedBlocks?.join(', ').toUpperCase() || 'ASSIGNED'}</strong></span>
           </div>
         </div>
       </div>
@@ -215,11 +239,12 @@ export default function MasterPlanPage() {
         <InteractiveOverviewMap session={session} blocks={blocks} onImageLoad={() => setImageLoaded(true)} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {blocks.map((block) => {
+        {displayBlocks.map((block) => {
           const availPct = block.totalCount > 0 ? (block.availableCount / block.totalCount) * 100 : 0;
           const resPct = block.totalCount > 0 ? (block.reservedCount / block.totalCount) * 100 : 0;
           const bookPct = block.totalCount > 0 ? (block.bookedCount / block.totalCount) * 100 : 0;
           const theme = getBlockTheme(block.id);
+          const isBlockLoading = loading && block.totalCount === 0;
 
           return (
             <div
@@ -245,7 +270,11 @@ export default function MasterPlanPage() {
                     style={theme.badgeStyle}
                     className="text-xs font-mono font-bold border px-2.5 py-1 rounded-xl"
                   >
-                    {block.totalCount} Plots
+                    {isBlockLoading ? (
+                      <span className="inline-block w-12 h-3.5 bg-slate-200 animate-pulse rounded align-middle" />
+                    ) : (
+                      `${block.totalCount} Plots`
+                    )}
                   </span>
                 </div>
 
@@ -253,13 +282,15 @@ export default function MasterPlanPage() {
                   {block.description}
                 </p>
 
-
-
                 {/* Progress Distribution Bar */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 mb-1.5 font-medium">
                     <span>Inventory Status</span>
-                    <span className="font-bold text-slate-700">{Math.round(availPct)}% Available</span>
+                    {isBlockLoading ? (
+                      <span className="inline-block w-16 h-3 bg-slate-200 animate-pulse rounded" />
+                    ) : (
+                      <span className="font-bold text-slate-700">{Math.round(availPct)}% Available</span>
+                    )}
                   </div>
                   <div className="w-full h-2.5 rounded-full bg-slate-200 flex overflow-hidden">
                     <div
@@ -283,28 +314,36 @@ export default function MasterPlanPage() {
                 {/* Metrics Breakdown Chips */}
                 <div className="grid grid-cols-4 gap-1.5 text-center text-[10px] mb-5">
                   <div className="bg-emerald-50/70 border border-emerald-200 p-2 rounded-xl">
-                    <div className="text-emerald-800 font-bold text-xs">{block.availableCount}</div>
+                    <div className="text-emerald-800 font-bold text-xs">
+                      {isBlockLoading ? <span className="inline-block w-6 h-3 bg-emerald-200 animate-pulse rounded" /> : block.availableCount}
+                    </div>
                     <div className="text-emerald-700 font-medium mt-0.5 flex items-center justify-center gap-0.5">
                       <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
                       <span>Avail</span>
                     </div>
                   </div>
                   <div className="bg-amber-50/70 border border-amber-200 p-2 rounded-xl">
-                    <div className="text-amber-800 font-bold text-xs">{block.reservedCount}</div>
+                    <div className="text-amber-800 font-bold text-xs">
+                      {isBlockLoading ? <span className="inline-block w-6 h-3 bg-amber-200 animate-pulse rounded" /> : block.reservedCount}
+                    </div>
                     <div className="text-amber-700 font-medium mt-0.5 flex items-center justify-center gap-0.5">
                       <Clock className="w-2.5 h-2.5 text-amber-600" />
                       <span>Res</span>
                     </div>
                   </div>
                   <div className="bg-red-50/70 border border-red-200 p-2 rounded-xl">
-                    <div className="text-red-800 font-bold text-xs">{block.bookedCount}</div>
+                    <div className="text-red-800 font-bold text-xs">
+                      {isBlockLoading ? <span className="inline-block w-6 h-3 bg-red-200 animate-pulse rounded" /> : block.bookedCount}
+                    </div>
                     <div className="text-red-700 font-medium mt-0.5 flex items-center justify-center gap-0.5">
                       <Building2 className="w-2.5 h-2.5 text-red-600" />
                       <span>Book</span>
                     </div>
                   </div>
                   <div className="bg-indigo-50/70 border border-indigo-200 p-2 rounded-xl">
-                    <div className="text-indigo-800 font-bold text-xs">{block.amenityCount}</div>
+                    <div className="text-indigo-800 font-bold text-xs">
+                      {isBlockLoading ? <span className="inline-block w-6 h-3 bg-indigo-200 animate-pulse rounded" /> : block.amenityCount}
+                    </div>
                     <div className="text-indigo-700 font-medium mt-0.5">Amenity</div>
                   </div>
                 </div>

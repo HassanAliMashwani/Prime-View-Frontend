@@ -62,7 +62,7 @@ function SalesHistoryContent() {
     return getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
   };
   const init = getInit();
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [loading, setLoading] = useState<boolean>(!init);
   const [items, setItems] = useState<SalesHistoryItem[]>(init?.items || []);
@@ -238,10 +238,6 @@ function SalesHistoryContent() {
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
-  if (!hasLoadedOnce && loading && items.length === 0) {
-    return <AdminSalesHistorySkeleton />;
-  }
-
   const totalContractSum = kpis.totalRevenuePkr;
 
   return (
@@ -291,9 +287,19 @@ function SalesHistoryContent() {
             <span>Sold Today</span>
             <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
           </div>
-          <div className="mt-2 text-2xl font-bold font-serif text-emerald-900">{kpis.todayPlotsSold} Units</div>
+          <div className="mt-2 text-2xl font-bold font-serif text-emerald-900">
+            {loading && items.length === 0 ? (
+              <span className="inline-block w-16 h-7 bg-emerald-100 animate-pulse rounded" />
+            ) : (
+              `${kpis.todayPlotsSold} Units`
+            )}
+          </div>
           <div className="mt-1 text-[11px] text-slate-500 font-mono">
-            PKR {kpis.todayRevenuePkr.toLocaleString()}
+            {loading && items.length === 0 ? (
+              <span className="inline-block w-24 h-4 bg-slate-100 animate-pulse rounded" />
+            ) : (
+              `PKR ${kpis.todayRevenuePkr.toLocaleString()}`
+            )}
           </div>
         </div>
 
@@ -302,7 +308,13 @@ function SalesHistoryContent() {
           <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             Filtered Units Sold
           </div>
-          <div className="mt-2 text-2xl font-bold font-serif text-slate-900">{kpis.totalPlotsSold} Units</div>
+          <div className="mt-2 text-2xl font-bold font-serif text-slate-900">
+            {loading && items.length === 0 ? (
+              <span className="inline-block w-16 h-7 bg-slate-200 animate-pulse rounded" />
+            ) : (
+              `${kpis.totalPlotsSold} Units`
+            )}
+          </div>
           <div className="mt-1 text-[11px] text-slate-500">Across selected filters</div>
         </div>
 
@@ -313,7 +325,11 @@ function SalesHistoryContent() {
             <TrendingUp className="w-4 h-4 text-indigo-600" />
           </div>
           <div className="mt-2 text-2xl font-bold font-serif text-indigo-950 font-mono">
-            PKR {kpis.totalRevenuePkr.toLocaleString()}
+            {loading && items.length === 0 ? (
+              <span className="inline-block w-36 h-7 bg-indigo-100 animate-pulse rounded" />
+            ) : (
+              `PKR ${kpis.totalRevenuePkr.toLocaleString()}`
+            )}
           </div>
           <div className="mt-1 text-[11px] text-slate-500">
             Combined contracted value across installments & full payments
@@ -327,10 +343,18 @@ function SalesHistoryContent() {
             <Award className="w-3.5 h-3.5 text-amber-600" />
           </div>
           <div className="mt-2 text-base font-bold text-slate-900 truncate">
-            {kpis.topCloser ? kpis.topCloser.name : 'N/A'}
+            {loading && items.length === 0 ? (
+              <span className="inline-block w-24 h-5 bg-slate-200 animate-pulse rounded" />
+            ) : (
+              kpis.topCloser ? kpis.topCloser.name : 'N/A'
+            )}
           </div>
           <div className="mt-1 text-[11px] text-slate-500 font-mono">
-            {kpis.topCloser ? `${kpis.topCloser.count} deals • PKR ${kpis.topCloser.revenuePkr.toLocaleString()}` : '0 deals'}
+            {loading && items.length === 0 ? (
+              <span className="inline-block w-28 h-4 bg-slate-100 animate-pulse rounded" />
+            ) : (
+              kpis.topCloser ? `${kpis.topCloser.count} deals • PKR ${kpis.topCloser.revenuePkr.toLocaleString()}` : '0 deals'
+            )}
           </div>
         </div>
       </div>
@@ -555,10 +579,15 @@ function SalesHistoryContent() {
 
         {/* Mobile Stacked Cards (< 768px, print:hidden) */}
         <div className="md:hidden print:hidden space-y-3 p-4">
-          {loading ? (
-            <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
-              <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-              <span className="text-xs font-medium">Loading sales records...</span>
+          {loading && items.length === 0 ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="bg-slate-50/50 rounded-xl border border-slate-200 p-4 space-y-3 animate-pulse">
+                  <div className="h-4 bg-slate-200 rounded w-1/3" />
+                  <div className="h-5 bg-slate-200 rounded w-2/3" />
+                  <div className="h-4 bg-slate-200 rounded w-1/2" />
+                </div>
+              ))}
             </div>
           ) : items.length === 0 ? (
             <div className="py-12 text-center text-slate-400">
@@ -655,7 +684,7 @@ function SalesHistoryContent() {
 
         {/* Ledger Data Table (Desktop >= 768px, print:block) */}
         <div className="hidden md:block print:block">
-          <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange}>
+          <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} loading={loading}>
             <thead className="sticky top-0 z-10 print:static">
               <tr className="border-b border-slate-200 bg-slate-50 print:bg-slate-100 text-[11px] print:text-[10px] font-bold text-slate-700 uppercase tracking-wider">
                 <th className="py-3 px-3 w-10 text-center print:border print:border-slate-300 bg-slate-50">#</th>
@@ -670,15 +699,19 @@ function SalesHistoryContent() {
             </thead>
             {/* Screen-Only Paginated Table Rows */}
             <tbody className="divide-y divide-slate-100 text-xs print:hidden">
-              {loading ? (
-                <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-500">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-                      <span className="text-xs font-medium">Loading sales records...</span>
-                    </div>
-                  </td>
-                </tr>
+              {loading && items.length === 0 ? (
+                [...Array(6)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-3 px-3 text-center"><div className="h-4 w-4 bg-slate-200 rounded mx-auto" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
+                    <td className="py-3 px-4 text-right"><div className="h-4 w-12 bg-slate-200 rounded ml-auto" /></td>
+                  </tr>
+                ))
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400">
@@ -905,7 +938,7 @@ function SalesHistoryContent() {
 
 export default function SalesHistoryPage() {
   return (
-    <Suspense fallback={<AdminSalesHistorySkeleton />}>
+    <Suspense fallback={null}>
       <SalesHistoryContent />
     </Suspense>
   );

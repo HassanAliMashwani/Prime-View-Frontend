@@ -27,7 +27,13 @@ export default function PropertiesPage() {
         <div className="bg-white rounded-2xl border border-black/[0.08] p-3.5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shadow-xs">
           <div className="space-y-1">
             <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
-              Allocated Property Files ({plots.length})
+              Allocated Property Files (
+              {isLoading && plots.length === 0 ? (
+                <span className="inline-block w-4 h-4 bg-slate-200 animate-pulse rounded align-middle" />
+              ) : (
+                plots.length
+              )}
+              )
             </h3>
             <p className="text-xs text-[#6B7462]">
               All plots are allotted under the Co-operative Housing Society Act with verified society registry records.
@@ -43,7 +49,25 @@ export default function PropertiesPage() {
 
         {/* Loading / Empty / Grid */}
         {isLoading && plots.length === 0 ? (
-          <MemberPropertiesSkeleton />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-3xl border border-black/[0.08] p-6 shadow-xs space-y-5 animate-pulse"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="h-5 w-32 bg-slate-200 rounded-md" />
+                  <div className="h-6 w-20 bg-slate-100 rounded-full" />
+                </div>
+                <div className="h-32 w-full bg-slate-100 rounded-2xl" />
+                <div className="space-y-2">
+                  <div className="h-4 w-full bg-slate-100 rounded-md" />
+                  <div className="h-4 w-3/4 bg-slate-100 rounded-md" />
+                </div>
+                <div className="h-10 w-full bg-slate-200 rounded-xl" />
+              </div>
+            ))}
+          </div>
         ) : plots.length === 0 ? (
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-14 text-center space-y-4">
             <div className="w-16 h-16 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">

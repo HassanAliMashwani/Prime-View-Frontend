@@ -78,7 +78,10 @@ function BlockPlotsContent() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getActiveAdminSession();
+  });
   const [block, setBlock] = useState<Block | null>(init?.block || null);
   const [plots, setPlots] = useState<Plot[]>(init?.plots || []);
   const [loading, setLoading] = useState<boolean>(!init);
@@ -678,10 +681,6 @@ function BlockPlotsContent() {
     );
   }
 
-  if (((loading && plots.length === 0) || !block || !session)) {
-    return <AdminMasterPlanSkeleton />;
-  }
-
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header & Breadcrumb */}
@@ -692,16 +691,34 @@ function BlockPlotsContent() {
               <ArrowLeft className="w-3 h-3" />
               <span>Master Plan</span>
             </Link>
-            <span className="text-slate-300">/</span>
-            <span className="text-slate-800 font-bold">{block.name}</span>
+            {block ? (
+              <>
+                <span className="text-slate-300">/</span>
+                <span className="text-slate-800 font-bold">{block.name}</span>
+              </>
+            ) : null}
           </div>
           <h2 className="text-2xl font-bold font-serif text-slate-900 flex items-center gap-3">
-            <span>{block.name}</span>
+            <span>
+              {block ? (
+                block.name
+              ) : (
+                <span className="inline-block w-40 h-7 bg-slate-200 animate-pulse rounded align-middle" />
+              )}
+            </span>
             <span className="text-xs font-sans font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-0.5 rounded-full font-bold">
-              {filteredPlots.length} Visible Plots
+              {loading && plots.length === 0 ? (
+                <span className="inline-block w-16 h-3 bg-emerald-200 animate-pulse rounded align-middle" />
+              ) : (
+                `${filteredPlots.length} Visible Plots`
+              )}
             </span>
           </h2>
-          <p className="text-xs text-slate-500 mt-1">{block.description}</p>
+          {block ? (
+            <p className="text-xs text-slate-500 mt-1">{block.description}</p>
+          ) : (
+            <div className="w-64 h-3 bg-slate-100 animate-pulse rounded mt-1.5" />
+          )}
         </div>
 
       </div>
@@ -894,6 +911,18 @@ function BlockPlotsContent() {
           categoryFilter={categoryFilter}
           focusPlotId={dismissedFocusPlotRef.current === focusPlotId ? null : focusPlotId}
         />
+      ) : loading && plots.length === 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="bg-white border-2 border-slate-200 rounded-2xl p-3.5 shadow-2xs space-y-2.5 animate-pulse">
+              <div className="flex justify-between items-center">
+                <div className="h-4 w-12 bg-slate-200 rounded" />
+                <div className="h-3 w-8 bg-slate-200 rounded" />
+              </div>
+              <div className="h-3 w-20 bg-slate-100 rounded" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
         {filteredPlots.map((plot) => {
@@ -1057,7 +1086,7 @@ function BlockPlotsContent() {
               <div className="min-w-0 pr-2">
                 <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <span className="text-[10px] sm:text-xs font-mono uppercase font-bold text-emerald-800 truncate">
-                    Sector: {block.name}
+                    Sector: {block?.name || 'Loading...'}
                   </span>
                   <span className="text-slate-300">•</span>
                   <span className={`text-[10px] font-mono uppercase font-bold px-1.5 py-0.5 rounded border ${CATEGORY_COLORS[selectedPlot.category]}`}>
@@ -1132,9 +1161,10 @@ function BlockPlotsContent() {
                       </div>
                     </div>
                   </div>
-                  {session.role === 'super_admin' && (
+                  {session?.role === 'super_admin' && (
                     <button
                       onClick={async () => {
+                        if (!session) return;
                         await releaseLock(session, selectedPlot.id);
                         await loadPlots(session);
                         activeSelectedPlotIdRef.current = null;
@@ -1546,7 +1576,7 @@ function BlockPlotsContent() {
                       <button
                         type="button"
                         onClick={() => openBook()}
-                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session.adminId) || Number(selectedPlot.price) <= 0}
+                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId) || Number(selectedPlot.price) <= 0}
                         title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
                         className={`inline-flex items-center justify-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50 ${
                           selectedPlot.status !== 'available' ? 'sm:col-span-2' : ''
@@ -1796,7 +1826,7 @@ function BlockPlotsContent() {
             <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-2xl grid grid-cols-3 gap-2 text-center text-xs">
               <div>
                 <span className="text-[10px] uppercase font-mono text-slate-400 font-bold block">Sector</span>
-                <span className="font-bold text-slate-800">{block.name}</span>
+                <span className="font-bold text-slate-800">{block?.name || 'Loading...'}</span>
               </div>
               <div>
                 <span className="text-[10px] uppercase font-mono text-slate-400 font-bold block">Plot Number</span>
@@ -1880,7 +1910,7 @@ function BlockPlotsContent() {
 
 export default function BlockPlotsPage() {
   return (
-    <Suspense fallback={<AdminMasterPlanSkeleton />}>
+    <Suspense fallback={null}>
       <BlockPlotsContent />
     </Suspense>
   );

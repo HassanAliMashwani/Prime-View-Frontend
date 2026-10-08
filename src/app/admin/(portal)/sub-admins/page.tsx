@@ -78,7 +78,7 @@ export default function TeamsPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [subAdmins, setSubAdmins] = useState<AdminUser[]>(init?.subAdmins || []);
   const [loading, setLoading] = useState(!init);
@@ -396,7 +396,11 @@ export default function TeamsPage() {
   const filteredAdmins = subAdmins;
 
   // Guard: Super Admin only
-  if (session && session.role !== 'super_admin') {
+  if (!session) {
+    return null;
+  }
+
+  if (session.role !== 'super_admin') {
     return (
       <div className="max-w-2xl mx-auto mt-12 bg-white rounded-3xl border border-rose-200 p-8 shadow-sm text-center">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600 shadow-inner">
@@ -493,17 +497,6 @@ export default function TeamsPage() {
         </div>
       </div>
 
-      {/* Loading State */}
-      {!hasLoadedOnce && loading && subAdmins.length === 0 && <AdminTableSkeleton rows={4} columns={5} />}
-
-      {/* Loading State during filter/search */}
-      {hasLoadedOnce && loading && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-16 text-center shadow-xs flex flex-col items-center justify-center gap-2">
-          <Loader2 className="w-8 h-8 animate-spin text-slate-700" />
-          <span className="text-xs font-medium text-slate-500">Loading team members...</span>
-        </div>
-      )}
-
       {/* Error State */}
       {!loading && fetchError && (
         <div className="bg-rose-50 border border-rose-200 rounded-3xl p-8 text-center">
@@ -517,6 +510,30 @@ export default function TeamsPage() {
             Retry Loading
           </button>
         </div>
+      )}
+
+      {/* Loading Skeleton Cards */}
+      {!fetchError && loading && filteredAdmins.length === 0 && (
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false} loading={loading}>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-1">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-6 space-y-4 animate-pulse"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-200" />
+                  <div className="space-y-2 flex-1">
+                    <div className="h-4 bg-slate-200 rounded w-1/2" />
+                    <div className="h-3 bg-slate-100 rounded w-1/3" />
+                  </div>
+                </div>
+                <div className="h-14 bg-slate-50 rounded-2xl" />
+                <div className="h-6 bg-slate-100 rounded-lg w-2/3" />
+              </div>
+            ))}
+          </div>
+        </AdminTableShell>
       )}
 
       {/* Empty State */}
@@ -560,8 +577,8 @@ export default function TeamsPage() {
       )}
 
       {/* Responsive Teams Grid (Desktop: 2/3 cols; Mobile: 1 col) */}
-      {!loading && !fetchError && filteredAdmins.length > 0 && (
-        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false}>
+      {!fetchError && filteredAdmins.length > 0 && (
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} isTable={false} loading={loading}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 p-1">
           {filteredAdmins.map((admin) => {
             // Count granted module permissions

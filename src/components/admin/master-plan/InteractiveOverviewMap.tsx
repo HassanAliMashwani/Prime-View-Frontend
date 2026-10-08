@@ -20,6 +20,7 @@ interface InteractiveOverviewMapProps {
 export default function InteractiveOverviewMap({ session, blocks, onImageLoad }: InteractiveOverviewMapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
   const [mousePos, setMousePos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -71,6 +72,9 @@ export default function InteractiveOverviewMap({ session, blocks, onImageLoad }:
     >
       {/* Aspect Ratio Container (1567 x 1343) */}
       <div className="relative w-full pb-[85.71%]">
+        {!imageLoaded && (
+          <div className="absolute inset-0 bg-slate-100/90 animate-pulse rounded-3xl" />
+        )}
         {/* Base Map Image */}
         <Image
           src="/master-plan/Master Plan/Master Plan.png"
@@ -78,8 +82,11 @@ export default function InteractiveOverviewMap({ session, blocks, onImageLoad }:
           fill
           priority
           sizes="(max-width: 1280px) 100vw, 1280px"
-          className="object-contain pointer-events-none"
-          onLoad={() => onImageLoad?.()}
+          className={`object-contain pointer-events-none transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => {
+            setImageLoaded(true);
+            onImageLoad?.();
+          }}
         />
 
         {/* SVG Interactive Overlay */}
@@ -182,6 +189,7 @@ export default function InteractiveOverviewMap({ session, blocks, onImageLoad }:
                 );
               }
 
+              const isSummaryLoading = !summary;
               const officialTotal = summary?.totalCount ?? hoveredRegion.units;
               const reserved = summary?.reservedCount || 0;
               const booked = summary?.bookedCount || 0;
@@ -200,7 +208,13 @@ export default function InteractiveOverviewMap({ session, blocks, onImageLoad }:
                       </span>
                     </div>
                     <span className="text-[10px] font-bold uppercase bg-cyan-50 text-cyan-900 px-2 py-0.5 rounded-full border border-cyan-200 font-mono">
-                      {officialTotal > 0 ? `${officialTotal} Total Properties` : 'Proposed Land'}
+                      {isSummaryLoading ? (
+                        <span className="inline-block h-2.5 w-14 bg-cyan-200/80 rounded-xs animate-pulse" />
+                      ) : officialTotal > 0 ? (
+                        `${officialTotal} Total Properties`
+                      ) : (
+                        'Proposed Land'
+                      )}
                     </span>
                   </div>
 
@@ -208,19 +222,25 @@ export default function InteractiveOverviewMap({ session, blocks, onImageLoad }:
                     {hoveredRegion.name}
                   </h4>
 
-                  {officialTotal > 0 ? (
+                  {officialTotal > 0 || isSummaryLoading ? (
                     <div className="mt-3 grid grid-cols-3 gap-1.5 bg-slate-50 p-2 rounded-xl border border-slate-100 text-center">
                       <div className="bg-emerald-50/80 p-1.5 rounded-lg border border-emerald-100">
                         <div className="text-[9px] font-mono font-bold text-emerald-700 uppercase">Avail</div>
-                        <div className="text-sm font-bold text-emerald-900 font-mono">{available}</div>
+                        <div className="text-sm font-bold text-emerald-900 font-mono">
+                          {isSummaryLoading ? <span className="inline-block h-3.5 w-6 bg-emerald-200/80 rounded-xs animate-pulse" /> : available}
+                        </div>
                       </div>
                       <div className="bg-amber-50/80 p-1.5 rounded-lg border border-amber-100">
                         <div className="text-[9px] font-mono font-bold text-amber-700 uppercase">Rsvd</div>
-                        <div className="text-sm font-bold text-amber-900 font-mono">{reserved}</div>
+                        <div className="text-sm font-bold text-amber-900 font-mono">
+                          {isSummaryLoading ? <span className="inline-block h-3.5 w-6 bg-amber-200/80 rounded-xs animate-pulse" /> : reserved}
+                        </div>
                       </div>
                       <div className="bg-rose-50/80 p-1.5 rounded-lg border border-rose-100">
                         <div className="text-[9px] font-mono font-bold text-rose-700 uppercase">Booked</div>
-                        <div className="text-sm font-bold text-rose-900 font-mono">{booked}</div>
+                        <div className="text-sm font-bold text-rose-900 font-mono">
+                          {isSummaryLoading ? <span className="inline-block h-3.5 w-6 bg-rose-200/80 rounded-xs animate-pulse" /> : booked}
+                        </div>
                       </div>
                     </div>
                   ) : (

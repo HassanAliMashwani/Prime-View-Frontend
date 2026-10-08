@@ -15,8 +15,10 @@ export default function AdminPortalLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<AdminSession | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getActiveAdminSession();
+  });
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -26,15 +28,10 @@ export default function AdminPortalLayout({
     } else {
       setSession(active);
     }
-    setLoading(false);
   }, [router]);
 
-  if (loading) {
-    return <AdminPortalLayoutSkeleton />;
-  }
-
   if (!session) {
-    return null;
+    return <AdminPortalLayoutSkeleton />;
   }
 
   // Derive header title from pathname

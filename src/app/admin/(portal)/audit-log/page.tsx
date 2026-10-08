@@ -53,7 +53,7 @@ export default function AuditLogPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
   const [logs, setLogs] = useState<AuditEntry[]>(init?.logs || []);
   const [totalCount, setTotalCount] = useState(init?.total || 0);
@@ -272,12 +272,12 @@ export default function AuditLogPage() {
     );
   };
 
-  if (!hasLoadedOnce && loading && logs.length === 0) {
-    return <AdminAuditLogSkeleton />;
+  if (!session) {
+    return null;
   }
 
   // Super Admin Exclusive Access Check
-  if (session?.role !== 'super_admin') {
+  if (session.role !== 'super_admin') {
     return (
       <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
@@ -317,7 +317,12 @@ export default function AuditLogPage() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono font-bold px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl border border-slate-200">
-            {totalCount} Total Events
+            {loading && logs.length === 0 ? (
+              <span className="inline-block w-8 h-4 bg-slate-200 animate-pulse rounded align-middle" />
+            ) : (
+              totalCount
+            )}{' '}
+            Total Events
           </span>
           {session && (
             <button
@@ -401,7 +406,7 @@ export default function AuditLogPage() {
       </div>
 
       {/* Audit Log Table */}
-      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false}>
+      <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalCount} onPageChange={handlePageChange} isTable={false} loading={loading}>
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -416,15 +421,17 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-500">
-                    <div className="flex flex-col items-center justify-center gap-2">
-                      <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
-                      <span className="text-xs font-medium">Loading audit records...</span>
-                    </div>
-                  </td>
-                </tr>
+              {loading && logs.length === 0 ? (
+                [...Array(6)].map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-3.5 px-4"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                    <td className="py-3.5 px-4"><div className="h-4 w-48 bg-slate-200 rounded" /></td>
+                    <td className="py-3.5 px-4 text-right"><div className="h-4 w-12 bg-slate-200 rounded ml-auto" /></td>
+                  </tr>
+                ))
               ) : logs.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="py-8 text-center text-slate-400">
