@@ -196,7 +196,7 @@ export async function getAdminProfile(session: AdminSession): Promise<{
  */
 export async function updateAdminProfile(
   session: AdminSession,
-  data: { fullName?: string; email?: string; phone?: string; avatarUrl?: string },
+  data: { username?: string; fullName?: string; email?: string; phone?: string; avatarUrl?: string },
 ): Promise<{ ok: boolean; admin?: AdminProfileDetails; message?: string; error?: string }> {
   try {
     const res = await fetch(`${API_BASE_URL}/admin/profile`, {
@@ -217,6 +217,7 @@ export async function updateAdminProfile(
     if (body.admin) {
       const activeSession = getActiveAdminSession();
       if (activeSession) {
+        if (body.admin.username) activeSession.username = body.admin.username;
         if (body.admin.fullName) activeSession.fullName = body.admin.fullName;
         if (body.admin.email) activeSession.email = body.admin.email;
         if (body.admin.phone !== undefined) activeSession.phone = body.admin.phone;

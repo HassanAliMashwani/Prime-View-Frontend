@@ -22,6 +22,7 @@ export interface CreateSubAdminInput {
 }
 
 export interface UpdateSubAdminInput {
+  username?: string;
   fullName?: string;
   password?: string;
   status?: 'active' | 'suspended';

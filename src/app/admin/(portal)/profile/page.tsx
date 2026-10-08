@@ -67,6 +67,7 @@ export default function AdminProfilePage() {
   const [loading, setLoading] = useState(!init);
 
   // Editable Profile fields state
+  const [editUsername, setEditUsername] = useState('');
   const [editFullName, setEditFullName] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
@@ -107,6 +108,7 @@ export default function AdminProfilePage() {
           if (res.ok && res.admin) {
             setDetails(res.admin);
             setCache(`/profile:${s.adminId}`, res.admin);
+            setEditUsername(res.admin.username || s.username || '');
             setEditFullName(res.admin.fullName || s.fullName || '');
             setEditEmail(res.admin.email || (s.username ? `${s.username}@primeview.pk` : ''));
             setEditPhone(res.admin.phone || s.phone || '');
@@ -127,6 +129,7 @@ export default function AdminProfilePage() {
   // Update input defaults when details or session changes
   useEffect(() => {
     if (details) {
+      setEditUsername(details.username || '');
       setEditFullName(details.fullName || '');
       setEditEmail(details.email || '');
       setEditPhone(details.phone || '');
@@ -134,6 +137,7 @@ export default function AdminProfilePage() {
         setAvatar(details.avatarUrl);
       }
     } else if (session) {
+      setEditUsername(session.username || '');
       setEditFullName(session.fullName || '');
       setEditEmail(session.email || `${session.username}@primeview.pk`);
       setEditPhone(session.phone || '');
@@ -251,13 +255,19 @@ export default function AdminProfilePage() {
     }
   };
 
-  // Handle Profile Details submission (Name, Email, Phone editable; Admin ID immutable)
+  // Handle Profile Details submission (Username, Name, Email, Phone editable; Admin ID immutable)
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const trimmedUsername = editUsername.trim().toLowerCase().replace(/^@/, '');
     const trimmedName = editFullName.trim();
     const trimmedEmail = editEmail.trim();
     const trimmedPhone = editPhone.trim();
+
+    if (!trimmedUsername || trimmedUsername.length < 3) {
+      toast.error('Username must be at least 3 characters.');
+      return;
+    }
 
     if (!trimmedName || trimmedName.length < 2) {
       toast.error('Full name must be at least 2 characters.');
@@ -278,6 +288,7 @@ export default function AdminProfilePage() {
         isSave: true,
         fn: async () =>
           updateAdminProfile(session, {
+            username: trimmedUsername,
             fullName: trimmedName,
             email: trimmedEmail,
             phone: trimmedPhone,
@@ -287,6 +298,15 @@ export default function AdminProfilePage() {
 
       if (res.ok && res.admin) {
         setDetails(res.admin);
+        if (session) {
+          setSession({
+            ...session,
+            username: res.admin.username,
+            fullName: res.admin.fullName,
+            email: res.admin.email,
+            phone: res.admin.phone,
+          });
+        }
         setCache(`/profile:${session.adminId}`, res.admin);
         toast.success(res.message || 'Profile details updated successfully.');
       } else {
@@ -300,6 +320,7 @@ export default function AdminProfilePage() {
   };
 
   const handleResetProfileForm = () => {
+    setEditUsername(details?.username || session?.username || '');
     setEditFullName(details?.fullName || session?.fullName || '');
     setEditEmail(details?.email || (session?.username ? `${session.username}@primeview.pk` : ''));
     setEditPhone(details?.phone || session?.phone || '');
@@ -541,14 +562,14 @@ export default function AdminProfilePage() {
             </p>
           </div>
 
-          {/* Portal Handle (Read-Only) */}
+          {/* Portal Handle / Username (Updatable) */}
           <div className="bg-[#FAF9F5] p-4 rounded-2xl border border-black/[0.04] space-y-1">
             <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-[#6B7462]">
               <User className="w-3.5 h-3.5 text-[#43612B]" />
-              <span>Portal Handle</span>
+              <span>Username</span>
             </div>
             <p className="font-mono font-bold text-sm text-[#151914]">
-              @{username}
+              @{details?.username || username}
             </p>
             <p className="text-[10px] text-[#6B7462]">Auth login identifier</p>
           </div>
@@ -598,7 +619,7 @@ export default function AdminProfilePage() {
                     Edit Profile Details
                   </h2>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Update your full name, official contact email, and mobile phone number.
+                    Update your username, full name, official contact email, and mobile phone number.
                   </p>
                 </div>
               </div>
@@ -609,7 +630,7 @@ export default function AdminProfilePage() {
             </div>
 
             <form onSubmit={handleProfileSubmit} className="space-y-4">
-              {/* Row 1: Administrative ID (Immutable Read-Only) & Portal Handle */}
+              {/* Row 1: Administrative ID (Immutable Read-Only) & Username (Editable) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
@@ -628,19 +649,27 @@ export default function AdminProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                    <User className="w-3 h-3 text-slate-400" />
-                    <span>Portal Handle (Immutable)</span>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1">
+                      <User className="w-3 h-3 text-slate-500" />
+                      <span>Username / Handle</span>
+                      <span className="text-rose-500">*</span>
+                    </span>
+                    <span className="text-[10px] font-mono text-emerald-700 font-semibold bg-emerald-50 border border-emerald-200/60 px-1.5 py-0.5 rounded">Updatable</span>
                   </label>
-                  <input
-                    type="text"
-                    value={`@${username}`}
-                    disabled
-                    readOnly
-                    className="w-full px-3.5 py-2.5 bg-slate-100/90 border border-slate-200/90 rounded-xl text-xs font-mono font-bold text-slate-500 cursor-not-allowed select-none"
-                    title="Portal login handle cannot be modified"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-1">Primary authentication username.</p>
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs font-bold">@</span>
+                    <input
+                      type="text"
+                      value={editUsername}
+                      onChange={(e) => setEditUsername(e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, ''))}
+                      placeholder="username"
+                      required
+                      className="w-full pl-8 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-semibold text-slate-900 focus:outline-none focus:bg-white focus:border-slate-800 transition-colors"
+                      title="Update your unique portal login username"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Primary portal authentication login username.</p>
                 </div>
               </div>
 

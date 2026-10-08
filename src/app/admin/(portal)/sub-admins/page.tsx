@@ -345,6 +345,7 @@ export default function TeamsPage() {
     setEditingAdmin(admin);
     setEditForm({
       fullName: admin.fullName,
+      username: admin.username,
       status: admin.status,
       assignedBlocks: [...admin.assignedBlocks],
       permissions: { ...admin.permissions },
@@ -363,6 +364,7 @@ export default function TeamsPage() {
     // Filter out empty password so we don't accidentally blank it
     const payload: UpdateSubAdminInput = {
       fullName: editForm.fullName,
+      username: editForm.username?.trim().toLowerCase().replace(/^@/, ''),
       status: editForm.status,
       assignedBlocks: editForm.assignedBlocks,
       permissions: editForm.permissions,
@@ -379,7 +381,11 @@ export default function TeamsPage() {
     setEditSubmitting(false);
 
     if (!res.ok) {
-      setEditError(res.error || res.message || 'Failed to update sub-admin.');
+      if (res.error === 'USERNAME_TAKEN') {
+        setEditError('This username is already taken by another administrator.');
+      } else {
+        setEditError(res.error || res.message || 'Failed to update sub-admin.');
+      }
       return;
     }
 
@@ -1178,15 +1184,19 @@ export default function TeamsPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">
-                      Full Name *
+                      Username *
                     </label>
-                    <input
-                      type="text"
-                      required
-                      value={editForm.fullName || ''}
-                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
-                      className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-slate-50/50"
-                    />
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs font-bold">@</span>
+                      <input
+                        type="text"
+                        required
+                        value={editForm.username || ''}
+                        onChange={(e) => setEditForm({ ...editForm, username: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, '') })}
+                        className="w-full pl-7 pr-3 py-2.5 text-xs font-mono font-semibold rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-slate-50/50"
+                        placeholder="username"
+                      />
+                    </div>
                   </div>
 
                   <div>
@@ -1202,6 +1212,19 @@ export default function TeamsPage() {
                       <option value="suspended">Suspended (Access Revoked)</option>
                     </select>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editForm.fullName || ''}
+                    onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 bg-slate-50/50"
+                  />
                 </div>
 
                 <div>
