@@ -109,14 +109,14 @@ export default function ReservationsPage() {
     }
 
     const currentReq = ++reqIdRef.current;
-    const fetcher = async () => {
+    const fetcher = async (signal?: AbortSignal) => {
       return await getReservations(s, {
         search: srch,
         blockId: block,
         status: tab === 'active' ? 'active' : 'history',
         page: p,
         pageSize: PAGE_SIZE,
-      });
+      }, signal);
     };
 
     try {
@@ -154,14 +154,14 @@ export default function ReservationsPage() {
           const nextKey = `/reservations:${adminId}:page=${nextP}:size=${PAGE_SIZE}:search=${srch || ''}:block=${block}:status=${tab}`;
           if (!getCache(nextKey, false)) {
             enqueueLane2(
-              async () => {
+              async (signal) => {
                 const nextRes = await getReservations(s, {
                   search: srch,
                   blockId: block,
                   status: tab === 'active' ? 'active' : 'history',
                   page: nextP,
                   pageSize: PAGE_SIZE,
-                });
+                }, signal);
                 if (nextRes.ok) {
                   setCache(nextKey, { reservations: nextRes.reservations || [], total: nextRes.total || 0 });
                 }

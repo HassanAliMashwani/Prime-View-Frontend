@@ -161,8 +161,8 @@ function CustomersDirectoryContent() {
       }
     }
 
-    const fetcher = async () => {
-      return await getCustomersDirectory(currentSession, { page: pageParam, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
+    const fetcher = async (signal?: AbortSignal) => {
+      return await getCustomersDirectory(currentSession, { page: pageParam, pageSize: PAGE_SIZE, search: searchParam, status: statusParam }, signal);
     };
 
     try {
@@ -209,8 +209,8 @@ function CustomersDirectoryContent() {
           const nextKey = `/customers:${adminId}:page=${nextPage}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
           if (!getCache(nextKey, false)) {
             enqueueLane2(
-              async () => {
-                const nextRes = await getCustomersDirectory(currentSession, { page: nextPage, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
+              async (signal) => {
+                const nextRes = await getCustomersDirectory(currentSession, { page: nextPage, pageSize: PAGE_SIZE, search: searchParam, status: statusParam }, signal);
                 if (nextRes.ok) {
                   setCache(nextKey, { customers: nextRes.customers, total: nextRes.total || 0 });
                 }

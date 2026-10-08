@@ -18,7 +18,8 @@ export interface AuditFilterOptions {
  */
 export async function getAuditLogs(
   session: AdminSession,
-  filters?: AuditFilterOptions
+  filters?: AuditFilterOptions,
+  signal?: AbortSignal
 ): Promise<{
   ok: boolean;
   logs: AuditEntry[];
@@ -45,7 +46,8 @@ export async function getAuditLogs(
 
   const res = await apiGet<{ logs: AuditEntry[]; totalCount: number }>(
     endpoint,
-    session.token
+    session.token,
+    signal
   );
 
   if (!res.ok) {

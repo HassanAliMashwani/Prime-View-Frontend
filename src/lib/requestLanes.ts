@@ -68,6 +68,7 @@ class RequestLanesCoordinator {
   private screenInFlight = new Map<string, InFlightScreen>();
   private screenSequences = new Map<string, number>();
   private lane2InFlight = new Map<string, InFlightLane2>();
+  private lane2InFlightByScreen = new Map<string, AbortController>();
   private lane2Queue: QueuedLane2Task[] = [];
   private isProcessingLane2 = false;
   private nextTaskId = 1;
@@ -139,34 +140,14 @@ class RequestLanesCoordinator {
   /**
    * Lane 1: User is waiting to see or save.
    * - Starts immediately.
-   * - If a Lane 2 request is already in flight for the exact key, keep it and show its answer.
+   * - If a Lane 2 request is already in flight for the exact key, keep it and return its answer.
    * - Cancels only an older read request for that same screen whose answer would be discarded.
    * - Never cancels a save.
    */
   public async runLane1<T>(options: Lane1Options<T>): Promise<T> {
     const { screen, key, isSave = false, fn } = options;
 
-    // 1. Check if a Lane 2 request in flight is the EXACT resource/page/block user just opened
-    if (key && this.lane2InFlight.has(key)) {
-      const inFlight = this.lane2InFlight.get(key)!;
-      inFlight.isPromoted = true;
-
-      this.lane1ActiveCount++;
-      this.notifyListeners();
-
-      try {
-        const result = await inFlight.promise;
-        return result as T;
-      } finally {
-        this.lane1ActiveCount--;
-        this.notifyListeners();
-        if (this.isLane1Idle()) {
-          this.processLane2Queue();
-        }
-      }
-    }
-
-    // 2. Cancel only an older read request for the same screen whose answer would be discarded
+    // 1. Cancel only an older read request for the same screen whose answer would be discarded
     let currentSeq = 0;
     if (screen) {
       currentSeq = this.nextScreenSequence(screen);
@@ -177,9 +158,17 @@ class RequestLanesCoordinator {
           existing.abortController.abort();
         } catch { /* ignore */ }
       }
+      // Also abort any running Lane 2 background refresh for this same screen so it doesn't paint over Lane 1
+      const bgRefresh = this.lane2InFlightByScreen.get(screen);
+      if (bgRefresh) {
+        try {
+          bgRefresh.abort();
+        } catch { /* ignore */ }
+        this.lane2InFlightByScreen.delete(screen);
+      }
     }
 
-    // 3. Setup new request tracking
+    // 2. Setup new request tracking
     const abortController = new AbortController();
     const tracker: InFlightScreen = {
       abortController,
@@ -196,9 +185,46 @@ class RequestLanesCoordinator {
     this.notifyListeners();
 
     try {
-      const result = await fn(abortController.signal);
+      let result: T;
 
-      // If an older read request was discarded by a newer request on the same screen, throw or discard
+      // 3. Check if a Lane 2 request in flight is the EXACT resource/page/block user just opened
+      if (key && this.lane2InFlight.has(key)) {
+        const inFlight = this.lane2InFlight.get(key)!;
+        inFlight.isPromoted = true;
+
+        let reusedData: any;
+        try {
+          reusedData = await inFlight.promise;
+        } catch {
+          reusedData = undefined;
+        }
+
+        // If the promoted Lane 2 request returned valid data, reuse it;
+        // otherwise, fall back to executing fn directly so caller receives answer and draws it.
+        if (reusedData !== undefined && reusedData !== null) {
+          result = reusedData as T;
+        } else {
+          result = await fn(abortController.signal);
+        }
+      } else {
+        // If key is queued in Lane 2 waiting for Lane 1 to finish, dequeue it and execute immediately
+        if (key) {
+          const qIndex = this.lane2Queue.findIndex((t) => t.key === key);
+          if (qIndex !== -1) {
+            const [qTask] = this.lane2Queue.splice(qIndex, 1);
+            result = await fn(abortController.signal);
+            qTask.resolve(result);
+            if (tracker.isDiscarded && !isSave) {
+              throw new Error('REQUEST_SUPERSEDED');
+            }
+            return result;
+          }
+        }
+
+        result = await fn(abortController.signal);
+      }
+
+      // If an older read request was discarded by a newer request on the same screen, throw
       if (tracker.isDiscarded && !isSave) {
         throw new Error('REQUEST_SUPERSEDED');
       }
@@ -287,6 +313,10 @@ class RequestLanesCoordinator {
         const startSeq = screen ? this.getScreenSequence(screen) : 0;
         const abortController = new AbortController();
 
+        if (screen && isRefresh) {
+          this.lane2InFlightByScreen.set(screen, abortController);
+        }
+
         const promise = (async () => {
           return await fn(abortController.signal);
         })();
@@ -302,10 +332,11 @@ class RequestLanesCoordinator {
         try {
           const result = await promise;
 
-          // For 30s refresh: if screen sequence advanced while refresh ran (user searched/filtered/paged), discard refresh!
+          // For 30s refresh: if screen sequence advanced while refresh ran (user searched/filtered/paged),
+          // OR if Lane 1 is currently busy on this screen, OR if aborted: discard refresh!
           if (isRefresh && screen) {
             const currentSeq = this.getScreenSequence(screen);
-            if (currentSeq > startSeq) {
+            if (currentSeq > startSeq || this.isScreenLane1Busy(screen) || abortController.signal.aborted) {
               // Discard answer: user is waiting on or has newer data
               resolve(undefined);
               continue;
@@ -316,6 +347,9 @@ class RequestLanesCoordinator {
         } catch (err) {
           reject(err);
         } finally {
+          if (screen && isRefresh && this.lane2InFlightByScreen.get(screen) === abortController) {
+            this.lane2InFlightByScreen.delete(screen);
+          }
           if (key) {
             this.lane2InFlight.delete(key);
           }

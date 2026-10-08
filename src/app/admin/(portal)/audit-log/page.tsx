@@ -137,8 +137,8 @@ export default function AuditLogPage() {
       filters.actorId = actor;
     }
 
-    const fetcher = async () => {
-      return await getAuditLogs(currentSession, filters);
+    const fetcher = async (signal?: AbortSignal) => {
+      return await getAuditLogs(currentSession, filters, signal);
     };
 
     try {
@@ -180,8 +180,8 @@ export default function AuditLogPage() {
               page: nextP,
             };
             enqueueLane2(
-              async () => {
-                const nextRes = await getAuditLogs(currentSession, nextFilters);
+              async (signal) => {
+                const nextRes = await getAuditLogs(currentSession, nextFilters, signal);
                 if (nextRes.ok) {
                   setCache(nextKey, { logs: nextRes.logs || [], total: nextRes.totalCount || 0 });
                 }

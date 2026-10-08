@@ -147,7 +147,7 @@ function PaymentsContent() {
         const bookingId = (activeSched as any)?.bookingId || (activeSched as any)?.id;
         const res = await runLane1({
           screen: 'member-payments-balloon',
-          fn: async () => getBalloonPreview(formPlotId, numAmt, bookingId),
+          fn: async (signal) => getBalloonPreview(formPlotId, numAmt, bookingId, signal),
         });
         if (res.ok && res.data) {
           setPreviewData(res.data);
@@ -171,10 +171,10 @@ function PaymentsContent() {
   const loadReceipts = useCallback(async (isBackground = false) => {
     if (profile?.id) {
       const runner = isBackground
-        ? (fn: () => Promise<any>) => runLane2({ screen: 'member-payments-receipts', isRefresh: true, fn })
-        : (fn: () => Promise<any>) => runLane1({ screen: 'member-payments-receipts', fn });
+        ? (fn: (signal?: AbortSignal) => Promise<any>) => runLane2({ screen: 'member-payments-receipts', isRefresh: true, fn })
+        : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: 'member-payments-receipts', fn });
       try {
-        const data = await runner(async () => getCustomerReceipts(profile.id));
+        const data = await runner(async (signal) => getCustomerReceipts(profile.id, signal));
         if (data) {
           setReceipts(data);
         }

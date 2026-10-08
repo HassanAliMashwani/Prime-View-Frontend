@@ -53,11 +53,11 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         await runLane1({
           screen: 'member-dashboard',
           key: 'member-dashboard-data',
-          fn: async () => {
+          fn: async (signal) => {
             const [profileRes, plotsRes, schedulesRes] = await Promise.all([
-              getCustomerProfile(),
-              getMyPlots(),
-              getPaymentSchedule(),
+              getCustomerProfile(signal),
+              getMyPlots(signal),
+              getPaymentSchedule(undefined, signal),
             ]);
 
             if (profileRes.error === 'UNAUTHORIZED' || plotsRes.error === 'UNAUTHORIZED') {
@@ -84,11 +84,11 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           screen: 'member-dashboard',
           key: 'member-dashboard-data',
           isRefresh: true,
-          fn: async () => {
+          fn: async (signal) => {
             const [profileRes, plotsRes, schedulesRes] = await Promise.all([
-              getCustomerProfile(),
-              getMyPlots(),
-              getPaymentSchedule(),
+              getCustomerProfile(signal),
+              getMyPlots(signal),
+              getPaymentSchedule(undefined, signal),
             ]);
 
             if (profileRes.error === 'UNAUTHORIZED' || plotsRes.error === 'UNAUTHORIZED') {
@@ -114,8 +114,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         await runLane1({
           screen: 'member-profile',
           key: 'member-profile-data',
-          fn: async () => {
-            const res = await getCustomerProfile();
+          fn: async (signal) => {
+            const res = await getCustomerProfile(signal);
             if (res.ok && res.data) {
               set({ profile: res.data });
             }
@@ -132,8 +132,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           screen: 'member-profile',
           key: 'member-profile-data',
           isRefresh: true,
-          fn: async () => {
-            const res = await getCustomerProfile();
+          fn: async (signal) => {
+            const res = await getCustomerProfile(signal);
             if (res.ok && res.data) {
               set({ profile: res.data });
             }
@@ -154,8 +154,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         await runLane1({
           screen: 'member-properties',
           key: 'member-plots-data',
-          fn: async () => {
-            const res = await getMyPlots();
+          fn: async (signal) => {
+            const res = await getMyPlots(signal);
             if (res.ok) {
               set((state) => ({
                 plots: reconcileItems(state.plots, res.data || [], (p) => p.id),
@@ -177,8 +177,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           screen: 'member-properties',
           key: 'member-plots-data',
           isRefresh: true,
-          fn: async () => {
-            const res = await getMyPlots();
+          fn: async (signal) => {
+            const res = await getMyPlots(signal);
             if (res.ok && res.data) {
               set((state) => ({
                 plots: reconcileItems(state.plots, res.data || [], (p) => p.id),
@@ -201,10 +201,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         await runLane1({
           screen: 'member-payments',
           key: `member-payments-${filterPlotId || 'all'}`,
-          fn: async () => {
+          fn: async (signal) => {
             const [schedRes, histRes] = await Promise.all([
-              getPaymentSchedule(filterPlotId),
-              getPaymentHistory(filterPlotId),
+              getPaymentSchedule(filterPlotId, signal),
+              getPaymentHistory(filterPlotId, signal),
             ]);
             set((state) => ({
               schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
@@ -224,10 +224,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           screen: 'member-payments',
           key: `member-payments-${filterPlotId || 'all'}`,
           isRefresh: true,
-          fn: async () => {
+          fn: async (signal) => {
             const [schedRes, histRes] = await Promise.all([
-              getPaymentSchedule(filterPlotId),
-              getPaymentHistory(filterPlotId),
+              getPaymentSchedule(filterPlotId, signal),
+              getPaymentHistory(filterPlotId, signal),
             ]);
             set((state) => ({
               schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
@@ -250,8 +250,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         await runLane1({
           screen: 'member-payment-history',
           key: `member-payment-history-${filterPlotId || 'all'}`,
-          fn: async () => {
-            const histRes = await getPaymentHistory(filterPlotId);
+          fn: async (signal) => {
+            const histRes = await getPaymentHistory(filterPlotId, signal);
             set((state) => ({
               transactions: histRes.data || [],
               isLoading: false,
@@ -269,8 +269,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           screen: 'member-payment-history',
           key: `member-payment-history-${filterPlotId || 'all'}`,
           isRefresh: true,
-          fn: async () => {
-            const histRes = await getPaymentHistory(filterPlotId);
+          fn: async (signal) => {
+            const histRes = await getPaymentHistory(filterPlotId, signal);
             set((state) => ({
               transactions: histRes.data || [],
             }));
@@ -291,8 +291,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
         await runLane1({
           screen: 'member-documents',
           key: 'member-documents',
-          fn: async () => {
-            const res = await getMyDocuments();
+          fn: async (signal) => {
+            const res = await getMyDocuments(signal);
             set((state) => ({
               documents: reconcileItems(state.documents, res.data || [], (d) => d.plotId),
               isLoading: false,
@@ -310,8 +310,8 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           screen: 'member-documents',
           key: 'member-documents',
           isRefresh: true,
-          fn: async () => {
-            const res = await getMyDocuments();
+          fn: async (signal) => {
+            const res = await getMyDocuments(signal);
             set((state) => ({
               documents: reconcileItems(state.documents, res.data || [], (d) => d.plotId),
             }));

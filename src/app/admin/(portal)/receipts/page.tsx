@@ -140,8 +140,8 @@ export default function AdminReceiptsPage() {
       }
 
       const currentReq = ++reqIdRef.current;
-      const fetcher = async () => {
-        return await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
+      const fetcher = async (signal?: AbortSignal) => {
+        return await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search, signal);
       };
       
       try {
@@ -175,8 +175,8 @@ export default function AdminReceiptsPage() {
             const nextKey = `/receipts:${adminId}:page=${nextP}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
             if (!getCache(nextKey, false)) {
               enqueueLane2(
-                async () => {
-                  const nextRes = await getAdminReceipts(currentSession, st, nextP, PAGE_SIZE, search);
+                async (signal) => {
+                  const nextRes = await getAdminReceipts(currentSession, st, nextP, PAGE_SIZE, search, signal);
                   if (nextRes.ok) {
                     setCache(nextKey, { receipts: nextRes.receipts || [], totalCount: nextRes.totalCount || 0 });
                   }
@@ -257,7 +257,7 @@ export default function AdminReceiptsPage() {
     try {
       const res = await runLane1({
         screen: 'receipt-slip',
-        fn: async () => getReceiptFileUrl(receiptId),
+        fn: async (signal) => getReceiptFileUrl(receiptId, signal),
       });
       if (res.ok && res.fileUrl) {
         setPreviewImage(res.fileUrl);

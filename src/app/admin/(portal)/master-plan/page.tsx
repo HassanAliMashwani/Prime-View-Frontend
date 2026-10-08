@@ -49,19 +49,19 @@ export default function MasterPlanPage() {
 
   const loadBlocks = useCallback(async (s: AdminSession, isBackground = false) => {
     const runner = isBackground
-      ? (fn: () => Promise<any>) => runLane2({ screen: 'master-plan-overview', isRefresh: true, fn })
-      : (fn: () => Promise<any>) => runLane1({ screen: 'master-plan-overview', fn });
+      ? (fn: (signal?: AbortSignal) => Promise<any>) => runLane2({ screen: 'master-plan-overview', isRefresh: true, fn })
+      : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: 'master-plan-overview', fn });
 
     try {
-      await runner(async () => {
-        const res = await getAdminMasterPlanBlocks(s);
-        if (res.ok) {
-          setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
-          setCache(`/master-plan:${s.adminId}`, res.blocks);
-        }
+      const res = await runner(async (signal) => {
+        return await getAdminMasterPlanBlocks(s, signal);
       });
+      if (res && res.ok) {
+        setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
+        setCache(`/master-plan:${s.adminId}`, res.blocks);
+      }
     } catch {
-      console.error('request failed');
+      // request superseded or failed; do not paint
     } finally {
       setLoading(false);
     }
@@ -106,8 +106,8 @@ export default function MasterPlanPage() {
     // Queue block loop tasks into Lane 2 (starts only while Lane 1 is idle, continues after Lane 1 returns)
     for (const blockId of allowedBlocks) {
       const cacheKey = `/master-plan/${blockId}:${adminId}`;
-      enqueueLane2(async () => {
-        const res = await getAdminBlockPlots(session, blockId);
+      enqueueLane2(async (signal) => {
+        const res = await getAdminBlockPlots(session, blockId, undefined, signal);
         if (res.ok && res.block && res.plots) {
           setCache(cacheKey, { block: res.block, plots: res.plots });
         }
@@ -116,6 +116,7 @@ export default function MasterPlanPage() {
           const img = new window.Image();
           img.src = config.imageSrc;
         }
+        return res;
       }, cacheKey);
     }
   }, [imageLoaded, session]);

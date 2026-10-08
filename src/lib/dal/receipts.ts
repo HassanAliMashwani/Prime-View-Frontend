@@ -57,13 +57,13 @@ export async function submitPaymentReceipt(
   return { ok: true, receipt: cleanReceiptDate(receipt) };
 }
 
-export async function getBalloonPreview(plotId: string, amount: number, bookingId?: string) {
+export async function getBalloonPreview(plotId: string, amount: number, bookingId?: string, signal?: AbortSignal) {
   const token = getMemberToken();
   const params = new URLSearchParams();
   if (plotId) params.set('plotId', plotId);
   if (bookingId) params.set('bookingId', bookingId);
   params.set('amount', String(amount));
-  const res = await apiGet<any>(`/receipts/balloon-preview?${params.toString()}`, token || undefined);
+  const res = await apiGet<any>(`/receipts/balloon-preview?${params.toString()}`, token || undefined, signal);
   return res;
 }
 
@@ -79,9 +79,9 @@ function cleanReceiptDate(r: any): any {
  * Get all receipts submitted by the authenticated customer.
  * Calls backend GET /receipts/me.
  */
-export async function getCustomerReceipts(_customerId?: string): Promise<ReceiptSubmission[]> {
+export async function getCustomerReceipts(_customerId?: string, signal?: AbortSignal): Promise<ReceiptSubmission[]> {
   const token = getMemberToken();
-  const res = await apiGet<{ receipts: ReceiptSubmission[] }>('/receipts/me', token || undefined);
+  const res = await apiGet<{ receipts: ReceiptSubmission[] }>('/receipts/me', token || undefined, signal);
   if (!res.ok || !res.data) {
     return [];
   }
@@ -98,7 +98,8 @@ export async function getAdminReceipts(
   statusFilter?: ReceiptStatus | 'all',
   page?: number,
   pageSize?: number,
-  search?: string
+  search?: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; receipts?: ReceiptSubmission[]; totalCount?: number; error?: string; message?: string }> {
   const queryParams = new URLSearchParams();
   if (statusFilter && statusFilter !== ('all' as any)) queryParams.set('status', statusFilter);
@@ -109,7 +110,11 @@ export async function getAdminReceipts(
   const queryString = queryParams.toString();
   const endpoint = queryString ? `/receipts?${queryString}` : '/receipts';
 
-  const res = await apiGet<{ receipts: ReceiptSubmission[]; totalCount?: number; total?: number }>(endpoint, session.token || getAdminToken() || undefined);
+  const res = await apiGet<{ receipts: ReceiptSubmission[]; totalCount?: number; total?: number }>(
+    endpoint,
+    session.token || getAdminToken() || undefined,
+    signal
+  );
 
   if (!res.ok) {
     return {
@@ -319,12 +324,14 @@ export async function uploadReceiptFileToStorage(
  * Calls backend GET /receipts/:id/file.
  */
 export async function getReceiptFileUrl(
-  receiptId: string
+  receiptId: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; fileUrl?: string; error?: string }> {
   const token = getAdminToken() || getMemberToken();
   const res = await apiGet<{ ok: boolean; receiptFileUrl: string }>(
     `/receipts/${receiptId}/file`,
-    token || undefined
+    token || undefined,
+    signal
   );
 
   if (!res.ok || !res.data?.receiptFileUrl) {

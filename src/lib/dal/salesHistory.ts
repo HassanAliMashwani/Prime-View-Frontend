@@ -72,7 +72,8 @@ const emptyKpis: SalesHistoryKpis = {
 
 export async function getSalesHistory(
   session: AdminSession,
-  filters: SalesHistoryFilters = {}
+  filters: SalesHistoryFilters = {},
+  signal?: AbortSignal
 ): Promise<SalesHistoryResult> {
   try {
     const params = new URLSearchParams();
@@ -96,6 +97,7 @@ export async function getSalesHistory(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session.token}`,
       },
+      signal,
     });
 
     if (!res.ok) {

@@ -113,11 +113,11 @@ export default function ContentCMSPage() {
     const fetchPageSize = isLoadMore ? PAGE_SIZE : p * PAGE_SIZE;
     const cacheKey = `/content:${section}:${currentSession.adminId}`;
 
-    const fetcher = async () => {
+    const fetcher = async (signal?: AbortSignal) => {
       return await getContentBlocks(currentSession, section, {
         page: fetchPage,
         pageSize: fetchPageSize
-      });
+      }, signal);
     };
 
     try {

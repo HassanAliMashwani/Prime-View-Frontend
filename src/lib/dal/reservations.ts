@@ -21,7 +21,8 @@ export async function getReservations(
     search?: string;
     page?: number;
     pageSize?: number;
-  }
+  },
+  signal?: AbortSignal
 ): Promise<{
   ok: boolean;
   reservations: ReservationWithConflict[];
@@ -37,7 +38,7 @@ export async function getReservations(
   if (filters?.page) query.set('page', String(filters.page));
   if (filters?.pageSize) query.set('pageSize', String(filters.pageSize));
 
-  const res = await apiGet<any>(`/reservations?${query.toString()}`, session.token);
+  const res = await apiGet<any>(`/reservations?${query.toString()}`, session.token, signal);
 
   if (!res.ok) {
     return {

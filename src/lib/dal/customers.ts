@@ -182,14 +182,15 @@ export function verifyPlotRegistered(plotId: string): { exists: boolean; plot?: 
  */
 export async function searchCustomers(
   session: AdminSession,
-  query: string
+  query: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; customers: CustomerDisambiguation[]; error?: string; message?: string }> {
   const q = query.trim().toLowerCase();
   if (!q) {
     return { ok: true, customers: [] };
   }
 
-  const res = await apiGet<any>(`/customers?search=${encodeURIComponent(q)}&pageSize=10`, session?.token);
+  const res = await apiGet<any>(`/customers?search=${encodeURIComponent(q)}&pageSize=10`, session?.token, signal);
   if (!res.ok || !res.data || !res.data.customers) {
     return { ok: false, customers: [], error: res.error, message: res.error };
   }
@@ -311,7 +312,7 @@ export async function addBookingToCustomer(
 /**
  * Fetch profile for the currently logged-in customer.
  */
-export async function getCustomerProfile(): Promise<{
+export async function getCustomerProfile(signal?: AbortSignal): Promise<{
   ok: boolean;
   data?: Customer;
   error?: string;
@@ -323,7 +324,7 @@ export async function getCustomerProfile(): Promise<{
 
   const cacheKey = `/customers/${session.customerId}`;
   return fetchWith60sCache(cacheKey, async () => {
-    const res = await apiGet<Customer>(`/customers/${session.customerId}`, session.token);
+    const res = await apiGet<Customer>(`/customers/${session.customerId}`, session.token, signal);
     if (!res.ok || !res.data) {
       return { ok: false, error: res.error || 'NOT_FOUND' };
     }
@@ -429,7 +430,8 @@ export async function resetCustomerPassword(
 
 export async function getCustomersDirectory(
   session: AdminSession,
-  params?: { page?: number; pageSize?: number; search?: string; status?: string }
+  params?: { page?: number; pageSize?: number; search?: string; status?: string },
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; customers: CustomerDirectoryEntry[]; total?: number; page?: number; pageSize?: number; error?: string; message?: string }> {
   const isSuper = session.role === 'super_admin';
   const hasViewPerm = Boolean(
@@ -452,7 +454,7 @@ export async function getCustomersDirectory(
   if (params?.status) queryParams.append('status', params.status);
 
   const path = `/customers?${queryParams.toString()}`;
-  const res = await apiGet<any>(path, session?.token);
+  const res = await apiGet<any>(path, session?.token, signal);
   if (!res.ok || !res.data) {
     return {
       ok: false,
@@ -511,9 +513,10 @@ export async function getCustomersDirectory(
  */
 export async function getAdminCustomerById(
   session: AdminSession,
-  customerId: string
+  customerId: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; data?: any; error?: string }> {
-  const res = await apiGet<any>(`/customers/${customerId}`, session?.token);
+  const res = await apiGet<any>(`/customers/${customerId}`, session?.token, signal);
   if (!res.ok || !res.data) {
     return { ok: false, error: res.error || 'Failed to fetch customer.' };
   }

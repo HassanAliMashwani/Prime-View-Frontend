@@ -144,13 +144,13 @@ export default function TeamsPage() {
 
     const currentReq = ++reqIdRef.current;
     setFetchError(null);
-    const fetcher = async () => {
+    const fetcher = async (signal?: AbortSignal) => {
       return await getSubAdmins(currentSession, {
         search,
         status: st,
         page: p,
         pageSize: PAGE_SIZE
-      });
+      }, signal);
     };
 
     try {
@@ -188,13 +188,13 @@ export default function TeamsPage() {
           const nextKey = `/sub-admins:${adminId}:page=${nextP}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
           if (!getCache(nextKey, false)) {
             enqueueLane2(
-              async () => {
+              async (signal) => {
                 const nextRes = await getSubAdmins(currentSession, {
                   search,
                   status: st,
                   page: nextP,
                   pageSize: PAGE_SIZE,
-                });
+                }, signal);
                 if (nextRes.ok) {
                   setCache(nextKey, { subAdmins: nextRes.subAdmins || [], total: nextRes.total || 0 });
                 }

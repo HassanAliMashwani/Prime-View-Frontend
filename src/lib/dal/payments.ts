@@ -34,23 +34,24 @@ export interface PaymentTransaction {
   transactionRef?: string;
 }
 
-export async function getMemberRawPayments(token: string, customerId: string): Promise<any[]> {
+export async function getMemberRawPayments(token: string, customerId: string, signal?: AbortSignal): Promise<any[]> {
   const cacheKey = `/me/payments:${customerId}`;
   return fetchWith60sCache(cacheKey, async () => {
-    const paymentsRes = await apiGet<any[]>('/me/payments', token);
+    const paymentsRes = await apiGet<any[]>('/me/payments', token, signal);
     return Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
   });
 }
 
 export async function getPaymentSchedule(
-  plotId?: string
+  plotId?: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; data: PlotPaymentSchedule[]; error?: string }> {
   try {
     const session = requireMemberSession();
 
     const [plotsData, paymentsData] = await Promise.all([
-      getMemberRawPlots(session.token, session.customerId),
-      getMemberRawPayments(session.token, session.customerId),
+      getMemberRawPlots(session.token, session.customerId, signal),
+      getMemberRawPayments(session.token, session.customerId, signal),
     ]);
 
     const allPayments: any[] = Array.isArray(paymentsData) ? paymentsData : [];
@@ -133,14 +134,15 @@ export async function getPaymentSchedule(
 }
 
 export async function getPaymentHistory(
-  filterPlotId?: string
+  filterPlotId?: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; data: PaymentTransaction[]; error?: string }> {
   try {
     const session = requireMemberSession();
 
     const [plotsData, paymentsData] = await Promise.all([
-      getMemberRawPlots(session.token, session.customerId),
-      getMemberRawPayments(session.token, session.customerId),
+      getMemberRawPlots(session.token, session.customerId, signal),
+      getMemberRawPayments(session.token, session.customerId, signal),
     ]);
 
     const plots = Array.isArray(plotsData) ? plotsData : [];

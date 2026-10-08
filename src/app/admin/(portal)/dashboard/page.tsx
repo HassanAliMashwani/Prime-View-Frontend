@@ -77,35 +77,36 @@ export default function AdminDashboardPage() {
 
     const currentReq = ++chartReqIdRef.current;
     const runner = isBackground
-      ? (fn: () => Promise<any>) => runLane2({ screen: 'admin-dashboard-chart', isRefresh: true, fn })
-      : (fn: () => Promise<any>) => runLane1({ screen: 'admin-dashboard-chart', key, fn });
+      ? (fn: (signal?: AbortSignal) => Promise<any>) => runLane2({ screen: 'admin-dashboard-chart', isRefresh: true, fn })
+      : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: 'admin-dashboard-chart', key, fn });
 
     try {
-      await runner(async () => {
-        const res = await getInventoryMonthlyHistory(range, activeSession.token);
-        if (currentReq !== chartReqIdRef.current) return;
-        if (res.ok && res.monthly) {
-          setMonthlyPoints(res.monthly);
-          setCache(key, res.monthly);
+      const res = await runner(async (signal) => {
+        return await getInventoryMonthlyHistory(range, activeSession.token, signal);
+      });
+      if (!res || currentReq !== chartReqIdRef.current) return;
+      if (res.ok && res.monthly) {
+        setMonthlyPoints(res.monthly);
+        setCache(key, res.monthly);
 
-          // Lane 2 background prefetch of other two chart ranges while lane 1 is idle
-          const ALL_RANGES: TimeRange[] = ['6_months', '1_year', 'all_time'];
-          const otherRanges = ALL_RANGES.filter((r) => r !== range);
-          for (const otherRange of otherRanges) {
-            const otherKey = getChartCacheKey(adminId, otherRange);
-            if (!getCache(otherKey, false)) {
-              enqueueLane2(async () => {
-                const otherRes = await getInventoryMonthlyHistory(otherRange, activeSession.token);
-                if (otherRes.ok && otherRes.monthly) {
-                  setCache(otherKey, otherRes.monthly);
-                }
-              }, otherKey);
-            }
+        // Lane 2 background prefetch of other two chart ranges while lane 1 is idle
+        const ALL_RANGES: TimeRange[] = ['6_months', '1_year', 'all_time'];
+        const otherRanges = ALL_RANGES.filter((r) => r !== range);
+        for (const otherRange of otherRanges) {
+          const otherKey = getChartCacheKey(adminId, otherRange);
+          if (!getCache(otherKey, false)) {
+            enqueueLane2(async (sig) => {
+              const otherRes = await getInventoryMonthlyHistory(otherRange, activeSession.token, sig);
+              if (otherRes.ok && otherRes.monthly) {
+                setCache(otherKey, otherRes.monthly);
+              }
+              return otherRes;
+            }, otherKey);
           }
         }
-      });
+      }
     } catch {
-      // non-blocking
+      // request superseded or failed
     } finally {
       if (currentReq === chartReqIdRef.current) {
         setChartLoading(false);
@@ -115,26 +116,30 @@ export default function AdminDashboardPage() {
 
   const loadData = useCallback(async (activeSession: AdminSession, isBackground = false) => {
     const runner = isBackground
-      ? (fn: () => Promise<any>) => runLane2({ screen: 'admin-dashboard', isRefresh: true, fn })
-      : (fn: () => Promise<any>) => runLane1({ screen: 'admin-dashboard', fn });
+      ? (fn: (signal?: AbortSignal) => Promise<any>) => runLane2({ screen: 'admin-dashboard', isRefresh: true, fn })
+      : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: 'admin-dashboard', fn });
 
     try {
-      await runner(async () => {
+      const res = await runner(async (signal) => {
         const [blockRes, resRes] = await Promise.all([
-          getAdminMasterPlanBlocks(activeSession),
-          getReservations(activeSession),
+          getAdminMasterPlanBlocks(activeSession, signal),
+          getReservations(activeSession, undefined, signal),
         ]);
+        return { blockRes, resRes };
+      });
 
-        if (blockRes.ok) setBlocks((prev) => reconcileItems(prev, blockRes.blocks, (b) => b.id));
-        if (resRes.ok) setReservations((prev) => reconcileItems(prev, resRes.reservations, (r) => r.id));
-        
-        setCache(`/dashboard:${activeSession.adminId}`, {
-          blocks: blockRes.ok ? blockRes.blocks : [],
-          reservations: resRes.ok ? resRes.reservations : [],
-        });
+      if (!res) return;
+      const { blockRes, resRes } = res;
+
+      if (blockRes.ok) setBlocks((prev) => reconcileItems(prev, blockRes.blocks, (b) => b.id));
+      if (resRes.ok) setReservations((prev) => reconcileItems(prev, resRes.reservations, (r) => r.id));
+      
+      setCache(`/dashboard:${activeSession.adminId}`, {
+        blocks: blockRes.ok ? blockRes.blocks : [],
+        reservations: resRes.ok ? resRes.reservations : [],
       });
     } catch {
-      console.error('request failed');
+      // request superseded or failed; do not paint
     } finally {
       setLoading(false);
     }

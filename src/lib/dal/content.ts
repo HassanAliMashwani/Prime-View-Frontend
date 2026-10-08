@@ -9,7 +9,8 @@ import { clearCachePrefix } from './apiCache';
 export async function getContentBlocks(
   session: AdminSession,
   section?: ContentSection,
-  filters?: { page?: number; pageSize?: number }
+  filters?: { page?: number; pageSize?: number },
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; blocks: ContentBlock[]; total?: number; page?: number; pageSize?: number; error?: string }> {
   const queryParams = new URLSearchParams();
   if (section) queryParams.set('section', section);
@@ -17,7 +18,7 @@ export async function getContentBlocks(
   if (filters?.pageSize) queryParams.set('pageSize', String(filters.pageSize));
 
   const queryStr = queryParams.toString() ? `?${queryParams.toString()}` : '';
-  const res = await apiGet<any>(`/content${queryStr}`, session.token);
+  const res = await apiGet<any>(`/content${queryStr}`, session.token, signal);
 
   if (!res.ok) {
     return { ok: false, blocks: [], error: res.error || 'FETCH_CONTENT_FAILED' };

@@ -180,27 +180,29 @@ function BlockPlotsContent() {
 
   const loadPlots = useCallback(async (s: AdminSession, isBackground = false) => {
     const runner = isBackground
-      ? (fn: () => Promise<any>) => runLane2({ screen: `block-${blockId}`, isRefresh: true, fn })
-      : (fn: () => Promise<any>) => runLane1({ screen: `block-${blockId}`, key: `/master-plan/${blockId}:${s.adminId}`, fn });
+      ? (fn: (signal?: AbortSignal) => Promise<any>) => runLane2({ screen: `block-${blockId}`, isRefresh: true, fn })
+      : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: `block-${blockId}`, key: `/master-plan/${blockId}:${s.adminId}`, fn });
 
     try {
-      await runner(async () => {
-        const res = await getAdminBlockPlots(s, blockId);
-
-        if (!res.ok) {
-          if (res.error === 'OUT_OF_SCOPE') {
-            setOutOfScope(true);
-          }
-        } else {
-          setBlock(res.block || null);
-          setPlots((prev) => reconcileItems(prev, res.plots || [], (p) => p.id));
-          if (res.block && res.plots) {
-            setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
-          }
-        }
+      const res = await runner(async (signal) => {
+        return await getAdminBlockPlots(s, blockId, undefined, signal);
       });
+
+      if (!res) return;
+
+      if (!res.ok) {
+        if (res.error === 'OUT_OF_SCOPE') {
+          setOutOfScope(true);
+        }
+      } else {
+        setBlock(res.block || null);
+        setPlots((prev) => reconcileItems(prev, res.plots || [], (p) => p.id));
+        if (res.block && res.plots) {
+          setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
+        }
+      }
     } catch {
-      console.error('request failed');
+      // request superseded or failed; do not paint
     } finally {
       setLoading(false);
     }
@@ -259,8 +261,8 @@ function BlockPlotsContent() {
           runLane2({
             screen: `block-plot-${targetPlotId}`,
             isRefresh: true,
-            fn: async () => {
-              const res = await getAdminPlotDetails(s, targetPlotId);
+            fn: async (signal) => {
+              const res = await getAdminPlotDetails(s, targetPlotId, signal);
               if (activeSelectedPlotIdRef.current !== targetPlotId) return;
               if (res.ok && res.plot) {
                 setSelectedPlot(res.plot);
@@ -329,7 +331,10 @@ function BlockPlotsContent() {
     const s = getActiveAdminSession();
     if (s) {
       const targetPlotId = plot.id;
-      getAdminPlotDetails(s, targetPlotId).then((res) => {
+      runLane1({
+        screen: 'block-plot-details',
+        fn: async (signal) => getAdminPlotDetails(s, targetPlotId, signal),
+      }).then((res) => {
         // Drop response completely if the user closed the drawer or switched plots while fetch was in flight
         if (activeSelectedPlotIdRef.current !== targetPlotId) {
           return;
@@ -341,8 +346,8 @@ function BlockPlotsContent() {
           if (res.booking) setSelectedPlotBooking(res.booking);
         }
         setIsLoadingPlotDetails(false);
-      }).catch(() => {
-        if (activeSelectedPlotIdRef.current === targetPlotId) {
+      }).catch((err) => {
+        if (err?.message !== 'REQUEST_SUPERSEDED' && activeSelectedPlotIdRef.current === targetPlotId) {
           setIsLoadingPlotDetails(false);
         }
       });

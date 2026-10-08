@@ -28,7 +28,7 @@ const inFlightBlocks = new Map<string, Promise<{ ok: boolean; blocks: BlockSumma
  * Sub Admins strictly see their assigned blocks (Exception 5.4).
  * Cached for 60 seconds with in-flight request deduplication.
  */
-export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
+export async function getAdminMasterPlanBlocks(session: AdminSession, signal?: AbortSignal): Promise<{
   ok: boolean;
   blocks: BlockSummary[];
   error?: string;
@@ -45,7 +45,7 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
 
   const promise = (async () => {
     try {
-      const apiRes = await apiGet<any[]>('/blocks', session?.token);
+      const apiRes = await apiGet<any[]>('/blocks', session?.token, signal);
       if (!apiRes.ok || !Array.isArray(apiRes.data)) {
         return { ok: false, blocks: [], error: apiRes.error || 'Failed to fetch blocks' };
       }
@@ -91,13 +91,13 @@ export async function getAdminMasterPlanBlocks(session: AdminSession): Promise<{
  * Level 2 Block detail with plot grid via real API (GET /plots?blockId=...).
  * Out-of-scope block requests are strictly rejected (Exception 5.4).
  */
-export async function getAdminAllPlots(session: AdminSession, search?: string): Promise<{
+export async function getAdminAllPlots(session: AdminSession, search?: string, signal?: AbortSignal): Promise<{
   ok: boolean;
   plots?: Plot[];
   error?: string;
 }> {
   const url = search ? `/plots?search=${encodeURIComponent(search)}` : '/plots';
-  const apiRes = await apiGet<any[]>(url, session?.token);
+  const apiRes = await apiGet<any[]>(url, session?.token, signal);
   if (!apiRes.ok || !Array.isArray(apiRes.data)) {
     return { ok: false, error: apiRes.error || 'Failed to fetch all plots' };
   }
@@ -114,7 +114,8 @@ export async function getAdminAllPlots(session: AdminSession, search?: string): 
 export async function getAdminBlockPlots(
   session: AdminSession,
   blockId: string,
-  filters?: PlotFilterOptions
+  filters?: PlotFilterOptions,
+  signal?: AbortSignal
 ): Promise<{
   ok: boolean;
   block?: Block;
@@ -126,7 +127,7 @@ export async function getAdminBlockPlots(
   }
 
   // Fetch block info from getAdminMasterPlanBlocks (reusing 60s cache and in-flight promise)
-  const blocksRes = await getAdminMasterPlanBlocks(session);
+  const blocksRes = await getAdminMasterPlanBlocks(session, signal);
   let block: Block | undefined = undefined;
   if (blocksRes.ok && Array.isArray(blocksRes.blocks)) {
     const rawBlock = blocksRes.blocks.find((b: any) => b.id === blockId);
@@ -141,7 +142,7 @@ export async function getAdminBlockPlots(
     }
   }
 
-  const apiRes = await apiGet<any[]>(`/plots?blockId=${blockId}`, session?.token);
+  const apiRes = await apiGet<any[]>(`/plots?blockId=${blockId}`, session?.token, signal);
   if (!apiRes.ok || !Array.isArray(apiRes.data)) {
     return { ok: false, error: apiRes.error || 'Failed to fetch plots' };
   }
@@ -189,7 +190,8 @@ export async function getAdminBlockPlots(
  */
 export async function getAdminPlotDetails(
   session: AdminSession,
-  plotId: string
+  plotId: string,
+  signal?: AbortSignal
 ): Promise<{
   ok: boolean;
   plot?: Plot;
@@ -198,7 +200,7 @@ export async function getAdminPlotDetails(
   booking?: Booking;
   error?: string;
 }> {
-  const apiRes = await apiGet<any>(`/plots/${plotId}`, session?.token);
+  const apiRes = await apiGet<any>(`/plots/${plotId}`, session?.token, signal);
   if (!apiRes.ok || !apiRes.data) {
     if (apiRes.error === 'OUT_OF_SCOPE' || apiRes.status === 403) {
       return { ok: false, error: 'OUT_OF_SCOPE' };

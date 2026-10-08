@@ -80,7 +80,7 @@ function PlotSelector({
       setLoading(true);
       runLane1({
         screen: 'plot-selector',
-        fn: async () => getAdminAllPlots(session, debouncedSearch),
+        fn: async (signal) => getAdminAllPlots(session, debouncedSearch, signal),
       }).then(res => {
         if (res.ok && res.plots) {
           const availableOnly = res.plots.filter((p: Plot) => {
@@ -323,7 +323,7 @@ function CustomersPageContent() {
     if (queryCompleteCustomer && cur) {
       runLane1({
         screen: 'customer-booking',
-        fn: async () => getAdminCustomerById(cur, queryCompleteCustomer),
+        fn: async (signal) => getAdminCustomerById(cur, queryCompleteCustomer, signal),
       }).then((res) => {
         if (res.ok && res.data) {
           const cust = res.data;
@@ -811,15 +811,22 @@ function CustomersPageContent() {
     e.preventDefault();
     if (!session || !searchQuery.trim()) return;
     setIsSearching(true);
-    const res = await runLane1({
-      screen: 'customer-search',
-      fn: async () => searchCustomers(session, searchQuery),
-    });
-    setIsSearching(false);
-    if (res.ok) {
-      setSearchResults(res.customers);
-      setSelectedCustomer(null);
-      setIsCustomerConfirmed(false);
+    try {
+      const res = await runLane1({
+        screen: 'customer-search',
+        fn: async (signal) => searchCustomers(session, searchQuery, signal),
+      });
+      if (res && res.ok) {
+        setSearchResults(res.customers);
+        setSelectedCustomer(null);
+        setIsCustomerConfirmed(false);
+      }
+    } catch (err: any) {
+      if (err?.message !== 'REQUEST_SUPERSEDED') {
+        // non-blocking
+      }
+    } finally {
+      setIsSearching(false);
     }
   };
 

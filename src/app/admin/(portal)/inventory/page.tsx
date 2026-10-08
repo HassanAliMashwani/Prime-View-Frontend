@@ -164,8 +164,8 @@ export default function InventoryOverviewPage() {
     const currentReq = ++reqIdRef.current;
     setLiveError('');
 
-    const fetcher = async () => {
-      const data = await getLiveInventoryStats(undefined, session?.token, p, PAGE_SIZE);
+    const fetcher = async (signal?: AbortSignal) => {
+      const data = await getLiveInventoryStats(undefined, session?.token, p, PAGE_SIZE, signal);
       return data;
     };
 
@@ -202,8 +202,8 @@ export default function InventoryOverviewPage() {
         const nextKey = `/inventory:${adminId}:page=${nextP}:size=${PAGE_SIZE}`;
         if (!getCache(nextKey, false)) {
           enqueueLane2(
-            async () => {
-              const nextData = await getLiveInventoryStats(undefined, session?.token, nextP, PAGE_SIZE);
+            async (signal) => {
+              const nextData = await getLiveInventoryStats(undefined, session?.token, nextP, PAGE_SIZE, signal);
               setCache(nextKey, { stats: nextData.stats, totals: nextData.totals || null, total: nextData.total || 0 });
               return nextData;
             },
@@ -233,8 +233,8 @@ export default function InventoryOverviewPage() {
     try {
       const data = await runLane1({
         screen: 'inventory-history',
-        fn: async () => {
-          return await getInventoryHistory(from, to, undefined, session?.token, 1, 100);
+        fn: async (signal) => {
+          return await getInventoryHistory(from, to, undefined, session?.token, 1, 100, signal);
         },
       });
       setHistoryStats(data.stats);

@@ -129,8 +129,8 @@ function SalesHistoryContent() {
         }
       }
 
-      const fetcher = async () => {
-        return await getSalesHistory(currentSession, filters);
+      const fetcher = async (signal?: AbortSignal) => {
+        return await getSalesHistory(currentSession, filters, signal);
       };
 
       let res: any;
@@ -168,8 +168,8 @@ function SalesHistoryContent() {
           const nextKey = generateCacheKey('GET', `/sales/history?${nextPathParams.toString()}`, adminId);
           if (!getCache(nextKey, false)) {
             enqueueLane2(
-              async () => {
-                const nextRes = await getSalesHistory(currentSession, nextFilters);
+              async (signal) => {
+                const nextRes = await getSalesHistory(currentSession, nextFilters, signal);
                 if (nextRes.ok) {
                   setCache(nextKey, { items: nextRes.items, kpis: nextRes.kpis, total: nextRes.total || 0 });
                 }

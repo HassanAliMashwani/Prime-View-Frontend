@@ -45,7 +45,8 @@ export async function getLiveInventoryStats(
   blockId?: string,
   token?: string,
   page?: number,
-  pageSize?: number
+  pageSize?: number,
+  signal?: AbortSignal
 ): Promise<InventoryResponse> {
   const query = new URLSearchParams();
   if (blockId) query.append('blockId', blockId);
@@ -54,10 +55,10 @@ export async function getLiveInventoryStats(
 
   const queryString = query.toString() ? `?${query.toString()}` : '';
   const authToken = token || getAdminToken() || undefined;
-  const res = await apiGet<any>(`/inventory/live${queryString}`, authToken);
+  const res = await apiGet<any>(`/inventory/live${queryString}`, authToken, signal);
   if (!res.ok) {
     // Fallback to /inventory/stats if needed
-    const fallbackRes = await apiGet<any>(`/inventory/stats${queryString}`, authToken);
+    const fallbackRes = await apiGet<any>(`/inventory/stats${queryString}`, authToken, signal);
     if (!fallbackRes.ok) {
       throw new Error(fallbackRes.error || fallbackRes.message || 'Failed to fetch live inventory stats');
     }
@@ -90,7 +91,8 @@ export async function getInventoryHistory(
   blockId?: string,
   token?: string,
   page?: number,
-  pageSize?: number
+  pageSize?: number,
+  signal?: AbortSignal
 ): Promise<InventoryResponse> {
   const query = new URLSearchParams();
   query.append('from', from);
@@ -101,9 +103,9 @@ export async function getInventoryHistory(
 
   const queryString = `?${query.toString()}`;
   const authToken = token || getAdminToken() || undefined;
-  const res = await apiGet<any>(`/inventory/history${queryString}`, authToken);
+  const res = await apiGet<any>(`/inventory/history${queryString}`, authToken, signal);
   if (!res.ok) {
-    const fallbackRes = await apiGet<any>(`/inventory/stats${queryString}`, authToken);
+    const fallbackRes = await apiGet<any>(`/inventory/stats${queryString}`, authToken, signal);
     if (!fallbackRes.ok) {
       throw new Error(fallbackRes.error || fallbackRes.message || 'Failed to fetch inventory history');
     }
@@ -133,12 +135,13 @@ export async function getInventoryStats(
   blockId?: string,
   token?: string,
   page?: number,
-  pageSize?: number
+  pageSize?: number,
+  signal?: AbortSignal
 ): Promise<InventoryResponse> {
   if (from && to) {
-    return getInventoryHistory(from, to, blockId, token, page, pageSize);
+    return getInventoryHistory(from, to, blockId, token, page, pageSize, signal);
   }
-  return getLiveInventoryStats(blockId, token, page, pageSize);
+  return getLiveInventoryStats(blockId, token, page, pageSize, signal);
 }
 
 /**
@@ -146,10 +149,11 @@ export async function getInventoryStats(
  */
 export async function getInventoryMonthlyHistory(
   range: '6_months' | '1_year' | 'all_time' = '6_months',
-  token?: string
+  token?: string,
+  signal?: AbortSignal
 ): Promise<{ ok: boolean; monthly: MonthlyHistoryPoint[] }> {
   const authToken = token || getAdminToken() || undefined;
-  const res = await apiGet<any>(`/inventory/history?range=${range}`, authToken);
+  const res = await apiGet<any>(`/inventory/history?range=${range}`, authToken, signal);
   if (res.ok && res.data?.monthly) {
     return { ok: true, monthly: res.data.monthly };
   }

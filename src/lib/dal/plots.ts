@@ -21,18 +21,18 @@ export interface EnrichedPlot extends Plot {
   };
 }
 
-export async function getMemberRawPlots(token: string, customerId: string): Promise<any[]> {
+export async function getMemberRawPlots(token: string, customerId: string, signal?: AbortSignal): Promise<any[]> {
   const cacheKey = `/me/plots:${customerId}`;
   return fetchWith60sCache(cacheKey, async () => {
-    const apiRes = await apiGet<any[]>('/me/plots', token);
+    const apiRes = await apiGet<any[]>('/me/plots', token, signal);
     return Array.isArray(apiRes.data) ? apiRes.data : [];
   });
 }
 
-export async function getMyPlots(): Promise<{ ok: boolean; data: EnrichedPlot[]; error?: string }> {
+export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; data: EnrichedPlot[]; error?: string }> {
   try {
     const session = requireMemberSession();
-    const rawPlots = await getMemberRawPlots(session.token, session.customerId);
+    const rawPlots = await getMemberRawPlots(session.token, session.customerId, signal);
 
     const enrichedPlots: EnrichedPlot[] = rawPlots.map((plot: any) => {
       const apiBooking = plot.bookings && plot.bookings.length > 0 ? plot.bookings[0] : null;

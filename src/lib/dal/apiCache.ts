@@ -55,7 +55,7 @@ export async function fetchWith60sCache<T>(
   const promise = (async () => {
     try {
       const data = await fetcher();
-      if (data !== undefined && data !== null) {
+      if (data !== undefined && data !== null && (data as any)?.error !== 'REQUEST_ABORTED') {
         setCache(key, data);
       }
       return data;

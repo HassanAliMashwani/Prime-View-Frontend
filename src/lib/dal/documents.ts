@@ -112,7 +112,8 @@ export async function uploadCustomerDocument(
  */
 export async function getCustomerDocuments(
   session: AdminSession,
-  customerId: string
+  customerId: string,
+  signal?: AbortSignal
 ): Promise<{
   ok: boolean;
   documents: CustomerDocument[];
@@ -135,7 +136,8 @@ export async function getCustomerDocuments(
 
   const res = await apiGet<{ documents?: CustomerDocument[] }>(
     `/customers/${customerId}`,
-    session.token
+    session.token,
+    signal
   );
 
   if (!res.ok) {
@@ -204,10 +206,10 @@ export interface PlotDocuments {
  * Retrieve verified customer paperwork and deeds for the authenticated member.
  * Fetches real plots and deeds from GET /me/plots.
  */
-export async function getMyDocuments(): Promise<{ ok: boolean; data: PlotDocuments[]; error?: string }> {
+export async function getMyDocuments(signal?: AbortSignal): Promise<{ ok: boolean; data: PlotDocuments[]; error?: string }> {
   try {
     const session = requireMemberSession();
-    const res = await apiGet<any[]>('/me/plots', session.token);
+    const res = await apiGet<any[]>('/me/plots', session.token, signal);
 
     if (!res.ok || !Array.isArray(res.data)) {
       return { ok: false, data: [], error: res.error || 'FETCH_FAILED' };
