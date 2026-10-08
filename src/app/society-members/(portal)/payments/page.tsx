@@ -8,6 +8,7 @@ import { MemberPaymentsSkeleton } from '@/components/ui/skeleton';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { PlotPaymentSchedule } from '@/lib/dal/payments';
 import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview, uploadReceiptFileToStorage } from '@/lib/dal/receipts';
+import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { ReceiptSubmission } from '@/lib/mock/types';
 import {
   OfficialA4PaymentSlip,
@@ -141,25 +142,47 @@ function PaymentsContent() {
 
     setIsPreviewLoading(true);
     const t = setTimeout(async () => {
-      const activeSched = schedules.find((s) => s.plotId === formPlotId);
-      const bookingId = (activeSched as any)?.bookingId || (activeSched as any)?.id;
-      const res = await getBalloonPreview(formPlotId, numAmt, bookingId);
-      if (res.ok && res.data) {
-        setPreviewData(res.data);
-        setBalloonError(null);
-      } else {
-        setPreviewData(null);
-        setBalloonError(res.message || res.error || 'Failed to calculate balloon preview.');
+      try {
+        const activeSched = schedules.find((s) => s.plotId === formPlotId);
+        const bookingId = (activeSched as any)?.bookingId || (activeSched as any)?.id;
+        const res = await runLane1({
+          screen: 'member-payments-balloon',
+          fn: async () => getBalloonPreview(formPlotId, numAmt, bookingId),
+        });
+        if (res.ok && res.data) {
+          setPreviewData(res.data);
+          setBalloonError(null);
+        } else {
+          setPreviewData(null);
+          setBalloonError(res.message || res.error || 'Failed to calculate balloon preview.');
+        }
+      } catch (err: any) {
+        if (err?.message !== 'REQUEST_SUPERSEDED') {
+          setPreviewData(null);
+          setBalloonError('Failed to calculate balloon preview.');
+        }
+      } finally {
+        setIsPreviewLoading(false);
       }
-      setIsPreviewLoading(false);
     }, 500);
     return () => clearTimeout(t);
   }, [formAmount, formPaymentKind, formPaymentType, formPlotId, schedules]);
 
-  const loadReceipts = useCallback(async () => {
+  const loadReceipts = useCallback(async (isBackground = false) => {
     if (profile?.id) {
-      const data = await getCustomerReceipts(profile.id);
-      setReceipts(data);
+      const runner = isBackground
+        ? (fn: () => Promise<any>) => runLane2({ screen: 'member-payments-receipts', isRefresh: true, fn })
+        : (fn: () => Promise<any>) => runLane1({ screen: 'member-payments-receipts', fn });
+      try {
+        const data = await runner(async () => getCustomerReceipts(profile.id));
+        if (data) {
+          setReceipts(data);
+        }
+      } catch (err: any) {
+        if (err?.message !== 'REQUEST_SUPERSEDED') {
+          // non-blocking
+        }
+      }
     }
   }, [profile?.id]);
 
@@ -173,16 +196,27 @@ function PaymentsContent() {
     loadReceipts();
   }, [loadReceipts]);
 
-  // Visibilitychange listener for instant sync with 60s throttle
+  // Real-time 30-second background refresh via Lane 2
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchPayments(undefined, true);
+      fetchPlots(true);
+      loadReceipts(true);
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchPayments, fetchPlots, loadReceipts]);
+
+  // Visibilitychange listener for instant sync with 30s throttle
   useEffect(() => {
     let lastRefreshTime = Date.now();
     
     const handleSyncRefresh = () => {
       if (document.visibilityState === 'visible') {
         const now = Date.now();
-        if (now - lastRefreshTime > 60000) {
+        if (now - lastRefreshTime > 30000) {
           lastRefreshTime = now;
-          fetchPayments();
+          fetchPayments(undefined, true);
+          loadReceipts(true);
         }
       }
     };
@@ -190,7 +224,7 @@ function PaymentsContent() {
     return () => {
       document.removeEventListener('visibilitychange', handleSyncRefresh);
     };
-  }, [fetchPayments]);
+  }, [fetchPayments, loadReceipts]);
 
   useEffect(() => {
     if (schedules.length > 0) {
@@ -412,78 +446,87 @@ function PaymentsContent() {
       setBalloonError(null);
     }
 
-    // Run upload & submission asynchronously in background
+    // Show busy state immediately
+    setIsSubmittingReceipt(true);
+
+    // Run upload & submission in Lane 1 with isSave: true
     (async () => {
       try {
-        let storageKey = retrySub?.receiptFileUrl;
-        if (!storageKey || storageKey.startsWith('data:') || storageKey.startsWith('blob:')) {
-          if (!fileToUpload) {
-            throw new Error('Receipt file is required.');
-          }
-          const uploadRes = await uploadReceiptFileToStorage(fileToUpload);
-          if (!uploadRes.ok || !uploadRes.storageKey) {
-            throw new Error(uploadRes.error || 'Failed to upload receipt file to storage.');
-          }
-          storageKey = uploadRes.storageKey;
-        }
+        await runLane1({
+          screen: 'member-payments-receipt',
+          isSave: true,
+          fn: async () => {
+            let storageKey = retrySub?.receiptFileUrl;
+            if (!storageKey || storageKey.startsWith('data:') || storageKey.startsWith('blob:')) {
+              if (!fileToUpload) {
+                throw new Error('Receipt file is required.');
+              }
+              const uploadRes = await uploadReceiptFileToStorage(fileToUpload);
+              if (!uploadRes.ok || !uploadRes.storageKey) {
+                throw new Error(uploadRes.error || 'Failed to upload receipt file to storage.');
+              }
+              storageKey = uploadRes.storageKey;
+            }
 
-        const res = await submitPaymentReceipt(profile.id, {
-          plotId: optimisticReceipt.plotId,
-          paymentType: optimisticReceipt.paymentType as any,
-          installmentNumber: optimisticReceipt.installmentNumber,
-          amount: optimisticReceipt.amount,
-          depositoryBank: optimisticReceipt.depositoryBank,
-          bankName: optimisticReceipt.depositoryBank,
-          transactionRef: optimisticReceipt.transactionRef,
-          paymentDate: optimisticReceipt.paymentDate,
-          receiptFileUrl: storageKey, // Save only storage key!
-          receiptFileName: optimisticReceipt.receiptFileName,
-          notes: optimisticReceipt.notes,
-          paymentKind: (optimisticReceipt as any).paymentKind,
-          previewData: previewData,
+            const res = await submitPaymentReceipt(profile.id, {
+              plotId: optimisticReceipt.plotId,
+              paymentType: optimisticReceipt.paymentType as any,
+              installmentNumber: optimisticReceipt.installmentNumber,
+              amount: optimisticReceipt.amount,
+              depositoryBank: optimisticReceipt.depositoryBank,
+              bankName: optimisticReceipt.depositoryBank,
+              transactionRef: optimisticReceipt.transactionRef,
+              paymentDate: optimisticReceipt.paymentDate,
+              receiptFileUrl: storageKey, // Save only storage key!
+              receiptFileName: optimisticReceipt.receiptFileName,
+              notes: optimisticReceipt.notes,
+              paymentKind: (optimisticReceipt as any).paymentKind,
+              previewData: previewData,
+            });
+
+            if (res.ok && res.receipt) {
+              const accepted = res.receipt;
+              setReceipts((prev) =>
+                prev.map((r) =>
+                  r.id === tempReceiptId
+                    ? { ...accepted, status: 'pending' as const }
+                    : r
+                )
+              );
+              setBottomNotice({
+                id: tempReceiptId,
+                type: 'success',
+                message: 'Receipt sent for verification',
+              });
+
+              // Refresh payments, plots, dashboard in background AFTER notice is up
+              fetchPayments(undefined, true);
+              fetchPlots(true);
+              fetchDashboardData(true);
+              loadReceipts(true);
+            } else {
+              const errMsg = res.message || res.error || 'Failed to submit receipt.';
+              setReceipts((prev) =>
+                prev.map((r) =>
+                  r.id === tempReceiptId
+                    ? {
+                        ...r,
+                        status: 'rejected' as const,
+                        rejectionReason: errMsg,
+                        canRetry: true,
+                        _rawFile: fileToUpload,
+                      }
+                    : r
+                )
+              );
+              setBottomNotice({
+                id: tempReceiptId,
+                type: 'error',
+                message: errMsg,
+              });
+            }
+          },
         });
-
-        if (res.ok && res.receipt) {
-          const accepted = res.receipt;
-          setReceipts((prev) =>
-            prev.map((r) =>
-              r.id === tempReceiptId
-                ? { ...accepted, status: 'pending' as const }
-                : r
-            )
-          );
-          setBottomNotice({
-            id: tempReceiptId,
-            type: 'success',
-            message: 'Receipt sent for verification',
-          });
-
-          // Refresh payments, plots, dashboard in background AFTER notice is up
-          fetchPayments();
-          fetchPlots();
-          fetchDashboardData();
-          loadReceipts();
-        } else {
-          const errMsg = res.message || res.error || 'Failed to submit receipt.';
-          setReceipts((prev) =>
-            prev.map((r) =>
-              r.id === tempReceiptId
-                ? {
-                    ...r,
-                    status: 'rejected' as const,
-                    rejectionReason: errMsg,
-                    canRetry: true,
-                    _rawFile: fileToUpload,
-                  }
-                : r
-            )
-          );
-          setBottomNotice({
-            id: tempReceiptId,
-            type: 'error',
-            message: errMsg,
-          });
-        }
       } catch (err: any) {
         const errMsg = err?.message || 'Failed to upload receipt.';
         setReceipts((prev) =>
@@ -504,6 +547,8 @@ function PaymentsContent() {
           type: 'error',
           message: errMsg,
         });
+      } finally {
+        setIsSubmittingReceipt(false);
       }
     })();
   };

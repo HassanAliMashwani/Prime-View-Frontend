@@ -46,6 +46,7 @@ import { AdminSession } from '@/lib/mock/types';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
@@ -160,9 +161,28 @@ function CustomersDirectoryContent() {
       }
     }
 
+    const fetcher = async () => {
+      return await getCustomersDirectory(currentSession, { page: pageParam, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
+    };
+
     try {
-      const res = await getCustomersDirectory(currentSession, { page: pageParam, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
-      if (reqId !== reqIdRef.current) return;
+      let res: any;
+      if (background) {
+        res = await runLane2({
+          screen: 'customers-directory',
+          key,
+          isRefresh: true,
+          fn: fetcher,
+        });
+      } else {
+        res = await runLane1({
+          screen: 'customers-directory',
+          key,
+          fn: fetcher,
+        });
+      }
+
+      if (!res || reqId !== reqIdRef.current) return;
       if (!res.ok) {
         setCustomers((prev) => {
           if (prev.length > 0) {
@@ -182,23 +202,28 @@ function CustomersDirectoryContent() {
         setCache(key, { customers: res.customers, total: res.total || 0 });
         setError(null);
 
-        // Prefetch next page into cache if next page exists
+        // Prefetch next page into cache if next page exists using Lane 2
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
         if (pageParam < totalPages) {
           const nextPage = pageParam + 1;
           const nextKey = `/customers:${adminId}:page=${nextPage}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
           if (!getCache(nextKey, false)) {
-            getCustomersDirectory(currentSession, { page: nextPage, pageSize: PAGE_SIZE, search: searchParam, status: statusParam })
-              .then((nextRes) => {
+            enqueueLane2(
+              async () => {
+                const nextRes = await getCustomersDirectory(currentSession, { page: nextPage, pageSize: PAGE_SIZE, search: searchParam, status: statusParam });
                 if (nextRes.ok) {
                   setCache(nextKey, { customers: nextRes.customers, total: nextRes.total || 0 });
                 }
-              })
-              .catch(() => {});
+                return nextRes;
+              },
+              nextKey,
+              'customers-directory'
+            );
           }
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (reqId !== reqIdRef.current) return;
       console.error('request failed');
       setCustomers((prev) => {
@@ -228,7 +253,7 @@ function CustomersDirectoryContent() {
 
     const isFiltered = search !== '' || statusFilter !== 'all';
     
-    // Auto-refresh customer directory every 30 seconds (only if not filtered)
+    // Auto-refresh customer directory every 30 seconds (only if not filtered) using Lane 2
     if (!isFiltered) {
       const intervalId = setInterval(() => {
         const latestSession = getActiveAdminSession();
@@ -254,9 +279,13 @@ function CustomersDirectoryContent() {
     if (!session || !strikeCustomer) return;
     setStrikeSubmitting(true);
 
-    const res = await assignCustomerStrike(session, {
-      customerId: strikeCustomer.id,
-      reason: strikeReason,
+    const res = await runLane1({
+      screen: 'customers-directory',
+      isSave: true,
+      fn: async () => assignCustomerStrike(session, {
+        customerId: strikeCustomer.id,
+        reason: strikeReason,
+      }),
     });
     setStrikeSubmitting(false);
 
@@ -281,7 +310,11 @@ function CustomersDirectoryContent() {
     setSuspensionSubmitting(true);
 
     const targetAction = suspensionCustomer.accountStatus === 'suspended' ? 'activate' : 'suspend';
-    const res = await toggleCustomerSuspension(session, suspensionCustomer.id, targetAction, suspensionReason);
+    const res = await runLane1({
+      screen: 'customers-directory',
+      isSave: true,
+      fn: async () => toggleCustomerSuspension(session, suspensionCustomer.id, targetAction, suspensionReason),
+    });
     setSuspensionSubmitting(false);
 
     if (!res.ok) {
@@ -306,7 +339,11 @@ function CustomersDirectoryContent() {
     if (!session) return;
     setResetSubmitting(true);
 
-    const res = await resetCustomerPassword(session, cust.id);
+    const res = await runLane1({
+      screen: 'customers-directory',
+      isSave: true,
+      fn: async () => resetCustomerPassword(session, cust.id),
+    });
     setResetSubmitting(false);
 
     if (!res.ok) {
@@ -332,7 +369,11 @@ function CustomersDirectoryContent() {
   const handleIssueCredentials = async (cust: CustomerDirectoryEntry) => {
     if (!session) return;
     setResetSubmitting(true);
-    const res = await issuePortalCredentials(session, cust.id);
+    const res = await runLane1({
+      screen: 'customers-directory',
+      isSave: true,
+      fn: async () => issuePortalCredentials(session, cust.id),
+    });
     setResetSubmitting(false);
 
     if (!res.ok) {
@@ -349,7 +390,7 @@ function CustomersDirectoryContent() {
         type: 'success',
         message: `Customer portal credentials issued successfully for ${cust.fullName} (${cust.membershipNo}).`,
       });
-      await loadData(session);
+      await loadData(session, page, search, statusFilter, false);
       if (dossierCustomer && dossierCustomer.id === cust.id) {
         setDossierCustomer({ ...dossierCustomer, credentialsPending: false });
       }
@@ -1574,7 +1615,11 @@ function CustomersDirectoryContent() {
                           if (!session || !deleteCustomerTarget) return;
                           setDeleteSubmitting(true);
                           const target = deleteCustomerTarget;
-                          const res = await deleteCustomer(session, target.id);
+                          const res = await runLane1({
+                            screen: 'customers-directory',
+                            isSave: true,
+                            fn: async () => deleteCustomer(session, target.id),
+                          });
                           setDeleteSubmitting(false);
                           setDeleteCustomerTarget(null);
                           if (!res.ok) {
@@ -1584,7 +1629,7 @@ function CustomersDirectoryContent() {
                             if (dossierCustomer?.id === target.id) {
                               setDossierCustomer(null);
                             }
-                            loadData(session);
+                            loadData(session, page, search, statusFilter, false);
                           }
                         }}
                         className="px-4 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"

@@ -32,6 +32,7 @@ import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl } fro
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 const PAGE_SIZE = 10;
 
@@ -108,7 +109,8 @@ export default function AdminReceiptsPage() {
       currentSession: AdminSession,
       p = 1,
       st: 'all' | ReceiptStatus = 'pending',
-      search = ''
+      search = '',
+      isBackground = false
     ) => {
       const isSuper = currentSession.role === 'super_admin';
       const hasAuth = Boolean(currentSession.permissions?.can_verify_receipts);
@@ -121,51 +123,76 @@ export default function AdminReceiptsPage() {
       const adminId = currentSession.adminId || 'admin';
       const cacheKey = `/receipts:${adminId}:page=${p}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
 
-      const cached = getCache<{ receipts: ReceiptSubmission[], totalCount: number }>(cacheKey, true);
-      if (cached) {
-        setReceipts(cached.receipts);
-        setTotalCount(cached.totalCount);
-        setLoading(false);
-      } else {
-        setReceipts((prev) => {
-          if (prev.length === 0) {
-            setLoading(true);
-          }
-          return prev;
-        });
+      if (!isBackground) {
+        const cached = getCache<{ receipts: ReceiptSubmission[], totalCount: number }>(cacheKey, true);
+        if (cached) {
+          setReceipts(cached.receipts);
+          setTotalCount(cached.totalCount);
+          setLoading(false);
+        } else {
+          setReceipts((prev) => {
+            if (prev.length === 0) {
+              setLoading(true);
+            }
+            return prev;
+          });
+        }
       }
 
       const currentReq = ++reqIdRef.current;
+      const fetcher = async () => {
+        return await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
+      };
       
       try {
-        const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
-        if (currentReq !== reqIdRef.current) return;
+        let res: any;
+        if (isBackground) {
+          res = await runLane2({
+            screen: 'receipts',
+            key: cacheKey,
+            isRefresh: true,
+            fn: fetcher,
+          });
+        } else {
+          res = await runLane1({
+            screen: 'receipts',
+            key: cacheKey,
+            fn: fetcher,
+          });
+        }
+
+        if (!res || currentReq !== reqIdRef.current) return;
 
         if (res.ok) {
           setReceipts(res.receipts || []);
           setTotalCount(res.totalCount || 0);
           setCache(cacheKey, { receipts: res.receipts || [], totalCount: res.totalCount || 0 });
 
-          // Prefetch next page into cache if next page exists
+          // Prefetch next page into cache if next page exists using Lane 2
           const totalPages = Math.ceil((res.totalCount || 0) / PAGE_SIZE);
           if (p < totalPages && (isSuper || hasAuth)) {
             const nextP = p + 1;
             const nextKey = `/receipts:${adminId}:page=${nextP}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
             if (!getCache(nextKey, false)) {
-              getAdminReceipts(currentSession, st, nextP, PAGE_SIZE, search)
-                .then((nextRes) => {
+              enqueueLane2(
+                async () => {
+                  const nextRes = await getAdminReceipts(currentSession, st, nextP, PAGE_SIZE, search);
                   if (nextRes.ok) {
                     setCache(nextKey, { receipts: nextRes.receipts || [], totalCount: nextRes.totalCount || 0 });
                   }
-                })
-                .catch(() => {});
+                  return nextRes;
+                },
+                nextKey,
+                'receipts'
+              );
             }
           }
         }
-      } catch {
+      } catch (err: any) {
+        if (err?.message === 'REQUEST_SUPERSEDED') return;
         if (currentReq !== reqIdRef.current) return;
       } finally {
-        if (currentReq === reqIdRef.current) {
+        if (currentReq === reqIdRef.current && !isBackground) {
           setHasLoadedOnce(true);
           setLoading(false);
         }
@@ -179,7 +206,7 @@ export default function AdminReceiptsPage() {
     setStatusFilter(newStatus);
     setPage(1);
     if (session) {
-      loadData(session, 1, newStatus, searchInput);
+      loadData(session, 1, newStatus, searchInput, false);
     }
   };
 
@@ -190,7 +217,7 @@ export default function AdminReceiptsPage() {
         setSearchQuery(searchInput);
         setPage(1);
         if (session) {
-          loadData(session, 1, statusRef.current, searchInput);
+          loadData(session, 1, statusRef.current, searchInput, false);
         }
       }
     }, 300);
@@ -204,13 +231,13 @@ export default function AdminReceiptsPage() {
       return;
     }
     setSession(cur);
-    loadData(cur, 1, 'pending', '');
+    loadData(cur, 1, 'pending', '', false);
 
-    // Auto-refresh via polling
+    // Auto-refresh via polling using Lane 2
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
       if (latestSession && searchRef.current === '' && statusRef.current === 'pending') {
-        loadData(latestSession, pageRef.current, statusRef.current);
+        loadData(latestSession, pageRef.current, statusRef.current, '', true);
       }
     }, 30000);
 
@@ -228,7 +255,10 @@ export default function AdminReceiptsPage() {
   const handleViewSlipImage = async (receiptId: string) => {
     setLoadingPhotoReceiptId(receiptId);
     try {
-      const res = await getReceiptFileUrl(receiptId);
+      const res = await runLane1({
+        screen: 'receipt-slip',
+        fn: async () => getReceiptFileUrl(receiptId),
+      });
       if (res.ok && res.fileUrl) {
         setPreviewImage(res.fileUrl);
       } else {
@@ -238,12 +268,14 @@ export default function AdminReceiptsPage() {
           message: res.error || 'Failed to load bank slip image.',
         });
       }
-    } catch {
-      setBottomNotice({
-        id: receiptId,
-        type: 'error',
-        message: 'Failed to load bank slip image.',
-      });
+    } catch (err: any) {
+      if (err?.message !== 'REQUEST_SUPERSEDED') {
+        setBottomNotice({
+          id: receiptId,
+          type: 'error',
+          message: 'Failed to load bank slip image.',
+        });
+      }
     } finally {
       setLoadingPhotoReceiptId(null);
     }
@@ -254,22 +286,19 @@ export default function AdminReceiptsPage() {
     setIsProcessing(true);
     setGeneratingReceiptId(receiptId);
 
-    // Optimistically update row to verified immediately
-    setReceipts((prev) =>
-      prev.map((r) =>
-        r.id === receiptId ? { ...r, status: 'verified' as const } : r
-      )
-    );
-
-    // Show bottom-right notice immediately
+    // Show busy notice immediately
     setBottomNotice({
       id: receiptId,
       type: 'success',
-      message: 'Receipt verified and approved. Generating official slip...',
+      message: 'Receipt verification in progress. Contacting server...',
     });
 
     try {
-      const res = await verifyReceipt(session, receiptId, undefined, confirmPreviewDrift);
+      const res = await runLane1({
+        screen: 'receipts',
+        isSave: true,
+        fn: async () => verifyReceipt(session, receiptId, undefined, confirmPreviewDrift),
+      });
       if (res.ok && res.receipt) {
         const slipNumber = res.receipt.slip?.slipNumber || (res.receipt as any).slipNumber || 'PV-SLIP';
         setBottomNotice({
@@ -278,7 +307,7 @@ export default function AdminReceiptsPage() {
           message: `Official Slip #${slipNumber} was generated successfully!`,
         });
 
-        // Update the row with server data without reloading whole photo list
+        // Draw result only from server answer
         setReceipts((prev) =>
           prev.map((r) => (r.id === receiptId ? { ...r, ...res.receipt, status: 'verified' as const } : r))
         );
@@ -288,12 +317,6 @@ export default function AdminReceiptsPage() {
         setActiveSlip(res.receipt);
       } else {
         if (res.error === 'PREVIEW_DRIFT') {
-          // Revert row back to pending
-          setReceipts((prev) =>
-            prev.map((r) =>
-              r.id === receiptId ? { ...r, status: 'pending' as const } : r
-            )
-          );
           setBottomNotice(null);
           const rec = receipts.find((r) => r.id === receiptId);
           if (rec) {
@@ -301,12 +324,6 @@ export default function AdminReceiptsPage() {
             setDriftNewPreview(res.newPreview);
           }
         } else {
-          // Revert row back to pending on error
-          setReceipts((prev) =>
-            prev.map((r) =>
-              r.id === receiptId ? { ...r, status: 'pending' as const } : r
-            )
-          );
           const errMessage = res.message || res.error || 'Failed to verify receipt.';
           setBottomNotice({
             id: receiptId,
@@ -315,18 +332,14 @@ export default function AdminReceiptsPage() {
           });
         }
       }
-    } catch {
-      // Revert row back to pending on error
-      setReceipts((prev) =>
-        prev.map((r) =>
-          r.id === receiptId ? { ...r, status: 'pending' as const } : r
-        )
-      );
-      setBottomNotice({
-        id: receiptId,
-        type: 'error',
-        message: 'An unexpected error occurred during verification.',
-      });
+    } catch (err: any) {
+      if (err?.message !== 'REQUEST_SUPERSEDED') {
+        setBottomNotice({
+          id: receiptId,
+          type: 'error',
+          message: 'An unexpected error occurred during verification.',
+        });
+      }
     } finally {
       setIsProcessing(false);
       setGeneratingReceiptId(null);
@@ -344,10 +357,14 @@ export default function AdminReceiptsPage() {
 
     setIsProcessing(true);
     try {
-      const res = await rejectReceipt(session, rejectModalReceipt.id, {
-        reason: rejectionReason.trim(),
-        assignStrike,
-        strikeReason: strikeReason.trim() || rejectionReason.trim(),
+      const res = await runLane1({
+        screen: 'receipts',
+        isSave: true,
+        fn: async () => rejectReceipt(session, rejectModalReceipt.id, {
+          reason: rejectionReason.trim(),
+          assignStrike,
+          strikeReason: strikeReason.trim() || rejectionReason.trim(),
+        }),
       });
       if (res.ok) {
         setFeedback({
@@ -360,15 +377,17 @@ export default function AdminReceiptsPage() {
         setRejectionReason('');
         setAssignStrike(false);
         setStrikeReason('');
-        await loadData(session);
+        loadData(session, page, statusFilter, searchQuery, false);
       } else {
         setFeedback({
           type: 'error',
-          message: res.message || res.error || 'Failed to reject receipt.',
+          message: res.message || res.error || 'Failed to decline receipt.',
         });
       }
-    } catch {
-      setFeedback({ type: 'error', message: 'An unexpected error occurred.' });
+    } catch (err: any) {
+      if (err?.message !== 'REQUEST_SUPERSEDED') {
+        setFeedback({ type: 'error', message: 'An unexpected error occurred.' });
+      }
     } finally {
       setIsProcessing(false);
     }

@@ -32,6 +32,15 @@ export default function PaymentHistoryPage() {
     fetchPlots();
   }, [fetchPaymentHistory, fetchPlots, selectedFilter]);
 
+  // Real-time 30-second background refresh via Lane 2
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchPaymentHistory(selectedFilter, true);
+      fetchPlots(true);
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchPaymentHistory, fetchPlots, selectedFilter]);
+
   const formatPKR = (val: number) =>
     new Intl.NumberFormat('en-PK', {
       style: 'currency',

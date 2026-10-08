@@ -27,6 +27,8 @@ import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { getInventoryMonthlyHistory, MonthlyHistoryPoint } from '@/lib/dal/inventory';
 import type { TimeRange } from '@/components/admin/dashboard/InventoryOverviewChart';
 
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
+
 const InventoryOverviewChart = dynamic(
   () => import('@/components/admin/dashboard/InventoryOverviewChart'),
   { ssr: false }
@@ -63,40 +65,45 @@ export default function AdminDashboardPage() {
   const [chartLoading, setChartLoading] = useState<boolean>(false);
   const chartReqIdRef = useRef(0);
 
-  const loadChartData = useCallback(async (activeSession: AdminSession, range: TimeRange) => {
+  const loadChartData = useCallback(async (activeSession: AdminSession, range: TimeRange, isBackground = false) => {
     const adminId = activeSession.adminId || 'admin';
     const key = getChartCacheKey(adminId, range);
     const cached = getCache<MonthlyHistoryPoint[]>(key, true);
     if (cached) {
       setMonthlyPoints(cached);
-    } else {
+    } else if (!isBackground) {
       setChartLoading(true);
     }
 
     const currentReq = ++chartReqIdRef.current;
-    try {
-      const res = await getInventoryMonthlyHistory(range, activeSession.token);
-      if (currentReq !== chartReqIdRef.current) return;
-      if (res.ok && res.monthly) {
-        setMonthlyPoints(res.monthly);
-        setCache(key, res.monthly);
+    const runner = isBackground
+      ? (fn: () => Promise<any>) => runLane2({ screen: 'admin-dashboard-chart', isRefresh: true, fn })
+      : (fn: () => Promise<any>) => runLane1({ screen: 'admin-dashboard-chart', key, fn });
 
-        // Prefetch other two ranges
-        const ALL_RANGES: TimeRange[] = ['6_months', '1_year', 'all_time'];
-        const otherRanges = ALL_RANGES.filter((r) => r !== range);
-        for (const otherRange of otherRanges) {
-          const otherKey = getChartCacheKey(adminId, otherRange);
-          if (!getCache(otherKey, false)) {
-            getInventoryMonthlyHistory(otherRange, activeSession.token)
-              .then((otherRes) => {
+    try {
+      await runner(async () => {
+        const res = await getInventoryMonthlyHistory(range, activeSession.token);
+        if (currentReq !== chartReqIdRef.current) return;
+        if (res.ok && res.monthly) {
+          setMonthlyPoints(res.monthly);
+          setCache(key, res.monthly);
+
+          // Lane 2 background prefetch of other two chart ranges while lane 1 is idle
+          const ALL_RANGES: TimeRange[] = ['6_months', '1_year', 'all_time'];
+          const otherRanges = ALL_RANGES.filter((r) => r !== range);
+          for (const otherRange of otherRanges) {
+            const otherKey = getChartCacheKey(adminId, otherRange);
+            if (!getCache(otherKey, false)) {
+              enqueueLane2(async () => {
+                const otherRes = await getInventoryMonthlyHistory(otherRange, activeSession.token);
                 if (otherRes.ok && otherRes.monthly) {
                   setCache(otherKey, otherRes.monthly);
                 }
-              })
-              .catch(() => {});
+              }, otherKey);
+            }
           }
         }
-      }
+      });
     } catch {
       // non-blocking
     } finally {
@@ -106,19 +113,25 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  const loadData = useCallback(async (activeSession: AdminSession) => {
-    try {
-      const [blockRes, resRes] = await Promise.all([
-        getAdminMasterPlanBlocks(activeSession),
-        getReservations(activeSession),
-      ]);
+  const loadData = useCallback(async (activeSession: AdminSession, isBackground = false) => {
+    const runner = isBackground
+      ? (fn: () => Promise<any>) => runLane2({ screen: 'admin-dashboard', isRefresh: true, fn })
+      : (fn: () => Promise<any>) => runLane1({ screen: 'admin-dashboard', fn });
 
-      if (blockRes.ok) setBlocks((prev) => reconcileItems(prev, blockRes.blocks, (b) => b.id));
-      if (resRes.ok) setReservations((prev) => reconcileItems(prev, resRes.reservations, (r) => r.id));
-      
-      setCache(`/dashboard:${activeSession.adminId}`, {
-        blocks: blockRes.ok ? blockRes.blocks : [],
-        reservations: resRes.ok ? resRes.reservations : [],
+    try {
+      await runner(async () => {
+        const [blockRes, resRes] = await Promise.all([
+          getAdminMasterPlanBlocks(activeSession),
+          getReservations(activeSession),
+        ]);
+
+        if (blockRes.ok) setBlocks((prev) => reconcileItems(prev, blockRes.blocks, (b) => b.id));
+        if (resRes.ok) setReservations((prev) => reconcileItems(prev, resRes.reservations, (r) => r.id));
+        
+        setCache(`/dashboard:${activeSession.adminId}`, {
+          blocks: blockRes.ok ? blockRes.blocks : [],
+          reservations: resRes.ok ? resRes.reservations : [],
+        });
       });
     } catch {
       console.error('request failed');
@@ -131,18 +144,18 @@ export default function AdminDashboardPage() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      loadData(s);
-      loadChartData(s, chartRange);
+      loadData(s, false);
+      loadChartData(s, chartRange, false);
     }
   }, [loadData, loadChartData]);
 
-  // Real-time sync via interval
+  // Real-time sync via Lane 2 30-second interval
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s) {
-        loadData(s);
-        loadChartData(s, chartRange);
+        loadData(s, true);
+        loadChartData(s, chartRange, true);
       }
     }, 30000);
 

@@ -1,3 +1,5 @@
+
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -37,6 +39,7 @@ import {
 import { AdminProfileDetails } from '@/lib/dal/adminAuth';
 import { AdminProfileSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache } from '@/lib/dal/apiCache';
+import { runLane1 } from '@/lib/requestLanes';
 const BLOCK_COLORS: Record<string, string> = {
   abbott: 'bg-emerald-50 text-emerald-800 border-emerald-200',
   royal: 'bg-amber-50 text-amber-800 border-amber-200',
@@ -74,7 +77,11 @@ export default function AdminProfilePage() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      getAdminProfile(s)
+      runLane1({
+        screen: 'admin-profile',
+        key: `/profile:${s.adminId}`,
+        fn: async () => getAdminProfile(s),
+      })
         .then((res) => {
           if (res.ok && res.admin) {
             setDetails(res.admin);
@@ -107,7 +114,11 @@ export default function AdminProfilePage() {
 
     setPasswordLoading(true);
     try {
-      const res = await changeAdminPassword(session, currentPassword, newPassword);
+      const res = await runLane1({
+        screen: 'admin-profile',
+        isSave: true,
+        fn: async () => changeAdminPassword(session, currentPassword, newPassword),
+      });
       if (res.ok) {
         setToast({
           type: 'success',

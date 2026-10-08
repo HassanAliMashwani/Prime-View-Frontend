@@ -29,6 +29,14 @@ export default function MemberDashboardPage() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Real-time 30-second background refresh via Lane 2
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchDashboardData(true);
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchDashboardData]);
+
   // Aggregate stats strictly for display cards
   const totalProperties = plots.length;
   const totalInvestment = plots.reduce(

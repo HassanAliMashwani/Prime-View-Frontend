@@ -69,10 +69,11 @@ function sanitizeErrorMessage(rawMessage?: any): string {
 /**
  * Generic API GET helper.
  */
-export async function apiGet<T>(path: string, token?: string): Promise<ApiResponse<T>> {
+export async function apiGet<T>(path: string, token?: string, signal?: AbortSignal): Promise<ApiResponse<T>> {
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       headers: { 'Content-Type': 'application/json', ...authHeader(token) },
+      signal,
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
@@ -85,7 +86,10 @@ export async function apiGet<T>(path: string, token?: string): Promise<ApiRespon
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch {
+  } catch (err: any) {
+    if (err?.name === 'AbortError') {
+      return { ok: false, error: 'REQUEST_ABORTED' };
+    }
     const safeMsg = 'Something went wrong. Please try again.';
     return { ok: false, error: safeMsg, message: safeMsg };
   }
@@ -170,5 +174,8 @@ export async function apiDelete<T = any>(path: string, token?: string): Promise<
     return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
+
+export * from './requestLanes';
+
 
 

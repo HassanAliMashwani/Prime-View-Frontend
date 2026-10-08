@@ -24,6 +24,7 @@ import {
 } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getCache, setCache } from '@/lib/dal/apiCache';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 
@@ -141,7 +142,7 @@ export default function InventoryOverviewPage() {
   const canAccess = isSuper || Boolean(session?.permissions?.can_view_inventory);
 
   // 1. Live Stats Loader: queries directly from Plot table at moment of request
-  const loadLive = useCallback(async (p = livePage) => {
+  const loadLive = useCallback(async (p = livePage, isBackground = false) => {
     const adminId = session?.adminId || session?.username || 'admin';
     const cacheKey = `/inventory:${adminId}:page=${p}:size=${PAGE_SIZE}`;
 
@@ -151,7 +152,7 @@ export default function InventoryOverviewPage() {
       setLiveTotals(cached.totals);
       setTotalRecords(cached.total);
       setLoadingLive(false);
-    } else {
+    } else if (!isBackground) {
       setLiveStats((prev) => {
         if (prev.length === 0) {
           setLoadingLive(true);
@@ -162,9 +163,30 @@ export default function InventoryOverviewPage() {
 
     const currentReq = ++reqIdRef.current;
     setLiveError('');
-    try {
+
+    const fetcher = async () => {
       const data = await getLiveInventoryStats(undefined, session?.token, p, PAGE_SIZE);
-      if (currentReq !== reqIdRef.current) return;
+      return data;
+    };
+
+    try {
+      let data: { stats: InventoryStats[], totals?: InventoryTotals, total?: number };
+      if (isBackground) {
+        data = await runLane2({
+          screen: 'inventory',
+          key: cacheKey,
+          isRefresh: true,
+          fn: fetcher,
+        });
+      } else {
+        data = await runLane1({
+          screen: 'inventory',
+          key: cacheKey,
+          fn: fetcher,
+        });
+      }
+
+      if (!data || currentReq !== reqIdRef.current) return;
 
       setLiveStats(data.stats);
       setLiveTotals(data.totals || null);
@@ -173,24 +195,31 @@ export default function InventoryOverviewPage() {
       setCache(cacheKey, { stats: data.stats, totals: data.totals || null, total: data.total || 0 });
       setHasLoadedLiveOnce(true);
 
-      // Prefetch next page into cache if next page exists
+      // Prefetch next page into cache if next page exists using Lane 2
       const totalPages = Math.ceil((data.total || 0) / PAGE_SIZE);
       if (p < totalPages && canAccess) {
         const nextP = p + 1;
         const nextKey = `/inventory:${adminId}:page=${nextP}:size=${PAGE_SIZE}`;
         if (!getCache(nextKey, false)) {
-          getLiveInventoryStats(undefined, session?.token, nextP, PAGE_SIZE)
-            .then((nextData) => {
+          enqueueLane2(
+            async () => {
+              const nextData = await getLiveInventoryStats(undefined, session?.token, nextP, PAGE_SIZE);
               setCache(nextKey, { stats: nextData.stats, totals: nextData.totals || null, total: nextData.total || 0 });
-            })
-            .catch(() => {});
+              return nextData;
+            },
+            nextKey,
+            'inventory'
+          );
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (currentReq !== reqIdRef.current) return;
-      setLiveError('Failed to fetch live inventory counts. Please try again.');
+      if (!isBackground) {
+        setLiveError('Failed to fetch live inventory counts. Please try again.');
+      }
     } finally {
-      if (currentReq === reqIdRef.current) {
+      if (currentReq === reqIdRef.current && !isBackground) {
         setLoadingLive(false);
       }
     }
@@ -202,11 +231,17 @@ export default function InventoryOverviewPage() {
     setLoadingHistory(true);
     setHistoryError('');
     try {
-      const data = await getInventoryHistory(from, to, undefined, session?.token, 1, 100);
+      const data = await runLane1({
+        screen: 'inventory-history',
+        fn: async () => {
+          return await getInventoryHistory(from, to, undefined, session?.token, 1, 100);
+        },
+      });
       setHistoryStats(data.stats);
       setHistoryTotals(data.totals || null);
       setHistoryHasQueried(true);
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       setHistoryError('Failed to query inventory history for the selected date range.');
     } finally {
       setLoadingHistory(false);
@@ -216,31 +251,31 @@ export default function InventoryOverviewPage() {
   // Initial load when session is ready
   useEffect(() => {
     if (session && canAccess) {
-      loadLive(livePage);
+      loadLive(livePage, false);
     }
   }, [session, canAccess, loadLive, livePage]);
 
-  // 3. Tab return & 15-second polling interval while page is open
+  // 3. Tab return & 30-second polling interval while page is open (Lane 2)
   useEffect(() => {
     if (!session || !canAccess) return;
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        loadLive(livePage);
+        loadLive(livePage, true);
       }
     };
 
     const handleFocus = () => {
-      loadLive(livePage);
+      loadLive(livePage, true);
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
     window.addEventListener('focus', handleFocus);
 
-    // Refresh every 15 seconds while open
+    // Refresh every 30 seconds while open
     const intervalId = setInterval(() => {
-      loadLive(livePage);
-    }, 15000);
+      loadLive(livePage, true);
+    }, 30000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);

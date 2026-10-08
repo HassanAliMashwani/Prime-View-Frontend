@@ -23,9 +23,10 @@ import {
   Map as MapIcon, 
   LayoutGrid,
   ChevronDown,
-  Check
+  Check,
 } from 'lucide-react';
 import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
+import { PlotCategory, Block, Plot, AdminSession, Customer, Booking, Reservation } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { 
   getAdminBlockPlots, 
@@ -41,8 +42,8 @@ import {
 } from '@/lib/dal/adminPlots';
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking } from '@/lib/dal/customers';
-import { Block, Plot, AdminSession, Reservation, PlotCategory, Customer, Booking } from '@/lib/mock/types';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { runLane1, runLane2 } from '@/lib/requestLanes';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
@@ -177,21 +178,27 @@ function BlockPlotsContent() {
     }
   };
 
-  const loadPlots = useCallback(async (s: AdminSession) => {
-    try {
-      const res = await getAdminBlockPlots(s, blockId);
+  const loadPlots = useCallback(async (s: AdminSession, isBackground = false) => {
+    const runner = isBackground
+      ? (fn: () => Promise<any>) => runLane2({ screen: `block-${blockId}`, isRefresh: true, fn })
+      : (fn: () => Promise<any>) => runLane1({ screen: `block-${blockId}`, key: `/master-plan/${blockId}:${s.adminId}`, fn });
 
-      if (!res.ok) {
-        if (res.error === 'OUT_OF_SCOPE') {
-          setOutOfScope(true);
+    try {
+      await runner(async () => {
+        const res = await getAdminBlockPlots(s, blockId);
+
+        if (!res.ok) {
+          if (res.error === 'OUT_OF_SCOPE') {
+            setOutOfScope(true);
+          }
+        } else {
+          setBlock(res.block || null);
+          setPlots((prev) => reconcileItems(prev, res.plots || [], (p) => p.id));
+          if (res.block && res.plots) {
+            setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
+          }
         }
-      } else {
-        setBlock(res.block || null);
-        setPlots((prev) => reconcileItems(prev, res.plots || [], (p) => p.id));
-        if (res.block && res.plots) {
-          setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
-        }
-      }
+      });
     } catch {
       console.error('request failed');
     } finally {
@@ -236,28 +243,33 @@ function BlockPlotsContent() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      loadPlots(s);
+      loadPlots(s, false);
     }
   }, [loadPlots]);
 
-  // Real-time sync via interval
+  // Real-time sync via Lane 2 30-second interval
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s) {
-        loadPlots(s);
-        // Refresh selected plot only if it is still active and open
+        loadPlots(s, true);
+        // Refresh selected plot in Lane 2 only if it is still active and open
         if (selectedPlot && activeSelectedPlotIdRef.current === selectedPlot.id) {
           const targetPlotId = selectedPlot.id;
-          getAdminPlotDetails(s, targetPlotId).then((res) => {
-            if (activeSelectedPlotIdRef.current !== targetPlotId) return;
-            if (res.ok && res.plot) {
-              setSelectedPlot(res.plot);
-              if (res.reservations) setPlotReservations(res.reservations);
-              if (res.owner) setSelectedPlotOwner(res.owner);
-              if (res.booking) setSelectedPlotBooking(res.booking);
-            }
-          });
+          runLane2({
+            screen: `block-plot-${targetPlotId}`,
+            isRefresh: true,
+            fn: async () => {
+              const res = await getAdminPlotDetails(s, targetPlotId);
+              if (activeSelectedPlotIdRef.current !== targetPlotId) return;
+              if (res.ok && res.plot) {
+                setSelectedPlot(res.plot);
+                if (res.reservations) setPlotReservations(res.reservations);
+                if (res.owner) setSelectedPlotOwner(res.owner);
+                if (res.booking) setSelectedPlotBooking(res.booking);
+              }
+            },
+          }).catch(() => {});
         }
       }
     }, 30000);
@@ -940,7 +952,7 @@ function BlockPlotsContent() {
           const isHighlighted = highlightedPlotId === plot.id;
 
           const reservingNames = (plot.reservingUsers && plot.reservingUsers.length > 0)
-            ? plot.reservingUsers.map((u) => u.adminName.split(' ')[0])
+            ? plot.reservingUsers.map((u: any) => u.adminName.split(' ')[0])
             : plot.reservingByName
             ? [plot.reservingByName.split(' ')[0]]
             : [];
@@ -1186,7 +1198,7 @@ function BlockPlotsContent() {
                         Being reserved by:{' '}
                         <strong>
                           {selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0
-                            ? selectedPlot.reservingUsers.map((u) => u.adminName.split(' ')[0]).join(', ')
+                            ? selectedPlot.reservingUsers.map((u: any) => u.adminName.split(' ')[0]).join(', ')
                             : (selectedPlot.reservingByName?.split(' ')[0] || 'Admin')}
                         </strong>
                       </div>

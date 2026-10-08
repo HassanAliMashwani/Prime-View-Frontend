@@ -25,6 +25,7 @@ import { loadBlockMapConfig } from '@/lib/map/blockRegistry';
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 export default function MasterPlanPage() {
   const router = useRouter();
@@ -46,13 +47,19 @@ export default function MasterPlanPage() {
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
   const hasPrefetchedRef = React.useRef(false);
 
-  const loadBlocks = useCallback(async (s: AdminSession) => {
+  const loadBlocks = useCallback(async (s: AdminSession, isBackground = false) => {
+    const runner = isBackground
+      ? (fn: () => Promise<any>) => runLane2({ screen: 'master-plan-overview', isRefresh: true, fn })
+      : (fn: () => Promise<any>) => runLane1({ screen: 'master-plan-overview', fn });
+
     try {
-      const res = await getAdminMasterPlanBlocks(s);
-      if (res.ok) {
-        setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
-        setCache(`/master-plan:${s.adminId}`, res.blocks);
-      }
+      await runner(async () => {
+        const res = await getAdminMasterPlanBlocks(s);
+        if (res.ok) {
+          setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
+          setCache(`/master-plan:${s.adminId}`, res.blocks);
+        }
+      });
     } catch {
       console.error('request failed');
     } finally {
@@ -65,14 +72,14 @@ export default function MasterPlanPage() {
     if (s) {
       setSession(s);
       if (s.role === 'super_admin' || s.permissions?.can_view_master_plan) {
-        loadBlocks(s);
+        loadBlocks(s, false);
       } else {
         setLoading(false);
       }
     }
   }, [loadBlocks]);
 
-  // Sequential prefetching of allowed blocks after overview image has fired load event
+  // Sequential prefetching of allowed blocks in Lane 2 after overview image has fired load event
   useEffect(() => {
     if (!imageLoaded || !session || hasPrefetchedRef.current) return;
     const isSuper = session.role === 'super_admin';
@@ -96,33 +103,31 @@ export default function MasterPlanPage() {
 
     const adminId = session.adminId || 'admin';
 
-    (async () => {
-      for (const blockId of allowedBlocks) {
-        try {
-          const res = await getAdminBlockPlots(session, blockId);
-          if (res.ok && res.block && res.plots) {
-            setCache(`/master-plan/${blockId}:${adminId}`, { block: res.block, plots: res.plots });
-          }
-          const config = await loadBlockMapConfig(blockId);
-          if (config?.imageSrc && typeof window !== 'undefined') {
-            const img = new window.Image();
-            img.src = config.imageSrc;
-          }
-        } catch {
-          // non-blocking sequential prefetch
+    // Queue block loop tasks into Lane 2 (starts only while Lane 1 is idle, continues after Lane 1 returns)
+    for (const blockId of allowedBlocks) {
+      const cacheKey = `/master-plan/${blockId}:${adminId}`;
+      enqueueLane2(async () => {
+        const res = await getAdminBlockPlots(session, blockId);
+        if (res.ok && res.block && res.plots) {
+          setCache(cacheKey, { block: res.block, plots: res.plots });
         }
-      }
-    })();
+        const config = await loadBlockMapConfig(blockId);
+        if (config?.imageSrc && typeof window !== 'undefined') {
+          const img = new window.Image();
+          img.src = config.imageSrc;
+        }
+      }, cacheKey);
+    }
   }, [imageLoaded, session]);
 
-  // Real-time multi-window sync
+  // Real-time multi-window sync via Lane 2
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
     const channel = new BroadcastChannel('prime-view-sync');
     channel.onmessage = () => {
       const s = getActiveAdminSession();
       if (s && (s.role === 'super_admin' || s.permissions?.can_view_master_plan)) {
-        loadBlocks(s);
+        loadBlocks(s, true);
       }
     };
     return () => {

@@ -15,6 +15,14 @@ export default function PropertiesPage() {
     fetchPlots();
   }, [fetchPlots]);
 
+  // Real-time 30-second background refresh via Lane 2
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchPlots(true);
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchPlots]);
+
   return (
     <div className="flex-1 flex flex-col min-h-screen">
       <MemberHeader

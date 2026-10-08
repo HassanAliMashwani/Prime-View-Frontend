@@ -38,6 +38,7 @@ import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
 import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 const PAGE_SIZE = 10;
 
 const SOCIETY_BLOCKS = [
@@ -128,8 +129,27 @@ function SalesHistoryContent() {
         }
       }
 
-      const res = await getSalesHistory(currentSession, filters);
-      if (currentReq !== reqIdRef.current) return;
+      const fetcher = async () => {
+        return await getSalesHistory(currentSession, filters);
+      };
+
+      let res: any;
+      if (background) {
+        res = await runLane2({
+          screen: 'sales-history',
+          key,
+          isRefresh: true,
+          fn: fetcher,
+        });
+      } else {
+        res = await runLane1({
+          screen: 'sales-history',
+          key,
+          fn: fetcher,
+        });
+      }
+
+      if (!res || currentReq !== reqIdRef.current) return;
 
       if (!res.ok) {
         setFeedback({ type: 'error', message: res.message || res.error || 'Failed to load sales history report.' });
@@ -139,7 +159,7 @@ function SalesHistoryContent() {
         setTotalRecords(res.total || 0);
         setCache(key, { items: res.items, kpis: res.kpis, total: res.total || 0 });
 
-        // Prefetch next page into cache if next page exists
+        // Prefetch next page into cache if next page exists using Lane 2
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
         if (pageParam < totalPages) {
           const nextP = pageParam + 1;
@@ -147,17 +167,22 @@ function SalesHistoryContent() {
           const nextPathParams = new URLSearchParams(Object.entries(nextFilters).filter(([_, v]) => v !== undefined) as string[][]);
           const nextKey = generateCacheKey('GET', `/sales/history?${nextPathParams.toString()}`, adminId);
           if (!getCache(nextKey, false)) {
-            getSalesHistory(currentSession, nextFilters)
-              .then((nextRes) => {
+            enqueueLane2(
+              async () => {
+                const nextRes = await getSalesHistory(currentSession, nextFilters);
                 if (nextRes.ok) {
                   setCache(nextKey, { items: nextRes.items, kpis: nextRes.kpis, total: nextRes.total || 0 });
                 }
-              })
-              .catch(() => {});
+                return nextRes;
+              },
+              nextKey,
+              'sales-history'
+            );
           }
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (currentReq !== reqIdRef.current) return;
       console.error('request failed');
       setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
@@ -178,9 +203,10 @@ function SalesHistoryContent() {
     setSession(cur);
     loadData(cur, page, false);
 
+    // 30-second refresh in background Lane 2
     const interval = setInterval(() => {
       loadData(cur, page, true);
-    }, 60000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [router, loadData, page]);

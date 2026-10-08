@@ -7,6 +7,7 @@ import * as z from 'zod';
 import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { updateProfile, changeCustomerPassword } from '@/lib/dal/customers';
+import { runLane1 } from '@/lib/requestLanes';
 import {
   User,
   Shield,
@@ -72,6 +73,14 @@ export default function ProfilePage() {
     fetchProfile();
   }, [fetchProfile]);
 
+  // Real-time 30-second background refresh via Lane 2
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      fetchProfile(true);
+    }, 30000);
+    return () => clearInterval(intervalId);
+  }, [fetchProfile]);
+
   useEffect(() => {
     if (profile) {
       reset({
@@ -89,7 +98,11 @@ export default function ProfilePage() {
     setToastMessage(null);
 
     try {
-      const res = await updateProfile(data);
+      const res = await runLane1({
+        screen: 'member-profile',
+        isSave: true,
+        fn: async () => updateProfile(data),
+      });
       if (res.ok) {
         setToastMessage({
           type: 'success',
@@ -135,7 +148,11 @@ export default function ProfilePage() {
 
     setPasswordLoading(true);
     try {
-      const res = await changeCustomerPassword(profile.id, currentPassword, newPassword);
+      const res = await runLane1({
+        screen: 'member-profile-password',
+        isSave: true,
+        fn: async () => changeCustomerPassword(profile.id, currentPassword, newPassword),
+      });
       if (res.ok) {
         setPasswordToast({
           type: 'success',

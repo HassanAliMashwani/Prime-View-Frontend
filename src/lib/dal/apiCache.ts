@@ -1,3 +1,5 @@
+import { requestLanes } from '../requestLanes';
+
 interface CacheEntry {
   data: any;
   timestamp: number;
@@ -70,6 +72,7 @@ export async function fetchWith60sCache<T>(
   })();
 
   inFlightRequests.set(key, promise);
+  requestLanes.registerLane2InFlight(key, promise);
   return promise;
 }
 

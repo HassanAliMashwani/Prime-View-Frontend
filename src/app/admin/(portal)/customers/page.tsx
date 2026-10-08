@@ -52,6 +52,7 @@ import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice } from 
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
 import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
+import { runLane1 } from '@/lib/requestLanes';
 
 function PlotSelector({
   value,
@@ -77,7 +78,10 @@ function PlotSelector({
   useEffect(() => {
     if (debouncedSearch.length >= 2 && session) {
       setLoading(true);
-      getAdminAllPlots(session, debouncedSearch).then(res => {
+      runLane1({
+        screen: 'plot-selector',
+        fn: async () => getAdminAllPlots(session, debouncedSearch),
+      }).then(res => {
         if (res.ok && res.plots) {
           const availableOnly = res.plots.filter((p: Plot) => {
             if (p.status !== 'available') return false;
@@ -89,6 +93,10 @@ function PlotSelector({
           setResults(availableOnly);
         }
         setLoading(false);
+      }).catch((err) => {
+        if (err?.message !== 'REQUEST_SUPERSEDED') {
+          setLoading(false);
+        }
       });
     } else {
       setResults([]);
@@ -313,7 +321,10 @@ function CustomersPageContent() {
 
     // Handle Complete Registration for quick-booked member (CR 07 §5)
     if (queryCompleteCustomer && cur) {
-      getAdminCustomerById(cur, queryCompleteCustomer).then((res) => {
+      runLane1({
+        screen: 'customer-booking',
+        fn: async () => getAdminCustomerById(cur, queryCompleteCustomer),
+      }).then((res) => {
         if (res.ok && res.data) {
           const cust = res.data;
           setCompleteTargetCustomer(cust);
@@ -362,7 +373,7 @@ function CustomersPageContent() {
             nokCnicCopyUrl: undefined,
           }));
         }
-      });
+      }).catch(() => {});
     }
 
     setLoading(false);
@@ -395,7 +406,11 @@ function CustomersPageContent() {
       return;
     }
     if (queryPlotId && session) {
-      await releaseLock(session, queryPlotId);
+      await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => releaseLock(session, queryPlotId),
+      }).catch(() => {});
     }
     if (queryReturnBlock) {
       router.push(`/admin/master-plan/${queryReturnBlock}`);
@@ -646,24 +661,28 @@ function CustomersPageContent() {
     // If completing registration for a quick-booked member (CR 07 §5):
     if (completeTargetCustomer) {
       setPathASubmitting(true);
-      const res = await completeMemberRegistration(session, {
-        customerId: completeTargetCustomer.id,
-        plotId: pathAForm.plotId || queryPlotId,
-        city: memberCity,
-        membershipNo: pathAForm.membershipNo,
-        fatherOrHusbandName: pathAForm.fatherOrHusbandName,
-        phone: pathAForm.phone,
-        email: pathAForm.email,
-        mailingAddress: pathAForm.mailingAddress,
-        nokName: pathAForm.nokName,
-        nokCnic: pathAForm.nokCnic,
-        applicantPhotoUrl: pathAForm.applicantPhotoUrl?.includes('placeholder') ? undefined : pathAForm.applicantPhotoUrl,
-        cnicCopyUrl: pathAForm.cnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.cnicCopyUrl,
-        nokCnicCopyUrl: pathAForm.nokCnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.nokCnicCopyUrl,
-        portalPassword: pathAForm.portalPassword,
-        paymentType: pathAForm.paymentType,
-        paperInstallmentRef: pathAForm.paperInstallmentRef,
-        installmentPlan,
+      const res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => completeMemberRegistration(session, {
+          customerId: completeTargetCustomer.id,
+          plotId: pathAForm.plotId || queryPlotId,
+          city: memberCity,
+          membershipNo: pathAForm.membershipNo,
+          fatherOrHusbandName: pathAForm.fatherOrHusbandName,
+          phone: pathAForm.phone,
+          email: pathAForm.email,
+          mailingAddress: pathAForm.mailingAddress,
+          nokName: pathAForm.nokName,
+          nokCnic: pathAForm.nokCnic,
+          applicantPhotoUrl: pathAForm.applicantPhotoUrl?.includes('placeholder') ? undefined : pathAForm.applicantPhotoUrl,
+          cnicCopyUrl: pathAForm.cnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.cnicCopyUrl,
+          nokCnicCopyUrl: pathAForm.nokCnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.nokCnicCopyUrl,
+          portalPassword: pathAForm.portalPassword,
+          paymentType: pathAForm.paymentType,
+          paperInstallmentRef: pathAForm.paperInstallmentRef,
+          installmentPlan,
+        }),
       });
       setPathASubmitting(false);
 
@@ -703,11 +722,15 @@ function CustomersPageContent() {
     }
 
     setPathASubmitting(true);
-    const res = await createCustomerWithBooking(session, {
-      ...pathAForm,
-      lockToken: queryLockToken || undefined,
-      installmentPlan,
-      portalPassword: canIssueCreds ? pathAForm.portalPassword : '',
+    const res = await runLane1({
+      screen: 'customer-booking',
+      isSave: true,
+      fn: async () => createCustomerWithBooking(session, {
+        ...pathAForm,
+        lockToken: queryLockToken || undefined,
+        installmentPlan,
+        portalPassword: canIssueCreds ? pathAForm.portalPassword : '',
+      }),
     });
     setPathASubmitting(false);
 
@@ -788,7 +811,10 @@ function CustomersPageContent() {
     e.preventDefault();
     if (!session || !searchQuery.trim()) return;
     setIsSearching(true);
-    const res = await searchCustomers(session, searchQuery);
+    const res = await runLane1({
+      screen: 'customer-search',
+      fn: async () => searchCustomers(session, searchQuery),
+    });
     setIsSearching(false);
     if (res.ok) {
       setSearchResults(res.customers);
@@ -816,7 +842,11 @@ function CustomersPageContent() {
 
     // Synchronize price if Super Admin updated plot price
     if (session.role === 'super_admin' && totalPaymentB > 0 && totalPaymentB !== plot.price) {
-      await updatePlotPrice(session, plot.id, totalPaymentB);
+      await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => updatePlotPrice(session, plot.id, totalPaymentB),
+      });
       plot.price = totalPaymentB;
     }
 
@@ -834,13 +864,17 @@ function CustomersPageContent() {
     }
 
     setPathBSubmitting(true);
-    const res = await addBookingToCustomer(session, {
-      customerId: selectedCustomer.id,
-      plotId: pathBPlotId,
-      paymentType: pathBPaymentType,
-      paperInstallmentRef: pathBPaperRef,
-      lockToken: queryLockToken || undefined,
-      installmentPlan,
+    const res = await runLane1({
+      screen: 'customer-booking',
+      isSave: true,
+      fn: async () => addBookingToCustomer(session, {
+        customerId: selectedCustomer.id,
+        plotId: pathBPlotId,
+        paymentType: pathBPaymentType,
+        paperInstallmentRef: pathBPaperRef,
+        lockToken: queryLockToken || undefined,
+        installmentPlan,
+      }),
     });
     setPathBSubmitting(false);
 
@@ -902,12 +936,16 @@ function CustomersPageContent() {
     }
 
     setSubAdminSubmitting(true);
-    const res = await createMinimalBooking(session, {
-      plotId: plot.id,
-      customerName: subAdminForm.customerName,
-      cnic: subAdminForm.cnic,
-      city: subAdminForm.city,
-      lockToken: queryLockToken || undefined,
+    const res = await runLane1({
+      screen: 'customer-booking',
+      isSave: true,
+      fn: async () => createMinimalBooking(session, {
+        plotId: plot.id,
+        customerName: subAdminForm.customerName,
+        cnic: subAdminForm.cnic,
+        city: subAdminForm.city,
+        lockToken: queryLockToken || undefined,
+      }),
     });
     setSubAdminSubmitting(false);
 
@@ -940,11 +978,15 @@ function CustomersPageContent() {
     setIsResettingPassword(true);
 
     try {
-      const res = await resetCustomerPassword(
-        session,
-        resetModalCustomer.id,
-        resetNewPassword.trim() || undefined
-      );
+      const res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => resetCustomerPassword(
+          session,
+          resetModalCustomer.id,
+          resetNewPassword.trim() || undefined
+        ),
+      });
 
       if (res.ok && res.newPassword) {
         const customerRef = resetModalCustomer;

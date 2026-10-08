@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { acceptTermsAndConditions } from '@/lib/dal/customers';
+import { runLane1 } from '@/lib/requestLanes';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Shield, FileCheck, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
 
@@ -33,7 +34,11 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
 
     try {
       if (profile) {
-        const res = await acceptTermsAndConditions(profile.id);
+        const res = await runLane1({
+          screen: 'member-terms',
+          isSave: true,
+          fn: async () => acceptTermsAndConditions(profile.id),
+        });
         if (res.ok) {
           useMemberStore.setState((state) => ({
             ...state,

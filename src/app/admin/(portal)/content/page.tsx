@@ -39,6 +39,7 @@ import {
 } from '@/lib/dal/content';
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { runLane1, runLane2 } from '@/lib/requestLanes';
 
 const PAGE_SIZE = 10;
 import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
@@ -107,30 +108,59 @@ export default function ContentCMSPage() {
   useEffect(() => { pageRef.current = page; }, [page]);
 
   // Load content blocks
-  const loadData = useCallback(async (currentSession: AdminSession, section: ContentSection, p = 1, isLoadMore = false) => {
+  const loadData = useCallback(async (currentSession: AdminSession, section: ContentSection, p = 1, isLoadMore = false, isBackground = false) => {
     const fetchPage = isLoadMore ? p : 1;
     const fetchPageSize = isLoadMore ? PAGE_SIZE : p * PAGE_SIZE;
+    const cacheKey = `/content:${section}:${currentSession.adminId}`;
 
-    const res = await getContentBlocks(currentSession, section, {
-      page: fetchPage,
-      pageSize: fetchPageSize
-    });
-    if (res.ok) {
-      if (isLoadMore) {
-        setBlocks((prev) => {
-          const existing = new Set(prev.map(b => b.id));
-          const newItems = res.blocks.filter(b => !existing.has(b.id));
-          return [...prev, ...newItems];
+    const fetcher = async () => {
+      return await getContentBlocks(currentSession, section, {
+        page: fetchPage,
+        pageSize: fetchPageSize
+      });
+    };
+
+    try {
+      let res: any;
+      if (isBackground) {
+        res = await runLane2({
+          screen: 'content-cms',
+          key: cacheKey,
+          isRefresh: true,
+          fn: fetcher,
         });
       } else {
-        setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
+        res = await runLane1({
+          screen: 'content-cms',
+          key: cacheKey,
+          fn: fetcher,
+        });
       }
-      setTotalRecords(res.total || 0);
-      if (fetchPage === 1) {
-        setCache(`/content:${section}:${currentSession.adminId}`, res.blocks.slice(0, PAGE_SIZE));
+
+      if (!res) return;
+
+      if (res.ok) {
+        if (isLoadMore) {
+          setBlocks((prev) => {
+            const existing = new Set(prev.map((b: ContentBlock) => b.id));
+            const newItems = res.blocks.filter((b: ContentBlock) => !existing.has(b.id));
+            return [...prev, ...newItems];
+          });
+        } else {
+          setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
+        }
+        setTotalRecords(res.total || 0);
+        if (fetchPage === 1) {
+          setCache(cacheKey, res.blocks.slice(0, PAGE_SIZE));
+        }
+      }
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
+    } finally {
+      if (!isBackground) {
+        setLoading(false);
       }
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
@@ -140,13 +170,13 @@ export default function ContentCMSPage() {
       return;
     }
     setSession(cur);
-    loadData(cur, activeSection, 1, false);
+    loadData(cur, activeSection, 1, false, false);
 
-    // Auto-refresh content list every 30 seconds to catch lock changes
+    // Auto-refresh content list every 30 seconds in Lane 2
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
       if (latestSession) {
-        loadData(latestSession, activeSection, pageRef.current, false);
+        loadData(latestSession, activeSection, pageRef.current, false, true);
       }
     }, 30000);
 
@@ -234,7 +264,11 @@ export default function ContentCMSPage() {
     setEditError(null);
     setIsCreating(false);
 
-    const res = await acquireContentLock(session, block.id);
+    const res = await runLane1({
+      screen: 'content-cms',
+      isSave: true,
+      fn: async () => acquireContentLock(session, block.id),
+    });
     if (!res.ok) {
       if (res.error === 'LOCKED_BY_ANOTHER') {
         setFeedback({
@@ -337,8 +371,12 @@ export default function ContentCMSPage() {
       setEditingBlock(null);
       setEditError(null);
 
-      // Release lock in the background without blocking the UI
-      releaseContentLock(session, blockId).finally(() => {
+      // Release lock without blocking the UI
+      runLane1({
+        screen: 'content-cms',
+        isSave: true,
+        fn: async () => releaseContentLock(session, blockId),
+      }).finally(() => {
         loadData(session, activeSection);
       });
     }
@@ -402,13 +440,17 @@ export default function ContentCMSPage() {
     }
 
     if (isCreating) {
-      const res = await createContentBlock(session, {
-        section: activeSection,
-        title: editForm.title,
-        subtitle: editForm.subtitle,
-        category: editForm.category,
-        content: editForm.content,
-        metadata,
+      const res = await runLane1({
+        screen: 'content-cms',
+        isSave: true,
+        fn: async () => createContentBlock(session, {
+          section: activeSection,
+          title: editForm.title,
+          subtitle: editForm.subtitle,
+          category: editForm.category,
+          content: editForm.content,
+          metadata,
+        }),
       });
 
       if (!res.ok) {
@@ -444,12 +486,16 @@ export default function ContentCMSPage() {
 
     if (editingBlock) {
       const blockId = editingBlock.id;
-      const res = await saveContentBlock(session, blockId, {
-        title: editForm.title,
-        subtitle: editForm.subtitle,
-        category: editForm.category,
-        content: editForm.content,
-        metadata,
+      const res = await runLane1({
+        screen: 'content-cms',
+        isSave: true,
+        fn: async () => saveContentBlock(session, blockId, {
+          title: editForm.title,
+          subtitle: editForm.subtitle,
+          category: editForm.category,
+          content: editForm.content,
+          metadata,
+        }),
       });
 
       if (!res.ok) {
@@ -490,7 +536,11 @@ export default function ContentCMSPage() {
       return;
     }
 
-    const res = await deleteContentBlock(session, block.id);
+    const res = await runLane1({
+      screen: 'content-cms',
+      isSave: true,
+      fn: async () => deleteContentBlock(session, block.id),
+    });
     if (!res.ok) {
       setFeedback({
         type: 'error',

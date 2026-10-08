@@ -36,6 +36,7 @@ import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSub
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 const PAGE_SIZE = 10;
 const ALL_BLOCKS: { id: BlockId; name: string }[] = [
@@ -116,7 +117,7 @@ export default function TeamsPage() {
   const reqIdRef = React.useRef(0);
   const [searchInput, setSearchInput] = useState('');
 
-  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchTerm) => {
+  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchTerm, isBackground = false) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
       return;
@@ -125,30 +126,51 @@ export default function TeamsPage() {
     const adminId = currentSession.adminId || currentSession.username || 'admin';
     const cacheKey = `/sub-admins:${adminId}:page=${p}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
 
-    const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, true);
-    if (cached) {
-      setSubAdmins(cached.subAdmins);
-      setTotalRecords(cached.total);
-      setLoading(false);
-    } else {
-      setSubAdmins((prev) => {
-        if (prev.length === 0) {
-          setLoading(true);
-        }
-        return prev;
-      });
+    if (!isBackground) {
+      const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, true);
+      if (cached) {
+        setSubAdmins(cached.subAdmins);
+        setTotalRecords(cached.total);
+        setLoading(false);
+      } else {
+        setSubAdmins((prev) => {
+          if (prev.length === 0) {
+            setLoading(true);
+          }
+          return prev;
+        });
+      }
     }
 
     const currentReq = ++reqIdRef.current;
     setFetchError(null);
-    try {
-      const res = await getSubAdmins(currentSession, {
+    const fetcher = async () => {
+      return await getSubAdmins(currentSession, {
         search,
         status: st,
         page: p,
         pageSize: PAGE_SIZE
       });
-      if (currentReq !== reqIdRef.current) return;
+    };
+
+    try {
+      let res: any;
+      if (isBackground) {
+        res = await runLane2({
+          screen: 'sub-admins',
+          key: cacheKey,
+          isRefresh: true,
+          fn: fetcher,
+        });
+      } else {
+        res = await runLane1({
+          screen: 'sub-admins',
+          key: cacheKey,
+          fn: fetcher,
+        });
+      }
+
+      if (!res || currentReq !== reqIdRef.current) return;
 
       if (res.ok) {
         if (!res.subAdmins || res.subAdmins.length === 0) {
@@ -159,34 +181,39 @@ export default function TeamsPage() {
         setTotalRecords(res.total);
         setCache(cacheKey, { subAdmins: res.subAdmins || [], total: res.total || 0 });
 
-        // Prefetch next page into cache if next page exists and allowed
+        // Prefetch next page into cache if next page exists and allowed using Lane 2
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
         if (p < totalPages && currentSession.role === 'super_admin') {
           const nextP = p + 1;
           const nextKey = `/sub-admins:${adminId}:page=${nextP}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
           if (!getCache(nextKey, false)) {
-            getSubAdmins(currentSession, {
-              search,
-              status: st,
-              page: nextP,
-              pageSize: PAGE_SIZE,
-            })
-              .then((nextRes) => {
+            enqueueLane2(
+              async () => {
+                const nextRes = await getSubAdmins(currentSession, {
+                  search,
+                  status: st,
+                  page: nextP,
+                  pageSize: PAGE_SIZE,
+                });
                 if (nextRes.ok) {
                   setCache(nextKey, { subAdmins: nextRes.subAdmins || [], total: nextRes.total || 0 });
                 }
-              })
-              .catch(() => {});
+                return nextRes;
+              },
+              nextKey,
+              'sub-admins'
+            );
           }
         }
       } else {
         setFetchError(res.message || 'Failed to retrieve team members.');
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (currentReq !== reqIdRef.current) return;
       setFetchError('Network communication error while loading team members.');
     } finally {
-      if (currentReq === reqIdRef.current) {
+      if (currentReq === reqIdRef.current && !isBackground) {
         setHasLoadedOnce(true);
         setLoading(false);
       }
@@ -197,14 +224,14 @@ export default function TeamsPage() {
     const t = setTimeout(() => {
       setSearchTerm(searchInput);
       setPage(1);
-      if (session) loadData(session, 1, statusFilter, searchInput);
+      if (session) loadData(session, 1, statusFilter, searchInput, false);
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   useEffect(() => {
     setPage(1);
-    if (session) loadData(session, 1, statusFilter, searchInput);
+    if (session) loadData(session, 1, statusFilter, searchInput, false);
   }, [statusFilter]);
 
   useEffect(() => {
@@ -214,22 +241,22 @@ export default function TeamsPage() {
       return;
     }
     setSession(cur);
-    loadData(cur);
+    loadData(cur, 1, 'all', '', false);
   }, [loadData, router]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     if (session) {
-      loadData(session, newPage);
+      loadData(session, newPage, statusFilter, searchTerm, false);
     }
   };
 
-  // Auto-refresh via polling
+  // Auto-refresh via polling using Lane 2
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s && searchTerm === '' && statusFilter === 'all') {
-        loadData(s);
+        loadData(s, 1, 'all', '', true);
       }
     }, 30000);
 
@@ -251,7 +278,11 @@ export default function TeamsPage() {
     setFormError(null);
     setCreateSubmitting(true);
 
-    const res = await createSubAdmin(session, createForm);
+    const res = await runLane1({
+      screen: 'sub-admins',
+      isSave: true,
+      fn: async () => createSubAdmin(session, createForm),
+    });
     setCreateSubmitting(false);
 
     if (!res.ok) {
@@ -278,7 +309,7 @@ export default function TeamsPage() {
       assignedBlocks: ['abbott', 'royal'],
       permissions: getDefaultCreatePermissions(),
     });
-    loadData(session);
+    loadData(session, 1, statusFilter, searchTerm, false);
   };
 
   // Open Edit Modal
@@ -312,7 +343,11 @@ export default function TeamsPage() {
       payload.password = editForm.password.trim();
     }
 
-    const res = await updateSubAdmin(session, editingAdmin.id, payload);
+    const res = await runLane1({
+      screen: 'sub-admins',
+      isSave: true,
+      fn: async () => updateSubAdmin(session, editingAdmin.id, payload),
+    });
     setEditSubmitting(false);
 
     if (!res.ok) {
@@ -325,7 +360,7 @@ export default function TeamsPage() {
       type: 'success',
       message: `Team member "${res.subAdmin?.fullName}" updated successfully.`,
     });
-    loadData(session);
+    loadData(session, page, statusFilter, searchTerm, false);
   };
 
   // Confirm Status Toggle (Suspend / Activate)
@@ -333,7 +368,11 @@ export default function TeamsPage() {
     if (!session || !confirmAdmin) return;
     setConfirmProcessing(true);
     const newStatus = confirmAdmin.status === 'active' ? 'suspended' : 'active';
-    const res = await updateSubAdmin(session, confirmAdmin.id, { status: newStatus });
+    const res = await runLane1({
+      screen: 'sub-admins',
+      isSave: true,
+      fn: async () => updateSubAdmin(session, confirmAdmin.id, { status: newStatus }),
+    });
     setConfirmProcessing(false);
     setConfirmAdmin(null);
 
@@ -342,7 +381,7 @@ export default function TeamsPage() {
         type: 'success',
         message: `Account for "${confirmAdmin.fullName}" has been ${newStatus === 'active' ? 'activated' : 'suspended'}.`,
       });
-      loadData(session);
+      loadData(session, page, statusFilter, searchTerm, false);
     } else {
       setFeedback({
         type: 'error',
@@ -356,7 +395,11 @@ export default function TeamsPage() {
     if (!session || !deleteAdmin) return;
     setDeleteProcessing(true);
     const target = deleteAdmin;
-    const res = await deleteSubAdmin(session, target.id);
+    const res = await runLane1({
+      screen: 'sub-admins',
+      isSave: true,
+      fn: async () => deleteSubAdmin(session, target.id),
+    });
     setDeleteProcessing(false);
     setDeleteAdmin(null);
 
@@ -365,7 +408,7 @@ export default function TeamsPage() {
         type: 'success',
         message: res.message || `Sub-administrator "${target.fullName}" (@${target.username}) has been permanently deleted.`,
       });
-      loadData(session);
+      loadData(session, page, statusFilter, searchTerm, false);
     } else {
       setFeedback({
         type: 'error',

@@ -26,6 +26,7 @@ import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
 import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 const PAGE_SIZE = 10;
 
@@ -94,7 +95,8 @@ export default function AuditLogPage() {
     actor = actorFilter,
     entity = entityFilter,
     start = startDate,
-    end = endDate
+    end = endDate,
+    isBackground = false
   ) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
@@ -104,18 +106,20 @@ export default function AuditLogPage() {
     const adminId = currentSession.adminId || 'admin';
     const cacheKey = `/audit-logs:${adminId}:page=${p}:size=${PAGE_SIZE}:search=${search || ''}:actor=${actor}:entity=${entity}:start=${start || ''}:end=${end || ''}`;
 
-    const cached = getCache<{ logs: AuditEntry[], total: number }>(cacheKey, true);
-    if (cached) {
-      setLogs(cached.logs);
-      setTotalCount(cached.total);
-      setLoading(false);
-    } else {
-      setLogs((prev) => {
-        if (prev.length === 0) {
-          setLoading(true);
-        }
-        return prev;
-      });
+    if (!isBackground) {
+      const cached = getCache<{ logs: AuditEntry[], total: number }>(cacheKey, true);
+      if (cached) {
+        setLogs(cached.logs);
+        setTotalCount(cached.total);
+        setLoading(false);
+      } else {
+        setLogs((prev) => {
+          if (prev.length === 0) {
+            setLoading(true);
+          }
+          return prev;
+        });
+      }
     }
 
     const currentReq = ++reqIdRef.current;
@@ -133,9 +137,28 @@ export default function AuditLogPage() {
       filters.actorId = actor;
     }
 
+    const fetcher = async () => {
+      return await getAuditLogs(currentSession, filters);
+    };
+
     try {
-      const res = await getAuditLogs(currentSession, filters);
-      if (currentReq !== reqIdRef.current) return;
+      let res: any;
+      if (isBackground) {
+        res = await runLane2({
+          screen: 'audit-log',
+          key: cacheKey,
+          isRefresh: true,
+          fn: fetcher,
+        });
+      } else {
+        res = await runLane1({
+          screen: 'audit-log',
+          key: cacheKey,
+          fn: fetcher,
+        });
+      }
+
+      if (!res || currentReq !== reqIdRef.current) return;
 
       if (res.ok) {
         if (!res.logs || res.logs.length === 0) {
@@ -146,7 +169,7 @@ export default function AuditLogPage() {
         setTotalCount(res.totalCount);
         setCache(cacheKey, { logs: res.logs || [], total: res.totalCount || 0 });
 
-        // Prefetch next page into cache if next page exists and permitted
+        // Prefetch next page into cache if next page exists and permitted using Lane 2
         const totalPages = Math.ceil((res.totalCount || 0) / PAGE_SIZE);
         if (p < totalPages && currentSession.role === 'super_admin') {
           const nextP = p + 1;
@@ -156,20 +179,25 @@ export default function AuditLogPage() {
               ...filters,
               page: nextP,
             };
-            getAuditLogs(currentSession, nextFilters)
-              .then((nextRes) => {
+            enqueueLane2(
+              async () => {
+                const nextRes = await getAuditLogs(currentSession, nextFilters);
                 if (nextRes.ok) {
                   setCache(nextKey, { logs: nextRes.logs || [], total: nextRes.totalCount || 0 });
                 }
-              })
-              .catch(() => {});
+                return nextRes;
+              },
+              nextKey,
+              'audit-log'
+            );
           }
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (currentReq !== reqIdRef.current) return;
     } finally {
-      if (currentReq === reqIdRef.current) {
+      if (currentReq === reqIdRef.current && !isBackground) {
         setHasLoadedOnce(true);
         setLoading(false);
       }
@@ -180,14 +208,14 @@ export default function AuditLogPage() {
     const t = setTimeout(() => {
       setSearchQuery(searchInput);
       setPage(1);
-      if (session) loadData(session, 1, searchInput, actorFilter, entityFilter, startDate, endDate);
+      if (session) loadData(session, 1, searchInput, actorFilter, entityFilter, startDate, endDate, false);
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   useEffect(() => {
     setPage(1);
-    if (session) loadData(session, 1, searchQuery, actorFilter, entityFilter, startDate, endDate);
+    if (session) loadData(session, 1, searchQuery, actorFilter, entityFilter, startDate, endDate, false);
   }, [actorFilter, entityFilter, startDate, endDate]);
 
   useEffect(() => {
@@ -197,13 +225,13 @@ export default function AuditLogPage() {
       return;
     }
     setSession(cur);
-    loadData(cur);
+    loadData(cur, 1, '', 'all', 'all', '', '', false);
 
     // Cross-tab broadcast listener to automatically refresh audit log on actions
     const handleSync = () => {
       const latest = getActiveAdminSession();
       if (latest && latest.role === 'super_admin' && !searchRef.current && actorRef.current === 'all' && entityRef.current === 'all' && !startRef.current && !endRef.current) {
-        loadData(latest, pageRef.current, searchRef.current, actorRef.current, entityRef.current, startRef.current, endRef.current);
+        loadData(latest, pageRef.current, searchRef.current, actorRef.current, entityRef.current, startRef.current, endRef.current, true);
       }
     };
 
@@ -214,7 +242,7 @@ export default function AuditLogPage() {
     };
     window.addEventListener('storage', handleStorage);
 
-    // Auto refresh every 30 seconds
+    // Auto refresh every 30 seconds using Lane 2
     const intervalId = setInterval(handleSync, 30000);
 
     return () => {

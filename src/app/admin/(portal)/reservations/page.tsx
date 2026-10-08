@@ -28,6 +28,7 @@ import { getBlockDisplayName } from '@/lib/map/regionData';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 const PAGE_SIZE = 10;
 
@@ -69,6 +70,7 @@ export default function ReservationsPage() {
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
   const [noteText, setNoteText] = useState<string>('');
   const [savingNote, setSavingNote] = useState<boolean>(false);
+  const [actingResId, setActingResId] = useState<string | null>(null);
 
   const reqIdRef = React.useRef(0);
   const pageRef = React.useRef(page);
@@ -86,7 +88,8 @@ export default function ReservationsPage() {
     p = page, 
     srch = search, 
     block = blockFilter, 
-    tab = activeTab
+    tab = activeTab,
+    isBackground = false
   ) => {
     const adminId = s.adminId || 'admin';
     const cacheKey = `/reservations:${adminId}:page=${p}:size=${PAGE_SIZE}:search=${srch || ''}:block=${block}:status=${tab}`;
@@ -96,7 +99,7 @@ export default function ReservationsPage() {
       setReservations(cached.reservations);
       setTotalRecords(cached.total);
       setLoading(false);
-    } else {
+    } else if (!isBackground) {
       setReservations((prev) => {
         if (prev.length === 0) {
           setLoading(true);
@@ -106,15 +109,34 @@ export default function ReservationsPage() {
     }
 
     const currentReq = ++reqIdRef.current;
-    try {
-      const res = await getReservations(s, {
+    const fetcher = async () => {
+      return await getReservations(s, {
         search: srch,
         blockId: block,
         status: tab === 'active' ? 'active' : 'history',
         page: p,
         pageSize: PAGE_SIZE,
       });
-      if (currentReq !== reqIdRef.current) return;
+    };
+
+    try {
+      let res: any;
+      if (isBackground) {
+        res = await runLane2({
+          screen: 'reservations',
+          key: cacheKey,
+          isRefresh: true,
+          fn: fetcher,
+        });
+      } else {
+        res = await runLane1({
+          screen: 'reservations',
+          key: cacheKey,
+          fn: fetcher,
+        });
+      }
+
+      if (!res || currentReq !== reqIdRef.current) return;
 
       if (res.ok) {
         if (!res.reservations || res.reservations.length === 0) {
@@ -125,33 +147,38 @@ export default function ReservationsPage() {
         setTotalRecords(res.total);
         setCache(cacheKey, { reservations: res.reservations || [], total: res.total || 0 });
 
-        // Prefetch next page into cache if next page exists
+        // Prefetch next page into cache if next page exists using Lane 2
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
         if (p < totalPages) {
           const nextP = p + 1;
           const nextKey = `/reservations:${adminId}:page=${nextP}:size=${PAGE_SIZE}:search=${srch || ''}:block=${block}:status=${tab}`;
           if (!getCache(nextKey, false)) {
-            getReservations(s, {
-              search: srch,
-              blockId: block,
-              status: tab === 'active' ? 'active' : 'history',
-              page: nextP,
-              pageSize: PAGE_SIZE,
-            })
-              .then((nextRes) => {
+            enqueueLane2(
+              async () => {
+                const nextRes = await getReservations(s, {
+                  search: srch,
+                  blockId: block,
+                  status: tab === 'active' ? 'active' : 'history',
+                  page: nextP,
+                  pageSize: PAGE_SIZE,
+                });
                 if (nextRes.ok) {
                   setCache(nextKey, { reservations: nextRes.reservations || [], total: nextRes.total || 0 });
                 }
-              })
-              .catch(() => {});
+                return nextRes;
+              },
+              nextKey,
+              'reservations'
+            );
           }
         }
       }
-    } catch {
+    } catch (err: any) {
+      if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (currentReq !== reqIdRef.current) return;
       console.error('request failed');
     } finally {
-      if (currentReq === reqIdRef.current) {
+      if (currentReq === reqIdRef.current && !isBackground) {
         setHasLoadedOnce(true);
         setLoading(false);
       }
@@ -162,37 +189,37 @@ export default function ReservationsPage() {
     const t = setTimeout(() => {
       setSearch(searchInput);
       setPage(1);
-      if (session) loadData(session, 1, searchInput, blockFilter, activeTab);
+      if (session) loadData(session, 1, searchInput, blockFilter, activeTab, false);
     }, 300);
     return () => clearTimeout(t);
   }, [searchInput]);
 
   useEffect(() => {
     setPage(1);
-    if (session) loadData(session, 1, search, blockFilter, activeTab);
+    if (session) loadData(session, 1, search, blockFilter, activeTab, false);
   }, [blockFilter, activeTab]);
 
   useEffect(() => {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      loadData(s);
+      loadData(s, 1, search, blockFilter, activeTab, false);
     }
   }, [loadData]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     if (session) {
-      loadData(session, newPage);
+      loadData(session, newPage, search, blockFilter, activeTab, false);
     }
   };
 
-  // Auto-refresh via polling
+  // Auto-refresh via polling using Lane 2
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
       if (s && searchRef.current === '' && blockRef.current === 'all' && tabRef.current === 'active') {
-        loadData(s, pageRef.current, searchRef.current, blockRef.current, tabRef.current);
+        loadData(s, pageRef.current, searchRef.current, blockRef.current, tabRef.current, true);
       }
     }, 30000);
 
@@ -204,16 +231,25 @@ export default function ReservationsPage() {
     if (!confirm(`Confirm to move ${r.customerName}'s reservation on Plot ${r.plotNumber} to official Booked status? Doing so will supersede any conflicting reservations on this plot.`)) {
       return;
     }
-    const res = await confirmReservation(session, r.id, 'one_time');
-    if (res.ok) {
-      await loadData(session);
-    } else {
-      const errorMsg = res.error === 'OUT_OF_SCOPE'
-        ? 'Sector is outside your assigned administrative authority.'
-        : res.error === 'RESERVATION_NOT_FOUND'
-        ? 'Reservation record not found or already processed.'
-        : 'Failed to confirm booking. Please review plot status.';
-      alert(errorMsg);
+    setActingResId(r.id);
+    try {
+      const res = await runLane1({
+        screen: 'reservations',
+        isSave: true,
+        fn: async () => confirmReservation(session, r.id, 'one_time'),
+      });
+      if (res.ok) {
+        await loadData(session, page, search, blockFilter, activeTab, false);
+      } else {
+        const errorMsg = res.error === 'OUT_OF_SCOPE'
+          ? 'Sector is outside your assigned administrative authority.'
+          : res.error === 'RESERVATION_NOT_FOUND'
+          ? 'Reservation record not found or already processed.'
+          : 'Failed to confirm booking. Please review plot status.';
+        alert(errorMsg);
+      }
+    } finally {
+      setActingResId(null);
     }
   };
 
@@ -230,18 +266,27 @@ export default function ReservationsPage() {
       return;
     }
 
-    const res = await releaseReservation(session, r.id, isOwner ? 'Released by reserving admin' : 'Released by Super Admin override');
-    if (res.ok) {
-      await loadData(session);
-    } else {
-      if (res.error === 'NOT_RESERVATION_OWNER') {
-        alert(`Access Denied: Only the original reserving officer (${r.reservedByAdminName}) can release this reservation.`);
+    setActingResId(r.id);
+    try {
+      const res = await runLane1({
+        screen: 'reservations',
+        isSave: true,
+        fn: async () => releaseReservation(session, r.id, isOwner ? 'Released by reserving admin' : 'Released by Super Admin override'),
+      });
+      if (res.ok) {
+        await loadData(session, page, search, blockFilter, activeTab, false);
       } else {
-        const errorMsg = res.error === 'RESERVATION_NOT_FOUND'
-          ? 'Reservation record not found or already released.'
-          : 'Failed to release reservation. Please try again.';
-        alert(errorMsg);
+        if (res.error === 'NOT_RESERVATION_OWNER') {
+          alert(`Access Denied: Only the original reserving officer (${r.reservedByAdminName}) can release this reservation.`);
+        } else {
+          const errorMsg = res.error === 'RESERVATION_NOT_FOUND'
+            ? 'Reservation record not found or already released.'
+            : 'Failed to release reservation. Please try again.';
+          alert(errorMsg);
+        }
       }
+    } finally {
+      setActingResId(null);
     }
   };
 
@@ -255,10 +300,14 @@ export default function ReservationsPage() {
     if (!session || !editingRes) return;
     setSavingNote(true);
     try {
-      const res = await updateReservationNote(session, editingRes.id, noteText);
+      const res = await runLane1({
+        screen: 'reservations',
+        isSave: true,
+        fn: async () => updateReservationNote(session, editingRes.id, noteText),
+      });
       if (res.ok) {
         setEditingRes(null);
-        await loadData(session);
+        await loadData(session, page, search, blockFilter, activeTab, false);
       }
     } catch {
       console.error('request failed');
@@ -528,10 +577,15 @@ export default function ReservationsPage() {
                     {r.status === 'active' && session.permissions.can_book && (
                       <button
                         onClick={() => handleConfirmBooking(r)}
-                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+                        disabled={actingResId === r.id}
+                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                         title="Move this reservation to official Booked status"
                       >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-purple-200" />
+                        {actingResId === r.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-purple-200" />
+                        )}
                         <span>Move to Booked</span>
                       </button>
                     )}
@@ -539,8 +593,11 @@ export default function ReservationsPage() {
                     {r.status === 'active' && session.permissions.can_reserve && (
                       <button
                         onClick={() => handleReleaseReservation(r)}
+                        disabled={actingResId === r.id}
                         className={`px-3 py-2 font-bold text-xs rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                          r.reservedByAdminId === session.adminId || session.role === 'super_admin'
+                          actingResId === r.id
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                            : r.reservedByAdminId === session.adminId || session.role === 'super_admin'
                             ? 'bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
                             : 'bg-slate-50 text-slate-400 border-slate-200'
                         }`}
@@ -552,7 +609,9 @@ export default function ReservationsPage() {
                             : `Only reserving admin (${r.reservedByAdminName}) can release`
                         }
                       >
-                        {r.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
+                        {actingResId === r.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : r.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
                           <Lock className="w-3.5 h-3.5 text-slate-400" />
                         ) : (
                           <RotateCcw className="w-3.5 h-3.5 text-slate-400 hover:text-rose-600" />
