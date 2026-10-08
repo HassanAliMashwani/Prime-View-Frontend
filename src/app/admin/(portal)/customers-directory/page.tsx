@@ -60,7 +60,8 @@ function CustomersDirectoryContent() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    const key = generateCacheKey('GET', `/customers?page=1&pageSize=${PAGE_SIZE}&search=&status=all`, s.token);
+    const adminId = s.adminId || 'admin';
+    const key = `/customers:${adminId}:page=1:size=${PAGE_SIZE}:search=:status=all`;
     return getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
   };
   const init = getInit();
@@ -137,8 +138,8 @@ function CustomersDirectoryContent() {
 
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, searchParam = '', statusParam = 'all', background = false) => {
     const reqId = ++reqIdRef.current;
-    const path = `/customers?page=${pageParam}&pageSize=${PAGE_SIZE}&search=${searchParam}&status=${statusParam}`;
-    const key = generateCacheKey('GET', path, currentSession.token);
+    const adminId = currentSession.adminId || 'admin';
+    const key = `/customers:${adminId}:page=${pageParam}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
 
     if (!background) {
       const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
@@ -147,7 +148,12 @@ function CustomersDirectoryContent() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setLoading(true);
+        setCustomers((prev) => {
+          if (prev.length === 0) {
+            setLoading(true);
+          }
+          return prev;
+        });
       }
     }
 
@@ -172,6 +178,22 @@ function CustomersDirectoryContent() {
         setTotalRecords(res.total || 0);
         setCache(key, { customers: res.customers, total: res.total || 0 });
         setError(null);
+
+        // Prefetch next page into cache if next page exists
+        const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
+        if (pageParam < totalPages) {
+          const nextPage = pageParam + 1;
+          const nextKey = `/customers:${adminId}:page=${nextPage}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
+          if (!getCache(nextKey, false)) {
+            getCustomersDirectory(currentSession, { page: nextPage, pageSize: PAGE_SIZE, search: searchParam, status: statusParam })
+              .then((nextRes) => {
+                if (nextRes.ok) {
+                  setCache(nextKey, { customers: nextRes.customers, total: nextRes.total || 0 });
+                }
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch {
       if (reqId !== reqIdRef.current) return;

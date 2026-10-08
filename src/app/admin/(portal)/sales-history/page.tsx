@@ -57,7 +57,8 @@ function SalesHistoryContent() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    const key = generateCacheKey('GET', `/sales/history?page=1&pageSize=${PAGE_SIZE}`, s.token);
+    const adminId = s.adminId || s.username || 'admin';
+    const key = generateCacheKey('GET', `/sales/history?datePreset=all&page=1&pageSize=${PAGE_SIZE}`, adminId);
     return getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
   };
   const init = getInit();
@@ -90,9 +91,11 @@ function SalesHistoryContent() {
     url.searchParams.set('page', newPage.toString());
     router.push(url.pathname + url.search);
   };
-  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
+  const reqIdRef = React.useRef(0);
 
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, background = false) => {
+    const currentReq = ++reqIdRef.current;
     try {
       const filters = {
         datePreset,
@@ -107,7 +110,8 @@ function SalesHistoryContent() {
 
       const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
       const path = `/sales/history?${pathParams.toString()}`;
-      const key = generateCacheKey('GET', path, currentSession.token);
+      const adminId = currentSession.adminId || currentSession.username || 'admin';
+      const key = generateCacheKey('GET', path, adminId);
 
       if (!background) {
         const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
@@ -125,6 +129,7 @@ function SalesHistoryContent() {
       }
 
       const res = await getSalesHistory(currentSession, filters);
+      if (currentReq !== reqIdRef.current) return;
 
       if (!res.ok) {
         setFeedback({ type: 'error', message: res.message || res.error || 'Failed to load sales history report.' });
@@ -133,13 +138,34 @@ function SalesHistoryContent() {
         setKpis(res.kpis);
         setTotalRecords(res.total || 0);
         setCache(key, { items: res.items, kpis: res.kpis, total: res.total || 0 });
+
+        // Prefetch next page into cache if next page exists
+        const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
+        if (pageParam < totalPages) {
+          const nextP = pageParam + 1;
+          const nextFilters = { ...filters, page: nextP };
+          const nextPathParams = new URLSearchParams(Object.entries(nextFilters).filter(([_, v]) => v !== undefined) as string[][]);
+          const nextKey = generateCacheKey('GET', `/sales/history?${nextPathParams.toString()}`, adminId);
+          if (!getCache(nextKey, false)) {
+            getSalesHistory(currentSession, nextFilters)
+              .then((nextRes) => {
+                if (nextRes.ok) {
+                  setCache(nextKey, { items: nextRes.items, kpis: nextRes.kpis, total: nextRes.total || 0 });
+                }
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch {
+      if (currentReq !== reqIdRef.current) return;
       console.error('request failed');
       setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
     } finally {
-      setHasLoadedOnce(true);
-      if (!background) setLoading(false);
+      if (currentReq === reqIdRef.current) {
+        setHasLoadedOnce(true);
+        if (!background) setLoading(false);
+      }
     }
   }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
 

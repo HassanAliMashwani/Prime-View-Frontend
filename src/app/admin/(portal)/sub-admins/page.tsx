@@ -73,20 +73,21 @@ export default function TeamsPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<AdminUser[]>(`/sub-admins:${s.adminId}`, true);
+    const adminId = s.adminId || s.username || 'admin';
+    return getCache<{ subAdmins: AdminUser[], total: number }>(`/sub-admins:${adminId}:page=1:size=${PAGE_SIZE}:status=all:search=`, true);
   };
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [subAdmins, setSubAdmins] = useState<AdminUser[]>(init || []);
+  const [subAdmins, setSubAdmins] = useState<AdminUser[]>(init?.subAdmins || []);
   const [loading, setLoading] = useState(!init);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [page, setPage] = useState<number>(1);
-  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
   // Modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
@@ -120,6 +121,24 @@ export default function TeamsPage() {
       setLoading(false);
       return;
     }
+
+    const adminId = currentSession.adminId || currentSession.username || 'admin';
+    const cacheKey = `/sub-admins:${adminId}:page=${p}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
+
+    const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, true);
+    if (cached) {
+      setSubAdmins(cached.subAdmins);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setSubAdmins((prev) => {
+        if (prev.length === 0) {
+          setLoading(true);
+        }
+        return prev;
+      });
+    }
+
     const currentReq = ++reqIdRef.current;
     setFetchError(null);
     try {
@@ -138,8 +157,27 @@ export default function TeamsPage() {
           setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
         }
         setTotalRecords(res.total);
-        if (search === '' && st === 'all' && p === 1) {
-          setCache(`/sub-admins:${currentSession.adminId}`, res.subAdmins);
+        setCache(cacheKey, { subAdmins: res.subAdmins || [], total: res.total || 0 });
+
+        // Prefetch next page into cache if next page exists and allowed
+        const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
+        if (p < totalPages && currentSession.role === 'super_admin') {
+          const nextP = p + 1;
+          const nextKey = `/sub-admins:${adminId}:page=${nextP}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
+          if (!getCache(nextKey, false)) {
+            getSubAdmins(currentSession, {
+              search,
+              status: st,
+              page: nextP,
+              pageSize: PAGE_SIZE,
+            })
+              .then((nextRes) => {
+                if (nextRes.ok) {
+                  setCache(nextKey, { subAdmins: nextRes.subAdmins || [], total: nextRes.total || 0 });
+                }
+              })
+              .catch(() => {});
+          }
         }
       } else {
         setFetchError(res.message || 'Failed to retrieve team members.');

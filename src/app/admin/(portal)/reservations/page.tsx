@@ -46,20 +46,21 @@ export default function ReservationsPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<ReservationWithConflict[]>(`/reservations:${s.adminId}`, true);
+    const adminId = s.adminId || 'admin';
+    return getCache<{ reservations: ReservationWithConflict[], total: number }>(`/reservations:${adminId}:page=1:size=${PAGE_SIZE}:search=:block=all:status=active`, true);
   };
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [reservations, setReservations] = useState<ReservationWithConflict[]>(init || []);
+  const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [search, setSearch] = useState<string>('');
   const [searchInput, setSearchInput] = useState<string>('');
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [loading, setLoading] = useState<boolean>(!init);
   const [page, setPage] = useState<number>(1);
-  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
 
   // Edit Note Modal State
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
@@ -84,6 +85,23 @@ export default function ReservationsPage() {
     block = blockFilter, 
     tab = activeTab
   ) => {
+    const adminId = s.adminId || 'admin';
+    const cacheKey = `/reservations:${adminId}:page=${p}:size=${PAGE_SIZE}:search=${srch || ''}:block=${block}:status=${tab}`;
+
+    const cached = getCache<{ reservations: ReservationWithConflict[], total: number }>(cacheKey, true);
+    if (cached) {
+      setReservations(cached.reservations);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setReservations((prev) => {
+        if (prev.length === 0) {
+          setLoading(true);
+        }
+        return prev;
+      });
+    }
+
     const currentReq = ++reqIdRef.current;
     try {
       const res = await getReservations(s, {
@@ -102,14 +120,33 @@ export default function ReservationsPage() {
           setReservations((prev) => reconcileItems(prev, res.reservations, (r) => r.id));
         }
         setTotalRecords(res.total);
-        if (srch === '' && block === 'all' && tab === 'active' && p === 1) {
-          setCache(`/reservations:${s.adminId}`, res.reservations || []);
+        setCache(cacheKey, { reservations: res.reservations || [], total: res.total || 0 });
+
+        // Prefetch next page into cache if next page exists
+        const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
+        if (p < totalPages) {
+          const nextP = p + 1;
+          const nextKey = `/reservations:${adminId}:page=${nextP}:size=${PAGE_SIZE}:search=${srch || ''}:block=${block}:status=${tab}`;
+          if (!getCache(nextKey, false)) {
+            getReservations(s, {
+              search: srch,
+              blockId: block,
+              status: tab === 'active' ? 'active' : 'history',
+              page: nextP,
+              pageSize: PAGE_SIZE,
+            })
+              .then((nextRes) => {
+                if (nextRes.ok) {
+                  setCache(nextKey, { reservations: nextRes.reservations || [], total: nextRes.total || 0 });
+                }
+              })
+              .catch(() => {});
+          }
         }
       }
     } catch {
-      if (currentReq === reqIdRef.current) {
-        console.error('request failed');
-      }
+      if (currentReq !== reqIdRef.current) return;
+      console.error('request failed');
     } finally {
       if (currentReq === reqIdRef.current) {
         setHasLoadedOnce(true);

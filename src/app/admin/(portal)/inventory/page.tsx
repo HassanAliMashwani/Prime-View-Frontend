@@ -23,6 +23,7 @@ import {
   InventoryTotals 
 } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
+import { getCache, setCache } from '@/lib/dal/apiCache';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 
@@ -92,15 +93,24 @@ const PAGE_SIZE = 10;
 export default function InventoryOverviewPage() {
   const router = useRouter();
 
+  const getInit = () => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    if (!s) return null;
+    const adminId = s.adminId || s.username || 'admin';
+    return getCache<{ stats: InventoryStats[], totals: InventoryTotals | null, total: number }>(`/inventory:${adminId}:page=1:size=${PAGE_SIZE}`, true);
+  };
+  const init = getInit();
+
   const [session, setSession] = useState<AdminSession | null>(null);
 
-  // Live Inventory State (zero cache, no allowStale)
-  const [loadingLive, setLoadingLive] = useState<boolean>(true);
-  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(false);
-  const [liveStats, setLiveStats] = useState<InventoryStats[]>([]);
-  const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(null);
+  // Live Inventory State
+  const [loadingLive, setLoadingLive] = useState<boolean>(!init);
+  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(Boolean(init));
+  const [liveStats, setLiveStats] = useState<InventoryStats[]>(init?.stats || []);
+  const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(init?.totals || null);
   const [livePage, setLivePage] = useState<number>(1);
-  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
   const [liveError, setLiveError] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -115,6 +125,8 @@ export default function InventoryOverviewPage() {
   const [historyError, setHistoryError] = useState<string>('');
   const [historyHasQueried, setHistoryHasQueried] = useState<boolean>(false);
 
+  const reqIdRef = React.useRef(0);
+
   useEffect(() => {
     const s = getActiveAdminSession();
     if (s) {
@@ -127,21 +139,59 @@ export default function InventoryOverviewPage() {
 
   // 1. Live Stats Loader: queries directly from Plot table at moment of request
   const loadLive = useCallback(async (p = livePage) => {
-    setLoadingLive(true);
+    const adminId = session?.adminId || session?.username || 'admin';
+    const cacheKey = `/inventory:${adminId}:page=${p}:size=${PAGE_SIZE}`;
+
+    const cached = getCache<{ stats: InventoryStats[], totals: InventoryTotals | null, total: number }>(cacheKey, true);
+    if (cached) {
+      setLiveStats(cached.stats);
+      setLiveTotals(cached.totals);
+      setTotalRecords(cached.total);
+      setLoadingLive(false);
+    } else {
+      setLiveStats((prev) => {
+        if (prev.length === 0) {
+          setLoadingLive(true);
+        }
+        return prev;
+      });
+    }
+
+    const currentReq = ++reqIdRef.current;
     setLiveError('');
     try {
       const data = await getLiveInventoryStats(undefined, session?.token, p, PAGE_SIZE);
+      if (currentReq !== reqIdRef.current) return;
+
       setLiveStats(data.stats);
       setLiveTotals(data.totals || null);
       setTotalRecords(data.total || 0);
       setLastUpdated(new Date());
+      setCache(cacheKey, { stats: data.stats, totals: data.totals || null, total: data.total || 0 });
       setHasLoadedLiveOnce(true);
+
+      // Prefetch next page into cache if next page exists
+      const totalPages = Math.ceil((data.total || 0) / PAGE_SIZE);
+      if (p < totalPages && canAccess) {
+        const nextP = p + 1;
+        const nextKey = `/inventory:${adminId}:page=${nextP}:size=${PAGE_SIZE}`;
+        if (!getCache(nextKey, false)) {
+          getLiveInventoryStats(undefined, session?.token, nextP, PAGE_SIZE)
+            .then((nextData) => {
+              setCache(nextKey, { stats: nextData.stats, totals: nextData.totals || null, total: nextData.total || 0 });
+            })
+            .catch(() => {});
+        }
+      }
     } catch {
+      if (currentReq !== reqIdRef.current) return;
       setLiveError('Failed to fetch live inventory counts. Please try again.');
     } finally {
-      setLoadingLive(false);
+      if (currentReq === reqIdRef.current) {
+        setLoadingLive(false);
+      }
     }
-  }, [session?.token, livePage]);
+  }, [session, canAccess, livePage]);
 
   // 2. History Loader: counts status transitions between the two dates
   const loadHistory = useCallback(async (from: string, to: string) => {

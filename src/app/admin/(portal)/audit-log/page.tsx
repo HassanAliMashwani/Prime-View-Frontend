@@ -48,7 +48,8 @@ export default function AuditLogPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<{logs: AuditEntry[], total: number}>(`/audit-logs:${s.adminId}`, true);
+    const adminId = s.adminId || 'admin';
+    return getCache<{logs: AuditEntry[], total: number}>(`/audit-logs:${adminId}:page=1:size=${PAGE_SIZE}:search=:actor=all:entity=all:start=:end=`, true);
   };
   const init = getInit();
 
@@ -100,6 +101,23 @@ export default function AuditLogPage() {
       return;
     }
 
+    const adminId = currentSession.adminId || 'admin';
+    const cacheKey = `/audit-logs:${adminId}:page=${p}:size=${PAGE_SIZE}:search=${search || ''}:actor=${actor}:entity=${entity}:start=${start || ''}:end=${end || ''}`;
+
+    const cached = getCache<{ logs: AuditEntry[], total: number }>(cacheKey, true);
+    if (cached) {
+      setLogs(cached.logs);
+      setTotalCount(cached.total);
+      setLoading(false);
+    } else {
+      setLogs((prev) => {
+        if (prev.length === 0) {
+          setLoading(true);
+        }
+        return prev;
+      });
+    }
+
     const currentReq = ++reqIdRef.current;
 
     const filters: AuditFilterOptions = {
@@ -115,23 +133,46 @@ export default function AuditLogPage() {
       filters.actorId = actor;
     }
 
-    const res = await getAuditLogs(currentSession, filters);
-    if (currentReq !== reqIdRef.current) return;
+    try {
+      const res = await getAuditLogs(currentSession, filters);
+      if (currentReq !== reqIdRef.current) return;
 
-    if (res.ok) {
-      if (!res.logs || res.logs.length === 0) {
-        setLogs([]);
-      } else {
-        setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
+      if (res.ok) {
+        if (!res.logs || res.logs.length === 0) {
+          setLogs([]);
+        } else {
+          setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
+        }
+        setTotalCount(res.totalCount);
+        setCache(cacheKey, { logs: res.logs || [], total: res.totalCount || 0 });
+
+        // Prefetch next page into cache if next page exists and permitted
+        const totalPages = Math.ceil((res.totalCount || 0) / PAGE_SIZE);
+        if (p < totalPages && currentSession.role === 'super_admin') {
+          const nextP = p + 1;
+          const nextKey = `/audit-logs:${adminId}:page=${nextP}:size=${PAGE_SIZE}:search=${search || ''}:actor=${actor}:entity=${entity}:start=${start || ''}:end=${end || ''}`;
+          if (!getCache(nextKey, false)) {
+            const nextFilters: AuditFilterOptions = {
+              ...filters,
+              page: nextP,
+            };
+            getAuditLogs(currentSession, nextFilters)
+              .then((nextRes) => {
+                if (nextRes.ok) {
+                  setCache(nextKey, { logs: nextRes.logs || [], total: nextRes.totalCount || 0 });
+                }
+              })
+              .catch(() => {});
+          }
+        }
       }
-      setTotalCount(res.totalCount);
-      if (p === 1 && !search && actor === 'all' && entity === 'all' && !start && !end) {
-        setCache(`/audit-logs:${currentSession.adminId}`, { logs: res.logs || [], total: res.totalCount || 0 });
+    } catch {
+      if (currentReq !== reqIdRef.current) return;
+    } finally {
+      if (currentReq === reqIdRef.current) {
+        setHasLoadedOnce(true);
+        setLoading(false);
       }
-    }
-    if (currentReq === reqIdRef.current) {
-      setHasLoadedOnce(true);
-      setLoading(false);
     }
   }, [searchQuery, actorFilter, entityFilter, startDate, endDate, page]);
 
@@ -201,22 +242,34 @@ export default function AuditLogPage() {
   };
 
   // Pretty JSON formatter helper
-  const renderPrettyValue = (val?: string) => {
-    if (!val) return <span className="text-slate-400 italic">None</span>;
-    try {
-      const parsed = JSON.parse(val);
-      return (
-        <pre className="font-mono text-[11px] text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200 overflow-x-auto">
-          {JSON.stringify(parsed, null, 2)}
-        </pre>
-      );
-    } catch {
-      return (
-        <div className="font-mono text-xs text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200 whitespace-pre-wrap">
-          {val}
-        </div>
-      );
+  const renderPrettyValue = (val?: string | object | null) => {
+    if (val === null || val === undefined || val === '') {
+      return <span className="text-slate-400 italic">None</span>;
     }
+
+    let displayString = '';
+    if (typeof val === 'object') {
+      displayString = JSON.stringify(val, null, 2);
+    } else if (typeof val === 'string') {
+      try {
+        const parsed = JSON.parse(val);
+        if (typeof parsed === 'object' && parsed !== null) {
+          displayString = JSON.stringify(parsed, null, 2);
+        } else {
+          displayString = String(parsed);
+        }
+      } catch {
+        displayString = val;
+      }
+    } else {
+      displayString = String(val);
+    }
+
+    return (
+      <pre className="font-mono text-[11px] text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200 overflow-x-auto whitespace-pre-wrap">
+        {displayString}
+      </pre>
+    );
   };
 
   if (!hasLoadedOnce && loading && logs.length === 0) {

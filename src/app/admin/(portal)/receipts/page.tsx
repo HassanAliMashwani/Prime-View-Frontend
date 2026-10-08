@@ -46,14 +46,15 @@ export default function AdminReceiptsPage() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<ReceiptSubmission[]>(`/receipts:${s.adminId}`, true);
+    const adminId = s.adminId || 'admin';
+    return getCache<{ receipts: ReceiptSubmission[], totalCount: number }>(`/receipts:${adminId}:page=1:size=${PAGE_SIZE}:status=pending:search=`, true);
   };
   const init = getInit();
 
   const [session, setSession] = useState<AdminSession | null>(null);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init || []);
-  const [totalCount, setTotalCount] = useState(0);
+  const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init?.receipts || []);
+  const [totalCount, setTotalCount] = useState(init?.totalCount || 0);
   const [loading, setLoading] = useState(!init);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | ReceiptStatus>('pending');
@@ -116,21 +117,58 @@ export default function AdminReceiptsPage() {
         setLoading(false);
         return;
       }
+
+      const adminId = currentSession.adminId || 'admin';
+      const cacheKey = `/receipts:${adminId}:page=${p}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
+
+      const cached = getCache<{ receipts: ReceiptSubmission[], totalCount: number }>(cacheKey, true);
+      if (cached) {
+        setReceipts(cached.receipts);
+        setTotalCount(cached.totalCount);
+        setLoading(false);
+      } else {
+        setReceipts((prev) => {
+          if (prev.length === 0) {
+            setLoading(true);
+          }
+          return prev;
+        });
+      }
+
       const currentReq = ++reqIdRef.current;
       
-      const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
-      if (currentReq !== reqIdRef.current) return;
+      try {
+        const res = await getAdminReceipts(currentSession, st, p, PAGE_SIZE, search);
+        if (currentReq !== reqIdRef.current) return;
 
-      if (res.ok) {
-        setReceipts(res.receipts || []);
-        setTotalCount(res.totalCount || 0);
-        if (p === 1 && st === 'all' && search === '') {
-          setCache(`/receipts:${currentSession.adminId}`, res.receipts || []);
+        if (res.ok) {
+          setReceipts(res.receipts || []);
+          setTotalCount(res.totalCount || 0);
+          setCache(cacheKey, { receipts: res.receipts || [], totalCount: res.totalCount || 0 });
+
+          // Prefetch next page into cache if next page exists
+          const totalPages = Math.ceil((res.totalCount || 0) / PAGE_SIZE);
+          if (p < totalPages && (isSuper || hasAuth)) {
+            const nextP = p + 1;
+            const nextKey = `/receipts:${adminId}:page=${nextP}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
+            if (!getCache(nextKey, false)) {
+              getAdminReceipts(currentSession, st, nextP, PAGE_SIZE, search)
+                .then((nextRes) => {
+                  if (nextRes.ok) {
+                    setCache(nextKey, { receipts: nextRes.receipts || [], totalCount: nextRes.totalCount || 0 });
+                  }
+                })
+                .catch(() => {});
+            }
+          }
         }
-      }
-      if (currentReq === reqIdRef.current) {
-        setHasLoadedOnce(true);
-        setLoading(false);
+      } catch {
+        if (currentReq !== reqIdRef.current) return;
+      } finally {
+        if (currentReq === reqIdRef.current) {
+          setHasLoadedOnce(true);
+          setLoading(false);
+        }
       }
     },
     []
