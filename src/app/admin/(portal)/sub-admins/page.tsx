@@ -38,6 +38,7 @@ import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSub
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
+import { AdminActionToast } from '@/components/admin/AdminActionToast';
 
 const parseAdminTitle = (fullName?: string) => {
   if (!fullName) return { displayName: 'Administrator', roleTitle: null };
@@ -494,23 +495,8 @@ export default function TeamsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Toast Feedback Banner */}
-      {feedback && (
-        <div
-          className={`flex items-center gap-3 p-4 rounded-2xl border text-sm font-medium transition-all shadow-sm ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-              : 'bg-rose-50 text-rose-900 border-rose-200'
-          }`}
-        >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-          )}
-          <span>{feedback.message}</span>
-        </div>
-      )}
+      {/* Action Toast Feedback Popup */}
+      <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
 
       {/* Teams Header Banner */}
       <div className="bg-white rounded-3xl border border-slate-200/90 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">

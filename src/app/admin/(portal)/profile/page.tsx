@@ -45,6 +45,7 @@ import {
   AdminSession,
   AdminProfileDetails,
 } from '@/lib/dal/adminAuth';
+import { toast } from '@/lib/toast';
 import { getCache, setCache } from '@/lib/dal/apiCache';
 import { runLane1 } from '@/lib/requestLanes';
 
@@ -78,7 +79,6 @@ export default function AdminProfilePage() {
   const [editEmail, setEditEmail] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
-  const [profileToast, setProfileToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Profile Picture state
   const [avatar, setAvatar] = useState<string>('');
@@ -93,7 +93,6 @@ export default function AdminProfilePage() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const [passwordToast, setPasswordToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     const s = getActiveAdminSession();
@@ -155,12 +154,11 @@ export default function AdminProfilePage() {
     if (!file || !session) return;
 
     if (!file.type.startsWith('image/')) {
-      setProfileToast({ type: 'error', message: 'Please select a valid image file (PNG, JPG, WebP).' });
+      toast.error('Please select a valid image file (PNG, JPG, WebP).');
       return;
     }
 
     setAvatarSaving(true);
-    setProfileToast(null);
 
     try {
       const reader = new FileReader();
@@ -213,10 +211,9 @@ export default function AdminProfilePage() {
             if (res.ok && res.admin) {
               setDetails(res.admin);
               setCache(`/profile:${session.adminId}`, res.admin);
-              setProfileToast({
-                type: 'success',
-                message: 'Profile picture updated successfully.',
-              });
+              toast.success('Profile picture updated successfully.');
+            } else {
+              toast.error(res.error || 'Failed to save updated profile picture.');
             }
           }
           setAvatarSaving(false);
@@ -225,7 +222,7 @@ export default function AdminProfilePage() {
       };
       reader.readAsDataURL(file);
     } catch {
-      setProfileToast({ type: 'error', message: 'Failed to process selected image.' });
+      toast.error('Failed to process selected image.');
       setAvatarSaving(false);
     }
   };
@@ -233,7 +230,6 @@ export default function AdminProfilePage() {
   const handleRemoveAvatar = async () => {
     if (!session) return;
     setAvatarSaving(true);
-    setProfileToast(null);
     try {
       setAvatar('');
       try {
@@ -252,13 +248,12 @@ export default function AdminProfilePage() {
       if (res.ok && res.admin) {
         setDetails(res.admin);
         setCache(`/profile:${session.adminId}`, res.admin);
-        setProfileToast({
-          type: 'success',
-          message: 'Profile picture removed. Restored official emblem.',
-        });
+        toast.success('Profile picture removed. Restored official emblem.');
+      } else {
+        toast.error(res.error || 'Failed to remove profile picture.');
       }
     } catch {
-      setProfileToast({ type: 'error', message: 'Failed to reset profile picture.' });
+      toast.error('Failed to reset profile picture.');
     } finally {
       setAvatarSaving(false);
     }
@@ -267,19 +262,18 @@ export default function AdminProfilePage() {
   // Handle Profile Details submission (Name, Email, Phone editable; Admin ID immutable)
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setProfileToast(null);
 
     const trimmedName = editFullName.trim();
     const trimmedEmail = editEmail.trim();
     const trimmedPhone = editPhone.trim();
 
     if (!trimmedName || trimmedName.length < 2) {
-      setProfileToast({ type: 'error', message: 'Full name must be at least 2 characters.' });
+      toast.error('Full name must be at least 2 characters.');
       return;
     }
 
     if (!trimmedEmail || !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
-      setProfileToast({ type: 'error', message: 'Please provide a valid email address.' });
+      toast.error('Please provide a valid email address.');
       return;
     }
 
@@ -302,15 +296,12 @@ export default function AdminProfilePage() {
       if (res.ok && res.admin) {
         setDetails(res.admin);
         setCache(`/profile:${session.adminId}`, res.admin);
-        setProfileToast({
-          type: 'success',
-          message: res.message || 'Profile details updated successfully.',
-        });
+        toast.success(res.message || 'Profile details updated successfully.');
       } else {
-        setProfileToast({ type: 'error', message: res.error || 'Failed to update profile details.' });
+        toast.error(res.error || 'Failed to update profile details.');
       }
     } catch {
-      setProfileToast({ type: 'error', message: 'An unexpected network error occurred.' });
+      toast.error('An unexpected network error occurred.');
     } finally {
       setProfileSaving(false);
     }
@@ -320,23 +311,21 @@ export default function AdminProfilePage() {
     setEditFullName(details?.fullName || session?.fullName || '');
     setEditEmail(details?.email || (session?.username ? `${session.username}@primeview.pk` : ''));
     setEditPhone(details?.phone || session?.phone || '');
-    setProfileToast(null);
   };
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPasswordToast(null);
 
     if (!currentPassword) {
-      setPasswordToast({ type: 'error', message: 'Please enter your current password.' });
+      toast.error('Please enter your current password.');
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordToast({ type: 'error', message: 'New password must be at least 8 characters long.' });
+      toast.error('New password must be at least 8 characters long.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setPasswordToast({ type: 'error', message: 'New password and confirmation do not match.' });
+      toast.error('New password and confirmation do not match.');
       return;
     }
     if (!session) return;
@@ -349,18 +338,15 @@ export default function AdminProfilePage() {
         fn: async () => changeAdminPassword(session, currentPassword, newPassword),
       });
       if (res.ok) {
-        setPasswordToast({
-          type: 'success',
-          message: res.message || 'Your administrator password has been updated successfully.',
-        });
+        toast.success(res.message || 'Your administrator password has been updated successfully.');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        setPasswordToast({ type: 'error', message: res.error || 'Failed to update password.' });
+        toast.error(res.error || 'Failed to update password.');
       }
     } catch {
-      setPasswordToast({ type: 'error', message: 'An unexpected network error occurred.' });
+      toast.error('An unexpected network error occurred.');
     } finally {
       setPasswordLoading(false);
     }
@@ -630,23 +616,6 @@ export default function AdminProfilePage() {
               </span>
             </div>
 
-            {profileToast && (
-              <div
-                className={`p-3.5 rounded-2xl text-xs flex items-start gap-2.5 border ${
-                  profileToast.type === 'success'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                    : 'bg-rose-50 border-rose-200 text-rose-900'
-                }`}
-              >
-                {profileToast.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                )}
-                <span>{profileToast.message}</span>
-              </div>
-            )}
-
             <form onSubmit={handleProfileSubmit} className="space-y-4">
               {/* Row 1: Administrative ID (Immutable Read-Only) & Portal Handle */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -777,23 +746,6 @@ export default function AdminProfilePage() {
                 </p>
               </div>
             </div>
-
-            {passwordToast && (
-              <div
-                className={`p-3.5 rounded-2xl text-xs flex items-start gap-2.5 border ${
-                  passwordToast.type === 'success'
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                    : 'bg-rose-50 border-rose-200 text-rose-900'
-                }`}
-              >
-                {passwordToast.type === 'success' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                ) : (
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                )}
-                <span>{passwordToast.message}</span>
-              </div>
-            )}
 
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>

@@ -53,6 +53,7 @@ import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
 import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
 import { runLane1 } from '@/lib/requestLanes';
+import { AdminActionToast } from '@/components/admin/AdminActionToast';
 
 function PlotSelector({
   value,
@@ -1063,23 +1064,8 @@ function CustomersPageContent() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Toast feedback */}
-      {feedback && (
-        <div
-          className={`flex items-center gap-3 p-4 rounded-xl border text-sm font-medium transition-all ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-              : 'bg-rose-50 text-rose-900 border-rose-200'
-          }`}
-        >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-          )}
-          <span>{feedback.message}</span>
-        </div>
-      )}
+      {/* Action Toast Feedback Popup */}
+      <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
 
       {/* Master Plan Active Soft Lock Banner (Item 3) */}
       {isLockedFromMap && lockedPlot && (

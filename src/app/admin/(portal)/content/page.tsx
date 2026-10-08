@@ -40,6 +40,7 @@ import {
 import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
+import { AdminActionToast } from '@/components/admin/AdminActionToast';
 
 const PAGE_SIZE = 10;
 import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
@@ -592,23 +593,8 @@ export default function ContentCMSPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      {/* Feedback banner */}
-      {feedback && (
-        <div
-          className={`flex items-center gap-3 p-4 rounded-xl border text-sm font-medium transition-all ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-              : 'bg-rose-50 text-rose-900 border-rose-200'
-          }`}
-        >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-          )}
-          <span>{feedback.message}</span>
-        </div>
-      )}
+      {/* Action Toast Feedback Popup */}
+      <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
 
       {/* Header & Section Tabs */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">

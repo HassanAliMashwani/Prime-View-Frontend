@@ -33,6 +33,7 @@ import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
+import { AdminActionToast } from '@/components/admin/AdminActionToast';
 
 const PAGE_SIZE = 10;
 
@@ -442,23 +443,8 @@ export default function AdminReceiptsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Toast Feedback */}
-      {feedback && (
-        <div
-          className={`flex items-center gap-3 p-4 rounded-xl border text-sm font-medium transition-all ${
-            feedback.type === 'success'
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-              : 'bg-rose-50 text-rose-900 border-rose-200'
-          }`}
-        >
-          {feedback.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-          ) : (
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
-          )}
-          <span>{feedback.message}</span>
-        </div>
-      )}
+      {/* Action Toast Feedback Popup */}
+      <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
 
       {/* Header section */}
       <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs flex flex-col md:flex-row md:items-center md:justify-between gap-4">

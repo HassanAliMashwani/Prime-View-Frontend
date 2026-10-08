@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/data/site";
+import { ToastContainer } from "@/components/ui/ToastContainer";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -46,6 +47,7 @@ export const metadata: Metadata = {
   },
 };
 
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -58,6 +60,7 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased bg-[#F8F7F5] text-[#151914] min-h-screen flex flex-col justify-between selection:bg-[#43612B] selection:text-white">
         {children}
+        <ToastContainer />
       </body>
     </html>
   );
