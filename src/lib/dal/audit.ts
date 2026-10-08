@@ -67,3 +67,41 @@ export async function getAuditLogs(
 
   return { ok: true, logs: rawLogs, totalCount: res.data?.totalCount || 0 };
 }
+
+/**
+ * Retrieve diff details (oldValue and newValue) for a single audit log entry (Super Admin exclusive).
+ * Read-only: fetched directly from real NestJS backend GET /admin/audit/:id.
+ */
+export async function getAuditLogDiff(
+  session: AdminSession,
+  id: string,
+  signal?: AbortSignal
+): Promise<{
+  ok: boolean;
+  oldValue?: any;
+  newValue?: any;
+  error?: string;
+}> {
+  if (session.role !== 'super_admin') {
+    return { ok: false, error: 'FORBIDDEN_SUPER_ADMIN_ONLY' };
+  }
+
+  const res = await apiGet<{ id: string; oldValue?: any; newValue?: any }>(
+    `/admin/audit/${id}`,
+    session.token,
+    signal
+  );
+
+  if (!res.ok) {
+    return {
+      ok: false,
+      error: res.error || 'AUDIT_DIFF_FETCH_FAILED',
+    };
+  }
+
+  return {
+    ok: true,
+    oldValue: res.data?.oldValue,
+    newValue: res.data?.newValue,
+  };
+}

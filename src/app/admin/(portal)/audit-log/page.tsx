@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
+import { getAuditLogs, getAuditLogDiff, AuditFilterOptions } from '@/lib/dal/audit';
 import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
@@ -69,8 +69,9 @@ export default function AuditLogPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  // Diff Modal state
+  // Diff Modal & loading state
   const [diffEntry, setDiffEntry] = useState<AuditEntry | null>(null);
+  const [loadingDiffId, setLoadingDiffId] = useState<string | null>(null);
 
   const reqIdRef = React.useRef(0);
   const pageRef = React.useRef(page);
@@ -106,24 +107,6 @@ export default function AuditLogPage() {
     const adminId = currentSession.adminId || 'admin';
     const cacheKey = `/audit-logs:${adminId}:page=${p}:size=${PAGE_SIZE}:search=${search || ''}:actor=${actor}:entity=${entity}:start=${start || ''}:end=${end || ''}`;
 
-    if (!isBackground) {
-      const cached = getCache<{ logs: AuditEntry[], total: number }>(cacheKey, true);
-      if (cached) {
-        setLogs(cached.logs);
-        setTotalCount(cached.total);
-        setLoading(false);
-      } else {
-        setLogs((prev) => {
-          if (prev.length === 0) {
-            setLoading(true);
-          }
-          return prev;
-        });
-      }
-    }
-
-    const currentReq = ++reqIdRef.current;
-
     const filters: AuditFilterOptions = {
       search: search || undefined,
       entityType: entity !== 'all' ? entity : undefined,
@@ -136,6 +119,52 @@ export default function AuditLogPage() {
     if (actor !== 'all') {
       filters.actorId = actor;
     }
+
+    // Queue only the following page on Lane 2 so Lane 1 remains idle
+    const queueNextPage = (totalRecords: number) => {
+      const totalPages = Math.ceil(totalRecords / PAGE_SIZE);
+      if (p < totalPages && currentSession.role === 'super_admin') {
+        const nextP = p + 1;
+        const nextKey = `/audit-logs:${adminId}:page=${nextP}:size=${PAGE_SIZE}:search=${search || ''}:actor=${actor}:entity=${entity}:start=${start || ''}:end=${end || ''}`;
+        if (!getCache(nextKey, false)) {
+          const nextFilters: AuditFilterOptions = {
+            ...filters,
+            page: nextP,
+          };
+          enqueueLane2(
+            async (signal) => {
+              const nextRes = await getAuditLogs(currentSession, nextFilters, signal);
+              if (nextRes.ok) {
+                setCache(nextKey, { logs: nextRes.logs || [], total: nextRes.totalCount || 0 });
+              }
+              return nextRes;
+            },
+            nextKey,
+            'audit-log'
+          );
+        }
+      }
+    };
+
+    if (!isBackground) {
+      const cached = getCache<{ logs: AuditEntry[], total: number }>(cacheKey, true);
+      if (cached) {
+        // Show cached 10 rows immediately and do not start Lane 1 download of that same page
+        setLogs(cached.logs);
+        setTotalCount(cached.total);
+        setLoading(false);
+        setHasLoadedOnce(true);
+        // Queue only following page on Lane 2; Lane 1 is idle so download starts at once
+        queueNextPage(cached.total);
+        return;
+      }
+
+      // Not cached: pulse the 10 table rows until page arrives; do not leave previous page's rows on screen
+      setLogs([]);
+      setLoading(true);
+    }
+
+    const currentReq = ++reqIdRef.current;
 
     const fetcher = async (signal?: AbortSignal) => {
       return await getAuditLogs(currentSession, filters, signal);
@@ -161,37 +190,13 @@ export default function AuditLogPage() {
       if (!res || currentReq !== reqIdRef.current) return;
 
       if (res.ok) {
-        if (!res.logs || res.logs.length === 0) {
-          setLogs([]);
-        } else {
-          setLogs((prev) => reconcileItems(prev, res.logs || [], (l) => l.id));
-        }
+        // Put that page's rows in the table directly
+        setLogs(res.logs || []);
         setTotalCount(res.totalCount);
         setCache(cacheKey, { logs: res.logs || [], total: res.totalCount || 0 });
 
-        // Prefetch next page into cache if next page exists and permitted using Lane 2
-        const totalPages = Math.ceil((res.totalCount || 0) / PAGE_SIZE);
-        if (p < totalPages && currentSession.role === 'super_admin') {
-          const nextP = p + 1;
-          const nextKey = `/audit-logs:${adminId}:page=${nextP}:size=${PAGE_SIZE}:search=${search || ''}:actor=${actor}:entity=${entity}:start=${start || ''}:end=${end || ''}`;
-          if (!getCache(nextKey, false)) {
-            const nextFilters: AuditFilterOptions = {
-              ...filters,
-              page: nextP,
-            };
-            enqueueLane2(
-              async (signal) => {
-                const nextRes = await getAuditLogs(currentSession, nextFilters, signal);
-                if (nextRes.ok) {
-                  setCache(nextKey, { logs: nextRes.logs || [], total: nextRes.totalCount || 0 });
-                }
-                return nextRes;
-              },
-              nextKey,
-              'audit-log'
-            );
-          }
-        }
+        // Queue only the following page on Lane 2; Lane 1 is now idle
+        queueNextPage(res.totalCount);
       }
     } catch (err: any) {
       if (err?.message === 'REQUEST_SUPERSEDED') return;
@@ -266,6 +271,29 @@ export default function AuditLogPage() {
     setPage(newPage);
     if (session) {
       loadData(session, newPage);
+    }
+  };
+
+  const handleViewDiff = async (entry: AuditEntry) => {
+    if (!session) return;
+    if (entry.oldValue !== undefined || entry.newValue !== undefined) {
+      setDiffEntry(entry);
+      return;
+    }
+    setLoadingDiffId(entry.id);
+    try {
+      const res = await getAuditLogDiff(session, entry.id);
+      if (res.ok) {
+        setDiffEntry({
+          ...entry,
+          oldValue: res.oldValue,
+          newValue: res.newValue,
+        });
+      }
+    } catch {
+      // non-blocking
+    } finally {
+      setLoadingDiffId(null);
     }
   };
 
@@ -345,7 +373,7 @@ export default function AuditLogPage() {
 
         <div className="flex items-center gap-2">
           <span className="text-xs font-mono font-bold px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl border border-slate-200">
-            {loading && logs.length === 0 ? (
+            {loading && !hasLoadedOnce ? (
               <span className="inline-block w-8 h-4 bg-slate-200 animate-pulse rounded align-middle" />
             ) : (
               totalCount
@@ -449,8 +477,8 @@ export default function AuditLogPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-              {loading && logs.length === 0 ? (
-                [...Array(6)].map((_, i) => (
+              {loading ? (
+                [...Array(10)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
                     <td className="py-3.5 px-4"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
                     <td className="py-3.5 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
@@ -468,7 +496,8 @@ export default function AuditLogPage() {
                 </tr>
               ) : (
                 logs.map((entry) => {
-                  const hasDiff = Boolean(entry.oldValue || entry.newValue);
+                  const hasDiff = Boolean(entry.hasDiff ?? (entry.oldValue || entry.newValue));
+                  const isBusy = loadingDiffId === entry.id;
                   return (
                     <tr key={entry.id} className="hover:bg-slate-50/70 transition-colors">
                       {/* Timestamp */}
@@ -519,11 +548,16 @@ export default function AuditLogPage() {
                       <td className="py-3.5 px-4 text-right whitespace-nowrap">
                         {hasDiff ? (
                           <button
-                            onClick={() => setDiffEntry(entry)}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition cursor-pointer inline-flex items-center gap-1 shadow-2xs"
+                            onClick={() => handleViewDiff(entry)}
+                            disabled={isBusy}
+                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition cursor-pointer inline-flex items-center gap-1.5 shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed"
                           >
-                            <Eye className="w-3 h-3 text-slate-600" />
-                            <span>View Diff</span>
+                            {isBusy ? (
+                              <Loader2 className="w-3 h-3 text-slate-600 animate-spin" />
+                            ) : (
+                              <Eye className="w-3 h-3 text-slate-600" />
+                            )}
+                            <span>{isBusy ? 'Loading...' : 'View Diff'}</span>
                           </button>
                         ) : (
                           <span className="text-[11px] text-slate-300 italic">No Diff</span>

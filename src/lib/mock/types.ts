@@ -292,8 +292,9 @@ export interface AuditEntry {
   entityType: 'customer' | 'plot' | 'booking' | 'payment' | 'document' | 'content' | 'reservation' | 'lock' | 'sub_admin' | 'receipt' | 'strike' | 'report';
   entityId: string;
   details: string;
-  oldValue?: string;
-  newValue?: string;
+  oldValue?: any;
+  newValue?: any;
+  hasDiff?: boolean;
 }
 
 // ── Payment Receipt Upload & Verification (Customer & Admin) ──
