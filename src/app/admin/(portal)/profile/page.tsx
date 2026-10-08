@@ -19,23 +19,15 @@ import {
   AlertCircle,
   ArrowRight,
   Calendar,
-  FileCheck,
-  BookmarkCheck,
-  Users,
-  FileEdit,
-  ScrollText,
   FileBadge,
   Camera,
   Phone,
   Save,
-  Trash2,
   RotateCcw,
-  Sparkles,
   Crown,
-  Globe,
-  Briefcase,
-  UserPlus,
-  Compass,
+  Trash2,
+  FileEdit,
+  Sparkles,
 } from 'lucide-react';
 import {
   getActiveAdminSession,
@@ -384,25 +376,25 @@ export default function AdminProfilePage() {
     : '01 Jan 2026';
 
   const allBlocksList = [
-    { id: 'abbott', name: 'Abbott Block', desc: 'Main Commercial Hub & 1 Kanal Villas', icon: Building2, featured: true, tag: 'Flagship Hub' },
-    { id: 'royal', name: 'Royal Block', desc: 'Premium Boulevard Residences', icon: Crown, featured: false, tag: 'Authorized' },
-    { id: 'overseas', name: 'Overseas Block', desc: 'Expatriate Executive Sector', icon: Globe, featured: false, tag: 'Authorized' },
-    { id: 'elite', name: 'Elite Block', desc: 'Luxury Parkside Enclave', icon: Sparkles, featured: false, tag: 'Authorized' },
-    { id: 'commercial', name: 'Commercial Block', desc: 'Main Boulevard Commercial Hub', icon: Briefcase, featured: false, tag: 'Authorized' },
-    { id: 'npf-phase-1', name: 'NPF Phase 1', desc: 'Co-operative Housing Division', icon: Layers, featured: false, tag: 'Authorized' },
-    { id: 'npf-phase-2', name: 'NPF Phase 2', desc: 'Mixed-Use Development Expansion', icon: Compass, featured: false, tag: 'Authorized' },
+    { id: 'abbott', name: 'Abbott Block' },
+    { id: 'royal', name: 'Royal Block' },
+    { id: 'overseas', name: 'Overseas Block' },
+    { id: 'elite', name: 'Elite Block' },
+    { id: 'commercial', name: 'Commercial Block' },
+    { id: 'npf-phase-1', name: 'NPF Phase 1' },
+    { id: 'npf-phase-2', name: 'NPF Phase 2' },
   ];
 
   const permissionList = [
-    { key: 'can_reserve', label: 'Plot Token Reservations', icon: BookmarkCheck, desc: 'Hold plot allocations with 24hr reservation tokens' },
-    { key: 'can_book', label: 'Plot Bookings & Confirmation', icon: CheckCircle2, desc: 'Execute binding installment plan bookings' },
-    { key: 'can_create_customer', label: 'Member Registration', icon: UserPlus, desc: 'Enroll new society members & file profiles' },
-    { key: 'can_view_customers', label: 'Member Directory Access', icon: Users, desc: 'Inspect verified member records and accounts' },
-    { key: 'can_verify_receipts', label: 'Payment Slip Verification', icon: FileCheck, desc: 'Authorize bank deposit slips and stamp payments' },
-    { key: 'can_edit_content', label: 'Public Content CMS', icon: FileEdit, desc: 'Manage society notices, media, and marketing copy' },
-    { key: 'can_view_sales_history', label: 'Sales Ledger Inspection', icon: ScrollText, desc: 'Review global transaction audit trail and KPI records' },
-    { key: 'can_view_inventory', label: 'Inventory Overview Access', icon: Layers, desc: 'Audit plot availability matrices and block totals' },
-    { key: 'can_view_master_plan', label: 'Master Plan CAD Grid', icon: Building2, desc: 'Interact with spatial plots and block layout' },
+    { key: 'can_reserve', label: 'Plot Token Reservations' },
+    { key: 'can_book', label: 'Plot Bookings & Confirmation' },
+    { key: 'can_create_customer', label: 'Member Registration' },
+    { key: 'can_view_customers', label: 'Member Directory Access' },
+    { key: 'can_verify_receipts', label: 'Payment Slip Verification' },
+    { key: 'can_edit_content', label: 'Public Content CMS' },
+    { key: 'can_view_sales_history', label: 'Sales Ledger Inspection' },
+    { key: 'can_view_inventory', label: 'Inventory Overview Access' },
+    { key: 'can_view_master_plan', label: 'Master Plan CAD Grid' },
   ];
 
   return (
@@ -827,49 +819,13 @@ export default function AdminProfilePage() {
         </div>
       </div>
 
-      {/* ── ROW 2: SUPER ADMIN EXECUTIVE BENTO GRID (STRICTLY SUPER ADMIN ONLY) ── */}
+      {/* ── ROW 2: SUPER ADMIN ASSIGNED SECTORS & PERMISSIONS (STRICTLY SUPER ADMIN ONLY) ── */}
       {isSuper && (
-        <div className="space-y-6 pt-2">
-          {/* Executive Bento Banner */}
-          <div className="bg-gradient-to-br from-[#10251E] via-[#16352B] to-[#1F4A3C] text-white p-6 sm:p-7 rounded-3xl shadow-sm border border-[#D4AF37]/25 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-radial from-[#D4AF37]/15 via-transparent to-transparent pointer-events-none -mr-20 -mt-20" />
-            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-[#D4AF37]/15 border border-[#D4AF37]/30 text-[#D4AF37] flex items-center justify-center shadow-xs shrink-0">
-                  <Crown className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-serif font-bold text-lg sm:text-xl text-white tracking-tight">
-                      Super Administrator Executive Governance
-                    </h2>
-                    <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-[#D4AF37] text-[#10251E]">
-                      Charter V4
-                    </span>
-                  </div>
-                  <p className="text-xs text-emerald-100/80 mt-1 max-w-xl">
-                    Constitutional jurisdiction across all 7 society blocks and unhindered operational authority over all 9 administrative systems.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="px-3.5 py-2 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15 text-left">
-                  <div className="text-[10px] text-emerald-200 uppercase tracking-wider font-semibold">Jurisdiction</div>
-                  <div className="font-serif font-bold text-sm text-white">7/7 Blocks Active</div>
-                </div>
-                <div className="px-3.5 py-2 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15 text-left">
-                  <div className="text-[10px] text-emerald-200 uppercase tracking-wider font-semibold">Privileges</div>
-                  <div className="font-serif font-bold text-sm text-[#D4AF37]">9/9 Granted</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Master Bento Grid (Side-by-Side Bento Boxes) */}
+        <div className="pt-2">
+          {/* Side-by-Side Cards */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-stretch">
-            {/* ── BENTO CARD 1: ASSIGNED SECTORS & JURISDICTION ── */}
-            <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-6">
+            {/* ── CARD 1: ASSIGNED SECTORS & JURISDICTION ── */}
+            <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-6">
               <div>
                 {/* Section Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -882,75 +838,32 @@ export default function AdminProfilePage() {
                         Assigned Sectors &amp; Jurisdiction
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Authorized geographic sectors within your administrative charter.
+                        Authorized society blocks
                       </p>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-purple-800 bg-purple-50 border border-purple-200 px-3 py-1 rounded-full shrink-0">
-                    All 7 Blocks
+                    7 Blocks
                   </span>
                 </div>
 
-                {/* Bento Grid of 7 Blocks */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-5">
-                  {allBlocksList.map((block) => {
-                    const Icon = block.icon;
-                    const isFeatured = block.featured;
-                    return (
-                      <div
-                        key={block.id}
-                        className={`p-4 rounded-2xl border transition-all shadow-2xs group flex flex-col justify-between gap-3 ${
-                          isFeatured
-                            ? 'sm:col-span-2 bg-gradient-to-r from-emerald-50/80 via-white to-amber-50/50 border-emerald-300 hover:border-emerald-500'
-                            : 'bg-slate-50/60 hover:bg-white border-slate-200 hover:border-emerald-300'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2.5">
-                            <div
-                              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                                isFeatured
-                                  ? 'bg-emerald-800 text-[#D4AF37]'
-                                  : 'bg-white text-slate-700 border border-slate-200 group-hover:text-emerald-700'
-                              }`}
-                            >
-                              <Icon className="w-4 h-4" />
-                            </div>
-                            <div>
-                              <div className="font-serif font-bold text-sm text-slate-900 group-hover:text-emerald-800 transition-colors">
-                                {block.name}
-                              </div>
-                              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{block.desc}</p>
-                            </div>
-                          </div>
-                          <span
-                            className={`text-[9px] uppercase font-mono font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                              isFeatured
-                                ? 'bg-[#10251E] text-[#D4AF37] border border-[#D4AF37]/40'
-                                : 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                            }`}
-                          >
-                            {block.tag}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Names Only List */}
+                <div className="space-y-2 pt-5">
+                  {allBlocksList.map((block) => (
+                    <div
+                      key={block.id}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200/70 hover:bg-white hover:border-emerald-300 transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-sm font-semibold text-slate-800">{block.name}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
-
-              {/* Bento Footer Scope Indicator */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Full Society Boundary Rights</span>
-                </span>
-                <span className="font-mono text-emerald-700 font-bold">100% Coverage</span>
               </div>
             </div>
 
-            {/* ── BENTO CARD 2: SYSTEM PRIVILEGES & PERMISSIONS ── */}
-            <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-6">
+            {/* ── CARD 2: SYSTEM PRIVILEGES & PERMISSIONS ── */}
+            <div className="bg-white border-2 border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col justify-between space-y-6">
               <div>
                 {/* Section Header */}
                 <div className="flex items-center justify-between border-b border-slate-100 pb-4">
@@ -963,70 +876,27 @@ export default function AdminProfilePage() {
                         System Privileges &amp; Permissions
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Assigned administrative operations and operational rights.
+                        Granted administrative operations
                       </p>
                     </div>
                   </div>
                   <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full shrink-0">
-                    9 Granted Modules
+                    9 Permissions
                   </span>
                 </div>
 
-                {/* Bento Grid of 9 Permissions */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-5">
-                  {permissionList.map((perm) => {
-                    const Icon = perm.icon;
-                    const isGranted = isSuper || Boolean((permissions as Record<string, boolean | undefined>)[perm.key]);
-
-                    return (
-                      <div
-                        key={perm.key}
-                        className={`p-3.5 rounded-2xl border transition-all flex items-start gap-3 hover:shadow-2xs ${
-                          isGranted
-                            ? 'bg-slate-50/70 border-slate-200 hover:bg-white hover:border-emerald-300'
-                            : 'bg-slate-50/30 border-dashed border-slate-200 opacity-60'
-                        }`}
-                      >
-                        <div
-                          className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                            isGranted
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                              : 'bg-slate-200 text-slate-500'
-                          }`}
-                        >
-                          <Icon className="w-4 h-4" />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="font-bold text-xs text-slate-900 truncate">
-                              {perm.label}
-                            </span>
-                            <span
-                              className={`text-[9px] uppercase font-mono font-bold px-1.5 py-0.5 rounded leading-none shrink-0 ${
-                                isGranted
-                                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                                  : 'bg-slate-200 text-slate-600'
-                              }`}
-                            >
-                              {isGranted ? 'Granted' : 'Restricted'}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 mt-1 leading-snug">{perm.desc}</p>
-                        </div>
-                      </div>
-                    );
-                  })}
+                {/* Names Only List */}
+                <div className="space-y-2 pt-5">
+                  {permissionList.map((perm) => (
+                    <div
+                      key={perm.key}
+                      className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200/70 hover:bg-white hover:border-emerald-300 transition-colors"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span className="text-sm font-semibold text-slate-800">{perm.label}</span>
+                    </div>
+                  ))}
                 </div>
-              </div>
-
-              {/* Bento Footer Permissions Indicator */}
-              <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                <span className="flex items-center gap-1.5 font-medium">
-                  <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                  <span>Unrestricted System Governance</span>
-                </span>
-                <span className="font-mono text-emerald-700 font-bold">9 Operations Granted</span>
               </div>
             </div>
           </div>
