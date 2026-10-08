@@ -120,7 +120,27 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           className="flex items-center gap-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer group"
           title="Open Administrator Profile"
         >
-          <ShieldCheck className={`w-4 h-4 ${session?.role === 'super_admin' ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
+          {(() => {
+            const headerAvatar =
+              session?.avatarUrl ||
+              (session?.permissions as any)?.avatarUrl ||
+              (typeof window !== 'undefined' && session?.adminId
+                ? localStorage.getItem(`pv_admin_avatar_${session.adminId}`)
+                : null);
+
+            if (headerAvatar) {
+              return (
+                <div className="w-6 h-6 rounded-lg overflow-hidden border border-slate-200/90 shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={headerAvatar} alt="" className="w-full h-full object-cover" />
+                </div>
+              );
+            }
+
+            return (
+              <ShieldCheck className={`w-4 h-4 ${session?.role === 'super_admin' ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
+            );
+          })()}
           <div className="hidden md:block text-left">
             <div className="font-bold text-slate-900 group-hover:text-emerald-800 leading-tight transition-colors">
               {session ? (

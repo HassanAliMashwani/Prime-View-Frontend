@@ -208,6 +208,8 @@ export interface AdminUser {
   username: string; // e.g. 'admin', 'marketing', 'police'
   fullName: string;
   email: string;
+  phone?: string;
+  avatarUrl?: string;
   role: AdminRole;
   assignedBlocks: (BlockId | string)[]; // Empty/all for super_admin; specific blocks for sub_admin
   permissions: AdminPermissions;

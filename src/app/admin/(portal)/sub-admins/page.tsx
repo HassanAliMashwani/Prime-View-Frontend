@@ -668,9 +668,34 @@ export default function TeamsPage() {
                   <div className="p-5 space-y-3.5">
                     {/* Header Row: Avatar + Name / Role + Status */}
                     <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] text-[#D4AF37] font-serif font-bold text-base flex items-center justify-center shadow-xs shrink-0 ring-1 ring-slate-900/5">
-                        {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
-                      </div>
+                      {(() => {
+                        const avatarSrc =
+                          admin.avatarUrl ||
+                          (admin.permissions as any)?.avatarUrl ||
+                          (typeof window !== 'undefined'
+                            ? (localStorage.getItem(`pv_admin_avatar_${admin.id}`) ||
+                               (admin.username ? localStorage.getItem(`pv_admin_avatar_${admin.username}`) : null))
+                            : null);
+
+                        if (avatarSrc) {
+                          return (
+                            <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white flex items-center justify-center">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={avatarSrc}
+                                alt={displayName}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10251E] to-[#18392C] text-[#D4AF37] font-serif font-bold text-base flex items-center justify-center shadow-xs shrink-0 ring-1 ring-slate-900/5">
+                            {displayName ? displayName.charAt(0).toUpperCase() : 'A'}
+                          </div>
+                        );
+                      })()}
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
@@ -1115,9 +1140,28 @@ export default function TeamsPage() {
           <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-2xl shadow-2xl overflow-hidden my-auto max-h-[100dvh] flex flex-col">
             <div className="p-6 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-700 shadow-xs">
-                  <Edit2 className="w-5 h-5" />
-                </div>
+                {(() => {
+                  const editAvatar =
+                    editingAdmin.avatarUrl ||
+                    (editingAdmin.permissions as any)?.avatarUrl ||
+                    (typeof window !== 'undefined'
+                      ? (localStorage.getItem(`pv_admin_avatar_${editingAdmin.id}`) ||
+                         (editingAdmin.username ? localStorage.getItem(`pv_admin_avatar_${editingAdmin.username}`) : null))
+                      : null);
+                  if (editAvatar) {
+                    return (
+                      <div className="w-10 h-10 rounded-2xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={editAvatar} alt={editingAdmin.fullName} className="w-full h-full object-cover" />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-700 shadow-xs">
+                      <Edit2 className="w-5 h-5" />
+                    </div>
+                  );
+                })()}
                 <div>
                   <h3 className="font-serif font-bold text-lg text-slate-900 leading-tight">
                     Edit Administrator Permissions

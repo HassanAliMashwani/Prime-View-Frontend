@@ -275,7 +275,25 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
         >
           <div className="flex items-start justify-between gap-1.5 mb-2">
             <div className="flex items-start gap-2 min-w-0">
-              <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
+              {(() => {
+                const sidebarAvatar =
+                  session?.avatarUrl ||
+                  (session?.permissions as any)?.avatarUrl ||
+                  (typeof window !== 'undefined' && session?.adminId
+                    ? localStorage.getItem(`pv_admin_avatar_${session.adminId}`)
+                    : null);
+                if (sidebarAvatar) {
+                  return (
+                    <div className="w-5 h-5 rounded-md overflow-hidden border border-slate-200/90 shrink-0 mt-0.5">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={sidebarAvatar} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  );
+                }
+                return (
+                  <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
+                );
+              })()}
               <div className="text-[12px] font-bold text-slate-900 leading-snug group-hover:text-emerald-800 transition-colors">
                 {session ? (
                   session.fullName || 'Administrator'

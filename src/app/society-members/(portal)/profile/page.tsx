@@ -105,6 +105,9 @@ export default function ProfilePage() {
             localStorage.setItem(`pv_member_avatar_${profile.id}`, dataUrl);
           } catch {}
           setToastMessage({ type: 'success', text: 'Profile picture updated successfully.' });
+
+          // Persist to backend asynchronously
+          updateProfile({ applicantPhotoUrl: dataUrl }).catch(() => {});
         }
         setAvatarSaving(false);
       };
@@ -120,6 +123,7 @@ export default function ProfilePage() {
       localStorage.removeItem(`pv_member_avatar_${profile.id}`);
     } catch {}
     setToastMessage({ type: 'success', text: 'Profile picture reset to default.' });
+    updateProfile({ applicantPhotoUrl: '' }).catch(() => {});
   };
 
   const {

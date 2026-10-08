@@ -193,6 +193,9 @@ export default function AdminProfilePage() {
             setAvatar(optimizedDataUrl);
             try {
               localStorage.setItem(`pv_admin_avatar_${session.adminId}`, optimizedDataUrl);
+              if (session.username) {
+                localStorage.setItem(`pv_admin_avatar_${session.username}`, optimizedDataUrl);
+              }
             } catch {}
 
             // Save to backend
@@ -230,6 +233,9 @@ export default function AdminProfilePage() {
       setAvatar('');
       try {
         localStorage.removeItem(`pv_admin_avatar_${session.adminId}`);
+        if (session.username) {
+          localStorage.removeItem(`pv_admin_avatar_${session.username}`);
+        }
       } catch {}
 
       const res = await runLane1({

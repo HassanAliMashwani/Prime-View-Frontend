@@ -586,9 +586,30 @@ function CustomersDirectoryContent() {
                 {/* 1. Member Info */}
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
-                      {c.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
+                    {(() => {
+                      const memberAvatar =
+                        c.applicantPhotoUrl ||
+                        (typeof window !== 'undefined'
+                          ? localStorage.getItem(`pv_member_avatar_${c.id}`)
+                          : null);
+                      if (memberAvatar) {
+                        return (
+                          <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={memberAvatar}
+                              alt={c.fullName}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
+                          {c.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                        </div>
+                      );
+                    })()}
                     <div>
                       <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5 flex-wrap">
                         <span>{c.fullName}</span>
@@ -877,9 +898,30 @@ function CustomersDirectoryContent() {
                       {/* Member Info */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
-                            {c.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
-                          </div>
+                          {(() => {
+                            const memberAvatar =
+                              c.applicantPhotoUrl ||
+                              (typeof window !== 'undefined'
+                                ? localStorage.getItem(`pv_member_avatar_${c.id}`)
+                                : null);
+                            if (memberAvatar) {
+                              return (
+                                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={memberAvatar}
+                                    alt={c.fullName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
+                                {c.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+                            );
+                          })()}
                           <div>
                             <div className="font-bold text-slate-900 flex items-center gap-1.5">
                               <span>{c.fullName}</span>
@@ -1127,9 +1169,30 @@ function CustomersDirectoryContent() {
           <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto flex flex-col max-h-[100dvh]">
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-900 text-[#D4AF37] font-bold flex items-center justify-center text-sm shadow-xs">
-                  {dossierCustomer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
-                </div>
+                {(() => {
+                  const memberAvatar =
+                    dossierCustomer.applicantPhotoUrl ||
+                    (typeof window !== 'undefined'
+                      ? localStorage.getItem(`pv_member_avatar_${dossierCustomer.id}`)
+                      : null);
+                  if (memberAvatar) {
+                    return (
+                      <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={memberAvatar}
+                          alt={dossierCustomer.fullName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    );
+                  }
+                  return (
+                    <div className="w-10 h-10 rounded-xl bg-emerald-900 text-[#D4AF37] font-bold flex items-center justify-center text-sm shadow-xs">
+                      {dossierCustomer.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                  );
+                })()}
                 <div>
                   <h3 className="font-bold text-base text-slate-900">{dossierCustomer.fullName}</h3>
                   <div className="text-xs font-mono text-emerald-800 font-semibold">
