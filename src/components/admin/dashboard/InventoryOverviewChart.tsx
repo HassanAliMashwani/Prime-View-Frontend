@@ -101,9 +101,16 @@ export default function InventoryOverviewChart({
   }, [activeRange, isControlled, propIsLoading]);
 
   const rawData: ChartPoint[] = useMemo(() => {
-    if (monthlyData && monthlyData.length > 0) return monthlyData;
-    return internalData;
-  }, [monthlyData, internalData]);
+    const list = (monthlyData && monthlyData.length > 0) ? [...monthlyData] : [...internalData];
+    if (list.length > 0 && (currentAvailable > 0 || currentReserved > 0 || currentBooked > 0)) {
+      const last = { ...list[list.length - 1] };
+      last.available = currentAvailable;
+      last.reserved = currentReserved;
+      last.booked = currentBooked;
+      list[list.length - 1] = last;
+    }
+    return list;
+  }, [monthlyData, internalData, currentAvailable, currentReserved, currentBooked]);
 
   const loading = propIsLoading || internalLoading;
 

@@ -26,12 +26,12 @@ export function getBlockDisplayName(blockId: string): string {
 }
 
 export const MASTER_PLAN_TOTAL_PLOTS: Record<string, number> = {
-  elite: 254,
+  elite: 245,
   commercial: 108,
-  overseas: 293,
-  abbott: 467,
-  royal: 253,
-  'npf-phase-1': 254,
+  overseas: 284,
+  abbott: 459,
+  royal: 292,
+  'npf-phase-1': 241,
   'npf-phase-2': 0,
 };
 
@@ -43,7 +43,7 @@ export const regionData: Region[] = [
     color: '#7AAFDF',
     darkColor: '#1e3a8a',
     area: '120,000 sq ft',
-    units: 254,
+    units: 245,
     priceRange: '$300,000 - $600,000',
     status: 'Available',
     description:
@@ -91,7 +91,7 @@ export const regionData: Region[] = [
     color: '#F7F281',
     darkColor: '#f59e0b',
     area: '95,000 sq ft',
-    units: 293,
+    units: 284,
     priceRange: '$400,000 - $900,000',
     status: 'Selling Fast',
     description:
@@ -115,7 +115,7 @@ export const regionData: Region[] = [
     color: '#EDEE99',
     darkColor: '#d4af37',
     area: '72,000 sq ft',
-    units: 467,
+    units: 459,
     priceRange: '$250,000 - $500,000',
     status: 'Available',
     description:
@@ -139,7 +139,7 @@ export const regionData: Region[] = [
     color: '#DDB3D4',
     darkColor: '#9d4edd',
     area: '48,000 sq ft',
-    units: 253,
+    units: 292,
     priceRange: '$600,000 - $1,200,000',
     status: 'Limited Availability',
     description:
@@ -163,7 +163,7 @@ export const regionData: Region[] = [
     color: '#FF7575',
     darkColor: '#c41e3a',
     area: '68,000 sq ft',
-    units: 254,
+    units: 241,
     priceRange: '$150,000 - $350,000',
     status: 'Available',
     description:

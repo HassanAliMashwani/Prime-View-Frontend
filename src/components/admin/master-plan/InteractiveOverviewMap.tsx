@@ -180,10 +180,10 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
                 );
               }
 
-              const officialTotal = hoveredRegion.units;
+              const officialTotal = summary?.totalCount ?? hoveredRegion.units;
               const reserved = summary?.reservedCount || 0;
               const booked = summary?.bookedCount || 0;
-              const available = Math.max(0, officialTotal - reserved - booked);
+              const available = summary?.availableCount ?? Math.max(0, officialTotal - reserved - booked);
 
               return (
                 <div data-testid="map-hover-preview" className="w-72 rounded-2xl border border-slate-200 bg-white/95 p-4 text-slate-900 shadow-2xl backdrop-blur-md">
