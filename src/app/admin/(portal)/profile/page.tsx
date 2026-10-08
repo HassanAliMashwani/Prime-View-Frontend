@@ -971,18 +971,7 @@ export default function AdminProfilePage() {
                 <ArrowRight className="w-3.5 h-3.5 text-[#D4AF37]" />
               </button>
             </form>
-          </div>
-
-          {/* Quick Security & Access Guidelines Card */}
-          <div className="bg-[#FAF9F5] border border-black/[0.06] rounded-3xl p-5 sm:p-6 space-y-3">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#43612B]">
-              <Lock className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Identity Protection Policy</span>
-            </div>
-            <p className="text-xs text-[#6B7462] leading-relaxed">
-              Administrative credentials are bound to immutable audit logs. Never share administrative passwords or passkeys. Profile modifications are instantaneously timestamped.
-            </p>
-          </div>
+          </div>          
         </div>
       </div>
     </div>
