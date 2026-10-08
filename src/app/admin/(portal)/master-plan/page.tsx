@@ -17,11 +17,10 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getAdminMasterPlanBlocks, BlockSummary } from '@/lib/dal/adminPlots';
+import { getAdminMasterPlanBlocks, getAdminBlockPlots, BlockSummary } from '@/lib/dal/adminPlots';
 import { AdminSession } from '@/lib/mock/types';
 import InteractiveOverviewMap from '@/components/admin/master-plan/InteractiveOverviewMap';
-
-
+import { loadBlockMapConfig } from '@/lib/map/blockRegistry';
 
 import { getBlockTheme } from '@/lib/map/regionData';
 import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
@@ -37,10 +36,15 @@ export default function MasterPlanPage() {
   };
   const init = getInit();
 
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return getActiveAdminSession();
+  });
   const [blocks, setBlocks] = useState<BlockSummary[]>(init || []);
   const [loading, setLoading] = useState<boolean>(!init);
   const [viewMode, setViewMode] = useState<'map' | 'cards'>('map');
+  const [imageLoaded, setImageLoaded] = useState<boolean>(false);
+  const hasPrefetchedRef = React.useRef(false);
 
   const loadBlocks = useCallback(async (s: AdminSession) => {
     try {
@@ -68,6 +72,49 @@ export default function MasterPlanPage() {
     }
   }, [loadBlocks]);
 
+  // Sequential prefetching of allowed blocks after overview image has fired load event
+  useEffect(() => {
+    if (!imageLoaded || !session || hasPrefetchedRef.current) return;
+    const isSuper = session.role === 'super_admin';
+    const canAccess = isSuper || Boolean(session.permissions?.can_view_master_plan);
+    if (!canAccess) return;
+
+    hasPrefetchedRef.current = true;
+
+    const PREFETCH_BLOCK_ORDER = [
+      'elite',
+      'commercial',
+      'royal',
+      'overseas',
+      'abbott',
+      'npf-phase-1',
+    ];
+
+    const allowedBlocks = isSuper
+      ? PREFETCH_BLOCK_ORDER
+      : PREFETCH_BLOCK_ORDER.filter((id) => session.assignedBlocks?.includes(id));
+
+    const adminId = session.adminId || 'admin';
+
+    (async () => {
+      for (const blockId of allowedBlocks) {
+        try {
+          const res = await getAdminBlockPlots(session, blockId);
+          if (res.ok && res.block && res.plots) {
+            setCache(`/master-plan/${blockId}:${adminId}`, { block: res.block, plots: res.plots });
+          }
+          const config = await loadBlockMapConfig(blockId);
+          if (config?.imageSrc && typeof window !== 'undefined') {
+            const img = new window.Image();
+            img.src = config.imageSrc;
+          }
+        } catch {
+          // non-blocking sequential prefetch
+        }
+      }
+    })();
+  }, [imageLoaded, session]);
+
   // Real-time multi-window sync
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
@@ -83,7 +130,7 @@ export default function MasterPlanPage() {
     };
   }, [loadBlocks]);
 
-  if ((loading && blocks.length === 0) || !session) {
+  if (!session) {
     return <AdminMasterPlanSkeleton />;
   }
 
@@ -165,7 +212,7 @@ export default function MasterPlanPage() {
 
       {/* Level 1 View: Interactive Traced Overview Map vs Summary Cards */}
       {viewMode === 'map' ? (
-        <InteractiveOverviewMap session={session} blocks={blocks} />
+        <InteractiveOverviewMap session={session} blocks={blocks} onImageLoad={() => setImageLoaded(true)} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {blocks.map((block) => {

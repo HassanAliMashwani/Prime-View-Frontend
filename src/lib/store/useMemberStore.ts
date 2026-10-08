@@ -43,7 +43,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   closeTermsModal: () => set({ termsModalOpen: false }),
 
   fetchDashboardData: async () => {
-    const hasData = get().plots.length > 0 && get().schedules.length > 0 && get().profile !== null;
+    const hasData = get().plots.length > 0;
     if (!hasData) {
       set({ isLoading: true, error: null });
     }

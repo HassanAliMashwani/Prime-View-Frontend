@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   Building2,
@@ -41,6 +41,16 @@ export default function AdminDashboardPage() {
   };
   const init = getInit();
 
+  const getChartCacheKey = (adminId: string, range: TimeRange) => `/dashboard/chart:${adminId}:${range}`;
+
+  const getInitChart = () => {
+    if (typeof window === 'undefined') return [];
+    const s = getActiveAdminSession();
+    if (!s) return [];
+    const adminId = s.adminId || 'admin';
+    return getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, '6_months'), true) || [];
+  };
+
   const [session, setSession] = useState<AdminSession | null>(() => {
     if (typeof window === 'undefined') return null;
     return getActiveAdminSession();
@@ -49,20 +59,50 @@ export default function AdminDashboardPage() {
   const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
   const [loading, setLoading] = useState<boolean>(!init);
   const [chartRange, setChartRange] = useState<TimeRange>('6_months');
-  const [monthlyPoints, setMonthlyPoints] = useState<MonthlyHistoryPoint[]>([]);
+  const [monthlyPoints, setMonthlyPoints] = useState<MonthlyHistoryPoint[]>(getInitChart);
   const [chartLoading, setChartLoading] = useState<boolean>(false);
+  const chartReqIdRef = useRef(0);
 
   const loadChartData = useCallback(async (activeSession: AdminSession, range: TimeRange) => {
-    try {
+    const adminId = activeSession.adminId || 'admin';
+    const key = getChartCacheKey(adminId, range);
+    const cached = getCache<MonthlyHistoryPoint[]>(key, true);
+    if (cached) {
+      setMonthlyPoints(cached);
+    } else {
       setChartLoading(true);
+    }
+
+    const currentReq = ++chartReqIdRef.current;
+    try {
       const res = await getInventoryMonthlyHistory(range, activeSession.token);
+      if (currentReq !== chartReqIdRef.current) return;
       if (res.ok && res.monthly) {
         setMonthlyPoints(res.monthly);
+        setCache(key, res.monthly);
+
+        // Prefetch other two ranges
+        const ALL_RANGES: TimeRange[] = ['6_months', '1_year', 'all_time'];
+        const otherRanges = ALL_RANGES.filter((r) => r !== range);
+        for (const otherRange of otherRanges) {
+          const otherKey = getChartCacheKey(adminId, otherRange);
+          if (!getCache(otherKey, false)) {
+            getInventoryMonthlyHistory(otherRange, activeSession.token)
+              .then((otherRes) => {
+                if (otherRes.ok && otherRes.monthly) {
+                  setCache(otherKey, otherRes.monthly);
+                }
+              })
+              .catch(() => {});
+          }
+        }
       }
     } catch {
       // non-blocking
     } finally {
-      setChartLoading(false);
+      if (currentReq === chartReqIdRef.current) {
+        setChartLoading(false);
+      }
     }
   }, []);
 
@@ -94,7 +134,7 @@ export default function AdminDashboardPage() {
       loadData(s);
       loadChartData(s, chartRange);
     }
-  }, [loadData, loadChartData, chartRange]);
+  }, [loadData, loadChartData]);
 
   // Real-time sync via interval
   useEffect(() => {
@@ -299,7 +339,14 @@ export default function AdminDashboardPage() {
           timeRange={chartRange}
           onRangeChange={(range) => {
             setChartRange(range);
-            if (session) loadChartData(session, range);
+            if (session) {
+              const adminId = session.adminId || 'admin';
+              const cached = getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, range), true);
+              if (cached) {
+                setMonthlyPoints(cached);
+              }
+              loadChartData(session, range);
+            }
           }}
           isLoading={chartLoading}
         />

@@ -353,7 +353,7 @@ export default function MemberDashboardPage() {
             )}
           </div>
 
-          {isLoading ? (
+          {isLoading && plots.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
               {Array.from({ length: 2 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-4 sm:p-6 shadow-xs space-y-4 sm:space-y-5 animate-pulse">

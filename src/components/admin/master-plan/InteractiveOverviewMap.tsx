@@ -14,9 +14,10 @@ import { hasBlockMap } from '@/lib/map/blockRegistry';
 interface InteractiveOverviewMapProps {
   session: AdminSession | null;
   blocks: BlockSummary[];
+  onImageLoad?: () => void;
 }
 
-export default function InteractiveOverviewMap({ session, blocks }: InteractiveOverviewMapProps) {
+export default function InteractiveOverviewMap({ session, blocks, onImageLoad }: InteractiveOverviewMapProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [hoveredRegion, setHoveredRegion] = useState<Region | null>(null);
@@ -78,6 +79,7 @@ export default function InteractiveOverviewMap({ session, blocks }: InteractiveO
           priority
           sizes="(max-width: 1280px) 100vw, 1280px"
           className="object-contain pointer-events-none"
+          onLoad={() => onImageLoad?.()}
         />
 
         {/* SVG Interactive Overlay */}
