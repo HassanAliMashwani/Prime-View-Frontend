@@ -6,7 +6,6 @@ import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminPortalLayoutSkeleton } from '@/components/ui/skeleton';
 
 export default function AdminPortalLayout({
   children,
@@ -19,6 +18,7 @@ export default function AdminPortalLayout({
     if (typeof window === 'undefined') return null;
     return getActiveAdminSession();
   });
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   useEffect(() => {
@@ -28,10 +28,12 @@ export default function AdminPortalLayout({
     } else {
       setSession(active);
     }
+    setAuthChecked(true);
   }, [router]);
 
-  if (!session) {
-    return <AdminPortalLayoutSkeleton />;
+  // Send the user to login only when the browser has checked and there is no session
+  if (authChecked && !session) {
+    return null;
   }
 
   // Derive header title from pathname

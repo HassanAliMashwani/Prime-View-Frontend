@@ -154,13 +154,90 @@ export default function MasterPlanPage() {
   }
 
   const ALL_SECTORS: BlockSummary[] = [
-    { id: 'abbott', name: 'Abbott Block', description: 'Scenic Elevated Living', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
-    { id: 'royal', name: 'Royal Block', description: 'Executive Residences & Palatial Mansions', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
-    { id: 'overseas', name: 'Overseas Prime', description: 'Designed for Expatriates', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
-    { id: 'elite', name: 'Elite Block', description: 'Premium Residential Enclave', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
-    { id: 'commercial', name: 'Commercial Square', description: 'Prime Business & Corporate Hub', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
-    { id: 'npf-phase-1', name: 'NPF Phase 1', description: 'National Police Foundation Sector', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
-    { id: 'npf-phase-2', name: 'NPF Phase 2', description: 'Mixed-Use Development Expansion', totalPlots: 0, totalCount: 0, availableCount: 0, reservedCount: 0, bookedCount: 0, amenityCount: 0, amenities: [] },
+    {
+      id: 'abbott',
+      name: 'Abbott Block',
+      description: 'Family-oriented residential community with spacious plots. Ideal for growing families seeking peaceful neighborhood living.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
+    {
+      id: 'royal',
+      name: 'Royal Block',
+      description: 'Ultra-luxury residential plots with premium amenities. Exclusive address for high-net-worth individuals and elite community.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
+    {
+      id: 'overseas',
+      name: 'Overseas Block',
+      description: 'International investment zone designed for overseas investors. Premium plots with guaranteed returns and professional management.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
+    {
+      id: 'elite',
+      name: 'Elite Block',
+      description: 'Modern housing society with world-class amenities. Premium residential development featuring state-of-the-art facilities and architecture.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
+    {
+      id: 'commercial',
+      name: 'Commercial Area',
+      description: 'Prime commercial retail space in high-traffic location. Perfect for businesses, retail shops, and service centers.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
+    {
+      id: 'npf-phase-1',
+      name: 'NPF Phase 1',
+      description: 'Affordable housing phase 1 with quality construction. Designed for middle-income families with flexible payment options.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
+    {
+      id: 'npf-phase-2',
+      name: 'NPF Phase 2',
+      description: 'Large-scale mixed-use development with diverse housing options. Phase 2 expansion with modern amenities and community spaces.',
+      totalPlots: 0,
+      totalCount: 0,
+      availableCount: 0,
+      reservedCount: 0,
+      bookedCount: 0,
+      amenityCount: 0,
+      amenities: [],
+    },
   ];
 
   const displayBlocks = blocks.length > 0
@@ -268,13 +345,14 @@ export default function MasterPlanPage() {
                   </div>
                   <span
                     style={theme.badgeStyle}
-                    className="text-xs font-mono font-bold border px-2.5 py-1 rounded-xl"
+                    className="text-xs font-mono font-bold border px-2.5 py-1 rounded-xl inline-flex items-center gap-1"
                   >
                     {isBlockLoading ? (
-                      <span className="inline-block w-12 h-3.5 bg-slate-200 animate-pulse rounded align-middle" />
+                      <span className="inline-block w-6 h-3.5 bg-slate-200 animate-pulse rounded align-middle" />
                     ) : (
-                      `${block.totalCount} Plots`
+                      block.totalCount
                     )}
+                    <span>Plots</span>
                   </span>
                 </div>
 
@@ -287,7 +365,10 @@ export default function MasterPlanPage() {
                   <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 mb-1.5 font-medium">
                     <span>Inventory Status</span>
                     {isBlockLoading ? (
-                      <span className="inline-block w-16 h-3 bg-slate-200 animate-pulse rounded" />
+                      <span className="inline-flex items-center gap-1">
+                        <span className="inline-block w-7 h-3 bg-slate-200 animate-pulse rounded" />
+                        <span className="font-bold text-slate-700">% Available</span>
+                      </span>
                     ) : (
                       <span className="font-bold text-slate-700">{Math.round(availPct)}% Available</span>
                     )}

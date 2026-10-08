@@ -59,10 +59,18 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
             <User className="w-4 h-4" />
           </div>
           <div className="hidden md:block text-left">
-            <p className="text-xs font-bold text-[#151914] leading-tight">
-              {currentUser?.fullName || 'Member'}
-            </p>
-            <p className="text-[10px] text-[#6B7462] font-mono">ID: {currentUser?.customerId}</p>
+            {currentUser?.fullName ? (
+              <p className="text-xs font-bold text-[#151914] leading-tight">
+                {currentUser.fullName}
+              </p>
+            ) : (
+              <span className="inline-block w-24 h-3.5 bg-black/10 animate-pulse rounded" />
+            )}
+            {currentUser?.customerId ? (
+              <p className="text-[10px] text-[#6B7462] font-mono">ID: {currentUser.customerId}</p>
+            ) : (
+              <span className="inline-block w-16 h-2.5 bg-black/10 animate-pulse rounded mt-0.5" />
+            )}
           </div>
         </div>
       </div>

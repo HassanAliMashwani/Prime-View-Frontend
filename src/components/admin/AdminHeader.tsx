@@ -123,10 +123,18 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           <ShieldCheck className={`w-4 h-4 ${session?.role === 'super_admin' ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
           <div className="hidden md:block text-left">
             <div className="font-bold text-slate-900 group-hover:text-emerald-800 leading-tight transition-colors">
-              {session?.fullName || session?.username || 'Administrator'}
+              {session ? (
+                session.fullName || session.username || 'Administrator'
+              ) : (
+                <span className="inline-block w-20 h-3.5 bg-slate-200 animate-pulse rounded" />
+              )}
             </div>
             <div className="text-[10px] text-slate-500 font-mono">
-              {session?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+              {session ? (
+                session.role === 'super_admin' ? 'Super Admin' : 'Admin'
+              ) : (
+                <span className="inline-block w-14 h-2.5 bg-slate-200 animate-pulse rounded" />
+              )}
             </div>
           </div>
         </Link>

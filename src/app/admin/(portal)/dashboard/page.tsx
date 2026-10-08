@@ -325,7 +325,7 @@ export default function AdminDashboardPage() {
             href="/admin/master-plan"
             className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
           >
-            <span>View Interactive Grid</span>
+            <span>View Interactive Map</span>
             <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
         </div>

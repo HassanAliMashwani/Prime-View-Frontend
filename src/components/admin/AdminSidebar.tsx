@@ -50,14 +50,16 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
   };
 
   const isSuper = session?.role === 'super_admin';
-  const canCreateCustomer = isSuper || Boolean(session?.permissions?.can_create_customer);
-  const canViewCustomers = isSuper || Boolean(session?.permissions?.can_view_customers);
-  const canReserve = isSuper || Boolean(session?.permissions?.can_reserve || session?.permissions?.can_book);
-  const canViewSales = isSuper || Boolean(session?.permissions?.can_view_sales_history || session?.permissions?.can_view_sales_reports);
-  const canEditContent = isSuper || Boolean(session?.permissions?.can_edit_content);
-  const canVerifyReceipts = isSuper || Boolean(session?.permissions?.can_verify_receipts);
-  const canViewInventory = isSuper || Boolean(session?.permissions?.can_view_inventory);
-  const canViewMasterPlan = isSuper || Boolean(session?.permissions?.can_view_master_plan);
+  const isSessionLoading = !session;
+  // Draw the real sidebar labels on that first paint before saved session is read
+  const canCreateCustomer = isSessionLoading || isSuper || Boolean(session?.permissions?.can_create_customer);
+  const canViewCustomers = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_customers);
+  const canReserve = isSessionLoading || isSuper || Boolean(session?.permissions?.can_reserve || session?.permissions?.can_book);
+  const canViewSales = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_sales_history || session?.permissions?.can_view_sales_reports);
+  const canEditContent = isSessionLoading || isSuper || Boolean(session?.permissions?.can_edit_content);
+  const canVerifyReceipts = isSessionLoading || isSuper || Boolean(session?.permissions?.can_verify_receipts);
+  const canViewInventory = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_inventory);
+  const canViewMasterPlan = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_master_plan);
 
   const coreNavItems = [
     {
@@ -275,22 +277,30 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
             <div className="flex items-start gap-2 min-w-0">
               <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
               <div className="text-[12px] font-bold text-slate-900 leading-snug group-hover:text-emerald-800 transition-colors">
-                {session?.fullName || 'Administrator'}
+                {session ? (
+                  session.fullName || 'Administrator'
+                ) : (
+                  <span className="inline-block w-24 h-3.5 bg-slate-200 animate-pulse rounded" />
+                )}
               </div>
             </div>
             <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-transform group-hover:translate-x-0.5 shrink-0 mt-0.5" />
           </div>
 
           <div className="mb-2">
-            <span
-              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                isSuper
-                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                  : 'bg-blue-100 text-blue-900 border border-blue-300'
-              }`}
-            >
-              {isSuper ? 'Super Administrator' : 'Administrator'}
-            </span>
+            {session ? (
+              <span
+                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
+                  isSuper
+                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                    : 'bg-blue-100 text-blue-900 border border-blue-300'
+                }`}
+              >
+                {isSuper ? 'Super Administrator' : 'Administrator'}
+              </span>
+            ) : (
+              <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
+            )}
           </div>
 
           <div className="border-t border-slate-100 pt-2 mt-2">

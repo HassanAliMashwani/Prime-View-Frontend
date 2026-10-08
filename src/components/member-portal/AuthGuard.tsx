@@ -3,10 +3,9 @@
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { MemberAuthGuardSkeleton } from '@/components/ui/skeleton';
 
 export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isLoading, session } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -15,17 +14,11 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   }, [isAuthenticated, isLoading, router]);
 
-  if (session && isAuthenticated) {
-    return <>{children}</>;
-  }
-
-  if (isLoading) {
-    return <MemberAuthGuardSkeleton />;
-  }
-
-  if (!isAuthenticated) {
+  // Send the user to login only when the browser has checked and there is no session
+  if (!isLoading && !isAuthenticated) {
     return null;
   }
 
+  // Draw the real sidebar labels on that first paint
   return <>{children}</>;
 };
