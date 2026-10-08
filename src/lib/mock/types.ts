@@ -221,6 +221,9 @@ export interface AdminSession {
   adminId: string;
   username: string;
   fullName: string;
+  email?: string;
+  phone?: string;
+  avatarUrl?: string;
   role: AdminRole;
   assignedBlocks: (BlockId | string)[];
   permissions: AdminPermissions;

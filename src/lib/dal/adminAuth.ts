@@ -155,6 +155,8 @@ export interface AdminProfileDetails {
   username: string;
   email: string;
   fullName: string;
+  phone?: string;
+  avatarUrl?: string;
   role: 'super_admin' | 'sub_admin';
   status: string;
   permissions: Record<string, boolean | undefined>;
@@ -186,6 +188,51 @@ export async function getAdminProfile(session: AdminSession): Promise<{
     return { ok: true, admin: data.admin };
   } catch {
     return { ok: false, error: 'Something went wrong. Please try again.' };
+  }
+}
+
+/**
+ * Self-service profile details update for logged-in administrator
+ */
+export async function updateAdminProfile(
+  session: AdminSession,
+  data: { fullName?: string; email?: string; phone?: string; avatarUrl?: string },
+): Promise<{ ok: boolean; admin?: AdminProfileDetails; message?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/admin/profile`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return { ok: false, error: body.message || 'Failed to update profile.' };
+    }
+
+    // Sync updated details to active session
+    if (body.admin) {
+      const activeSession = getActiveAdminSession();
+      if (activeSession) {
+        if (body.admin.fullName) activeSession.fullName = body.admin.fullName;
+        if (body.admin.email) activeSession.email = body.admin.email;
+        if (body.admin.phone !== undefined) activeSession.phone = body.admin.phone;
+        if (body.admin.avatarUrl !== undefined) activeSession.avatarUrl = body.admin.avatarUrl;
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(activeSession));
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(activeSession));
+          } catch {}
+        }
+      }
+    }
+
+    return { ok: true, admin: body.admin, message: body.message || 'Profile updated successfully.' };
+  } catch {
+    return { ok: false, error: 'An unexpected network error occurred.' };
   }
 }
 

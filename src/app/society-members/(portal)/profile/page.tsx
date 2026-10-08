@@ -26,6 +26,8 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
+  Camera,
+  Trash2,
 } from 'lucide-react';
 
 const profileSchema = z.object({
@@ -52,6 +54,73 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordToast, setPasswordToast] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Profile Picture state
+  const [memberAvatar, setMemberAvatar] = useState<string>('');
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const avatarInputRef = React.useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (profile?.id) {
+      try {
+        const saved = localStorage.getItem(`pv_member_avatar_${profile.id}`);
+        if (saved) setMemberAvatar(saved);
+      } catch {}
+    }
+  }, [profile?.id]);
+
+  const handleMemberAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id) return;
+    setAvatarSaving(true);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const raw = event.target?.result as string;
+      if (!raw) return;
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxDim = 320;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          setMemberAvatar(dataUrl);
+          try {
+            localStorage.setItem(`pv_member_avatar_${profile.id}`, dataUrl);
+          } catch {}
+          setToastMessage({ type: 'success', text: 'Profile picture updated successfully.' });
+        }
+        setAvatarSaving(false);
+      };
+      img.src = raw;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveMemberAvatar = () => {
+    if (!profile?.id) return;
+    setMemberAvatar('');
+    try {
+      localStorage.removeItem(`pv_member_avatar_${profile.id}`);
+    } catch {}
+    setToastMessage({ type: 'success', text: 'Profile picture reset to default.' });
+  };
 
   const {
     register,
@@ -240,8 +309,37 @@ export default function ProfilePage() {
         {/* Read-Only System Identity Box (Section 2.8) */}
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-6 md:p-8 space-y-3 sm:space-y-6 shadow-xs">
           <div className="flex items-center gap-3 sm:gap-4 pb-3 sm:pb-5 border-b border-black/[0.06]">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center font-bold text-xl shrink-0">
-              <User className="w-6 h-6 sm:w-7 sm:h-7" />
+            <div className="relative group/avatar shrink-0">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center font-bold text-xl overflow-hidden border border-[#43612B]/20">
+                {memberAvatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={memberAvatar} alt={profile?.fullName || 'Member'} className="w-full h-full object-cover rounded-2xl" />
+                ) : (
+                  <User className="w-7 h-7 sm:w-8 sm:h-8" />
+                )}
+                {avatarSaving && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-2xl">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarSaving}
+                className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-[#43612B] hover:bg-[#344b21] text-white border border-white shadow-xs flex items-center justify-center transition-all cursor-pointer hover:scale-110 active:scale-95"
+                title="Change Profile Picture"
+                aria-label="Upload custom profile picture"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleMemberAvatarChange}
+              />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -251,6 +349,16 @@ export default function ProfilePage() {
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20">
                   {profile?.accountStatus || 'Active'}
                 </span>
+                {memberAvatar && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveMemberAvatar}
+                    className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    <span>Reset</span>
+                  </button>
+                )}
               </div>
               <p className="text-xs text-[#6B7462] truncate mt-0.5">
                 {profile?.fatherOrHusbandName
