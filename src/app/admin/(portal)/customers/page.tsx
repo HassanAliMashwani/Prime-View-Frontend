@@ -32,6 +32,7 @@ import {
   Camera,
   UserCheck,
   ArrowLeft,
+  Loader2,
 } from 'lucide-react';
 import { AdminSession, PaymentType, Plot, Customer, InstallmentPlanConfig } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
@@ -48,12 +49,13 @@ import {
   setRegisteredPlotsCache,
   getAdminCustomerById,
 } from '@/lib/dal/customers';
-import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice } from '@/lib/dal/adminPlots';
+import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice, getAdminPlotDetails } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
 import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
 import { runLane1 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 
 function PlotSelector({
   value,
@@ -172,7 +174,9 @@ function CustomersPageContent() {
   // Master Plan Redirect State
   const [lockedPlot, setLockedPlot] = useState<Plot | null>(null);
   const [isLockedFromMap, setIsLockedFromMap] = useState<boolean>(false);
+  const [plotLoading, setPlotLoading] = useState<boolean>(Boolean(queryPlotId));
   const isCommittedRef = useRef(false);
+  const releaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ----------------------------------------------------
   // INSTALLMENT SCHEDULE CONFIG STATE (Item 6)
@@ -298,26 +302,92 @@ function CustomersPageContent() {
     }
     setSession(cur);
 
-    // Fetching all plots on mount removed for lazy loading.
-    // Instead we rely on user search input.
+    const applyPlot = (p: Plot, customTotal?: number) => {
+      setSelectedPlotA(p);
+      setSelectedPlotB(p);
+      setLockedPlot(p);
+      setIsLockedFromMap(true);
+      setRegisteredPlotsCache([p]);
+      const tot = customTotal ?? p.price;
+      setTotalPaymentA(tot);
+      setTotalPaymentB(p.price);
+      setDownpaymentA(Math.round(tot * 0.2));
+      setDownpaymentB(Math.round(p.price * 0.2));
+      setPathAPlotError(null);
+      setPathBPlotError(null);
+    };
 
-    // Handle plot locking from Master Plan redirect
-    if (queryPlotId) {
-      // Defer lookup until availablePlots resolves, or try to pre-select it from availablePlots later.
-      // (The actual plot might be resolved by loadInitialData's getAdminAllPlots fetch, so we rely on the component state if it updates, or we fetch it specifically.)
-      // Actually we'll let verifyPlotRegistered(queryPlotId) in useEffect handle the UI sync.
-      
-      setPathAForm((prev) => ({ ...prev, plotId: queryPlotId, lockToken: queryLockToken || undefined }));
+    const loadPlotById = async (id: string, customTotal?: number) => {
+      setPlotLoading(true);
+      setPathAPlotError(null);
+      setPathBPlotError(null);
+      try {
+        const res = await getAdminPlotDetails(cur, id);
+        setPlotLoading(false);
+        if (res.ok && res.plot) {
+          applyPlot(res.plot, customTotal);
+        } else {
+          setSelectedPlotA(null);
+          setSelectedPlotB(null);
+          const errMsg = res.error === 'OUT_OF_SCOPE'
+            ? 'Plot is outside your assigned administrative block scope.'
+            : (res.error || 'Failed to load plot details from master plan.');
+          setPathAPlotError(errMsg);
+          setPathBPlotError(errMsg);
+        }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return;
+        setPlotLoading(false);
+        setSelectedPlotA(null);
+        setSelectedPlotB(null);
+        setPathAPlotError('Failed to load plot details from master plan.');
+        setPathBPlotError('Failed to load plot details from master plan.');
+      }
+    };
+
+    // Handle plot locking from Master Plan redirect or Confirm Booking
+    if (queryPlotId && cur) {
+      setPathAForm((prev) => ({
+        ...prev,
+        plotId: queryPlotId,
+        lockToken: queryLockToken || undefined,
+        fullName: queryCustomerName || prev.fullName,
+        phone: queryCustomerPhone || prev.phone,
+        email: queryCustomerEmail || prev.email,
+      }));
       setPathBPlotId(queryPlotId);
       setSubAdminPlotId(queryPlotId);
+
+      loadPlotById(queryPlotId);
     }
 
     // Handle customer preselection from query param
-    if (queryCustomerId) {
-      // Just pass ID, we don't have the full mock list anymore
-      // Disambiguation will handle fetching it via handleSearchSubmit later if needed, 
-      // or we can let the UI perform a targeted search.
+    if (queryCustomerId && cur) {
+      setActiveTab('path_b');
       setSearchQuery(queryCustomerId);
+      runLane1({
+        screen: 'customer-booking',
+        fn: async (signal) => getAdminCustomerById(cur, queryCustomerId, signal),
+      }).then((res) => {
+        if (res.ok && res.data) {
+          const cust = res.data;
+          const bookings = cust.bookings || [];
+          setSelectedCustomer({
+            id: cust.id,
+            membershipNo: cust.membershipNo || '',
+            fullName: cust.fullName || '',
+            fatherOrHusbandName: cust.fatherOrHusbandName || '',
+            cnic: cust.cnic || '',
+            phone: cust.phone || '',
+            email: cust.email || '',
+            mailingAddress: cust.mailingAddress || '',
+            accountStatus: cust.accountStatus || 'active',
+            propertiesCount: bookings.length,
+            bookings,
+          });
+          setIsCustomerConfirmed(true);
+        }
+      });
     }
 
     // Handle Complete Registration for quick-booked member (CR 07 §5)
@@ -325,7 +395,7 @@ function CustomersPageContent() {
       runLane1({
         screen: 'customer-booking',
         fn: async (signal) => getAdminCustomerById(cur, queryCompleteCustomer, signal),
-      }).then((res) => {
+      }).then(async (res) => {
         if (res.ok && res.data) {
           const cust = res.data;
           setCompleteTargetCustomer(cust);
@@ -340,16 +410,16 @@ function CustomersPageContent() {
             targetBooking = cust.bookings[0];
           }
 
-          const targetPlot = targetBooking?.plot;
-          if (targetPlot) {
-            setSelectedPlotA(targetPlot);
-            setLockedPlot(targetPlot);
-            setIsLockedFromMap(true);
-            setTotalPaymentA(
-              targetBooking?.installmentPlan?.totalPayment
-                ? Number(targetBooking.installmentPlan.totalPayment)
-                : targetPlot.price
-            );
+          let targetPlot = targetBooking?.plot;
+          const targetPlotId = queryPlotId || targetBooking?.plotId || targetPlot?.id;
+          const customTotal = targetBooking?.installmentPlan?.totalPayment
+            ? Number(targetBooking.installmentPlan.totalPayment)
+            : undefined;
+
+          if (targetPlot && targetPlot.price && targetPlot.plotNumber && targetPlot.blockId) {
+            applyPlot(targetPlot, customTotal);
+          } else if (targetPlotId) {
+            await loadPlotById(targetPlotId, customTotal);
           }
 
           const currentCity = cust.city || cust.mailingAddress || '';
@@ -357,7 +427,7 @@ function CustomersPageContent() {
 
           setPathAForm((prev) => ({
             ...prev,
-            plotId: queryPlotId || targetPlot?.id || prev.plotId,
+            plotId: queryPlotId || targetPlotId || prev.plotId,
             fullName: cust.fullName || '',
             cnic: cust.cnic || '',
             phone: cust.phone || '',
@@ -378,7 +448,7 @@ function CustomersPageContent() {
     }
 
     setLoading(false);
-  }, [router, queryPlotId, queryLockToken, queryCustomerId, queryCompleteCustomer, downpaymentCustomizedA, downpaymentCustomizedB]);
+  }, [router, queryPlotId, queryLockToken, queryCustomerId, queryCompleteCustomer, queryCustomerName, queryCustomerPhone, queryCustomerEmail]);
 
   useEffect(() => {
     loadInitialData();
@@ -406,7 +476,12 @@ function CustomersPageContent() {
       router.push('/admin/customers-directory?statusFilter=needs_registration');
       return;
     }
+    if (releaseTimeoutRef.current) {
+      clearTimeout(releaseTimeoutRef.current);
+      releaseTimeoutRef.current = null;
+    }
     if (queryPlotId && session) {
+      isCommittedRef.current = true;
       await runLane1({
         screen: 'customer-booking',
         isSave: true,
@@ -415,16 +490,29 @@ function CustomersPageContent() {
     }
     if (queryReturnBlock) {
       router.push(`/admin/master-plan/${queryReturnBlock}`);
+    } else if (selectedPlotA?.blockId || lockedPlot?.blockId) {
+      router.push(`/admin/master-plan/${selectedPlotA?.blockId || lockedPlot?.blockId}`);
     } else {
-      router.push('/admin/customers');
+      router.push('/admin/master-plan');
     }
   };
 
   // Tier 2: React Component Unmount Cleanup
+  // Guarded against React 18/19 StrictMode mount-unmount-remount cycles in dev:
+  // The initial unmount during page load must NOT release the lock.
   useEffect(() => {
+    if (releaseTimeoutRef.current) {
+      clearTimeout(releaseTimeoutRef.current);
+      releaseTimeoutRef.current = null;
+    }
+
     return () => {
       if (!isCommittedRef.current && queryLockToken && queryPlotId && sessionRef.current) {
-        releaseLock(sessionRef.current, queryPlotId);
+        releaseTimeoutRef.current = setTimeout(() => {
+          if (!isCommittedRef.current && sessionRef.current) {
+            releaseLock(sessionRef.current, queryPlotId);
+          }
+        }, 1000);
       }
     };
   }, [queryLockToken, queryPlotId]);
@@ -628,10 +716,33 @@ function CustomersPageContent() {
     if (!session) return;
     setPathAPlotError(null);
 
-    // Prerequisite verification
-    const { exists, plot } = verifyPlotRegistered(pathAForm.plotId);
-    if (!exists || !plot) {
-      setPathAPlotError('This plot is not registered on the master plan map. Kindly register the plot before proceeding.');
+    // Prerequisite verification: use selectedPlotA, lockedPlot or load once with getAdminPlotDetails
+    // Prerequisite verification: use plot already loaded on the form
+    let plot = (selectedPlotA && selectedPlotA.id === pathAForm.plotId)
+      ? selectedPlotA
+      : (lockedPlot && lockedPlot.id === pathAForm.plotId ? lockedPlot : selectedPlotA);
+
+    if (!plot) {
+      setPathAPlotError('Plot details could not be loaded. Please re-select the plot.');
+      return;
+    }
+
+    if (plot.category === 'amenity') {
+      setPathAPlotError('Amenity utility plots cannot be booked or sold.');
+      return;
+    }
+
+    if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
+      setPathAPlotError(`Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`);
+      return;
+    }
+
+    if (!isValidCnic(pathAForm.cnic)) {
+      setFeedback({ type: 'error', message: 'Applicant CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
+      return;
+    }
+    if (!isValidCnic(pathAForm.nokCnic)) {
+      setFeedback({ type: 'error', message: 'Nominee CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
       return;
     }
 
@@ -729,6 +840,7 @@ function CustomersPageContent() {
       fn: async () => createCustomerWithBooking(session, {
         ...pathAForm,
         lockToken: queryLockToken || undefined,
+        reservationId: queryReservationId || undefined,
         installmentPlan,
         portalPassword: canIssueCreds ? pathAForm.portalPassword : '',
       }),
@@ -839,10 +951,24 @@ function CustomersPageContent() {
     if (!session || !selectedCustomer || !isCustomerConfirmed) return;
     setPathBPlotError(null);
 
-    // Prerequisite verification
-    const { exists, plot } = verifyPlotRegistered(pathBPlotId);
-    if (!exists || !plot) {
-      setPathBPlotError('This plot is not registered on the master plan map. Kindly register the plot before proceeding.');
+    // Prerequisite verification: use selectedPlotB, lockedPlot or load once with getAdminPlotDetails
+    // Prerequisite verification: use plot already loaded on the form
+    let plot = (selectedPlotB && selectedPlotB.id === pathBPlotId)
+      ? selectedPlotB
+      : (lockedPlot && lockedPlot.id === pathBPlotId ? lockedPlot : selectedPlotB);
+
+    if (!plot) {
+      setPathBPlotError('Plot details could not be loaded. Please re-select the plot.');
+      return;
+    }
+
+    if (plot.category === 'amenity') {
+      setPathBPlotError('Amenity utility plots cannot be booked or sold.');
+      return;
+    }
+
+    if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
+      setPathBPlotError(`Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`);
       return;
     }
 
@@ -881,6 +1007,7 @@ function CustomersPageContent() {
         paymentType: pathBPaymentType,
         paperInstallmentRef: pathBPaperRef,
         lockToken: queryLockToken || undefined,
+        reservationId: queryReservationId || undefined,
         installmentPlan,
       }),
     });
@@ -937,9 +1064,28 @@ function CustomersPageContent() {
       return;
     }
 
-    const { exists, plot } = verifyPlotRegistered(targetPlotId);
-    if (!exists || !plot) {
-      setSubAdminPlotError('Selected plot is not registered on the master plan.');
+    // Prerequisite verification: use plot already loaded on the form
+    let plot = (lockedPlot && lockedPlot.id === targetPlotId)
+      ? lockedPlot
+      : (selectedPlotA && selectedPlotA.id === targetPlotId ? selectedPlotA : lockedPlot);
+
+    if (!plot) {
+      setSubAdminPlotError('Plot details could not be loaded. Please re-select the plot.');
+      return;
+    }
+
+    if (plot.category === 'amenity') {
+      setSubAdminPlotError('Amenity utility plots cannot be booked or sold.');
+      return;
+    }
+
+    if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
+      setSubAdminPlotError(`Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`);
+      return;
+    }
+
+    if (!isValidCnic(subAdminForm.cnic)) {
+      setSubAdminPlotError('CNIC must be exactly 13 digits in 00000-0000000-0 format.');
       return;
     }
 
@@ -953,6 +1099,7 @@ function CustomersPageContent() {
         cnic: subAdminForm.cnic,
         city: subAdminForm.city,
         lockToken: queryLockToken || undefined,
+        reservationId: queryReservationId || undefined,
       }),
     });
     setSubAdminSubmitting(false);
@@ -1178,9 +1325,10 @@ function CustomersPageContent() {
                 <input
                   type="text"
                   required
+                  maxLength={15}
                   value={subAdminForm.cnic}
-                  onChange={(e) => setSubAdminForm({ ...subAdminForm, cnic: e.target.value })}
-                  placeholder="37405-1234567-1"
+                  onChange={(e) => setSubAdminForm({ ...subAdminForm, cnic: formatCnic(e.target.value) })}
+                  placeholder="00000-0000000-0"
                   className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                 />
               </div>
@@ -1216,7 +1364,7 @@ function CustomersPageContent() {
               )}
               <button
                 type="submit"
-                disabled={subAdminSubmitting || (!lockedPlot && !subAdminPlotId)}
+                disabled={subAdminSubmitting || (!lockedPlot && !subAdminPlotId) || !isValidCnic(subAdminForm.cnic)}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -1383,12 +1531,12 @@ function CustomersPageContent() {
                   type="text"
                   required
                   maxLength={15}
-                  placeholder="37405-1234567-1"
+                  placeholder="00000-0000000-0"
                   value={pathAForm.cnic}
-                  onChange={(e) => setPathAForm({ ...pathAForm, cnic: e.target.value })}
+                  onChange={(e) => setPathAForm({ ...pathAForm, cnic: formatCnic(e.target.value) })}
                   className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                 />
-                <span className="text-[10px] text-slate-400">Standard 13 digits (with or without dashes)</span>
+                <span className="text-[10px] text-slate-400">13 digits in 00000-0000000-0 format</span>
               </div>
 
               <div>
@@ -1556,9 +1704,9 @@ function CustomersPageContent() {
                   type="text"
                   required
                   maxLength={15}
-                  placeholder="37405-9876543-2"
+                  placeholder="00000-0000000-0"
                   value={pathAForm.nokCnic}
-                  onChange={(e) => setPathAForm({ ...pathAForm, nokCnic: e.target.value })}
+                  onChange={(e) => setPathAForm({ ...pathAForm, nokCnic: formatCnic(e.target.value) })}
                   className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                 />
               </div>
@@ -1577,20 +1725,27 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Select Registered Plot *
                 </label>
-                {completeTargetCustomer || queryCompleteCustomer || (isLockedFromMap && lockedPlot) || (queryPlotId && queryLockToken) ? (
-                  <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl space-y-1">
+                {Boolean(queryPlotId) || Boolean(queryCompleteCustomer) || Boolean(completeTargetCustomer) || isLockedFromMap || Boolean(lockedPlot) ? (
+                  <div id="locked-plot-card" className="p-3 bg-slate-100 border border-slate-300 rounded-xl space-y-1">
                     <div className="text-xs font-bold text-slate-900 font-mono flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-emerald-700" />
                       <span>
-                        {selectedPlotA || lockedPlot ? (
-                          `Plot ${selectedPlotA?.plotNumber || lockedPlot?.plotNumber || pathAForm.plotId} (${((selectedPlotA?.blockId || lockedPlot?.blockId || '').toUpperCase())}) - Locked to Existing Booking`
+                        {plotLoading ? (
+                          <span className="text-slate-500 font-sans font-normal text-xs flex items-center gap-1.5">
+                            <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 inline" />
+                            Loading plot...
+                          </span>
+                        ) : (selectedPlotA || lockedPlot) ? (
+                          `Plot ${(selectedPlotA || lockedPlot)?.plotNumber} (${((selectedPlotA || lockedPlot)?.blockId || '').toUpperCase()}), ${(selectedPlotA || lockedPlot)?.size}, PKR ${((selectedPlotA || lockedPlot)?.price || 0).toLocaleString()}`
                         ) : (
-                          <span className="inline-block h-4 w-44 bg-slate-200 animate-pulse rounded align-middle" />
+                          <span className="text-rose-600 font-sans text-xs">Plot could not be loaded</span>
                         )}
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Selection locked to the plot already booked for this member.
+                      {(completeTargetCustomer || queryCompleteCustomer)
+                        ? 'Selection locked to the plot already booked for this member.'
+                        : 'Selection locked to the plot chosen on the master plan.'}
                     </p>
                   </div>
                 ) : (
@@ -1607,8 +1762,13 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Master Plan Verification Status
                 </label>
-                {pathAPlotError ? (
-                  <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2">
+                {plotLoading ? (
+                  <div id="plot-verification-card" className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600 shrink-0" />
+                    <span>Loading plot details from master plan...</span>
+                  </div>
+                ) : pathAPlotError ? (
+                  <div id="plot-verification-card" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
                       <div className="font-bold">Prerequisite Check Failed</div>
@@ -1616,11 +1776,11 @@ function CustomersPageContent() {
                     </div>
                   </div>
                 ) : selectedPlotA ? (
-                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
+                  <div id="plot-verification-card" className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-emerald-800 flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                        Plot Registered & Available
+                        Plot Registered &amp; Available
                       </span>
                       <span className="font-mono font-bold uppercase text-[10px] bg-emerald-100 text-emerald-900 px-2 py-0.5 rounded-md border border-emerald-300">
                         {selectedPlotA.blockId}
@@ -2087,7 +2247,7 @@ function CustomersPageContent() {
               >
                 Cancel &amp; Return to Customer Directory
               </button>
-            ) : isLockedFromMap ? (
+            ) : isLockedFromMap || (queryPlotId && queryLockToken) ? (
               <button
                 type="button"
                 onClick={handleCancelLockAndReturn}
@@ -2105,8 +2265,9 @@ function CustomersPageContent() {
               </button>
             )}
             <button
+              id="submit-booking-btn"
               type="submit"
-              disabled={pathASubmitting || !selectedPlotA || Boolean(pathAPlotError)}
+              disabled={pathASubmitting || plotLoading || !selectedPlotA || Boolean(pathAPlotError) || !isValidCnic(pathAForm.cnic) || !isValidCnic(pathAForm.nokCnic)}
               className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
             >
               {pathASubmitting ? (
@@ -2193,9 +2354,20 @@ function CustomersPageContent() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => {
+                          onClick={async () => {
                             setSelectedCustomer(cust);
                             setIsCustomerConfirmed(false);
+                            if (session) {
+                              const res = await getAdminCustomerById(session, cust.id);
+                              if (res.ok && res.data) {
+                                const bookings = res.data.bookings || [];
+                                setSelectedCustomer({
+                                  ...cust,
+                                  propertiesCount: bookings.length,
+                                  bookings,
+                                });
+                              }
+                            }
                           }}
                           className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-xs font-bold transition cursor-pointer"
                         >
@@ -2298,7 +2470,20 @@ function CustomersPageContent() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsCustomerConfirmed(true)}
+                      onClick={async () => {
+                        if (selectedCustomer && !(selectedCustomer as any).bookings && session) {
+                          const res = await getAdminCustomerById(session, selectedCustomer.id);
+                          if (res.ok && res.data) {
+                            const bookings = res.data.bookings || [];
+                            setSelectedCustomer({
+                              ...selectedCustomer,
+                              propertiesCount: bookings.length,
+                              bookings,
+                            });
+                          }
+                        }
+                        setIsCustomerConfirmed(true);
+                      }}
                       className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5"
                     >
                       <Check className="w-4 h-4" />
@@ -2329,8 +2514,9 @@ function CustomersPageContent() {
             </div>
           )}
 
-          {/* Previous Bookings Section (Fix 9 & Constraint 3: separate fixed fees + raw installment plan inputs) */}
-          {selectedCustomer && (() => {
+          {/* Previous Bookings Section */}
+          {selectedCustomer && isCustomerConfirmed && (() => {
+            const bookings = (selectedCustomer as any).bookings || [];
             return (
               <div className="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-xs space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
@@ -2338,14 +2524,47 @@ function CustomersPageContent() {
                     <FolderOpen className="w-5 h-5 text-indigo-700" />
                     <div>
                       <h3 className="text-sm font-bold text-slate-900 font-serif">
-                        Previous Booking Records ({selectedCustomer.propertiesCount})
+                        Previous Booking Records ({bookings.length})
                       </h3>
                       <p className="text-[11px] text-slate-500">
-                        This customer currently has {selectedCustomer.propertiesCount} active plot(s) registered under their membership.
+                        {bookings.length === 1 ? '1 active plot registered under this membership.' : `${bookings.length} active plots registered under this membership.`}
                       </p>
                     </div>
                   </div>
                 </div>
+
+                {bookings.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-400">
+                    No previous bookings recorded for this member.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {bookings.map((b: any, idx: number) => {
+                      const p = b.plot || {};
+                      const block = p.blockId || b.block || b.blockId || 'Block';
+                      const plotNumber = p.plotNumber || b.plotNumber || 'N/A';
+                      const size = p.size || b.size || 'Standard';
+                      return (
+                        <div
+                          key={b.id || idx}
+                          className="p-3 rounded-xl border border-slate-200 bg-slate-50/60 flex items-center justify-between gap-2"
+                        >
+                          <div className="space-y-0.5">
+                            <div className="font-bold text-xs text-slate-900">
+                              {block}: {plotNumber}
+                            </div>
+                            <div className="text-[11px] text-slate-500 font-medium">
+                              Size: {size}
+                            </div>
+                          </div>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                            Booked
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             );
           })()}
@@ -2363,11 +2582,22 @@ function CustomersPageContent() {
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Select Registered Plot *
                   </label>
-                  {isLockedFromMap && lockedPlot ? (
+                  {Boolean(queryPlotId) || isLockedFromMap || Boolean(lockedPlot) ? (
                     <div className="p-3 bg-slate-100 border border-slate-300 rounded-xl space-y-1">
                       <div className="text-xs font-bold text-slate-900 font-mono flex items-center gap-1.5">
                         <Lock className="w-3.5 h-3.5 text-emerald-700" />
-                        <span>Plot {lockedPlot.plotNumber} ({lockedPlot.blockId.toUpperCase()}) - Locked from Master Plan</span>
+                        <span>
+                          {plotLoading ? (
+                            <span className="text-slate-500 font-sans font-normal text-xs flex items-center gap-1.5">
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 inline" />
+                              Loading plot...
+                            </span>
+                          ) : (selectedPlotB || lockedPlot) ? (
+                            `Plot ${(selectedPlotB || lockedPlot)?.plotNumber} (${((selectedPlotB || lockedPlot)?.blockId || '').toUpperCase()}) - Locked from Master Plan`
+                          ) : (
+                            <span className="text-rose-600 font-sans text-xs">Plot could not be loaded</span>
+                          )}
+                        </span>
                       </div>
                       <p className="text-[11px] text-slate-500">
                         Selection prefilled and locked read-only via Master Plan lock token.
@@ -2913,7 +3143,7 @@ function CustomersPageContent() {
                   type="button"
                   onClick={() => {
                     navigator.clipboard.writeText(
-                      `Prime View Member Portal Credentials:\nUsername: ${credentialsModal.username}\nPassword: ${credentialsModal.password}\nPortal URL: /society-members/dashboard`
+                      `Username: ${credentialsModal.username}\nPassword: ${credentialsModal.password}`
                     );
                     setCopiedCreds(true);
                     setTimeout(() => setCopiedCreds(false), 2500);

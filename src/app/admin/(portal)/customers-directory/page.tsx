@@ -129,16 +129,11 @@ function CustomersDirectoryContent() {
 
   // Helper to redirect to Customer Booking page to complete registration (CR 07 §5)
   const openCompleteRegistration = (cust: CustomerDirectoryEntry) => {
-    const plotId = cust.plots?.[0]?.plotId || '';
+    const firstPlot = cust.plots?.[0];
+    const plotId = firstPlot?.plotId || (firstPlot as any)?.id;
+    if (!plotId) return;
     router.push(`/admin/customers?completeCustomer=${cust.id}&plotId=${plotId}`);
   };
-
-  // Redirect to customers booking page if completeCustomer query param is present
-  useEffect(() => {
-    if (queryCompleteCustId) {
-      router.push(`/admin/customers?completeCustomer=${queryCompleteCustId}`);
-    }
-  }, [queryCompleteCustId, router]);
 
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, searchParam = '', statusParam = 'all', background = false) => {
     const reqId = ++reqIdRef.current;
@@ -762,9 +757,9 @@ function CustomersDirectoryContent() {
                   )}
 
                   {hasStrikes ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold">
-                      <AlertTriangle className="w-3 h-3 text-amber-600" />
-                      <span>{c.strikeCount} Strike{c.strikeCount > 1 ? 's' : ''}</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold" title={c.strikeHistory?.[0]?.reason}>
+                      <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                      <span>{c.strikeHistory?.[0]?.reason || `${c.strikeCount} Strike${c.strikeCount > 1 ? 's' : ''}`}</span>
                     </span>
                   ) : (
                     <span className="text-[10px] text-slate-400">Clean Record</span>
@@ -1065,9 +1060,9 @@ function CustomersDirectoryContent() {
                           )}
 
                           {hasStrikes ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold">
-                              <AlertTriangle className="w-3 h-3 text-amber-600" />
-                              <span>{c.strikeCount} Strike{c.strikeCount > 1 ? 's' : ''}</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-900 border border-amber-300 text-[10px] font-bold max-w-[200px]" title={c.strikeHistory?.[0]?.reason}>
+                              <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                              <span className="truncate">{c.strikeHistory?.[0]?.reason || `${c.strikeCount} Strike${c.strikeCount > 1 ? 's' : ''}`}</span>
                             </span>
                           ) : (
                             <span className="text-[10px] text-slate-400">Clean Record</span>

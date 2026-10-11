@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ArrowLeft,
   X,
+  FileText,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 
@@ -26,6 +27,7 @@ interface MemberSidebarProps {
 const navItems = [
   { href: '/society-members/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/society-members/properties', label: 'My Properties', icon: Home },
+  { href: '/society-members/documents', label: 'Documents', icon: FileText },
   { href: '/society-members/payments', label: 'Payments', icon: CreditCard },
   { href: '/society-members/payments/history', label: 'Payment History', icon: History },
   { href: '/society-members/profile', label: 'Profile', icon: User },

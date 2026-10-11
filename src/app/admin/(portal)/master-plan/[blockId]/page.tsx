@@ -43,6 +43,7 @@ import {
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking } from '@/lib/dal/customers';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
@@ -430,6 +431,11 @@ function BlockPlotsContent() {
 
     if (Number(selectedPlot.price) <= 0) {
       setActionError('This plot has an official price of PKR 0. Official pricing must be established before booking.');
+      return;
+    }
+
+    if (!isValidCnic(minimalForm.cnic)) {
+      setActionError('CNIC must be exactly 13 digits in 00000-0000000-0 format.');
       return;
     }
 
@@ -1879,9 +1885,10 @@ function BlockPlotsContent() {
                 <input
                   type="text"
                   required
+                  maxLength={15}
                   value={minimalForm.cnic}
-                  onChange={(e) => setMinimalForm({ ...minimalForm, cnic: e.target.value })}
-                  placeholder="37405-1234567-1"
+                  onChange={(e) => setMinimalForm({ ...minimalForm, cnic: formatCnic(e.target.value) })}
+                  placeholder="00000-0000000-0"
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
                 />
               </div>
@@ -1910,7 +1917,7 @@ function BlockPlotsContent() {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading || !minimalForm.customerName.trim() || !minimalForm.cnic.trim() || !minimalForm.city.trim()}
+                  disabled={actionLoading || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim()}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
                   <Lock className="w-3.5 h-3.5" />

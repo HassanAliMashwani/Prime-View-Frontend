@@ -23,6 +23,7 @@ export interface CustomerDisambiguation {
   mailingAddress: string;
   accountStatus: AccountStatus;
   propertiesCount: number;
+  bookings?: any[];
 }
 
 export interface CreateCustomerWithBookingInput {
@@ -43,6 +44,7 @@ export interface CreateCustomerWithBookingInput {
   nokCnicCopyUrl?: string;
   portalPassword?: string;
   lockToken?: string;
+  reservationId?: string;
   installmentPlan?: InstallmentPlanConfig;
 }
 
@@ -52,6 +54,7 @@ export interface AddBookingToCustomerInput {
   paymentType: PaymentType;
   paperInstallmentRef?: string;
   lockToken?: string;
+  reservationId?: string;
   installmentPlan?: InstallmentPlanConfig;
 }
 
@@ -108,6 +111,7 @@ export interface CreateMinimalBookingInput {
   cnic: string;
   city: string;
   lockToken?: string;
+  reservationId?: string;
 }
 
 export interface CompleteMemberRegistrationInput {
@@ -249,6 +253,7 @@ export async function createCustomerWithBooking(
     portalPassword: input.portalPassword,
     paperInstallmentRef: input.paperInstallmentRef,
     lockToken: input.lockToken,
+    reservationId: input.reservationId,
     applicantPhotoUrl: input.applicantPhotoUrl,
     cnicCopyUrl: input.cnicCopyUrl,
     nokCnicCopyUrl: input.nokCnicCopyUrl,
@@ -291,6 +296,7 @@ export async function addBookingToCustomer(
     installmentPlan: input.installmentPlan,
     paperInstallmentRef: input.paperInstallmentRef,
     lockToken: input.lockToken,
+    reservationId: input.reservationId,
   };
 
   const res = await apiPost<any>(`/customers/${input.customerId}/bookings`, payload, session?.token);
@@ -489,11 +495,11 @@ export async function getCustomersDirectory(
       createdDate: customer.createdDate || new Date().toISOString(),
       lastLogin: customer.lastLogin,
       strikeCount: customer.strikeCount || 0,
-      strikeHistory: [],
+      strikeHistory: customer.strikeHistory || [],
       plots: customer.plots || [],
-      plotsCount: customer.plotCount || 0,
-      installmentsPaidCount: 0, // Not fetched in summary
-      installmentsDueCount: 0, // Not fetched in summary
+      plotsCount: customer.plotCount || (customer.plots?.length || 0),
+      installmentsPaidCount: customer.installmentsPaidCount || 0,
+      installmentsDueCount: customer.installmentsDueCount || 0,
       totalPaidAmount: customer.totalPaid || 0,
       totalOutstandingAmount: customer.outstandingTotal || 0,
     });

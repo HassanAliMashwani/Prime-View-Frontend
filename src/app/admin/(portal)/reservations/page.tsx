@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   BookmarkCheck, 
   AlertTriangle, 
@@ -43,6 +44,7 @@ const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: str
 };
 
 export default function ReservationsPage() {
+  const router = useRouter();
   const getInit = () => {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
@@ -226,31 +228,17 @@ export default function ReservationsPage() {
     return () => clearInterval(intervalId);
   }, [loadData]);
 
-  const handleConfirmBooking = async (r: Reservation) => {
-    if (!session) return;
-    if (!confirm(`Confirm to move ${r.customerName}'s reservation on Plot ${r.plotNumber} to official Booked status? Doing so will supersede any conflicting reservations on this plot.`)) {
-      return;
+  const handleConfirmBooking = (r: Reservation) => {
+    const params = new URLSearchParams();
+    params.set('plotId', r.plotId);
+    params.set('reservationId', r.id);
+    params.set('customerName', r.customerName);
+    params.set('customerPhone', r.customerPhone);
+    if (r.customerEmail) {
+      params.set('customerEmail', r.customerEmail);
     }
-    setActingResId(r.id);
-    try {
-      const res = await runLane1({
-        screen: 'reservations',
-        isSave: true,
-        fn: async () => confirmReservation(session, r.id, 'one_time'),
-      });
-      if (res.ok) {
-        await loadData(session, page, search, blockFilter, activeTab, false);
-      } else {
-        const errorMsg = res.error === 'OUT_OF_SCOPE'
-          ? 'Sector is outside your assigned administrative authority.'
-          : res.error === 'RESERVATION_NOT_FOUND'
-          ? 'Reservation record not found or already processed.'
-          : 'Failed to confirm booking. Please review plot status.';
-        alert(errorMsg);
-      }
-    } finally {
-      setActingResId(null);
-    }
+    params.set('returnBlock', r.blockId);
+    router.push(`/admin/customers?${params.toString()}`);
   };
 
   const handleReleaseReservation = async (r: Reservation) => {

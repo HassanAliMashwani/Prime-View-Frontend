@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { Send, CheckCircle2 } from "lucide-react";
+import { Send, CheckCircle2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { apiPost } from "@/lib/api";
 
 export const ContactForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [consentAccepted, setConsentAccepted] = useState(false);
   const [honeypot, setHoneypot] = useState("");
@@ -15,7 +17,7 @@ export const ContactForm: React.FC = () => {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -58,13 +60,33 @@ export const ContactForm: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      sessionStorage.setItem(LAST_SUBMIT_KEY, now.toString());
-    } catch {
-      /* ignore */
-    }
+      const res = await apiPost('/inquiries', {
+        name: formData.name.trim(),
+        phone: cleanNumber,
+        message: formData.message.trim(),
+        consent: consentAccepted,
+      });
 
-    setSubmitted(true);
+      if (!res.ok) {
+        setErrorMsg(res.error || res.message || 'Failed to submit inquiry. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      try {
+        sessionStorage.setItem(LAST_SUBMIT_KEY, now.toString());
+      } catch {
+        /* ignore */
+      }
+
+      setSubmitted(true);
+    } catch {
+      setErrorMsg('Failed to submit inquiry. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleReset = () => {
@@ -202,10 +224,11 @@ export const ContactForm: React.FC = () => {
             <button
               type="submit"
               tabIndex={0}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#43612B] hover:bg-[#324920] text-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] transition-all duration-150 active:scale-[0.99] cursor-pointer"
+              disabled={isSubmitting}
+              className="flex-1 inline-flex items-center justify-center gap-2 bg-[#43612B] hover:bg-[#324920] disabled:opacity-60 text-white text-xs font-bold py-3.5 rounded-xl uppercase tracking-wider shadow-[0_4px_14px_rgba(67,97,43,0.35)] hover:shadow-[0_6px_20px_rgba(67,97,43,0.45)] transition-all duration-150 active:scale-[0.99] cursor-pointer"
             >
-              <span>Send inquiry</span>
-              <Send className="w-3.5 h-3.5" />
+              <span>{isSubmitting ? 'Sending...' : 'Send inquiry'}</span>
+              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
             </button>
             <button
               type="button"
