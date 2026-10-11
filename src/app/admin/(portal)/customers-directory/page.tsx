@@ -43,6 +43,7 @@ import {
   CustomerDirectoryEntry 
 } from '@/lib/dal/customers';
 import { AdminSession } from '@/lib/mock/types';
+import { formatCnic } from '@/lib/utils/cnic';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
@@ -1220,7 +1221,7 @@ function CustomersDirectoryContent() {
                   <div className="font-bold text-slate-700 mb-2">Next of Kin (NOK)</div>
                   <div className="space-y-1 text-slate-600">
                     <div><span className="text-slate-400">Name:</span> {dossierCustomer.nokName || 'Not recorded'}</div>
-                    <div><span className="text-slate-400">CNIC:</span> {dossierCustomer.nokCnic || 'Not recorded'}</div>
+                    <div><span className="text-slate-400">CNIC:</span> {dossierCustomer.nokCnic ? formatCnic(dossierCustomer.nokCnic) : 'Not recorded'}</div>
                     <div><span className="text-slate-400">Registration Date:</span> {dossierCustomer.createdDate}</div>
                     <div><span className="text-slate-400">Last Login:</span> {dossierCustomer.lastLogin || 'Never logged in'}</div>
                   </div>

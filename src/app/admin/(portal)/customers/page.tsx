@@ -741,7 +741,11 @@ function CustomersPageContent() {
       setFeedback({ type: 'error', message: 'Applicant CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
       return;
     }
-    if (!isValidCnic(pathAForm.nokCnic)) {
+    const isNokCnicUnchanged = Boolean(
+      completeTargetCustomer &&
+      pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')
+    );
+    if (!isNokCnicUnchanged && (!pathAForm.nokCnic || !isValidCnic(pathAForm.nokCnic))) {
       setFeedback({ type: 'error', message: 'Nominee CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
       return;
     }
@@ -840,6 +844,8 @@ function CustomersPageContent() {
       isSave: true,
       fn: async () => createCustomerWithBooking(session, {
         ...pathAForm,
+        cnic: formatCnic(pathAForm.cnic),
+        nokCnic: formatCnic(pathAForm.nokCnic),
         lockToken: queryLockToken || undefined,
         reservationId: queryReservationId || undefined,
         installmentPlan,
@@ -2268,7 +2274,17 @@ function CustomersPageContent() {
             <button
               id="submit-booking-btn"
               type="submit"
-              disabled={pathASubmitting || plotLoading || !selectedPlotA || Boolean(pathAPlotError) || !isValidCnic(pathAForm.cnic) || !isValidCnic(pathAForm.nokCnic)}
+              disabled={
+                pathASubmitting ||
+                plotLoading ||
+                !selectedPlotA ||
+                Boolean(pathAPlotError) ||
+                !isValidCnic(pathAForm.cnic) ||
+                !(
+                  (completeTargetCustomer && pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
+                  isValidCnic(pathAForm.nokCnic)
+                )
+              }
               className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
             >
               {pathASubmitting ? (
