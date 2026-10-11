@@ -49,8 +49,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
     router.push('/admin/login');
   };
 
-  const isSuper = session?.role === 'super_admin';
-  const isSessionLoading = !session;
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isSuper = mounted && session?.role === 'super_admin';
+  const isSessionLoading = !mounted || !session;
   // Draw the real sidebar labels on that first paint before saved session is read
   const canCreateCustomer = isSessionLoading || isSuper || Boolean(session?.permissions?.can_create_customer);
   const canViewCustomers = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_customers);

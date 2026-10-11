@@ -44,20 +44,12 @@ import {
 
 export default function AdminReceiptsPage() {
   const router = useRouter();
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    const adminId = s.adminId || 'admin';
-    return getCache<{ receipts: ReceiptSubmission[], totalCount: number }>(`/receipts:${adminId}:page=1:size=${PAGE_SIZE}:status=pending:search=`, true);
-  };
-  const init = getInit();
-
-  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [receipts, setReceipts] = useState<ReceiptSubmission[]>(init?.receipts || []);
-  const [totalCount, setTotalCount] = useState(init?.totalCount || 0);
-  const [loading, setLoading] = useState(!init);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [receipts, setReceipts] = useState<ReceiptSubmission[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<'all' | ReceiptStatus>('pending');
   const [searchQuery, setSearchQuery] = useState('');
@@ -226,6 +218,7 @@ export default function AdminReceiptsPage() {
   }, [searchInput, session, loadData]);
 
   useEffect(() => {
+    setMounted(true);
     const cur = getActiveAdminSession();
     if (!cur) {
       router.push('/admin/login');
@@ -401,7 +394,7 @@ export default function AdminReceiptsPage() {
       maximumFractionDigits: 0,
     }).format(amount);
 
-  if (!session) {
+  if (!mounted || !session) {
     return null;
   }
 

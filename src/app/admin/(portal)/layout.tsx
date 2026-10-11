@@ -14,10 +14,7 @@ export default function AdminPortalLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return getActiveAdminSession();
-  });
+  const [session, setSession] = useState<AdminSession | null>(null);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
