@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, Suspense } from 'react';
+import React, { useEffect, useState, useCallback, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Users, 
@@ -136,6 +136,31 @@ function CustomersDirectoryContent() {
     router.push(`/admin/customers?completeCustomer=${cust.id}&plotId=${plotId}`);
   };
 
+  const statusFilterRef = useRef(statusFilter);
+  useEffect(() => { statusFilterRef.current = statusFilter; }, [statusFilter]);
+
+  const handleStatusFilterChange = (newStatus: string) => {
+    if (newStatus === statusFilter) return;
+    setStatusFilter(newStatus);
+    statusFilterRef.current = newStatus;
+    setPage(1);
+    const s = session || getActiveAdminSession();
+    if (s) {
+      const adminId = s.adminId || 'admin';
+      const key = `/customers:${adminId}:page=1:size=${PAGE_SIZE}:search=${search}:status=${newStatus}`;
+      const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
+      if (cached) {
+        setCustomers(cached.customers);
+        setTotalRecords(cached.total);
+        setLoading(false);
+      } else {
+        setCustomers([]);
+        setLoading(true);
+      }
+      loadData(s, 1, search, newStatus, false);
+    }
+  };
+
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, searchParam = '', statusParam = 'all', background = false) => {
     const reqId = ++reqIdRef.current;
     const adminId = currentSession.adminId || 'admin';
@@ -148,12 +173,8 @@ function CustomersDirectoryContent() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setCustomers((prev) => {
-          if (prev.length === 0) {
-            setLoading(true);
-          }
-          return prev;
-        });
+        setCustomers([]);
+        setLoading(true);
       }
     }
 
@@ -178,7 +199,7 @@ function CustomersDirectoryContent() {
         });
       }
 
-      if (!res || reqId !== reqIdRef.current) return;
+      if (!res || reqId !== reqIdRef.current || statusParam !== statusFilterRef.current) return;
       if (!res.ok) {
         setCustomers((prev) => {
           if (prev.length > 0) {
@@ -501,7 +522,9 @@ function CustomersDirectoryContent() {
 
         <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
           <button
-            onClick={() => setStatusFilter('all')}
+            id="filter-all"
+            type="button"
+            onClick={() => handleStatusFilterChange('all')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'all'
                 ? 'bg-slate-900 text-white border-slate-900'
@@ -511,7 +534,9 @@ function CustomersDirectoryContent() {
             All Members
           </button>
           <button
-            onClick={() => setStatusFilter('needs_registration')}
+            id="filter-needs-reg"
+            type="button"
+            onClick={() => handleStatusFilterChange('needs_registration')}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'needs_registration'
                 ? 'bg-amber-600 text-white border-amber-600'
@@ -521,7 +546,9 @@ function CustomersDirectoryContent() {
             Needs Registration
           </button>
           <button
-            onClick={() => setStatusFilter('active')}
+            id="filter-active"
+            type="button"
+            onClick={() => handleStatusFilterChange('active')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'active'
                 ? 'bg-emerald-700 text-white border-emerald-700'
@@ -531,7 +558,9 @@ function CustomersDirectoryContent() {
             Active
           </button>
           <button
-            onClick={() => setStatusFilter('suspended')}
+            id="filter-suspended"
+            type="button"
+            onClick={() => handleStatusFilterChange('suspended')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'suspended'
                 ? 'bg-rose-700 text-white border-rose-700'
@@ -541,7 +570,9 @@ function CustomersDirectoryContent() {
             Suspended
           </button>
           <button
-            onClick={() => setStatusFilter('strikes')}
+            id="filter-strikes"
+            type="button"
+            onClick={() => handleStatusFilterChange('strikes')}
             className={`px-3 py-1.5 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
               statusFilter === 'strikes'
                 ? 'bg-amber-600 text-white border-amber-600'

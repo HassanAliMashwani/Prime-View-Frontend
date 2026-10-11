@@ -122,10 +122,8 @@ function SalesHistoryContent() {
           setTotalRecords(cached.total);
           setLoading(false);
         } else {
-          setItems((prev) => {
-            if (prev.length === 0) setLoading(true);
-            return prev;
-          });
+          setItems([]);
+          setLoading(true);
         }
       }
 
@@ -222,9 +220,90 @@ function SalesHistoryContent() {
   // Handle Preset change
   const handlePresetSelect = (preset: SalesHistoryFilters['datePreset']) => {
     setDatePreset(preset);
+    let from = dateFrom;
+    let to = dateTo;
     if (preset !== 'all') {
       setDateFrom('');
       setDateTo('');
+      from = '';
+      to = '';
+    }
+    const adminId = session?.adminId || session?.username || 'admin';
+    const filters = {
+      datePreset: preset,
+      dateFrom: from || undefined,
+      dateTo: to || undefined,
+      blockId: blockFilter !== 'all' ? blockFilter : undefined,
+      category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
+      search: search.trim() || undefined,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    };
+    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
+    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
+    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
+    if (cached) {
+      setItems(cached.items);
+      setKpis(cached.kpis);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setItems([]);
+      setLoading(true);
+    }
+  };
+
+  const handleBlockFilterChange = (val: string) => {
+    setBlockFilter(val);
+    const adminId = session?.adminId || session?.username || 'admin';
+    const filters = {
+      datePreset,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      blockId: val !== 'all' ? val : undefined,
+      category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
+      search: search.trim() || undefined,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    };
+    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
+    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
+    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
+    if (cached) {
+      setItems(cached.items);
+      setKpis(cached.kpis);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setItems([]);
+      setLoading(true);
+    }
+  };
+
+  const handleCategoryFilterChange = (val: string) => {
+    setCategoryFilter(val);
+    const adminId = session?.adminId || session?.username || 'admin';
+    const filters = {
+      datePreset,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      blockId: blockFilter !== 'all' ? blockFilter : undefined,
+      category: val !== 'all' ? (val as PlotCategory) : undefined,
+      search: search.trim() || undefined,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    };
+    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
+    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
+    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
+    if (cached) {
+      setItems(cached.items);
+      setKpis(cached.kpis);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setItems([]);
+      setLoading(true);
     }
   };
 
@@ -237,6 +316,18 @@ function SalesHistoryContent() {
     setCategoryFilter('all');
     setSearch('');
     setPage(1);
+    const adminId = session?.adminId || session?.username || 'admin';
+    const key = generateCacheKey('GET', `/sales/history?datePreset=all&page=1&pageSize=${PAGE_SIZE}`, adminId);
+    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
+    if (cached) {
+      setItems(cached.items);
+      setKpis(cached.kpis);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setItems([]);
+      setLoading(true);
+    }
   };
 
   // Build block options:
@@ -463,7 +554,7 @@ function SalesHistoryContent() {
             <label className="block text-[11px] font-bold text-slate-600 mb-1">Sold By Blocks</label>
             <select
               value={blockFilter}
-              onChange={(e) => setBlockFilter(e.target.value)}
+              onChange={(e) => handleBlockFilterChange(e.target.value)}
               className="w-full p-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600 bg-white"
             >
               <option value="all">All Blocks</option>
@@ -480,7 +571,7 @@ function SalesHistoryContent() {
             <label className="block text-[11px] font-bold text-slate-600 mb-1">Category</label>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => handleCategoryFilterChange(e.target.value)}
               className="w-full p-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600 bg-white"
             >
               <option value="all">All Categories</option>

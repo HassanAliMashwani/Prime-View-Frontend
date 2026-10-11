@@ -123,12 +123,8 @@ export default function AdminReceiptsPage() {
           setTotalCount(cached.totalCount);
           setLoading(false);
         } else {
-          setReceipts((prev) => {
-            if (prev.length === 0) {
-              setLoading(true);
-            }
-            return prev;
-          });
+          setReceipts([]);
+          setLoading(true);
         }
       }
 
@@ -154,7 +150,7 @@ export default function AdminReceiptsPage() {
           });
         }
 
-        if (!res || currentReq !== reqIdRef.current) return;
+        if (!res || currentReq !== reqIdRef.current || st !== statusRef.current) return;
 
         if (res.ok) {
           setReceipts(res.receipts || []);
@@ -197,9 +193,22 @@ export default function AdminReceiptsPage() {
   const handleStatusFilterChange = (newStatus: 'all' | ReceiptStatus) => {
     if (newStatus === statusFilter) return;
     setStatusFilter(newStatus);
+    statusRef.current = newStatus;
     setPage(1);
-    if (session) {
-      loadData(session, 1, newStatus, searchInput, false);
+    const s = session || getActiveAdminSession();
+    if (s) {
+      const adminId = s.adminId || 'admin';
+      const cacheKey = `/receipts:${adminId}:page=1:size=${PAGE_SIZE}:status=${newStatus}:search=${searchInput || ''}`;
+      const cached = getCache<{ receipts: ReceiptSubmission[], totalCount: number }>(cacheKey, true);
+      if (cached) {
+        setReceipts(cached.receipts);
+        setTotalCount(cached.totalCount);
+        setLoading(false);
+      } else {
+        setReceipts([]);
+        setLoading(true);
+      }
+      loadData(s, 1, newStatus, searchInput, false);
     }
   };
 
@@ -467,6 +476,7 @@ export default function AdminReceiptsPage() {
       <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-wrap">
           <button
+            id="receipt-filter-pending"
             type="button"
             onClick={() => handleStatusFilterChange('pending')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -480,6 +490,7 @@ export default function AdminReceiptsPage() {
           </button>
 
           <button
+            id="receipt-filter-verified"
             type="button"
             onClick={() => handleStatusFilterChange('verified')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -493,6 +504,7 @@ export default function AdminReceiptsPage() {
           </button>
 
           <button
+            id="receipt-filter-rejected"
             type="button"
             onClick={() => handleStatusFilterChange('rejected')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -506,6 +518,7 @@ export default function AdminReceiptsPage() {
           </button>
 
           <button
+            id="receipt-filter-all"
             type="button"
             onClick={() => handleStatusFilterChange('all')}
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${

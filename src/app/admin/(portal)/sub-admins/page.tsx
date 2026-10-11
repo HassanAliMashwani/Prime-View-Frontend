@@ -143,6 +143,10 @@ export default function TeamsPage() {
   const [editError, setEditError] = useState<string | null>(null);
 
   const reqIdRef = React.useRef(0);
+  const statusFilterRef = React.useRef(statusFilter);
+  useEffect(() => {
+    statusFilterRef.current = statusFilter;
+  }, [statusFilter]);
   const [searchInput, setSearchInput] = useState('');
 
   const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchTerm, isBackground = false) => {
@@ -161,12 +165,8 @@ export default function TeamsPage() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setSubAdmins((prev) => {
-          if (prev.length === 0) {
-            setLoading(true);
-          }
-          return prev;
-        });
+        setSubAdmins([]);
+        setLoading(true);
       }
     }
 
@@ -198,7 +198,7 @@ export default function TeamsPage() {
         });
       }
 
-      if (!res || currentReq !== reqIdRef.current) return;
+      if (!res || currentReq !== reqIdRef.current || st !== statusFilterRef.current) return;
 
       if (res.ok) {
         if (!res.subAdmins || res.subAdmins.length === 0) {
@@ -257,10 +257,24 @@ export default function TeamsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  useEffect(() => {
+  const handleStatusFilterChange = (newStatus: 'all' | 'active' | 'suspended') => {
+    statusFilterRef.current = newStatus;
+    setStatusFilter(newStatus);
     setPage(1);
-    if (session) loadData(session, 1, statusFilter, searchInput, false);
-  }, [statusFilter]);
+    if (!session) return;
+    const adminId = session.adminId || session.username || 'admin';
+    const cacheKey = `/sub-admins:${adminId}:page=1:size=${PAGE_SIZE}:status=${newStatus}:search=${searchInput || ''}`;
+    const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, true);
+    if (cached) {
+      setSubAdmins(cached.subAdmins);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setSubAdmins([]);
+      setLoading(true);
+    }
+    loadData(session, 1, newStatus, searchInput, false);
+  };
 
   useEffect(() => {
     const cur = getActiveAdminSession();
@@ -549,7 +563,7 @@ export default function TeamsPage() {
           <span className="text-xs text-slate-500 font-medium">Status:</span>
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => handleStatusFilterChange(e.target.value as any)}
             className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-800 font-semibold focus:outline-none cursor-pointer"
           >
             <option value="all">All Members</option>

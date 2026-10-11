@@ -71,7 +71,9 @@ export default function AdminDashboardPage() {
     const cached = getCache<MonthlyHistoryPoint[]>(key, true);
     if (cached) {
       setMonthlyPoints(cached);
+      setChartLoading(false);
     } else if (!isBackground) {
+      setMonthlyPoints([]);
       setChartLoading(true);
     }
 
@@ -324,6 +326,10 @@ export default function AdminDashboardPage() {
             const cached = getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, range), true);
             if (cached) {
               setMonthlyPoints(cached);
+              setChartLoading(false);
+            } else {
+              setMonthlyPoints([]);
+              setChartLoading(true);
             }
             loadChartData(session, range);
           }

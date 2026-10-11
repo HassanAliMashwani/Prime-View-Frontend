@@ -153,12 +153,8 @@ export default function InventoryOverviewPage() {
       setTotalRecords(cached.total);
       setLoadingLive(false);
     } else if (!isBackground) {
-      setLiveStats((prev) => {
-        if (prev.length === 0) {
-          setLoadingLive(true);
-        }
-        return prev;
-      });
+      setLiveStats([]);
+      setLoadingLive(true);
     }
 
     const currentReq = ++reqIdRef.current;
@@ -229,6 +225,8 @@ export default function InventoryOverviewPage() {
   const loadHistory = useCallback(async (from: string, to: string) => {
     if (!from || !to) return;
     setLoadingHistory(true);
+    setHistoryStats([]);
+    setHistoryTotals(null);
     setHistoryError('');
     try {
       const data = await runLane1({

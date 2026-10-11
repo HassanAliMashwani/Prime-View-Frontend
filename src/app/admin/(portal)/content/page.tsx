@@ -105,8 +105,29 @@ export default function ContentCMSPage() {
   const [lockSecondsRemaining, setLockSecondsRemaining] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const pageRef = useRef(page);
-  useEffect(() => { pageRef.current = page; }, [page]);
+  const reqIdRef = useRef(0);
+  const activeSectionRef = useRef<ContentSection>(activeSection);
+  useEffect(() => { activeSectionRef.current = activeSection; }, [activeSection]);
+
+  const handleSectionSwitch = (newSection: ContentSection) => {
+    if (newSection === activeSection) return;
+    setActiveSection(newSection);
+    activeSectionRef.current = newSection;
+    setPage(1);
+    const s = session || getActiveAdminSession();
+    if (s) {
+      const cacheKey = `/content:${newSection}:${s.adminId}`;
+      const cached = getCache<ContentBlock[]>(cacheKey, true);
+      if (cached && cached.length > 0) {
+        setBlocks(cached);
+        setLoading(false);
+      } else {
+        setBlocks([]);
+        setLoading(true);
+      }
+      loadData(s, newSection, 1, false, false);
+    }
+  };
 
   // Load content blocks
   const loadData = useCallback(async (currentSession: AdminSession, section: ContentSection, p = 1, isLoadMore = false, isBackground = false) => {
@@ -114,6 +135,18 @@ export default function ContentCMSPage() {
     const fetchPageSize = isLoadMore ? PAGE_SIZE : p * PAGE_SIZE;
     const cacheKey = `/content:${section}:${currentSession.adminId}`;
 
+    if (!isBackground && !isLoadMore) {
+      const cached = getCache<ContentBlock[]>(cacheKey, true);
+      if (cached && cached.length > 0) {
+        setBlocks(cached);
+        setLoading(false);
+      } else {
+        setBlocks([]);
+        setLoading(true);
+      }
+    }
+
+    const currentReq = ++reqIdRef.current;
     const fetcher = async (signal?: AbortSignal) => {
       return await getContentBlocks(currentSession, section, {
         page: fetchPage,
@@ -138,7 +171,7 @@ export default function ContentCMSPage() {
         });
       }
 
-      if (!res) return;
+      if (!res || currentReq !== reqIdRef.current || section !== activeSectionRef.current) return;
 
       if (res.ok) {
         if (isLoadMore) {
@@ -148,7 +181,7 @@ export default function ContentCMSPage() {
             return [...prev, ...newItems];
           });
         } else {
-          setBlocks((prev) => reconcileItems(prev, res.blocks, (b) => b.id));
+          setBlocks(res.blocks || []);
         }
         setTotalRecords(res.total || 0);
         if (fetchPage === 1) {
@@ -157,8 +190,9 @@ export default function ContentCMSPage() {
       }
     } catch (err: any) {
       if (err?.message === 'REQUEST_SUPERSEDED') return;
+      if (currentReq !== reqIdRef.current) return;
     } finally {
-      if (!isBackground) {
+      if (!isBackground && currentReq === reqIdRef.current) {
         setLoading(false);
       }
     }
@@ -171,18 +205,18 @@ export default function ContentCMSPage() {
       return;
     }
     setSession(cur);
-    loadData(cur, activeSection, 1, false, false);
+    loadData(cur, activeSectionRef.current, 1, false, false);
 
     // Auto-refresh content list every 30 seconds in Lane 2
     const intervalId = setInterval(() => {
       const latestSession = getActiveAdminSession();
       if (latestSession) {
-        loadData(latestSession, activeSection, pageRef.current, false, true);
+        loadData(latestSession, activeSectionRef.current, pageRef.current, false, true);
       }
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [router, activeSection, loadData]);
+  }, [router, loadData]);
 
   useEffect(() => {
     setPage(1);
@@ -617,10 +651,9 @@ export default function ContentCMSPage() {
             {/* Tabs */}
             <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200/80 text-xs font-bold">
               <button
-                onClick={() => {
-                  setActiveSection('plans');
-                  if (session) loadData(session, 'plans');
-                }}
+                id="tab-plans"
+                type="button"
+                onClick={() => handleSectionSwitch('plans')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
                   activeSection === 'plans'
                     ? 'bg-white text-slate-900 shadow-xs'
@@ -631,10 +664,9 @@ export default function ContentCMSPage() {
                 <span>Development Plans ({blocks.length && activeSection === 'plans' ? blocks.length : 6})</span>
               </button>
               <button
-                onClick={() => {
-                  setActiveSection('events');
-                  if (session) loadData(session, 'events');
-                }}
+                id="tab-events"
+                type="button"
+                onClick={() => handleSectionSwitch('events')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all cursor-pointer ${
                   activeSection === 'events'
                     ? 'bg-white text-slate-900 shadow-xs'
@@ -648,6 +680,7 @@ export default function ContentCMSPage() {
 
             {/* Create New Block Button */}
             <button
+              id="add-content-btn"
               onClick={handleStartCreate}
               className="flex items-center gap-2 px-4 py-2 bg-[#10251E] hover:bg-[#18392C] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
             >

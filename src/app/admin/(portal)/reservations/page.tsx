@@ -102,12 +102,8 @@ export default function ReservationsPage() {
       setTotalRecords(cached.total);
       setLoading(false);
     } else if (!isBackground) {
-      setReservations((prev) => {
-        if (prev.length === 0) {
-          setLoading(true);
-        }
-        return prev;
-      });
+      setReservations([]);
+      setLoading(true);
     }
 
     const currentReq = ++reqIdRef.current;
@@ -138,7 +134,7 @@ export default function ReservationsPage() {
         });
       }
 
-      if (!res || currentReq !== reqIdRef.current) return;
+      if (!res || currentReq !== reqIdRef.current || tab !== tabRef.current) return;
 
       if (res.ok) {
         if (!res.reservations || res.reservations.length === 0) {
@@ -196,10 +192,49 @@ export default function ReservationsPage() {
     return () => clearTimeout(t);
   }, [searchInput]);
 
-  useEffect(() => {
+  const handleTabChange = (newTab: 'active' | 'history') => {
+    if (newTab === activeTab) return;
+    setActiveTab(newTab);
+    tabRef.current = newTab;
     setPage(1);
-    if (session) loadData(session, 1, search, blockFilter, activeTab, false);
-  }, [blockFilter, activeTab]);
+    const s = session || getActiveAdminSession();
+    if (s) {
+      const adminId = s.adminId || 'admin';
+      const cacheKey = `/reservations:${adminId}:page=1:size=${PAGE_SIZE}:search=${search || ''}:block=${blockFilter}:status=${newTab}`;
+      const cached = getCache<{ reservations: ReservationWithConflict[], total: number }>(cacheKey, true);
+      if (cached) {
+        setReservations(cached.reservations);
+        setTotalRecords(cached.total);
+        setLoading(false);
+      } else {
+        setReservations([]);
+        setLoading(true);
+      }
+      loadData(s, 1, search, blockFilter, newTab, false);
+    }
+  };
+
+  const handleBlockFilterChange = (newBlock: string) => {
+    if (newBlock === blockFilter) return;
+    setBlockFilter(newBlock);
+    blockRef.current = newBlock;
+    setPage(1);
+    const s = session || getActiveAdminSession();
+    if (s) {
+      const adminId = s.adminId || 'admin';
+      const cacheKey = `/reservations:${adminId}:page=1:size=${PAGE_SIZE}:search=${search || ''}:block=${newBlock}:status=${activeTab}`;
+      const cached = getCache<{ reservations: ReservationWithConflict[], total: number }>(cacheKey, true);
+      if (cached) {
+        setReservations(cached.reservations);
+        setTotalRecords(cached.total);
+        setLoading(false);
+      } else {
+        setReservations([]);
+        setLoading(true);
+      }
+      loadData(s, 1, search, newBlock, activeTab, false);
+    }
+  };
 
   useEffect(() => {
     const s = getActiveAdminSession();
@@ -331,7 +366,9 @@ export default function ReservationsPage() {
         {/* Tab Controls */}
         <div className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200">
           <button
-            onClick={() => setActiveTab('active')}
+            id="tab-reservations-active"
+            type="button"
+            onClick={() => handleTabChange('active')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'active'
                 ? 'bg-amber-500 text-amber-950 shadow-xs'
@@ -342,7 +379,9 @@ export default function ReservationsPage() {
           </button>
 
           <button
-            onClick={() => setActiveTab('history')}
+            id="tab-reservations-history"
+            type="button"
+            onClick={() => handleTabChange('history')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'history'
                 ? 'bg-indigo-600 text-white shadow-xs'
@@ -389,7 +428,7 @@ export default function ReservationsPage() {
         {/* Block Scope Filter */}
         <select
           value={blockFilter}
-          onChange={(e) => setBlockFilter(e.target.value)}
+          onChange={(e) => handleBlockFilterChange(e.target.value)}
           className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white"
         >
           <option value="all">All Accessible Blocks</option>
