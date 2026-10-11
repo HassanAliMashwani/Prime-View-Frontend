@@ -27,6 +27,7 @@ import {
   formatAmountInWords,
   getSlipVerifyUrl,
   SlipRenderModel,
+  buildSlipDataFromSubmission,
 } from '@/components/receipts/OfficialA4PaymentSlip';
 
 export default function VerifySlipPage() {
@@ -135,26 +136,16 @@ export default function VerifySlipPage() {
         ) : submission?.status === 'verified' ? (
           /* ── STATE 1: VERIFIED OFFICIAL CASH RECEIPT ────────────────────── */
           (() => {
-            const numAmount = Number(submission.amount) || 0;
-            const slipModel: SlipRenderModel = {
-              slipNumber: submission.slipNumber || slipNumber,
-              customerName: submission.memberDisplayName || 'Valued Member',
-              membershipNo: submission.membershipNo || '—',
-              plotNumber: submission.plotNumber || '—',
-              blockName: submission.blockName || '—',
-              installmentNumber: submission.installmentNumber,
-              amount: numAmount,
-              amountInWords: formatAmountInWords(numAmount),
-              bankName: submission.bankName || submission.depositoryBank || '',
-              transactionRef: submission.transactionRef || '',
-              depositDate: submission.paymentDate ? String(submission.paymentDate).split('T')[0] : '—',
-              verifiedDate: submission.verifiedAt
-                ? String(submission.verifiedAt).split('T')[0]
-                : (submission.paymentDate ? String(submission.paymentDate).split('T')[0] : '—'),
-              verifiedBy: 'Society Secretariat / Treasurer',
-              securityHash: submission.securityHash || '',
-              qrPayload: getSlipVerifyUrl(submission.slipNumber || slipNumber),
-            };
+            const slipModel = buildSlipDataFromSubmission(submission as any, {
+              customerName: submission.customerName || submission.memberDisplayName,
+              fatherOrHusbandName: submission.fatherOrHusbandName || '',
+              cnic: submission.customerCnic || submission.cnic || '',
+              membershipNo: submission.membershipNo || '',
+              plotNumber: submission.plotNumber || '',
+              blockName: submission.blockName || '',
+              plotSize: submission.plotSize || '',
+              plotCategory: submission.plotCategory || '',
+            });
 
             return (
               <div className="w-full max-w-4xl mx-auto space-y-4 print:space-y-0">
@@ -199,10 +190,13 @@ export default function VerifySlipPage() {
                 </div>
 
                 {/* Exact Filled Official Cash Receipt Paper (Read-only) */}
-                <div className="bg-white rounded-2xl shadow-2xl p-2 sm:p-6 print:p-0 print:shadow-none print:rounded-none overflow-hidden text-slate-900 border border-slate-800/40 print:border-none">
+                <div
+                  id="pv-official-slip-printable"
+                  className="bg-white rounded-2xl shadow-2xl p-2 sm:p-6 print:p-0 print:shadow-none print:rounded-none print:border-none print:bg-transparent overflow-hidden text-slate-900 border border-slate-800/40"
+                >
                   <OfficialReceiptCopy
                     slip={slipModel}
-                    copyLabel="MEMBER COPY (OFFICIAL VERIFIED RECEIPT)"
+                    copyBadgeTitle="MEMBER COPY"
                     isReadOnly={true}
                   />
                 </div>

@@ -320,9 +320,13 @@ export interface ReceiptSubmission {
   customerName: string;
   customerPhone?: string;
   customerCnic?: string;
+  fatherOrHusbandName?: string;
   plotId: string;
   plotNumber: string;
   blockName: string;
+  plotSize?: string;
+  plotCategory?: string;
+  feeType?: string;
   paymentType: PaymentType;
   installmentNumber?: number;
   amount: number;

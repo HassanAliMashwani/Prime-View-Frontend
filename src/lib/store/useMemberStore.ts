@@ -31,6 +31,8 @@ interface MemberState {
   initSync: () => () => void;
 }
 
+let inFlightProfilePromise: Promise<void> | null = null;
+
 export const useMemberStore = create<MemberState>((set, get) => ({
   profile: null,
   plots: [],
@@ -109,40 +111,50 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   },
 
   fetchProfile: async (isBackground = false) => {
-    if (!isBackground) {
-      try {
-        await runLane1({
-          screen: 'member-profile',
-          key: 'member-profile-data',
-          fn: async (signal) => {
-            const res = await getCustomerProfile(signal);
-            if (res.ok && res.data) {
-              set({ profile: res.data });
-            }
-          },
-        });
-      } catch (err: any) {
-        if (err?.message !== 'REQUEST_SUPERSEDED') {
-          // ignore
-        }
-      }
-    } else {
-      try {
-        await runLane2({
-          screen: 'member-profile',
-          key: 'member-profile-data',
-          isRefresh: true,
-          fn: async (signal) => {
-            const res = await getCustomerProfile(signal);
-            if (res.ok && res.data) {
-              set({ profile: res.data });
-            }
-          },
-        });
-      } catch {
-        // non-blocking
-      }
+    if (inFlightProfilePromise) {
+      return inFlightProfilePromise;
     }
+    inFlightProfilePromise = (async () => {
+      try {
+        if (!isBackground) {
+          try {
+            await runLane1({
+              screen: 'member-profile',
+              key: 'member-profile-data',
+              fn: async (signal) => {
+                const res = await getCustomerProfile(signal);
+                if (res.ok && res.data) {
+                  set({ profile: res.data });
+                }
+              },
+            });
+          } catch (err: any) {
+            if (err?.message !== 'REQUEST_SUPERSEDED') {
+              // ignore
+            }
+          }
+        } else {
+          try {
+            await runLane2({
+              screen: 'member-profile',
+              key: 'member-profile-data',
+              isRefresh: true,
+              fn: async (signal) => {
+                const res = await getCustomerProfile(signal);
+                if (res.ok && res.data) {
+                  set({ profile: res.data });
+                }
+              },
+            });
+          } catch {
+            // non-blocking
+          }
+        }
+      } finally {
+        inFlightProfilePromise = null;
+      }
+    })();
+    return inFlightProfilePromise;
   },
 
   fetchPlots: async (isBackground = false) => {

@@ -10,6 +10,7 @@ import { PlotPaymentSchedule } from '@/lib/dal/payments';
 import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview, uploadReceiptFileToStorage } from '@/lib/dal/receipts';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { ReceiptSubmission } from '@/lib/mock/types';
+import { getActiveSession } from '@/lib/dal/auth';
 import {
   OfficialA4PaymentSlip,
   buildSlipDataFromSubmission,
@@ -367,17 +368,33 @@ function PaymentsContent() {
 
   const handleReceiptSubmit = async (e?: React.FormEvent, retrySub?: any) => {
     if (e) e.preventDefault();
-    if (!profile?.id) return;
     setUploadError(null);
     setUploadSuccess(null);
+
+    const session = getActiveSession();
+    const activeCustomerId = profile?.id || session?.customerId;
+    if (!activeCustomerId) {
+      setUploadError('Active member session not found. Please log in again.');
+      return;
+    }
 
     const amountNum = retrySub ? Number(retrySub.amount) : Number(formAmount);
     const plotIdToUse = retrySub ? retrySub.plotId : formPlotId;
     const txnRefToUse = retrySub ? retrySub.transactionRef : formTxnRef.trim();
     const fileToUpload = retrySub?._rawFile || selectedReceiptFile;
 
-    if (!plotIdToUse || isNaN(amountNum) || amountNum <= 0 || !txnRefToUse) {
-      setUploadError('Please fill in all mandatory receipt information.');
+    if (!plotIdToUse) {
+      setUploadError('Please select a property plot file.');
+      return;
+    }
+
+    if (isNaN(amountNum) || amountNum <= 0) {
+      setUploadError('Please enter a valid deposited amount (PKR).');
+      return;
+    }
+
+    if (!txnRefToUse) {
+      setUploadError('Please enter the Challan / Trx Reference.');
       return;
     }
 
@@ -391,9 +408,9 @@ function PaymentsContent() {
 
     const optimisticReceipt: ReceiptSubmission = {
       id: tempReceiptId,
-      customerId: profile.id,
-      customerName: profile.fullName,
-      membershipNo: profile.membershipNo,
+      customerId: activeCustomerId,
+      customerName: profile?.fullName || session?.fullName || 'Valued Member',
+      membershipNo: profile?.membershipNo || (session as any)?.membershipNo || '',
       plotId: plotIdToUse,
       plotNumber: matchedPlot?.plotNumber || retrySub?.plotNumber || '',
       blockName: matchedPlot?.blockName || retrySub?.blockName || '',
@@ -414,9 +431,6 @@ function PaymentsContent() {
       paymentKind: retrySub ? retrySub.paymentKind : formPaymentKind,
     };
 
-    // Close the form modal immediately (no 2.5 second wait!)
-    setShowUploadModal(false);
-
     // Add the receipt to the member's list at once with status Sending
     setReceipts((prev) => {
       const idx = prev.findIndex((r) => r.id === tempReceiptId);
@@ -428,25 +442,8 @@ function PaymentsContent() {
       return [{ ...optimisticReceipt, _rawFile: fileToUpload } as any, ...prev];
     });
 
-    // Show a bottom-right notice that says Sending receipt
-    setBottomNotice({
-      id: tempReceiptId,
-      type: 'sending',
-      message: 'Sending receipt',
-    });
-
-    // Reset input states if not retrying
-    if (!retrySub) {
-      setFormTxnRef('');
-      setFormAmount('');
-      setFormNotes('');
-      setFormFileName('');
-      setSelectedReceiptFile(null);
-      setPreviewData(null);
-      setBalloonError(null);
-    }
-
-    // Show busy state immediately
+    // Clear any previous error and show busy state immediately on the form
+    setUploadError(null);
     setIsSubmittingReceipt(true);
 
     // Run upload & submission in Lane 1 with isSave: true
@@ -468,7 +465,7 @@ function PaymentsContent() {
               storageKey = uploadRes.storageKey;
             }
 
-            const res = await submitPaymentReceipt(profile.id, {
+            const res = await submitPaymentReceipt(activeCustomerId, {
               plotId: optimisticReceipt.plotId,
               paymentType: optimisticReceipt.paymentType as any,
               installmentNumber: optimisticReceipt.installmentNumber,
@@ -486,6 +483,19 @@ function PaymentsContent() {
 
             if (res.ok && res.receipt) {
               const accepted = res.receipt;
+              // Quickly close the form modal upon successful submission
+              setShowUploadModal(false);
+              if (!retrySub) {
+                setFormTxnRef('');
+                setFormAmount('');
+                setFormNotes('');
+                setFormFileName('');
+                setSelectedReceiptFile(null);
+                setPreviewData(null);
+                setBalloonError(null);
+              }
+              setUploadError(null);
+
               setReceipts((prev) =>
                 prev.map((r) =>
                   r.id === tempReceiptId
@@ -506,6 +516,7 @@ function PaymentsContent() {
               loadReceipts(true);
             } else {
               const errMsg = res.message || res.error || 'Failed to submit receipt.';
+              setUploadError(errMsg);
               setReceipts((prev) =>
                 prev.map((r) =>
                   r.id === tempReceiptId
@@ -529,6 +540,7 @@ function PaymentsContent() {
         });
       } catch (err: any) {
         const errMsg = err?.message || 'Failed to upload receipt.';
+        setUploadError(errMsg);
         setReceipts((prev) =>
           prev.map((r) =>
             r.id === tempReceiptId
@@ -1277,6 +1289,16 @@ function PaymentsContent() {
               </div>
             )}
 
+            {isSubmittingReceipt && (
+              <div className="p-3.5 rounded-xl bg-[#EAF0E7] border border-[#43612B]/30 text-[#43612B] text-xs flex items-center gap-2.5 animate-pulse">
+                <div className="w-4 h-4 border-2 border-[#43612B]/30 border-t-[#43612B] rounded-full animate-spin shrink-0" />
+                <div>
+                  <span className="font-bold block">Submitting payment receipt...</span>
+                  <span className="text-[11px] text-[#6B7462]">Please wait while your payment details are being transmitted for verification.</span>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleReceiptSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Select Plot */}
@@ -1524,12 +1546,37 @@ function PaymentsContent() {
                   className="w-full px-3.5 py-2 text-xs border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] resize-none"
                 />
               </div>
+              {/* In-form status & messages directly above the action buttons */}
+              {uploadError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span className="font-semibold">{uploadError}</span>
+                </div>
+              )}
+
+              {isSubmittingReceipt && (
+                <div className="p-3.5 rounded-xl bg-[#EAF0E7] border border-[#43612B]/40 text-[#43612B] text-xs flex items-center gap-2.5 shadow-2xs animate-pulse">
+                  <div className="w-4 h-4 border-2 border-[#43612B]/30 border-t-[#43612B] rounded-full animate-spin shrink-0" />
+                  <div>
+                    <span className="font-bold block text-xs sm:text-sm">Submitting payment receipt...</span>
+                    <span className="text-[11px] text-[#43612B]/80 font-medium">Please wait while your receipt is transmitted for verification.</span>
+                  </div>
+                </div>
+              )}
+
+              {uploadSuccess && (
+                <div className="p-3.5 rounded-xl bg-[#EAF0E7] border border-[#43612B]/30 text-[#43612B] text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{uploadSuccess}</span>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-black/[0.06] flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#6B7462] hover:bg-black/5 cursor-pointer"
+                  disabled={isSubmittingReceipt}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#6B7462] hover:bg-black/5 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -1542,7 +1589,7 @@ function PaymentsContent() {
                   {isSubmittingReceipt ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Transmitting Receipt...</span>
+                      <span>Submitting payment...</span>
                     </>
                   ) : (
                     <>
@@ -1575,16 +1622,24 @@ function PaymentsContent() {
         const slipFallbacks = {
           customerName: profile?.fullName,
           membershipNo: profile?.membershipNo,
+          fatherOrHusbandName: profile?.fatherOrHusbandName,
+          cnic: profile?.cnic,
           plotNumber: resolvedPlotNumber,
           blockName: resolvedBlockName,
+          plotSize: (matchedPlot as any)?.size,
+          plotCategory: (matchedPlot as any)?.category,
         };
 
         const enrichedSubmission: ReceiptSubmission = {
           ...activeSlipSubmission,
           customerName: activeSlipSubmission.customerName || profile?.fullName || '',
           membershipNo: activeSlipSubmission.membershipNo || profile?.membershipNo || '',
+          fatherOrHusbandName: activeSlipSubmission.fatherOrHusbandName || profile?.fatherOrHusbandName || '',
+          customerCnic: activeSlipSubmission.customerCnic || profile?.cnic || '',
           plotNumber: resolvedPlotNumber || '',
           blockName: resolvedBlockName || '',
+          plotSize: activeSlipSubmission.plotSize || (matchedPlot as any)?.size || '',
+          plotCategory: activeSlipSubmission.plotCategory || (matchedPlot as any)?.category || '',
         };
 
         return (

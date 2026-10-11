@@ -284,7 +284,7 @@ export default function AdminReceiptsPage() {
     setBottomNotice({
       id: receiptId,
       type: 'success',
-      message: 'Receipt verification in progress. Contacting server...',
+      message: 'Processing...',
     });
 
     try {
@@ -1039,8 +1039,12 @@ export default function AdminReceiptsPage() {
           slip={buildSlipDataFromSubmission(activeSlip, {
             customerName: activeSlip.customerName || (activeSlip as any).customer?.fullName,
             membershipNo: activeSlip.membershipNo || (activeSlip as any).customer?.membershipNo,
+            fatherOrHusbandName: activeSlip.fatherOrHusbandName || (activeSlip as any).customer?.fatherOrHusbandName,
+            cnic: activeSlip.customerCnic || (activeSlip as any).customer?.cnic,
             plotNumber: activeSlip.plotNumber,
             blockName: activeSlip.blockName,
+            plotSize: activeSlip.plotSize || (activeSlip as any).plot?.size,
+            plotCategory: activeSlip.plotCategory || (activeSlip as any).plot?.category,
           })}
           submission={activeSlip}
           viewMode="full"

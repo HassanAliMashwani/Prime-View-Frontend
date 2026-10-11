@@ -234,9 +234,17 @@ export interface PublicSlipVerification {
   status: 'verified' | 'pending' | 'rejected' | 'not_found';
   slipNumber?: string;
   memberDisplayName?: string;
+  customerName?: string | null;
+  fatherOrHusbandName?: string | null;
+  customerCnic?: string | null;
+  cnic?: string | null;
   membershipNo?: string | null;
   plotNumber?: string | null;
   blockName?: string | null;
+  plotSize?: string | null;
+  plotCategory?: string | null;
+  feeType?: string | null;
+  paymentType?: string | null;
   installmentNumber?: number | null;
   paymentDetails?: string;
   amount?: number;

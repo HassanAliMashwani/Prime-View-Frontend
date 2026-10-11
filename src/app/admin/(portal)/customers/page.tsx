@@ -377,7 +377,7 @@ function CustomersPageContent() {
             membershipNo: cust.membershipNo || '',
             fullName: cust.fullName || '',
             fatherOrHusbandName: cust.fatherOrHusbandName || '',
-            cnic: cust.cnic || '',
+            cnic: cust.cnic ? formatCnic(cust.cnic) : '',
             phone: cust.phone || '',
             email: cust.email || '',
             mailingAddress: cust.mailingAddress || '',
@@ -429,14 +429,14 @@ function CustomersPageContent() {
             ...prev,
             plotId: queryPlotId || targetPlotId || prev.plotId,
             fullName: cust.fullName || '',
-            cnic: cust.cnic || '',
+            cnic: cust.cnic ? formatCnic(cust.cnic) : '',
             phone: cust.phone || '',
             email: cust.email || '',
             mailingAddress: cust.mailingAddress || currentCity,
             membershipNo: cust.membershipNo || '',
             fatherOrHusbandName: (cust.fatherOrHusbandName && cust.fatherOrHusbandName !== 'Pending Information') ? cust.fatherOrHusbandName : '',
             nokName: cust.nokName || '',
-            nokCnic: cust.nokCnic || '',
+            nokCnic: cust.nokCnic ? formatCnic(cust.nokCnic) : '',
             portalPassword: '',
             paymentType: (targetBooking?.paymentType as PaymentType) || 'installment',
             applicantPhotoUrl: undefined,
@@ -778,6 +778,7 @@ function CustomersPageContent() {
         isSave: true,
         fn: async () => completeMemberRegistration(session, {
           customerId: completeTargetCustomer.id,
+          cnic: pathAForm.cnic ? formatCnic(pathAForm.cnic) : undefined,
           plotId: pathAForm.plotId || queryPlotId,
           city: memberCity,
           membershipNo: pathAForm.membershipNo,
@@ -786,7 +787,7 @@ function CustomersPageContent() {
           email: pathAForm.email,
           mailingAddress: pathAForm.mailingAddress,
           nokName: pathAForm.nokName,
-          nokCnic: pathAForm.nokCnic,
+          nokCnic: pathAForm.nokCnic ? formatCnic(pathAForm.nokCnic) : pathAForm.nokCnic,
           applicantPhotoUrl: pathAForm.applicantPhotoUrl?.includes('placeholder') ? undefined : pathAForm.applicantPhotoUrl,
           cnicCopyUrl: pathAForm.cnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.cnicCopyUrl,
           nokCnicCopyUrl: pathAForm.nokCnicCopyUrl?.includes('placeholder') ? undefined : pathAForm.nokCnicCopyUrl,
@@ -1393,7 +1394,7 @@ function CustomersPageContent() {
                   </div>
                   <h1 className="text-lg font-bold text-slate-900 font-serif">
                     {completeTargetCustomer ? (
-                      `${completeTargetCustomer.fullName} (${completeTargetCustomer.cnic})`
+                      `${completeTargetCustomer.fullName} (${formatCnic(completeTargetCustomer.cnic)})`
                     ) : (
                       <span className="inline-block h-5 w-48 bg-amber-300/40 animate-pulse rounded align-middle" />
                     )}

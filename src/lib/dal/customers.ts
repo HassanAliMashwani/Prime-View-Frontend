@@ -116,6 +116,7 @@ export interface CreateMinimalBookingInput {
 
 export interface CompleteMemberRegistrationInput {
   customerId: string;
+  cnic?: string;
   bookingId?: string;
   plotId?: string;
   city?: string;

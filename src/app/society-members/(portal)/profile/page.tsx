@@ -8,6 +8,7 @@ import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { updateProfile, changeCustomerPassword } from '@/lib/dal/customers';
 import { runLane1 } from '@/lib/requestLanes';
+import { formatCnic } from '@/lib/utils/cnic';
 import {
   User,
   Shield,
@@ -130,6 +131,8 @@ export default function ProfilePage() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isDirty },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -143,8 +146,10 @@ export default function ProfilePage() {
   });
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (!profile) {
+      fetchProfile();
+    }
+  }, [profile, fetchProfile]);
 
   // Real-time 30-second background refresh via Lane 2
   useEffect(() => {
@@ -158,7 +163,7 @@ export default function ProfilePage() {
     if (profile) {
       reset({
         fullName: profile.fullName,
-        cnic: profile.cnic,
+        cnic: profile.cnic ? formatCnic(profile.cnic) : '',
         email: profile.email,
         phone: profile.phone,
         mailingAddress: profile.mailingAddress || '',
@@ -174,7 +179,10 @@ export default function ProfilePage() {
       const res = await runLane1({
         screen: 'member-profile',
         isSave: true,
-        fn: async () => updateProfile(data),
+        fn: async () => updateProfile({
+          ...data,
+          cnic: formatCnic(data.cnic),
+        }),
       });
       if (res.ok) {
         setToastMessage({
@@ -463,7 +471,7 @@ export default function ProfilePage() {
                 CNIC of NOK
               </span>
               <p className="font-mono font-bold text-sm text-[#151914]">
-                {profile?.nokCnic || 'Not Specified'}
+                {profile?.nokCnic ? formatCnic(profile.nokCnic) : 'Not Specified'}
               </p>
               <p className="text-[10px] text-[#6B7462]">Verified national identity</p>
             </div>
@@ -522,7 +530,12 @@ export default function ProfilePage() {
                 <input
                   id="cnic"
                   type="text"
-                  {...register('cnic')}
+                  maxLength={15}
+                  value={watch('cnic') || ''}
+                  onChange={(e) => {
+                    const formatted = formatCnic(e.target.value);
+                    setValue('cnic', formatted, { shouldValidate: true, shouldDirty: true });
+                  }}
                   placeholder="37405-XXXXXXX-X"
                   className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
                 />
