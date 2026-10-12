@@ -127,7 +127,7 @@ function CustomersDirectoryContent() {
   const statusFilterRef = useRef(statusFilter);
   useEffect(() => { statusFilterRef.current = statusFilter; }, [statusFilter]);
 
-  const handleStatusFilterChange = (newStatus: string) => {
+  const handleStatusFilterChange = (newStatus: 'all' | 'needs_registration' | 'active' | 'suspended' | 'strikes') => {
     if (newStatus === statusFilter) return;
     setStatusFilter(newStatus);
     statusFilterRef.current = newStatus;

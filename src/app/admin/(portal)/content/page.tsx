@@ -106,6 +106,8 @@ export default function ContentCMSPage() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const reqIdRef = useRef(0);
+  const pageRef = useRef(page);
+  useEffect(() => { pageRef.current = page; }, [page]);
   const activeSectionRef = useRef<ContentSection>(activeSection);
   useEffect(() => { activeSectionRef.current = activeSection; }, [activeSection]);
 
