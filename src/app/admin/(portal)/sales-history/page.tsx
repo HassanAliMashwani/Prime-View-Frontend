@@ -54,20 +54,12 @@ const SOCIETY_BLOCKS = [
 function SalesHistoryContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    const adminId = s.adminId || s.username || 'admin';
-    const key = generateCacheKey('GET', `/sales/history?datePreset=all&page=1&pageSize=${PAGE_SIZE}`, adminId);
-    return getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
-  };
-  const init = getInit();
-  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [loading, setLoading] = useState<boolean>(!init);
-  const [items, setItems] = useState<SalesHistoryItem[]>(init?.items || []);
-  const [kpis, setKpis] = useState<SalesHistoryKpis>(init?.kpis || {
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [items, setItems] = useState<SalesHistoryItem[]>([]);
+  const [kpis, setKpis] = useState<SalesHistoryKpis>({
     totalPlotsSold: 0,
     totalRevenuePkr: 0,
     todayPlotsSold: 0,
@@ -92,7 +84,7 @@ function SalesHistoryContent() {
     url.searchParams.set('page', newPage.toString());
     router.push(url.pathname + url.search);
   };
-  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
   const reqIdRef = React.useRef(0);
 
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, background = false) => {
@@ -193,6 +185,7 @@ function SalesHistoryContent() {
   }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
 
   useEffect(() => {
+    setMounted(true);
     const cur = getActiveAdminSession();
     if (!cur) {
       router.push('/admin/login');
@@ -387,10 +380,10 @@ function SalesHistoryContent() {
             <span>Print Ledger</span>
           </button>
 
-          {session?.role === 'super_admin' ? null : (
+          {!mounted || !session || session.role === 'super_admin' ? null : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold">
               <Layers className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Scoped: {session?.assignedBlocks?.join(', ').toUpperCase()}</span>
+              <span>Scoped: {session.assignedBlocks?.join(', ').toUpperCase()}</span>
             </span>
           )}
         </div>
@@ -663,7 +656,7 @@ function SalesHistoryContent() {
               <span className="text-slate-400 font-medium">Sector Scope: </span>
               <strong className="text-slate-900 uppercase">
                 {blockFilter === 'all' 
-                  ? (session?.role === 'super_admin' ? 'All Blocks' : session?.assignedBlocks?.join(', ') || 'Assigned') 
+                  ? (!mounted || !session ? 'All Blocks' : session.role === 'super_admin' ? 'All Blocks' : session.assignedBlocks?.join(', ') || 'Assigned') 
                   : blockFilter}
               </strong>
             </div>

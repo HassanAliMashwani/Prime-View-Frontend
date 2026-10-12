@@ -94,27 +94,16 @@ const PAGE_SIZE = 10;
 export default function InventoryOverviewPage() {
   const router = useRouter();
 
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    const adminId = s.adminId || s.username || 'admin';
-    return getCache<{ stats: InventoryStats[], totals: InventoryTotals | null, total: number }>(`/inventory:${adminId}:page=1:size=${PAGE_SIZE}`, true);
-  };
-  const init = getInit();
-
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return getActiveAdminSession();
-  });
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
 
   // Live Inventory State
-  const [loadingLive, setLoadingLive] = useState<boolean>(!init);
-  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(Boolean(init));
-  const [liveStats, setLiveStats] = useState<InventoryStats[]>(init?.stats || []);
-  const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(init?.totals || null);
+  const [loadingLive, setLoadingLive] = useState<boolean>(true);
+  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(false);
+  const [liveStats, setLiveStats] = useState<InventoryStats[]>([]);
+  const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(null);
   const [livePage, setLivePage] = useState<number>(1);
-  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
   const [liveError, setLiveError] = useState<string>('');
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -132,6 +121,7 @@ export default function InventoryOverviewPage() {
   const reqIdRef = React.useRef(0);
 
   useEffect(() => {
+    setMounted(true);
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
@@ -413,7 +403,7 @@ export default function InventoryOverviewPage() {
             <span className="w-2 h-2 rounded-full bg-emerald-500" />
             Current Live Inventory Totals (All Authorized Blocks)
           </h2>
-          {session?.role === 'sub_admin' && (
+          {mounted && session?.role === 'sub_admin' && (
             <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-medium">
               Scoped to assigned blocks
             </span>

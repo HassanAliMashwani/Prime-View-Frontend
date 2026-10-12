@@ -45,28 +45,17 @@ const SECTOR_THEMES: Record<string, { badge: string; border: string; accent: str
 
 export default function ReservationsPage() {
   const router = useRouter();
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    const adminId = s.adminId || 'admin';
-    return getCache<{ reservations: ReservationWithConflict[], total: number }>(`/reservations:${adminId}:page=1:size=${PAGE_SIZE}:search=:block=all:status=active`, true);
-  };
-  const init = getInit();
-
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return getActiveAdminSession();
-  });
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [reservations, setReservations] = useState<ReservationWithConflict[]>(init?.reservations || []);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [reservations, setReservations] = useState<ReservationWithConflict[]>([]);
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active');
   const [search, setSearch] = useState<string>('');
   const [searchInput, setSearchInput] = useState<string>('');
   const [blockFilter, setBlockFilter] = useState<string>('all');
-  const [loading, setLoading] = useState<boolean>(!init);
+  const [loading, setLoading] = useState<boolean>(true);
   const [page, setPage] = useState<number>(1);
-  const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
+  const [totalRecords, setTotalRecords] = useState<number>(0);
 
   // Edit Note Modal State
   const [editingRes, setEditingRes] = useState<Reservation | null>(null);
@@ -237,6 +226,7 @@ export default function ReservationsPage() {
   };
 
   useEffect(() => {
+    setMounted(true);
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
@@ -432,7 +422,7 @@ export default function ReservationsPage() {
           className="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-mono focus:bg-white"
         >
           <option value="all">All Accessible Blocks</option>
-          {session?.role === 'super_admin' ? (
+          {mounted && session && (session.role === 'super_admin' ? (
             <>
               <option value="abbott">Abbott Block</option>
               <option value="royal">Royal Block</option>
@@ -448,7 +438,7 @@ export default function ReservationsPage() {
                 {getBlockDisplayName(b)}
               </option>
             ))
-          )}
+          ))}
         </select>
       </div>
 

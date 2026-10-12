@@ -58,23 +58,11 @@ function CustomersDirectoryContent() {
   const searchParams = useSearchParams();
   const queryCompleteCustId = searchParams?.get('completeCustomer');
 
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    const adminId = s.adminId || 'admin';
-    const key = `/customers:${adminId}:page=1:size=${PAGE_SIZE}:search=:status=all`;
-    return getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
-  };
-  const init = getInit();
-
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return getActiveAdminSession();
-  });
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(Boolean(init));
-  const [loading, setLoading] = useState<boolean>(!init);
-  const [customers, setCustomers] = useState<CustomerDirectoryEntry[]>(init?.customers || []);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [customers, setCustomers] = useState<CustomerDirectoryEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -260,6 +248,7 @@ function CustomersDirectoryContent() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     const cur = getActiveAdminSession();
     if (!cur) {
       router.push('/admin/login');
@@ -486,7 +475,7 @@ function CustomersDirectoryContent() {
 
         {/* Action badge / Scope info */}
         <div className="flex items-center gap-2">
-          {session?.role !== 'super_admin' ? (
+          {!mounted || !session ? null : session.role !== 'super_admin' ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-900 text-xs font-semibold">
               <Layers className="w-3.5 h-3.5 text-indigo-600" />
               <span>Block Scoped: {session?.assignedBlocks?.join(', ').toUpperCase()}</span>

@@ -29,20 +29,10 @@ import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 export default function MasterPlanPage() {
   const router = useRouter();
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    return getCache<BlockSummary[]>(`/master-plan:${s.adminId}`, true);
-  };
-  const init = getInit();
-
-  const [session, setSession] = useState<AdminSession | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return getActiveAdminSession();
-  });
-  const [blocks, setBlocks] = useState<BlockSummary[]>(init || []);
-  const [loading, setLoading] = useState<boolean>(!init);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [blocks, setBlocks] = useState<BlockSummary[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [viewMode, setViewMode] = useState<'map' | 'cards'>('map');
   const [imageLoaded, setImageLoaded] = useState<boolean>(false);
   const hasPrefetchedRef = React.useRef(false);
@@ -68,6 +58,7 @@ export default function MasterPlanPage() {
   }, []);
 
   useEffect(() => {
+    setMounted(true);
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
@@ -312,7 +303,7 @@ export default function MasterPlanPage() {
 
           <div className="flex items-center gap-2 text-xs font-mono bg-white border border-slate-200 px-3.5 py-2 rounded-xl text-slate-700 shadow-2xs">
             <ShieldCheck className="w-4 h-4 text-indigo-600" />
-            <span>Scope: <strong className="text-slate-900">{isSuper ? 'Society-Wide' : session?.assignedBlocks?.join(', ').toUpperCase() || 'ASSIGNED'}</strong></span>
+            <span>Scope: <strong className="text-slate-900">{!mounted || !session ? <span className="inline-block w-16 h-3 bg-slate-200 animate-pulse rounded align-middle" /> : isSuper ? 'Society-Wide' : session?.assignedBlocks?.join(', ').toUpperCase() || 'ASSIGNED'}</strong></span>
           </div>
         </div>
       </div>

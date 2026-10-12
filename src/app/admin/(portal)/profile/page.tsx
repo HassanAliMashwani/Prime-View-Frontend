@@ -52,19 +52,10 @@ const BLOCK_COLORS: Record<string, string> = {
 };
 
 export default function AdminProfilePage() {
-  const getInit = () => {
-    if (typeof window === 'undefined') return null;
-    const s = getActiveAdminSession();
-    if (!s) return null;
-    return getCache<AdminProfileDetails>(`/profile:${s.adminId}`, true);
-  };
-  const init = getInit();
-
-  const [session, setSession] = useState<AdminSession | null>(() =>
-    typeof window === 'undefined' ? null : getActiveAdminSession(),
-  );
-  const [details, setDetails] = useState<AdminProfileDetails | null>(init || null);
-  const [loading, setLoading] = useState(!init);
+  const [mounted, setMounted] = useState<boolean>(false);
+  const [session, setSession] = useState<AdminSession | null>(null);
+  const [details, setDetails] = useState<AdminProfileDetails | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Editable Profile fields state
   const [editUsername, setEditUsername] = useState('');
@@ -88,6 +79,7 @@ export default function AdminProfilePage() {
   const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
@@ -365,20 +357,8 @@ export default function AdminProfilePage() {
     }
   };
 
-  if (!session) {
-    return (
-      <div className="max-w-md mx-auto text-center py-16 space-y-4">
-        <ShieldAlert className="w-12 h-12 text-rose-600 mx-auto" />
-        <h2 className="text-xl font-bold text-slate-900">Session Required</h2>
-        <p className="text-sm text-slate-600">Please sign in to view your administrative profile.</p>
-        <Link
-          href="/admin/login"
-          className="inline-block px-5 py-2.5 bg-[#10251E] text-white rounded-xl font-bold text-xs"
-        >
-          Go to Sign In
-        </Link>
-      </div>
-    );
+  if (!mounted || !session) {
+    return null;
   }
 
   const isSuper = session.role === 'super_admin';
