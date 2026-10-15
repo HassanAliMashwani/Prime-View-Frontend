@@ -253,6 +253,7 @@ export interface PublicSlipVerification {
   feeType?: string | null;
   paymentType?: string | null;
   installmentNumber?: number | null;
+  installmentLabel?: string | null;
   paymentDetails?: string;
   amount?: number;
   paymentDate?: string;
