@@ -136,6 +136,10 @@ export default function VerifySlipPage() {
         ) : submission?.status === 'verified' ? (
           /* ── STATE 1: VERIFIED OFFICIAL CASH RECEIPT ────────────────────── */
           (() => {
+            const currentVerifyUrl = (slipNumber && !slipNumber.startsWith('PV-SLIP-'))
+              ? `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/verify/${slipNumber}`
+              : undefined;
+
             const slipModel = buildSlipDataFromSubmission(submission as any, {
               customerName: submission.customerName || submission.memberDisplayName,
               fatherOrHusbandName: submission.fatherOrHusbandName || '',
@@ -146,6 +150,10 @@ export default function VerifySlipPage() {
               plotSize: submission.plotSize || '',
               plotCategory: submission.plotCategory || '',
             });
+
+            if (currentVerifyUrl) {
+              slipModel.qrPayload = currentVerifyUrl;
+            }
 
             return (
               <div className="w-full max-w-4xl mx-auto space-y-4 print:space-y-0">

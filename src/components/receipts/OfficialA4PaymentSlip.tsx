@@ -45,13 +45,13 @@ export function getSlipVerifyUrl(slipNumber: string): string {
 
   if (typeof window !== 'undefined' && window.location?.origin) {
     const host = window.location.hostname;
-    if ((host === 'localhost' || host === '127.0.0.1') && configuredAppUrl && !configuredAppUrl.includes('localhost') && !configuredAppUrl.includes('127.0.0.1')) {
+    if ((host === 'localhost' || host === '127.0.0.1') && configuredAppUrl && !configuredAppUrl.includes('localhost') && !configuredAppUrl.includes('127.0.0.1') && !configuredAppUrl.includes('192.168.1.4')) {
       return `${configuredAppUrl}/verify/${clean}`;
     }
     return `${window.location.origin}/verify/${clean}`;
   }
 
-  const base = configuredAppUrl || 'http://192.168.1.4:3000';
+  const base = (configuredAppUrl && !configuredAppUrl.includes('192.168.1.4')) ? configuredAppUrl : 'http://localhost:3000';
   return `${base}/verify/${clean}`;
 }
 
@@ -310,7 +310,12 @@ export function buildSlipDataFromSubmission(
   return {
     slipNumber,
     securityHash: sub.slip?.securityHash || (sub as any).securityHash || '',
-    qrPayload: sub.slip?.qrTarget || (sub as any).qrTarget || (sub.slip?.qrPayload && sub.slip.qrPayload.startsWith('http') ? sub.slip.qrPayload : undefined) || getSlipVerifyUrl(slipNumber),
+    qrPayload: (
+      sub.slip?.qrTarget ||
+      (sub as any).qrTarget ||
+      (sub.slip?.qrPayload && sub.slip.qrPayload.startsWith('http') ? sub.slip.qrPayload : undefined) ||
+      getSlipVerifyUrl(slipNumber)
+    ).replace('http://192.168.1.4:3000', 'http://localhost:3000').replace('192.168.1.4', 'localhost'),
     customerName,
     fatherOrHusbandName,
     cnic,
@@ -468,6 +473,13 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
 }) => {
   const qrDataUri = useSlipQrCode(slip.qrPayload);
   const isCommercial = slip.plotCategory === 'Commercial';
+
+  const rawTarget = (slip.qrPayload || getSlipVerifyUrl(slip.slipNumber) || '').trim();
+  const verifyAddress = rawTarget
+    .replace('http://192.168.1.4:3000', 'http://localhost:3000')
+    .replace('https://192.168.1.4:3000', 'http://localhost:3000')
+    .replace('192.168.1.4:3000', 'localhost:3000')
+    .replace('192.168.1.4', 'localhost');
 
   const badgeString = copyBadgeText || copyBadgeTitle || 'MEMBER COPY';
   const badgeMain = badgeString.includes('ADMIN') ? 'ADMIN COPY' : 'MEMBER COPY';
@@ -890,20 +902,26 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
               <ShieldCheck className="w-3 h-3 text-slate-600" />
               <span>RECEIPT VERIFICATION</span>
             </div>
-            <div className="border border-slate-400 rounded-md bg-white p-1.5 h-[135px] flex flex-col items-center justify-center text-center shadow-2xs">
+            <div className="border border-slate-400 rounded-md bg-white p-1 h-[135px] flex flex-col items-center justify-center text-center shadow-2xs overflow-hidden">
               {qrDataUri ? (
-                <div className="flex flex-col items-center justify-center">
+                <div className="flex flex-col items-center justify-center w-full px-1">
                   <img
                     src={qrDataUri}
                     alt="Receipt Verification QR"
-                    className="w-[88px] h-[88px] object-contain block"
+                    className="w-[74px] h-[74px] object-contain block"
                   />
-                  <span className="text-[9px] font-bold text-slate-700 mt-1">
+                  <span className="text-[8.5px] font-bold text-slate-700 leading-tight mt-0.5">
                     Scan to Verify
+                  </span>
+                  <span
+                    className="text-[6.5px] sm:text-[7px] font-mono text-slate-600 leading-[1.1] max-w-full break-all select-all mt-0.5"
+                    title={verifyAddress}
+                  >
+                    {verifyAddress}
                   </span>
                 </div>
               ) : (
-                <div className="w-[88px] h-[88px] bg-slate-100 rounded-md flex items-center justify-center text-slate-400 text-[9px]">
+                <div className="w-[74px] h-[74px] bg-slate-100 rounded-md flex items-center justify-center text-slate-400 text-[9px]">
                   Generating QR…
                 </div>
               )}
