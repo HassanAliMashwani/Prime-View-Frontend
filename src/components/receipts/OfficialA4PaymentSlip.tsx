@@ -302,14 +302,21 @@ export function buildSlipDataFromSubmission(
   } else if (isShareFeeCategory) {
     onAccountOf = 'Share Fee';
   } else {
-    onAccountOf = (sub as any).notes || '';
+    onAccountOf = (sub as any).notes || 'Full Payment';
   }
 
   const amount = Number(sub.amount) || 0;
 
   return {
     slipNumber,
-    securityHash: sub.slip?.securityHash || (sub as any).securityHash || '',
+    securityHash: (
+      sub.securityHashDisplay ||
+      (sub.hashKeyVersion && sub.integrityHash ? sub.integrityHash.substring(0, 16) : '') ||
+      sub.securityHash ||
+      sub.slip?.securityHash ||
+      (sub as any).securityHash ||
+      ''
+    ),
     qrPayload: (
       sub.slip?.qrTarget ||
       (sub as any).qrTarget ||
@@ -711,46 +718,37 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
           />
           <div className="grid grid-cols-2 gap-4 px-1">
             <div className="space-y-1">
-              {slip.bookingFileNo ? (
-                <FormUnderlineField
-                  label="Booking / File No."
-                  value={slip.bookingFileNo}
-                  labelWidth="110px"
-                />
-              ) : null}
-              {slip.plotNumber ? (
-                <FormUnderlineField
-                  label="Plot No."
-                  value={slip.plotNumber}
-                  labelWidth="110px"
-                />
-              ) : null}
+              {/* Booking / File No. stays blank. Do not print a booking id there. */}
+              <FormUnderlineField
+                label="Booking / File No."
+                value=""
+                labelWidth="110px"
+              />
+              <FormUnderlineField
+                label="Plot No."
+                value={slip.plotNumber}
+                labelWidth="110px"
+              />
             </div>
 
             <div className="space-y-1">
-              {slip.blockName ? (
-                <FormUnderlineField
-                  label="Block"
-                  value={slip.blockName}
-                  labelWidth="65px"
-                />
-              ) : null}
-              {slip.plotSize ? (
-                <FormUnderlineField
-                  label="Plot Size"
-                  value={slip.plotSize}
-                  labelWidth="65px"
-                  rightSuffix="Marla ( )"
-                />
-              ) : null}
-              {slip.plotCategory ? (
-                <FormUnderlineField
-                  label="Plot Type"
-                  value={isCommercial ? 'Commercial' : 'Residential'}
-                  labelWidth="65px"
-                  rightSuffix="(Residential / Commercial)"
-                />
-              ) : null}
+              <FormUnderlineField
+                label="Block"
+                value={slip.blockName}
+                labelWidth="65px"
+              />
+              <FormUnderlineField
+                label="Plot Size"
+                value={slip.plotSize}
+                labelWidth="65px"
+                rightSuffix="Marla ( )"
+              />
+              <FormUnderlineField
+                label="Plot Type"
+                value={isCommercial ? 'Commercial' : 'Residential'}
+                labelWidth="65px"
+                rightSuffix="(Residential / Commercial)"
+              />
             </div>
           </div>
         </div>
@@ -793,15 +791,13 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
                 </div>
               </div>
 
-              {slip.onAccountOf ? (
-                <div className="mt-1">
-                  <FormUnderlineField
-                    label="On Account Of"
-                    value={slip.onAccountOf}
-                    labelWidth="90px"
-                  />
-                </div>
-              ) : null}
+              <div className="mt-1">
+                <FormUnderlineField
+                  label="On Account Of"
+                  value={slip.onAccountOf}
+                  labelWidth="90px"
+                />
+              </div>
             </div>
           </div>
         </div>

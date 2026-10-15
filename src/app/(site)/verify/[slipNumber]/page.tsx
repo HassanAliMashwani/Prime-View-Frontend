@@ -192,6 +192,183 @@ export default function VerifySlipPage() {
         ) : submission?.status === 'verified' ? (
           /* ── STATE 1: VERIFIED OFFICIAL CASH RECEIPT ────────────────────── */
           (() => {
+            const isSigned = submission.hashKeyVersion !== null && submission.hashKeyVersion !== undefined;
+
+            if (isSigned) {
+              return (
+                <div className="w-full max-w-xl mx-auto space-y-4 print:space-y-0">
+                  {/* Verified Header & Controls */}
+                  <div className="no-print bg-emerald-950/85 border border-emerald-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 shadow-inner">
+                        <ShieldCheck className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">
+                            Official Certification
+                          </span>
+                          <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                            GENUINE &amp; VERIFIED
+                          </span>
+                        </div>
+                        <h1 className="text-sm sm:text-base font-bold text-white tracking-tight mt-0.5">
+                          Protected Official Receipt &bull; {submission.slipNumber || slipNumber}
+                        </h1>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 w-full sm:w-auto">
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="flex-1 sm:flex-none px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 cursor-pointer transition-all"
+                      >
+                        <Printer className="w-4 h-4" />
+                        <span>Print</span>
+                      </button>
+                      <Link
+                        href="/"
+                        className="px-3.5 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 font-medium text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Home</span>
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* Signed Fields Card */}
+                  <div className="bg-slate-950/90 border border-emerald-500/40 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl p-6 md:p-8 space-y-6">
+                    <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-3.5">
+                      {/* Slip Reference */}
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                        <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                          <Hash className="w-4 h-4 text-emerald-400" />
+                          Slip Reference
+                        </span>
+                        <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
+                      </div>
+
+                      {/* Member */}
+                      {submission.memberDisplayName && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <User className="w-4 h-4 text-emerald-400" />
+                            Member Name
+                          </span>
+                          <span className="font-semibold text-sm text-slate-200">{submission.memberDisplayName}</span>
+                        </div>
+                      )}
+
+                      {/* Masked CNIC */}
+                      {submission.cnic && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <CreditCard className="w-4 h-4 text-emerald-400" />
+                            CNIC No.
+                          </span>
+                          <span className="font-mono text-sm text-slate-200">{submission.cnic}</span>
+                        </div>
+                      )}
+
+                      {/* Membership Number */}
+                      {submission.membershipNo && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <Building2 className="w-4 h-4 text-emerald-400" />
+                            Membership No.
+                          </span>
+                          <span className="font-mono font-semibold text-sm text-slate-200">{submission.membershipNo}</span>
+                        </div>
+                      )}
+
+                      {/* Plot Number */}
+                      {submission.plotNumber && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <Building2 className="w-4 h-4 text-emerald-400" />
+                            Plot No.
+                          </span>
+                          <span className="font-mono font-bold text-sm text-emerald-300">{submission.plotNumber}</span>
+                        </div>
+                      )}
+
+                      {/* Amount */}
+                      {submission.amount !== undefined && submission.amount !== null && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <CreditCard className="w-4 h-4 text-emerald-400" />
+                            Amount
+                          </span>
+                          <span className="font-mono font-bold text-base text-emerald-400">
+                            PKR {Number(submission.amount).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Payment Date */}
+                      {submission.paymentDate && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <Calendar className="w-4 h-4 text-emerald-400" />
+                            Payment Date
+                          </span>
+                          <span className="font-mono text-xs text-slate-200">
+                            {submission.paymentDate}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Issuer */}
+                      {submission.issuer && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <Lock className="w-4 h-4 text-emerald-400" />
+                            Issued By
+                          </span>
+                          <span className="font-medium text-xs text-slate-300">{submission.issuer}</span>
+                        </div>
+                      )}
+
+                      {/* 16-character code */}
+                      {submission.securityHashDisplay && (
+                        <div className="flex items-center justify-between pt-1">
+                          <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                            <Lock className="w-4 h-4 text-emerald-400" />
+                            Security Hash
+                          </span>
+                          <span className="font-mono font-bold text-xs text-emerald-300 bg-emerald-950/60 px-2.5 py-1 rounded border border-emerald-800/60">
+                            {submission.securityHashDisplay}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border border-emerald-800/40 bg-emerald-950/30 p-4 text-xs text-emerald-200 space-y-1.5">
+                      <p className="font-semibold text-emerald-100 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        Cryptographically Protected Record
+                      </p>
+                      <p className="text-[11px] text-emerald-300/80 leading-relaxed">
+                        This receipt has been validated against its immutable cryptographic fingerprint stored at the time of issuance.
+                      </p>
+                    </div>
+
+                    <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                      <Link
+                        href="/"
+                        className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Return to Home
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            // Old / Unsigned receipt (e.g. PV-SLIP-2026-9264): keep current full page, including block and installment
             const currentVerifyUrl = (slipNumber && !slipNumber.startsWith('PV-SLIP-'))
               ? `${typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'}/verify/${slipNumber}`
               : undefined;
