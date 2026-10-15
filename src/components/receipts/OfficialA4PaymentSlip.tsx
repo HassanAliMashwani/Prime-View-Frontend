@@ -302,7 +302,7 @@ export function buildSlipDataFromSubmission(
   } else if (isShareFeeCategory) {
     onAccountOf = 'Share Fee';
   } else {
-    onAccountOf = (sub as any).notes || 'Full Payment';
+    onAccountOf = (sub as any).notes || '';
   }
 
   const amount = Number(sub.amount) || 0;
@@ -711,37 +711,46 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
           />
           <div className="grid grid-cols-2 gap-4 px-1">
             <div className="space-y-1">
-              {/* Booking / File No. stays blank. Do not print a booking id there. */}
-              <FormUnderlineField
-                label="Booking / File No."
-                value=""
-                labelWidth="110px"
-              />
-              <FormUnderlineField
-                label="Plot No."
-                value={slip.plotNumber}
-                labelWidth="110px"
-              />
+              {slip.bookingFileNo ? (
+                <FormUnderlineField
+                  label="Booking / File No."
+                  value={slip.bookingFileNo}
+                  labelWidth="110px"
+                />
+              ) : null}
+              {slip.plotNumber ? (
+                <FormUnderlineField
+                  label="Plot No."
+                  value={slip.plotNumber}
+                  labelWidth="110px"
+                />
+              ) : null}
             </div>
 
             <div className="space-y-1">
-              <FormUnderlineField
-                label="Block"
-                value={slip.blockName}
-                labelWidth="65px"
-              />
-              <FormUnderlineField
-                label="Plot Size"
-                value={slip.plotSize}
-                labelWidth="65px"
-                rightSuffix="Marla ( )"
-              />
-              <FormUnderlineField
-                label="Plot Type"
-                value={isCommercial ? 'Commercial' : 'Residential'}
-                labelWidth="65px"
-                rightSuffix="(Residential / Commercial)"
-              />
+              {slip.blockName ? (
+                <FormUnderlineField
+                  label="Block"
+                  value={slip.blockName}
+                  labelWidth="65px"
+                />
+              ) : null}
+              {slip.plotSize ? (
+                <FormUnderlineField
+                  label="Plot Size"
+                  value={slip.plotSize}
+                  labelWidth="65px"
+                  rightSuffix="Marla ( )"
+                />
+              ) : null}
+              {slip.plotCategory ? (
+                <FormUnderlineField
+                  label="Plot Type"
+                  value={isCommercial ? 'Commercial' : 'Residential'}
+                  labelWidth="65px"
+                  rightSuffix="(Residential / Commercial)"
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -784,13 +793,15 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
                 </div>
               </div>
 
-              <div className="mt-1">
-                <FormUnderlineField
-                  label="On Account Of"
-                  value={slip.onAccountOf}
-                  labelWidth="90px"
-                />
-              </div>
+              {slip.onAccountOf ? (
+                <div className="mt-1">
+                  <FormUnderlineField
+                    label="On Account Of"
+                    value={slip.onAccountOf}
+                    labelWidth="90px"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
