@@ -310,7 +310,7 @@ export function buildSlipDataFromSubmission(
   return {
     slipNumber,
     securityHash: sub.slip?.securityHash || (sub as any).securityHash || '',
-    qrPayload: getSlipVerifyUrl(slipNumber),
+    qrPayload: sub.slip?.qrTarget || (sub as any).qrTarget || (sub.slip?.qrPayload && sub.slip.qrPayload.startsWith('http') ? sub.slip.qrPayload : undefined) || getSlipVerifyUrl(slipNumber),
     customerName,
     fatherOrHusbandName,
     cnic,

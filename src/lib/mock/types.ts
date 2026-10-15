@@ -310,6 +310,8 @@ export interface ReceiptSlipData {
   securityHash: string;
   generatedAt: string;
   qrPayload: string;
+  qrTarget?: string;
+  verificationToken?: string;
   societyAuthorityStamp: string;
 }
 
@@ -345,6 +347,10 @@ export interface ReceiptSubmission {
   verifiedByAdminName?: string;
   verifiedAt?: string;
   rejectionReason?: string;
+  slipNumber?: string;
+  slipNumberFormatVersion?: number | null;
+  verificationToken?: string | null;
+  qrTarget?: string | null;
   slip?: ReceiptSlipData;
   customerStrikeCount?: number;
   customerStrikeHistory?: Array<{
