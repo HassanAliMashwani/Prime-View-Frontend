@@ -114,15 +114,15 @@ export default function VerifySlipPage() {
                 <ShieldAlert className="w-6 h-6 text-white shrink-0" />
                 <div>
                   <span className="text-xs font-semibold uppercase tracking-wider text-rose-100 block">
-                    Verification Error
+                    Service Unavailable
                   </span>
-                  <h1 className="text-base font-bold tracking-tight">Could Not Reach Registry</h1>
+                  <h1 className="text-base font-bold tracking-tight">Verification Service Unavailable</h1>
                 </div>
               </div>
             </div>
             <div className="p-6 md:p-8 space-y-4">
               <p className="text-sm text-slate-300">
-                Unable to reach the verification service. Please try again or contact the society office.
+                The verification registry service is temporarily unavailable. Please try again or contact the society office.
               </p>
               <Link
                 href="/"
