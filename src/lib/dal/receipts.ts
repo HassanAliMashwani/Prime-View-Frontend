@@ -238,8 +238,9 @@ export async function rejectReceipt(
 
 export interface PublicSlipVerification {
   exists: boolean;
-  status: 'verified' | 'pending' | 'rejected' | 'not_found';
+  status: 'verified' | 'pending' | 'rejected' | 'not_found' | 'integrity_mismatch' | 'cancelled' | 'replaced' | 'payment_reversed';
   slipNumber?: string;
+  cancelledAt?: string | null;
   memberDisplayName?: string;
   customerName?: string | null;
   fatherOrHusbandName?: string | null;
@@ -258,10 +259,13 @@ export interface PublicSlipVerification {
   amount?: number;
   paymentDate?: string;
   securityHash?: string | null;
+  securityHashDisplay?: string | null;
+  hashKeyVersion?: number | null;
   depositoryBank?: string | null;
   bankName?: string | null;
   transactionRef?: string | null;
   verifiedAt?: string | null;
+  issuer?: string | null;
 }
 
 /**

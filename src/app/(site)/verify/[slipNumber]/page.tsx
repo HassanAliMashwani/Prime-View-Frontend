@@ -444,6 +444,76 @@ export default function VerifySlipPage() {
               </div>
             );
           })()
+        ) : submission?.status === 'cancelled' ? (
+          /* ── STATE: CANCELLED RECEIPT ──────────────────────────────────── */
+          <div className="bg-slate-950/90 border border-slate-700/60 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 text-white flex items-center justify-between shadow-inner">
+              <div className="flex items-center gap-2.5">
+                <ShieldX className="w-6 h-6 text-slate-300 shrink-0" />
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-300 block">
+                    Void Record
+                  </span>
+                  <h1 className="text-base font-bold tracking-tight">Receipt Cancelled</h1>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-1 rounded-full text-xs font-mono font-medium backdrop-blur-sm">
+                <XCircle className="w-3.5 h-3.5 text-rose-300" />
+                CANCELLED
+              </span>
+            </div>
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                    <Hash className="w-4 h-4 text-slate-400" />
+                    Slip Reference
+                  </span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider break-all">{submission.slipNumber || slipNumber}</span>
+                </div>
+                {submission.cancelledAt && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      Cancelled Date
+                    </span>
+                    <span className="font-mono text-xs text-slate-200">
+                      {new Date(submission.cancelledAt).toLocaleDateString('en-PK', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                )}
+                <p className="text-xs text-rose-300 leading-relaxed pt-1">
+                  This official payment receipt has been <strong className="text-white">CANCELLED</strong> and voided. It is no longer valid as proof of payment.
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-400 space-y-2">
+                <p className="font-semibold text-slate-300">Need Assistance?</p>
+                <p className="text-[11px] leading-relaxed">
+                  Please visit the Prime View Main Secretariat, Supply Road, Abbottabad, or contact the finance department at <span className="text-emerald-400 font-mono">+92-992-385000</span> for inquiries regarding cancelled receipts.
+                </p>
+              </div>
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <Link
+                  href="/"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Return to Home
+                </Link>
+                <Link
+                  href="/society-members/login"
+                  className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                >
+                  Member Login
+                  <ExternalLink className="w-3 h-3 text-slate-400" />
+                </Link>
+              </div>
+            </div>
+          </div>
         ) : submission?.status === 'pending' ? (
           /* ── STATE 2: PENDING ──────────────────────────────────────────── */
           <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
