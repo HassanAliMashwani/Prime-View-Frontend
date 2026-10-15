@@ -284,10 +284,22 @@ export default function AdminReceiptsPage() {
     }
   };
 
+  // Map of active idempotency keys per receipt verification action
+  const idempotencyKeysRef = React.useRef<Map<string, string>>(new Map());
+
   const handleVerify = async (receiptId: string, confirmPreviewDrift = false) => {
     if (!session) return;
     setIsProcessing(true);
     setGeneratingReceiptId(receiptId);
+
+    // Reuse existing key if retrying this approval click; otherwise generate a new UUID once per click
+    let idempotencyKey = idempotencyKeysRef.current.get(receiptId);
+    if (!idempotencyKey) {
+      idempotencyKey = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      idempotencyKeysRef.current.set(receiptId, idempotencyKey);
+    }
 
     // Show busy notice immediately
     setBottomNotice({
@@ -300,9 +312,10 @@ export default function AdminReceiptsPage() {
       const res = await runLane1({
         screen: 'receipts',
         isSave: true,
-        fn: async () => verifyReceipt(session, receiptId, undefined, confirmPreviewDrift),
+        fn: async () => verifyReceipt(session, receiptId, undefined, confirmPreviewDrift, idempotencyKey),
       });
       if (res.ok && res.receipt) {
+        idempotencyKeysRef.current.delete(receiptId);
         const slipNumber = res.receipt.slip?.slipNumber || (res.receipt as any).slipNumber || 'PV-SLIP';
         setBottomNotice({
           id: receiptId,

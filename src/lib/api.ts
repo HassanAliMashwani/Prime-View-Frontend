@@ -98,11 +98,20 @@ export async function apiGet<T>(path: string, token?: string, signal?: AbortSign
 /**
  * Generic API POST helper.
  */
-export async function apiPost<T>(path: string, bodyData: any, token?: string): Promise<ApiResponse<T>> {
+export async function apiPost<T>(
+  path: string,
+  bodyData: any,
+  token?: string,
+  headers?: Record<string, string>
+): Promise<ApiResponse<T>> {
   try {
     const res = await fetch(`${API_BASE_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeader(token) },
+      headers: {
+        'Content-Type': 'application/json',
+        ...authHeader(token),
+        ...(headers || {}),
+      },
       body: JSON.stringify(bodyData),
     });
     const body = await res.json().catch(() => null);

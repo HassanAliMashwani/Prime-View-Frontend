@@ -594,11 +594,11 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
             title="RECEIPT DETAILS"
             icon={<Receipt className="w-2.5 h-2.5" />}
           />
-          <div className="grid grid-cols-2 gap-4 px-1">
+          <div className="grid grid-cols-[1.25fr_1fr] gap-3 px-1">
             <div className="flex items-center gap-2">
               <Receipt className="w-3.5 h-3.5 text-slate-500 shrink-0" />
               <span className="text-[11px] font-semibold text-slate-700 shrink-0">Receipt No.</span>
-              <div className="grow border border-slate-400 rounded-md bg-white px-2.5 py-0.5 font-mono font-bold text-[11.5px] text-slate-900 tracking-wider shadow-2xs">
+              <div className="grow min-w-0 border border-slate-400 rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[10.5px] sm:text-[11.5px] text-slate-900 tracking-normal whitespace-nowrap overflow-visible shadow-2xs">
                 {slip.slipNumber}
               </div>
             </div>

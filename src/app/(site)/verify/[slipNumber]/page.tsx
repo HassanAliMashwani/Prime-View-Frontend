@@ -227,7 +227,7 @@ export default function VerifySlipPage() {
                     <Hash className="w-4 h-4 text-amber-400" />
                     Slip Reference
                   </span>
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider break-all">{submission.slipNumber || slipNumber}</span>
                 </div>
                 {submission.memberDisplayName && (
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -331,7 +331,7 @@ export default function VerifySlipPage() {
                     <Hash className="w-4 h-4 text-rose-400" />
                     Slip Reference
                   </span>
-                  <span className="font-mono font-bold text-white text-sm tracking-wider">{submission.slipNumber || slipNumber}</span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider break-all">{submission.slipNumber || slipNumber}</span>
                 </div>
                 {submission.memberDisplayName && (
                   <div className="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -430,7 +430,7 @@ export default function VerifySlipPage() {
               <div className="text-center py-4">
                 <p className="text-sm text-slate-300 mb-2">
                   Requested Reference:{' '}
-                  <span className="font-mono font-bold text-amber-300">{slipNumber || 'N/A'}</span>
+                  <span className="font-mono font-bold text-amber-300 break-all">{slipNumber || 'N/A'}</span>
                 </p>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
                   This slip number does not match any receipt in the Prime View Housing Society registry. Physical

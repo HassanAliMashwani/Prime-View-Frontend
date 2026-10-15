@@ -138,12 +138,19 @@ export async function verifyReceipt(
   session: AdminSession,
   receiptId: string,
   notes?: string,
-  confirmPreviewDrift?: boolean
+  confirmPreviewDrift?: boolean,
+  idempotencyKey?: string
 ): Promise<{ ok: boolean; receipt?: ReceiptSubmission; error?: string; message?: string; newPreview?: any }> {
+  const extraHeaders: Record<string, string> = {};
+  if (idempotencyKey) {
+    extraHeaders['Idempotency-Key'] = idempotencyKey;
+  }
+
   const res = await apiPost<{ receipt: ReceiptSubmission }>(
     `/receipts/${receiptId}/verify`,
     { notes, confirmPreviewDrift },
-    session.token || getAdminToken() || undefined
+    session.token || getAdminToken() || undefined,
+    extraHeaders
   );
 
   if (!res.ok) {
@@ -264,8 +271,14 @@ export async function verifySlipPublic(
   slipNumber: string
 ): Promise<PublicSlipVerification> {
   const res = await apiGet<PublicSlipVerification>(`/receipts/verify/${slipNumber}`);
-  if (!res.ok || !res.data) {
-    return { exists: false, status: 'not_found' };
+  if (!res.ok) {
+    if (res.status === 404) {
+      return { exists: false, status: 'not_found' };
+    }
+    throw new Error(res.error || res.message || 'Verification service temporarily unavailable.');
+  }
+  if (!res.data) {
+    throw new Error('Verification data missing from server response.');
   }
   return res.data;
 }
