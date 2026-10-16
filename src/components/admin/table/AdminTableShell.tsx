@@ -9,6 +9,7 @@ interface AdminTableShellProps {
   onPageChange: (page: number) => void;
   isTable?: boolean;
   loading?: boolean;
+  minWidthClass?: string;
 }
 
 export function AdminTableShell({
@@ -19,6 +20,7 @@ export function AdminTableShell({
   onPageChange,
   isTable = true,
   loading = false,
+  minWidthClass = 'min-w-[800px]',
 }: AdminTableShellProps) {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
@@ -30,7 +32,7 @@ export function AdminTableShell({
     <div className="flex flex-col bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden h-[600px] print:h-auto print:overflow-visible">
       <div className="flex-1 overflow-auto relative print:overflow-visible">
         {isTable ? (
-          <table className="w-full text-left border-collapse min-w-[800px]">
+          <table className={`w-full text-left border-collapse ${minWidthClass}`}>
             {children}
           </table>
         ) : (

@@ -873,29 +873,29 @@ function CustomersDirectoryContent() {
 
       {/* Customers Table (Desktop >= 768px) */}
       <div className="hidden md:block">
-        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} loading={loading}>
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} loading={loading} minWidthClass="min-w-[1080px]">
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
-              <th className="py-3.5 px-4 bg-slate-50">Member Info</th>
-              <th className="py-3.5 px-4 bg-slate-50">Contact Details</th>
-              <th className="py-3.5 px-4 bg-slate-50">Allotted Properties</th>
-              <th className="py-3.5 px-4 bg-slate-50">Installment Standing</th>
-              <th className="py-3.5 px-4 bg-slate-50">Financial Ledger</th>
-              <th className="py-3.5 px-4 bg-slate-50">Compliance Status</th>
-              <th className="py-3.5 px-4 text-right bg-slate-50">Actions</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[220px]">Member Info</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[190px]">Contact Details</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[170px]">Allotted Properties</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[150px]">Installment Standing</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[140px]">Financial Ledger</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[140px]">Compliance Status</th>
+              <th className="py-3.5 px-4 text-right bg-slate-50 min-w-[70px]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 text-xs">
             {loading && customers.length === 0 ? (
               Array.from({ length: 6 }).map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                  <td className="py-3.5 px-4"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4 text-right"><div className="h-6 w-12 bg-slate-200 rounded ml-auto" /></td>
+                  <td className="py-3.5 px-4 min-w-[220px]"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 min-w-[190px]"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 min-w-[170px]"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 min-w-[150px]"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 min-w-[140px]"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 min-w-[140px]"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 text-right min-w-[70px]"><div className="h-6 w-12 bg-slate-200 rounded ml-auto" /></td>
                 </tr>
               ))
             ) : customers.length === 0 ? (
@@ -912,7 +912,7 @@ function CustomersDirectoryContent() {
                   return (
                     <tr key={c.id} className="hover:bg-slate-50/80 transition-colors">
                       {/* Member Info */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3.5 px-4 min-w-[220px]">
                         <div className="flex items-center gap-3">
                           {(() => {
                             const memberAvatar =
@@ -922,7 +922,7 @@ function CustomersDirectoryContent() {
                                 : null);
                             if (memberAvatar) {
                               return (
-                                <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
+                                <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img
                                     src={memberAvatar}
@@ -933,41 +933,41 @@ function CustomersDirectoryContent() {
                               );
                             }
                             return (
-                              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-800 to-slate-900 text-[#D4AF37] font-bold flex items-center justify-center text-xs shrink-0 shadow-xs border border-emerald-700/50">
                                 {c.fullName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()}
                               </div>
                             );
                           })()}
-                          <div>
-                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-slate-900 text-[13px] flex items-center gap-1.5 whitespace-nowrap">
                               <span>{c.fullName}</span>
                               {c.registrationStatus === 'minimal' && (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300">
+                                <span className="px-1.5 py-0.5 rounded-sm bg-amber-100 text-amber-900 text-[10px] font-bold border border-amber-300 shrink-0">
                                   NEEDS REG
                                 </span>
                               )}
                               {isSuspended && (
-                                <span className="px-1.5 py-0.5 rounded-sm bg-rose-100 text-rose-800 text-[10px] font-bold">
+                                <span className="px-1.5 py-0.5 rounded-sm bg-rose-100 text-rose-800 text-[10px] font-bold shrink-0">
                                   SUSPENDED
                                 </span>
                               )}
                             </div>
                             {c.registrationStatus === 'minimal' ? (
-                              <div className="text-[11px] font-mono text-amber-700 font-bold">
+                              <div className="text-[11px] font-mono text-amber-700 font-bold whitespace-nowrap mt-0.5">
                                 PENDING REGISTRATION
                               </div>
                             ) : (
-                              <div className="text-[11px] font-mono text-emerald-800 font-semibold">
+                              <div className="text-[11px] font-mono text-emerald-800 font-semibold whitespace-nowrap mt-0.5">
                                 {c.membershipNo}
                               </div>
                             )}
                             {c.city && (
-                              <div className="text-[10px] text-slate-500 font-medium">
+                              <div className="text-[10px] text-slate-500 font-medium whitespace-nowrap mt-0.5">
                                 City: {c.city}
                               </div>
                             )}
                             {c.fatherOrHusbandName && (
-                              <div className="text-[10px] text-slate-400">
+                              <div className="text-[10px] text-slate-400 whitespace-nowrap mt-0.5">
                                 S/O, D/O: {c.fatherOrHusbandName}
                               </div>
                             )}

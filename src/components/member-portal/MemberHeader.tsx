@@ -20,6 +20,11 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
   const { currentUser } = useAuth();
   const portal = usePortal();
   const { openTermsModal } = useMemberStore();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleOpenMenu = onOpenMobileMenu || portal.openMobileMenu;
 
@@ -58,15 +63,15 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
           <div className="w-11 h-11 min-w-[44px] min-h-[44px] sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full bg-[#43612B] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
             <User className="w-4 h-4" />
           </div>
-          <div className="hidden md:block text-left">
-            {currentUser?.fullName ? (
+          <div className="hidden md:block text-left" suppressHydrationWarning>
+            {mounted && currentUser?.fullName ? (
               <p className="text-xs font-bold text-[#151914] leading-tight">
                 {currentUser.fullName}
               </p>
             ) : (
               <span className="inline-block w-24 h-3.5 bg-black/10 animate-pulse rounded" />
             )}
-            {currentUser?.customerId ? (
+            {mounted && currentUser?.customerId ? (
               <p className="text-[10px] text-[#6B7462] font-mono">ID: {currentUser.customerId}</p>
             ) : (
               <span className="inline-block w-16 h-2.5 bg-black/10 animate-pulse rounded mt-0.5" />
