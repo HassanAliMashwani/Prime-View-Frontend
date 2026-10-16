@@ -12,17 +12,13 @@ import {
   Clock,
   User,
   ArrowRight,
-  Eye,
-  X,
-  FileCode,
   RotateCcw,
   Layers,
   RefreshCw,
-  Loader2,
 } from 'lucide-react';
 import { AdminSession, AuditEntry } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getAuditLogs, getAuditLogDiff, AuditFilterOptions } from '@/lib/dal/audit';
+import { getAuditLogs, AuditFilterOptions } from '@/lib/dal/audit';
 import { AdminAuditLogSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
@@ -68,10 +64,6 @@ export default function AuditLogPage() {
   const [entityFilter, setEntityFilter] = useState('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-
-  // Diff Modal & loading state
-  const [diffEntry, setDiffEntry] = useState<AuditEntry | null>(null);
-  const [loadingDiffId, setLoadingDiffId] = useState<string | null>(null);
 
   const reqIdRef = React.useRef(0);
   const pageRef = React.useRef(page);
@@ -274,59 +266,6 @@ export default function AuditLogPage() {
     }
   };
 
-  const handleViewDiff = async (entry: AuditEntry) => {
-    if (!session) return;
-    if (entry.oldValue !== undefined || entry.newValue !== undefined) {
-      setDiffEntry(entry);
-      return;
-    }
-    setLoadingDiffId(entry.id);
-    try {
-      const res = await getAuditLogDiff(session, entry.id);
-      if (res.ok) {
-        setDiffEntry({
-          ...entry,
-          oldValue: res.oldValue,
-          newValue: res.newValue,
-        });
-      }
-    } catch {
-      // non-blocking
-    } finally {
-      setLoadingDiffId(null);
-    }
-  };
-
-  // Pretty JSON formatter helper
-  const renderPrettyValue = (val?: string | object | null) => {
-    if (val === null || val === undefined || val === '') {
-      return <span className="text-slate-400 italic">None</span>;
-    }
-
-    let displayString = '';
-    if (typeof val === 'object') {
-      displayString = JSON.stringify(val, null, 2);
-    } else if (typeof val === 'string') {
-      try {
-        const parsed = JSON.parse(val);
-        if (typeof parsed === 'object' && parsed !== null) {
-          displayString = JSON.stringify(parsed, null, 2);
-        } else {
-          displayString = String(parsed);
-        }
-      } catch {
-        displayString = val;
-      }
-    } else {
-      displayString = String(val);
-    }
-
-    return (
-      <pre className="font-mono text-[11px] text-slate-800 bg-slate-50 p-3 rounded-xl border border-slate-200 overflow-x-auto whitespace-pre-wrap">
-        {displayString}
-      </pre>
-    );
-  };
 
   if (!session) {
     return null;
@@ -473,7 +412,6 @@ export default function AuditLogPage() {
                 <th className="py-3 px-4">Action</th>
                 <th className="py-3 px-4">Entity</th>
                 <th className="py-3 px-4">Description / Details</th>
-                <th className="py-3 px-4 text-right">Diff</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
@@ -485,19 +423,16 @@ export default function AuditLogPage() {
                     <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
                     <td className="py-3.5 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
                     <td className="py-3.5 px-4"><div className="h-4 w-48 bg-slate-200 rounded" /></td>
-                    <td className="py-3.5 px-4 text-right"><div className="h-4 w-12 bg-slate-200 rounded ml-auto" /></td>
                   </tr>
                 ))
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-slate-400">
+                  <td colSpan={5} className="py-8 text-center text-slate-400">
                     No matching audit records found.
                   </td>
                 </tr>
               ) : (
                 logs.map((entry) => {
-                  const hasDiff = Boolean(entry.hasDiff ?? (entry.oldValue || entry.newValue));
-                  const isBusy = loadingDiffId === entry.id;
                   return (
                     <tr key={entry.id} className="hover:bg-slate-50/70 transition-colors">
                       {/* Timestamp */}
@@ -543,26 +478,6 @@ export default function AuditLogPage() {
                       <td className="py-3.5 px-4 max-w-md">
                         <div className="text-slate-800 leading-relaxed break-words">{entry.details}</div>
                       </td>
-
-                      {/* Diff Viewer Button */}
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                        {hasDiff ? (
-                          <button
-                            onClick={() => handleViewDiff(entry)}
-                            disabled={isBusy}
-                            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-lg transition cursor-pointer inline-flex items-center gap-1.5 shadow-2xs disabled:opacity-60 disabled:cursor-not-allowed"
-                          >
-                            {isBusy ? (
-                              <Loader2 className="w-3 h-3 text-slate-600 animate-spin" />
-                            ) : (
-                              <Eye className="w-3 h-3 text-slate-600" />
-                            )}
-                            <span>{isBusy ? 'Loading...' : 'View Diff'}</span>
-                          </button>
-                        ) : (
-                          <span className="text-[11px] text-slate-300 italic">No Diff</span>
-                        )}
-                      </td>
                     </tr>
                   );
                 })
@@ -572,73 +487,6 @@ export default function AuditLogPage() {
         </div>
       </div>
       </AdminTableShell>
-
-      {/* ==================================================== */}
-      {/* DIFF VIEWER MODAL                                    */}
-      {/* ==================================================== */}
-      {diffEntry && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl border border-slate-200 w-full max-w-3xl shadow-2xl overflow-hidden my-8">
-            {/* Header */}
-            <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-[#D4AF37]">
-                  <FileCode className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="font-serif font-bold text-base">
-                    Audit Diff: {diffEntry.action}
-                  </h3>
-                  <p className="text-[11px] text-slate-400">
-                    Entity: {diffEntry.entityType} ({diffEntry.entityId}) • Modified by {diffEntry.actorName}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setDiffEntry(null)}
-                className="text-slate-400 hover:text-white p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Diff Content */}
-            <div className="p-6 space-y-4">
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
-                <strong>Event Summary:</strong> {diffEntry.details}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Old Value */}
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-rose-700 mb-1.5 flex items-center gap-1">
-                    <span>Previous State (Before)</span>
-                  </div>
-                  {renderPrettyValue(diffEntry.oldValue)}
-                </div>
-
-                {/* New Value */}
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-1.5 flex items-center gap-1">
-                    <span>Updated State (After)</span>
-                  </div>
-                  {renderPrettyValue(diffEntry.newValue)}
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
-                <button
-                  type="button"
-                  onClick={() => setDiffEntry(null)}
-                  className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
-                >
-                  Close Diff
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
