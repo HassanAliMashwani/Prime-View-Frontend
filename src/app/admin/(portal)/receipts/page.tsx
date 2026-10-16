@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl } from '@/lib/dal/receipts';
+import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl, cancelReceipt, replaceReceipt } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
@@ -76,6 +76,19 @@ export default function AdminReceiptsPage() {
 
   // A4 generation state
   const [generatingReceiptId, setGeneratingReceiptId] = useState<string | null>(null);
+
+  // Cancel modal state (super_admin only)
+  const [cancelModalReceipt, setCancelModalReceipt] = useState<ReceiptSubmission | null>(null);
+  const [cancelReasonCode, setCancelReasonCode] = useState<'administrative_error' | 'duplicate_receipt'>('administrative_error');
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelConfirmed, setCancelConfirmed] = useState(false);
+
+  // Replace modal state (super_admin only)
+  const [replaceModalReceipt, setReplaceModalReceipt] = useState<ReceiptSubmission | null>(null);
+  const [replaceReasonCode, setReplaceReasonCode] = useState<'administrative_error' | 'duplicate_receipt'>('administrative_error');
+  const [replaceReason, setReplaceReason] = useState('');
+  const [replaceCorrectionNotes, setReplaceCorrectionNotes] = useState('');
+  const [replaceConfirmed, setReplaceConfirmed] = useState(false);
 
   const reqIdRef = React.useRef(0);
   const [searchInput, setSearchInput] = useState('');
@@ -409,6 +422,94 @@ export default function AdminReceiptsPage() {
     }
   };
 
+  const handleCancelReceiptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session || !cancelModalReceipt || !cancelReason.trim() || !cancelConfirmed) return;
+    setIsProcessing(true);
+    const newIdempotencyKey = `cancel-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    try {
+      const res = await cancelReceipt(
+        session,
+        cancelModalReceipt.id,
+        {
+          reasonCode: cancelReasonCode,
+          reason: cancelReason.trim(),
+        },
+        newIdempotencyKey
+      );
+      if (res.ok) {
+        setCancelModalReceipt(null);
+        setCancelReason('');
+        setCancelConfirmed(false);
+        setBottomNotice({
+          id: cancelModalReceipt.id,
+          type: 'success',
+          message: `Receipt ${cancelModalReceipt.slipNumber || cancelModalReceipt.id} cancelled successfully.`,
+        });
+        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
+      } else {
+        setBottomNotice({
+          id: cancelModalReceipt.id,
+          type: 'error',
+          message: res.message || 'Failed to cancel receipt.',
+        });
+      }
+    } catch (err: any) {
+      setBottomNotice({
+        id: cancelModalReceipt.id,
+        type: 'error',
+        message: err?.message || 'Error cancelling receipt.',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleReplaceReceiptSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!session || !replaceModalReceipt || !replaceReason.trim() || !replaceConfirmed) return;
+    setIsProcessing(true);
+    const newIdempotencyKey = `replace-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    try {
+      const res = await replaceReceipt(
+        session,
+        replaceModalReceipt.id,
+        {
+          reasonCode: replaceReasonCode,
+          reason: replaceReason.trim(),
+          correctionNotes: replaceCorrectionNotes.trim() || undefined,
+        },
+        newIdempotencyKey
+      );
+      if (res.ok) {
+        setReplaceModalReceipt(null);
+        setReplaceReason('');
+        setReplaceCorrectionNotes('');
+        setReplaceConfirmed(false);
+        setBottomNotice({
+          id: replaceModalReceipt.id,
+          type: 'success',
+          message: `Receipt ${replaceModalReceipt.slipNumber || replaceModalReceipt.id} replaced successfully.`,
+        });
+        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
+      } else {
+        setBottomNotice({
+          id: replaceModalReceipt.id,
+          type: 'error',
+          message: res.message || 'Failed to replace receipt.',
+        });
+      }
+    } catch (err: any) {
+      setBottomNotice({
+        id: replaceModalReceipt.id,
+        type: 'error',
+        message: err?.message || 'Error replacing receipt.',
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const formatPKR = (amount: number) =>
     new Intl.NumberFormat('en-PK', {
       style: 'currency',
@@ -531,6 +632,34 @@ export default function AdminReceiptsPage() {
           </button>
 
           <button
+            id="receipt-filter-replaced"
+            type="button"
+            onClick={() => handleStatusFilterChange('replaced')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === 'replaced'
+                ? 'bg-purple-700 text-white shadow-xs'
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Replaced</span>
+          </button>
+
+          <button
+            id="receipt-filter-cancelled"
+            type="button"
+            onClick={() => handleStatusFilterChange('cancelled')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              statusFilter === 'cancelled'
+                ? 'bg-slate-700 text-white shadow-xs'
+                : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            <span>Cancelled</span>
+          </button>
+
+          <button
             id="receipt-filter-all"
             type="button"
             onClick={() => handleStatusFilterChange('all')}
@@ -627,7 +756,22 @@ export default function AdminReceiptsPage() {
                   {sub.status === 'verified' ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                      <span>Verified &bull; Slip Issued</span>
+                      <span>Verified</span>
+                    </span>
+                  ) : sub.status === 'cancelled' ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1">
+                      <XCircle className="w-3 h-3 text-slate-500" />
+                      <span>Cancelled</span>
+                    </span>
+                  ) : sub.status === 'replaced' ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-900 border border-purple-200 flex items-center gap-1">
+                      <RefreshCw className="w-3 h-3 text-purple-600" />
+                      <span>Replaced</span>
+                    </span>
+                  ) : sub.status === 'payment_reversed' ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 text-rose-600" />
+                      <span>Payment reversed</span>
                     </span>
                   ) : sub.status === 'rejected' ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 flex items-center gap-1">
@@ -805,14 +949,51 @@ export default function AdminReceiptsPage() {
                 )}
 
                 {sub.status === 'verified' && (
-                  <button
-                    type="button"
-                    onClick={() => setActiveSlip(sub)}
-                    className="px-4 py-2 bg-[#10251E] hover:bg-[#18392C] text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Printer className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    <span>View / Print A4 Slip</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                    <button
+                      type="button"
+                      onClick={() => setActiveSlip(sub)}
+                      className="px-4 py-2 bg-[#10251E] hover:bg-[#18392C] text-white rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-[#D4AF37]" />
+                      <span>View / Print A4 Slip</span>
+                    </button>
+
+                    {session?.role === 'super_admin' && (
+                      <>
+                        <button
+                          type="button"
+                          id={`replace-receipt-${sub.id}`}
+                          onClick={() => {
+                            setReplaceModalReceipt(sub);
+                            setReplaceReasonCode('administrative_error');
+                            setReplaceReason('');
+                            setReplaceCorrectionNotes('');
+                            setReplaceConfirmed(false);
+                          }}
+                          className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                        >
+                          <RefreshCw className="w-3.5 h-3.5 text-purple-600" />
+                          <span>Replace</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          id={`cancel-receipt-${sub.id}`}
+                          onClick={() => {
+                            setCancelModalReceipt(sub);
+                            setCancelReasonCode('administrative_error');
+                            setCancelReason('');
+                            setCancelConfirmed(false);
+                          }}
+                          className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                        >
+                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Cancel</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -1053,6 +1234,264 @@ export default function AdminReceiptsPage() {
                 Confirm Re-calculated Allocations
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* CANCEL RECEIPT MODAL (super_admin only)                       */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {cancelModalReceipt && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 border border-rose-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-rose-700 font-bold text-sm font-serif">
+                <XCircle className="w-5 h-5 text-rose-600" />
+                <span>Cancel Verified Receipt</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setCancelModalReceipt(null);
+                  setCancelReason('');
+                  setCancelConfirmed(false);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Slip Number:</span>
+                <span className="font-mono font-bold text-slate-900">{cancelModalReceipt.slipNumber || cancelModalReceipt.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Member:</span>
+                <span className="font-semibold text-slate-900">{cancelModalReceipt.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Plot:</span>
+                <span className="font-semibold text-slate-900">Plot {cancelModalReceipt.plotNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Amount:</span>
+                <span className="font-bold text-emerald-800">{formatPKR(cancelModalReceipt.amount)}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleCancelReceiptSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Reason Code (Required)
+                </label>
+                <select
+                  id="cancel-reason-code"
+                  value={cancelReasonCode}
+                  onChange={(e) => setCancelReasonCode(e.target.value as any)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-hidden focus:border-rose-600 cursor-pointer"
+                >
+                  <option value="administrative_error">Administrative Error (administrative_error)</option>
+                  <option value="duplicate_receipt">Duplicate Receipt (duplicate_receipt)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Cancellation Reason (Required, non-empty)
+                </label>
+                <textarea
+                  id="cancel-reason-text"
+                  rows={3}
+                  required
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder="Explain why this verified receipt is being cancelled..."
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:border-rose-600 resize-none"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl border border-rose-200 bg-rose-50/70">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    id="confirm-receipt-cancellation"
+                    checked={cancelConfirmed}
+                    onChange={(e) => setCancelConfirmed(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-rose-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-rose-900 block">
+                      Confirm Receipt Cancellation
+                    </span>
+                    <span className="text-[11px] text-rose-700 leading-tight block">
+                      I confirm that this verified receipt will be permanently cancelled and the associated installment reverted to pending.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCancelModalReceipt(null);
+                    setCancelReason('');
+                    setCancelConfirmed(false);
+                  }}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  id="submit-cancel-receipt"
+                  disabled={!cancelReason.trim() || !cancelConfirmed || isProcessing}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {isProcessing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Cancel Receipt</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* REPLACE RECEIPT MODAL (super_admin only)                      */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {replaceModalReceipt && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-6 space-y-4 border border-purple-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 text-purple-700 font-bold text-sm font-serif">
+                <RefreshCw className="w-5 h-5 text-purple-600" />
+                <span>Replace Verified Receipt</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setReplaceModalReceipt(null);
+                  setReplaceReason('');
+                  setReplaceCorrectionNotes('');
+                  setReplaceConfirmed(false);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Slip Number:</span>
+                <span className="font-mono font-bold text-slate-900">{replaceModalReceipt.slipNumber || replaceModalReceipt.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Member:</span>
+                <span className="font-semibold text-slate-900">{replaceModalReceipt.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Plot:</span>
+                <span className="font-semibold text-slate-900">Plot {replaceModalReceipt.plotNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Amount:</span>
+                <span className="font-bold text-emerald-800">{formatPKR(replaceModalReceipt.amount)}</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleReplaceReceiptSubmit} className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Reason Code (Required)
+                </label>
+                <select
+                  id="replace-reason-code"
+                  value={replaceReasonCode}
+                  onChange={(e) => setReplaceReasonCode(e.target.value as any)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white text-slate-900 focus:outline-hidden focus:border-purple-600 cursor-pointer"
+                >
+                  <option value="administrative_error">Administrative Error (administrative_error)</option>
+                  <option value="duplicate_receipt">Duplicate Receipt (duplicate_receipt)</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Replacement Reason (Required, non-empty)
+                </label>
+                <textarea
+                  id="replace-reason-text"
+                  rows={3}
+                  required
+                  value={replaceReason}
+                  onChange={(e) => setReplaceReason(e.target.value)}
+                  placeholder="Explain why this verified receipt is being replaced..."
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:border-purple-600 resize-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600">
+                  Correction Notes (Optional, internal audit only)
+                </label>
+                <input
+                  type="text"
+                  id="replace-correction-notes"
+                  value={replaceCorrectionNotes}
+                  onChange={(e) => setReplaceCorrectionNotes(e.target.value)}
+                  placeholder="Confidential notes for internal audit trail..."
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:outline-hidden focus:border-purple-600"
+                />
+              </div>
+
+              <div className="p-3 rounded-xl border border-purple-200 bg-purple-50/70">
+                <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    id="confirm-receipt-replacement"
+                    checked={replaceConfirmed}
+                    onChange={(e) => setReplaceConfirmed(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded border-purple-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-purple-900 block">
+                      Confirm Receipt Replacement
+                    </span>
+                    <span className="text-[11px] text-purple-700 leading-tight block">
+                      I confirm that this verified receipt will be marked as replaced and a newly verified slip generated in its place.
+                    </span>
+                  </div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReplaceModalReceipt(null);
+                    setReplaceReason('');
+                    setReplaceCorrectionNotes('');
+                    setReplaceConfirmed(false);
+                  }}
+                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  id="submit-replace-receipt"
+                  disabled={!replaceReason.trim() || !replaceConfirmed || isProcessing}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed"
+                >
+                  {isProcessing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Replace Receipt</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

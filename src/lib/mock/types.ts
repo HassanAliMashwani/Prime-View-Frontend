@@ -303,7 +303,7 @@ export interface AuditEntry {
 }
 
 // ── Payment Receipt Upload & Verification (Customer & Admin) ──
-export type ReceiptStatus = 'pending' | 'verified' | 'rejected' | 'Sending';
+export type ReceiptStatus = 'pending' | 'verified' | 'rejected' | 'Sending' | 'cancelled' | 'replaced' | 'payment_reversed';
 
 export interface ReceiptSlipData {
   slipNumber: string;
