@@ -241,6 +241,8 @@ export interface PublicSlipVerification {
   status: 'verified' | 'pending' | 'rejected' | 'not_found' | 'integrity_mismatch' | 'cancelled' | 'replaced' | 'payment_reversed';
   slipNumber?: string;
   cancelledAt?: string | null;
+  replacedBySlipNumber?: string | null;
+  currentVerificationUrl?: string | null;
   memberDisplayName?: string;
   customerName?: string | null;
   fatherOrHusbandName?: string | null;

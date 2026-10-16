@@ -514,6 +514,77 @@ export default function VerifySlipPage() {
               </div>
             </div>
           </div>
+        ) : submission?.status === 'replaced' ? (
+          /* ── STATE: REPLACED RECEIPT ──────────────────────────────────── */
+          <div className="bg-slate-950/90 border border-amber-500/40 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-gradient-to-r from-amber-700 to-amber-800 px-6 py-4 text-white flex items-center justify-between shadow-inner">
+              <div className="flex items-center gap-2.5">
+                <ShieldAlert className="w-6 h-6 text-amber-200 shrink-0" />
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-amber-200 block">
+                    Superseded Record
+                  </span>
+                  <h1 className="text-base font-bold tracking-tight">REPLACED RECEIPT</h1>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1 bg-white/15 px-2.5 py-1 rounded-full text-xs font-mono font-medium backdrop-blur-sm">
+                REPLACED
+              </span>
+            </div>
+            <div className="p-6 md:p-8 space-y-6">
+              <div className="bg-slate-900/90 border border-slate-800/90 rounded-xl p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                    <Hash className="w-4 h-4 text-amber-400" />
+                    Original Slip
+                  </span>
+                  <span className="font-mono font-bold text-white text-sm tracking-wider break-all">{submission.slipNumber || slipNumber}</span>
+                </div>
+                {submission.replacedBySlipNumber && (
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <span className="text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                      <Hash className="w-4 h-4 text-emerald-400" />
+                      Replacement Slip
+                    </span>
+                    <Link
+                      href={submission.currentVerificationUrl || `/verify/${submission.replacedBySlipNumber}`}
+                      className="font-mono font-bold text-emerald-400 hover:text-emerald-300 text-sm tracking-wider flex items-center gap-1 hover:underline"
+                    >
+                      {submission.replacedBySlipNumber}
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                )}
+                <p className="text-xs text-amber-300 leading-relaxed pt-1">
+                  This payment receipt has been replaced by an administrative correction. Please refer to replacement slip <strong className="text-white font-mono">{submission.replacedBySlipNumber}</strong> for the current verified record.
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-400 space-y-2">
+                <p className="font-semibold text-slate-300">Notice of Replacement</p>
+                <p className="text-[11px] leading-relaxed">
+                  The original slip has been superseded and is no longer the active receipt. The payment remains credited under the new replacement slip number.
+                </p>
+              </div>
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                {submission.replacedBySlipNumber && (
+                  <Link
+                    href={submission.currentVerificationUrl || `/verify/${submission.replacedBySlipNumber}`}
+                    className="flex-1 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-950/40"
+                  >
+                    View Replacement Receipt
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+                <Link
+                  href="/"
+                  className="py-2.5 px-4 rounded-xl border border-slate-700 bg-slate-800/80 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Return to Home
+                </Link>
+              </div>
+            </div>
+          </div>
         ) : submission?.status === 'pending' ? (
           /* ── STATE 2: PENDING ──────────────────────────────────────────── */
           <div className="bg-slate-950/90 border border-amber-500/30 rounded-2xl overflow-hidden backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
