@@ -74,9 +74,8 @@ export default function PaymentHistoryPage() {
   const downloadStatement = () => {
     if (transactions.length === 0) return;
 
-    const headers = ['Transaction ID', 'Date', 'Plot Number', 'Description', 'Amount (PKR)', 'Status', 'Reference'];
+    const headers = ['Date', 'Plot Number', 'Description', 'Amount (PKR)', 'Status', 'Reference'];
     const rows = transactions.map((t) => [
-      t.id,
       t.date,
       formatPlotNumber(t.plotNumber, t.plotId),
       `"${t.description.replace(/"/g, '""')}"`,

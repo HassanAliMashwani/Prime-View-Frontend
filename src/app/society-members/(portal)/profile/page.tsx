@@ -395,18 +395,6 @@ export default function ProfilePage() {
               <p className="text-[10px] text-[#6B7462] truncate">Official society ID</p>
             </div>
 
-            {/* Customer ID */}
-            <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1 min-w-0">
-              <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
-                <Lock className="w-3.5 h-3.5 text-[#43612B] shrink-0" />
-                <span className="truncate">System ID</span>
-              </div>
-              <p className="font-mono font-bold text-xs sm:text-sm text-[#151914] truncate" title={profile?.id}>
-                {profile?.id || '—'}
-              </p>
-              <p className="text-[10px] text-[#6B7462] truncate">Immutable ledger</p>
-            </div>
-
             {/* Account Status */}
             <div className="bg-[#FAF9F5] p-3 sm:p-4 rounded-xl sm:rounded-2xl border border-black/[0.04] space-y-0.5 sm:space-y-1 min-w-0">
               <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">

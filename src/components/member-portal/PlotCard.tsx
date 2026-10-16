@@ -186,11 +186,7 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
       {/* Expandable Details Section */}
       {isExpanded && (
         <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-black/[0.06] space-y-2.5 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 bg-[#FAF9F5] p-3 rounded-xl border border-black/[0.04]">
-            <div>
-              <span className="text-[#6B7462] block">Booking Reference:</span>
-              <span className="font-mono font-bold text-[#151914]">{plot.booking.id}</span>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3 bg-[#FAF9F5] p-3 rounded-xl border border-black/[0.04]">
             <div>
               <span className="text-[#6B7462] block">Booking Date:</span>
               <span className="font-medium text-[#151914]">{plot.booking.bookingDate}</span>

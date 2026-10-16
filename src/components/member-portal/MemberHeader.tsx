@@ -19,7 +19,7 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
 }) => {
   const { currentUser } = useAuth();
   const portal = usePortal();
-  const { openTermsModal } = useMemberStore();
+  const { openTermsModal, profile } = useMemberStore();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
@@ -71,8 +71,8 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
             ) : (
               <span className="inline-block w-24 h-3.5 bg-black/10 animate-pulse rounded" />
             )}
-            {mounted && currentUser?.customerId ? (
-              <p className="text-[10px] text-[#6B7462] font-mono">ID: {currentUser.customerId}</p>
+            {mounted && (profile?.membershipNo || (currentUser as any)?.membershipNo) ? (
+              <p className="text-[10px] text-[#6B7462] font-mono">{profile?.membershipNo || (currentUser as any)?.membershipNo}</p>
             ) : (
               <span className="inline-block w-16 h-2.5 bg-black/10 animate-pulse rounded mt-0.5" />
             )}
