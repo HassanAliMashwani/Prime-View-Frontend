@@ -377,12 +377,6 @@ export interface CancelReceiptPayload {
   reason: string;
 }
 
-export interface ReplaceReceiptPayload {
-  reasonCode: 'administrative_error' | 'duplicate_receipt';
-  reason: string;
-  correctionNotes?: string;
-}
-
 /**
  * Cancel an already verified receipt (super_admin only).
  * Calls backend POST /receipts/:id/cancel with Idempotency-Key.
@@ -416,49 +410,3 @@ export async function cancelReceipt(
   const receipt = (res.data as any)?.receipt || res.data;
   return { ok: true, receipt: cleanReceiptDate(receipt) };
 }
-
-/**
- * Replace an already verified receipt (super_admin only).
- * Calls backend POST /receipts/:id/replace with Idempotency-Key.
- */
-export async function replaceReceipt(
-  session: AdminSession,
-  receiptId: string,
-  payload: ReplaceReceiptPayload,
-  idempotencyKey?: string
-): Promise<{
-  ok: boolean;
-  receipt?: ReceiptSubmission;
-  originalReceipt?: ReceiptSubmission;
-  error?: string;
-  message?: string;
-}> {
-  const extraHeaders: Record<string, string> = {};
-  if (idempotencyKey) {
-    extraHeaders['Idempotency-Key'] = idempotencyKey;
-  }
-
-  const res = await apiPost<{ receipt: ReceiptSubmission; originalReceipt: ReceiptSubmission }>(
-    `/receipts/${receiptId}/replace`,
-    payload,
-    session.token || getAdminToken() || undefined,
-    extraHeaders
-  );
-
-  if (!res.ok) {
-    return {
-      ok: false,
-      error: res.error || 'REPLACE_FAILED',
-      message: res.message || 'Failed to replace receipt.',
-    };
-  }
-
-  const receipt = (res.data as any)?.receipt;
-  const originalReceipt = (res.data as any)?.originalReceipt;
-  return {
-    ok: true,
-    receipt: cleanReceiptDate(receipt),
-    originalReceipt: cleanReceiptDate(originalReceipt),
-  };
-}
-
