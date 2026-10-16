@@ -27,7 +27,7 @@ import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
 
 import { getBlockDisplayName } from '@/lib/map/regionData';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
@@ -287,7 +287,13 @@ export default function ReservationsPage() {
         fn: async () => releaseReservation(session, r.id, isOwner ? 'Released by reserving admin' : 'Released by Super Admin override'),
       });
       if (res.ok) {
-        await loadData(session, page, search, blockFilter, activeTab, false);
+        setReservations((prev) => prev.map((item) => item.id === r.id ? { ...item, status: 'cancelled' } : item));
+        clearCachePrefix('GET:/reservations');
+        enqueueLane2(
+          () => loadData(session, page, search, blockFilter, activeTab, true),
+          'reservations-sync',
+          'reservations'
+        );
       } else {
         if (res.error === 'NOT_RESERVATION_OWNER') {
           alert(`Access Denied: Only the original reserving officer (${r.reservedByAdminName}) can release this reservation.`);

@@ -180,12 +180,13 @@ export async function updateSubAdmin(
 
 /**
  * Reset password for a sub-administrator (Super Admin exclusive).
+ * Generates a random secure password using the same member password rules if omitted.
  */
 export async function resetSubAdminPassword(
   session: AdminSession,
   adminId: string,
-  newPassword: string
-): Promise<{ ok: boolean; error?: string; message?: string }> {
+  newPassword?: string
+): Promise<{ ok: boolean; username?: string; newPassword?: string; error?: string; message?: string }> {
   if (session.role !== 'super_admin') {
     return {
       ok: false,
@@ -194,9 +195,9 @@ export async function resetSubAdminPassword(
     };
   }
 
-  const res = await apiPost<{ ok: boolean; message: string }>(
+  const res = await apiPost<{ ok: boolean; message: string; username?: string; newPassword?: string }>(
     `/admin/sub-admins/${adminId}/reset-password`,
-    { newPassword },
+    newPassword ? { newPassword } : {},
     session?.token
   );
 
@@ -210,9 +211,13 @@ export async function resetSubAdminPassword(
 
   return {
     ok: true,
+    username: (res.data as any)?.username,
+    newPassword: (res.data as any)?.newPassword,
     message: res.data?.message || 'Password reset successfully.',
   };
 }
+
+export const resetAdminPassword = resetSubAdminPassword;
 
 /**
  * Permanently delete a sub-administrator (Super Admin exclusive).

@@ -31,10 +31,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Briefcase,
+  Copy,
 } from 'lucide-react';
 import { AdminSession, AdminUser, BlockId } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
+import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, resetAdminPassword, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
@@ -124,6 +125,12 @@ export default function TeamsPage() {
   const [confirmProcessing, setConfirmProcessing] = useState(false);
   const [deleteAdmin, setDeleteAdmin] = useState<AdminUser | null>(null);
   const [deleteProcessing, setDeleteProcessing] = useState(false);
+  const [resetSubmitting, setResetSubmitting] = useState<string | null>(null);
+  const [resetModalData, setResetModalData] = useState<{
+    admin: AdminUser;
+    newPassword: string;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   // Form states
   const [createForm, setCreateForm] = useState<CreateSubAdminInput>({
@@ -483,6 +490,40 @@ export default function TeamsPage() {
     setEditForm((prev) => ({ ...prev, permissions: updated }));
   };
 
+  // Handle Reset Sub-Admin Password (Super Admin exclusive)
+  const handleResetPassword = async (admin: AdminUser) => {
+    if (!session || session.role !== 'super_admin') return;
+    if (admin.role === 'super_admin' || admin.id === session.adminId) return;
+
+    if (!confirm(`Are you sure you want to reset the password for sub-admin ${admin.fullName} (${admin.username})? Their current password will immediately stop working.`)) {
+      return;
+    }
+
+    setResetSubmitting(admin.id);
+    const res = await runLane1({
+      screen: 'sub-admins',
+      isSave: true,
+      fn: async () => resetAdminPassword(session, admin.id),
+    });
+    setResetSubmitting(null);
+
+    if (!res.ok) {
+      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to reset sub-admin password.' });
+    } else if (!res.newPassword) {
+      setFeedback({ type: 'error', message: 'Password reset returned empty credentials.' });
+    } else {
+      setCopied(false);
+      setResetModalData({
+        admin,
+        newPassword: res.newPassword,
+      });
+      setFeedback({
+        type: 'success',
+        message: `Password reset successfully for ${admin.fullName}.`,
+      });
+    }
+  };
+
   // Filtered members list is now handled by the server
   const filteredAdmins = subAdmins;
 
@@ -816,14 +857,27 @@ export default function TeamsPage() {
                   </div>
 
                   {/* Card Action Buttons */}
-                  <div className="p-3 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="p-3 bg-slate-50/80 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                     <button
                       onClick={() => handleOpenEdit(admin)}
-                      className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl transition shadow-2xs hover:shadow-xs cursor-pointer"
+                      className="flex-1 min-w-[90px] flex items-center justify-center gap-1.5 px-3 py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl transition shadow-2xs hover:shadow-xs cursor-pointer"
                     >
                       <Edit2 className="w-3 h-3 text-slate-500" />
                       <span>Edit Access</span>
                     </button>
+
+                    {session?.role === 'super_admin' && !isSelf && admin.role !== 'super_admin' && (
+                      <button
+                        type="button"
+                        onClick={() => handleResetPassword(admin)}
+                        disabled={resetSubmitting === admin.id}
+                        className="flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white hover:bg-amber-50 text-amber-800 hover:text-amber-900 border border-slate-200 hover:border-amber-300 text-xs font-bold rounded-xl transition shadow-2xs hover:shadow-xs cursor-pointer disabled:opacity-50"
+                        title={`Reset password for ${admin.username}`}
+                      >
+                        <KeyRound className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span>{resetSubmitting === admin.id ? 'Resetting...' : 'Reset Password'}</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => setConfirmAdmin(admin)}
@@ -1515,6 +1569,83 @@ export default function TeamsPage() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: RESET SUB-ADMIN CREDENTIALS ── */}
+      {resetModalData && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 text-xs space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+                <KeyRound className="w-4 h-4 text-emerald-600" />
+                <span>Sub-Administrator Credentials</span>
+              </div>
+              <button
+                onClick={() => setResetModalData(null)}
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-slate-600">
+              Administrative credentials generated for Sub-Administrator{' '}
+              <strong className="text-slate-900">{resetModalData.admin.fullName}</strong>:
+            </p>
+
+            <div className="space-y-2">
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Username:</span>
+                <span className="font-mono font-bold text-slate-900 select-all">
+                  {resetModalData.admin.username}
+                </span>
+              </div>
+
+              <div>
+                <div className="text-[11px] text-slate-500 font-medium mb-1">New Password:</div>
+                <div className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-center text-sm font-bold tracking-wider select-all break-all">
+                  {resetModalData.newPassword}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const text = `Username: ${resetModalData.admin.username}\nPassword: ${resetModalData.newPassword}`;
+                  await navigator.clipboard.writeText(text);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                className="flex-1 py-2 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span>Copied</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 text-slate-500" />
+                    <span>Copy Credentials</span>
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => setResetModalData(null)}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                Done
+              </button>
+            </div>
+
+            <p className="text-[11px] text-slate-500 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
+              This new password is shown once. Provide it securely to the sub-administrator. The previous password has been invalidated immediately.
+            </p>
           </div>
         </div>
       )}

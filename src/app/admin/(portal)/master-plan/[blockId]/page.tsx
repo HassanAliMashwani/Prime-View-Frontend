@@ -42,9 +42,9 @@ import {
 } from '@/lib/dal/adminPlots';
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking } from '@/lib/dal/customers';
-import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
-import { runLane1, runLane2 } from '@/lib/requestLanes';
+import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
@@ -538,12 +538,38 @@ function BlockPlotsContent() {
         isOwner ? 'Released by reserving admin via Master Plan' : 'Released by Super Admin override via Master Plan'
       );
       if (result.ok) {
-        await loadPlots(session);
-        const detailRes = await getAdminPlotDetails(session, selectedPlot.id);
-        if (detailRes.ok && detailRes.plot) {
-          setSelectedPlot(detailRes.plot);
-          setPlotReservations(detailRes.reservations || []);
-        }
+        // Update single plot on screen immediately without reloading every plot, customer, and booking!
+        const remainingReservations = plotReservations.filter((r) => r.id !== res.id);
+        setPlotReservations(remainingReservations);
+
+        setSelectedPlot((prev) => {
+          if (!prev) return null;
+          const isNowAvailable = remainingReservations.length === 0 && (!prev.bookings || prev.bookings.length === 0);
+          return {
+            ...prev,
+            reservations: remainingReservations,
+            status: isNowAvailable ? 'available' : prev.status,
+            displayStatus: isNowAvailable ? 'available' : prev.displayStatus,
+            activeReservationCount: remainingReservations.length,
+          };
+        });
+
+        setPlots((prev) => prev.map((p) => {
+          if (p.id !== selectedPlot.id) return p;
+          const remaining = (p.reservations || []).filter((r: any) => r.id !== res.id);
+          const isNowAvailable = remaining.length === 0 && (!p.bookings || p.bookings.length === 0);
+          return {
+            ...p,
+            reservations: remaining,
+            status: isNowAvailable ? 'available' : p.status,
+            displayStatus: isNowAvailable ? 'available' : p.displayStatus,
+            activeReservationCount: remaining.length,
+          };
+        }));
+
+        clearCachePrefix(`/master-plan/${blockId}`);
+        clearCachePrefix('GET:/reservations');
+        enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
         if (result.error === 'NOT_RESERVATION_OWNER') {
           setActionError(`Access Denied: Only the original reserving officer (${res.reservedByAdminName}) can release this reservation.`);
@@ -558,6 +584,16 @@ function BlockPlotsContent() {
     }
   };
 
+  // Open Adjust Plot Dialog with the plot already on screen (No full inventory reload wait)
+  const handleOpenAdjustPlot = (plot: Plot, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    activeSelectedPlotIdRef.current = plot.id;
+    setSelectedPlot(plot);
+    setAdjustmentReasonInput('');
+    setActionError(null);
+    setIsAdjustmentModalOpen(true);
+  };
+
   // Toggle Master Plan Adjustment (Town Planning / Boundary Re-survey Freeze - Super Admin Only)
   const handleApplyAdjustment = async () => {
     if (!session || !selectedPlot) return;
@@ -568,8 +604,17 @@ function BlockPlotsContent() {
       if (res.ok && res.plot) {
         setIsAdjustmentModalOpen(false);
         setAdjustmentReasonInput('');
-        setSelectedPlot(res.plot);
-        await loadPlots(session);
+        const updated = res.plot;
+        setSelectedPlot(updated);
+        // Immediately update the plot in local plots array without waiting for full inventory reload
+        setPlots((prev) => prev.map((p) => p.id === updated.id ? {
+          ...p,
+          ...updated,
+          isAdjustment: true,
+          adjustmentReason: updated.adjustmentReason || undefined,
+        } : p));
+        clearCachePrefix(`/master-plan/${blockId}`);
+        enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
         setActionError(res.error || 'Failed to flag plot for adjustment.');
       }
@@ -588,8 +633,21 @@ function BlockPlotsContent() {
     try {
       const res = await togglePlotAdjustment(session, selectedPlot.id, false);
       if (res.ok && res.plot) {
-        setSelectedPlot(res.plot);
-        await loadPlots(session);
+        const updated = res.plot;
+        setSelectedPlot(updated);
+        // Immediately update screen without waiting for full inventory reload!
+        setPlots((prev) => prev.map((p) => p.id === updated.id ? {
+          ...p,
+          ...updated,
+          isAdjustment: false,
+          adjustmentReason: undefined,
+          adjustmentDate: undefined,
+          adjustmentBy: undefined,
+          displayStatus: 'available',
+          status: 'available',
+        } : p));
+        clearCachePrefix(`/master-plan/${blockId}`);
+        enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
         setActionError(res.error || 'Failed to release adjustment freeze.');
       }
@@ -1065,6 +1123,19 @@ function BlockPlotsContent() {
                     {plot.category.replace('_', ' ')}
                   </span>
                 </div>
+
+                {/* Super Admin Quick Adjust Plot Action on Card */}
+                {session?.role === 'super_admin' && (plot.category === 'residential' || plot.category === 'commercial') && visualStatus !== 'allotted' && !isAdjustment && (
+                  <button
+                    type="button"
+                    onClick={(e) => handleOpenAdjustPlot(plot, e)}
+                    title={`Adjust Plot ${plot.plotNumber}`}
+                    className="mt-1.5 w-full py-1 px-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-[10px] font-bold rounded-lg transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer"
+                  >
+                    <AlertTriangle className="w-3 h-3 text-blue-600 shrink-0" />
+                    <span>Adjust Plot</span>
+                  </button>
+                )}
               </div>
 
               <div className="mt-2 pt-1.5 border-t border-black/5 flex items-center justify-between text-[10px]">
@@ -1188,10 +1259,13 @@ function BlockPlotsContent() {
                     <button
                       onClick={async () => {
                         if (!session) return;
+                        setActionLoading(true);
                         await releaseLock(session, selectedPlot.id);
-                        await loadPlots(session);
-                        activeSelectedPlotIdRef.current = null;
-                        setSelectedPlot(null);
+                        setSelectedPlot((prev) => prev ? { ...prev, lockedBy: undefined, lockedByName: undefined, lockedAt: undefined } : null);
+                        setPlots((prev) => prev.map((p) => p.id === selectedPlot.id ? { ...p, lockedBy: undefined, lockedByName: undefined, lockedAt: undefined } : p));
+                        setActionLoading(false);
+                        clearCachePrefix(`/master-plan/${blockId}`);
+                        enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
                       }}
                       className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[10px] rounded-lg shadow-xs shrink-0 cursor-pointer"
                     >
@@ -1615,12 +1689,12 @@ function BlockPlotsContent() {
                   {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && !selectedPlot.isAdjustment && (
                     <button
                       type="button"
-                      onClick={() => setIsAdjustmentModalOpen(true)}
+                      onClick={() => handleOpenAdjustPlot(selectedPlot)}
                       disabled={actionLoading}
                       className="w-full py-2 px-3 bg-white hover:bg-blue-50/80 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-medium text-xs rounded-xl transition-all cursor-pointer text-center flex items-center justify-center gap-2 shadow-2xs"
                     >
                       <AlertTriangle className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Adjustment</span>
+                      <span>Adjust Plot</span>
                     </button>
                   )}
                 </>
