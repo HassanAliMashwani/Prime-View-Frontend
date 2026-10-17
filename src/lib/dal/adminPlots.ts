@@ -3,6 +3,7 @@ import { canAccessBlock } from './adminAuth';
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from '../api';
 import { setRegisteredPlotsCache } from './customers';
 import { getCache, setCache } from './apiCache';
+import { eliteSeedPlots } from '../map/eliteSeedPlots';
 
 export interface BlockSummary extends Block {
   totalCount: number;
@@ -152,6 +153,16 @@ export async function getAdminBlockPlots(
     price: Number(p.price) || 0,
   }));
 
+  // Merge mapped amenities (such as Prime View Club Plot 170) if not present in DB
+  if (blockId.toLowerCase() === 'elite') {
+    const existingNums = new Set(plots.map((p) => p.plotNumber.toLowerCase()));
+    eliteSeedPlots.forEach((sp) => {
+      if (sp.category === 'amenity' && !existingNums.has(sp.plotNumber.toLowerCase())) {
+        plots.push(sp);
+      }
+    });
+  }
+
   // Update in-memory cache for synchronous plot checks
   setRegisteredPlotsCache(plots);
 
@@ -204,6 +215,13 @@ export async function getAdminPlotDetails(
   if (!apiRes.ok || !apiRes.data) {
     if (apiRes.error === 'OUT_OF_SCOPE' || apiRes.status === 403) {
       return { ok: false, error: 'OUT_OF_SCOPE' };
+    }
+    // Check fallback seed plots for amenities (e.g. plot-el-170 / Prime View Club)
+    const seedAmenity = eliteSeedPlots.find(
+      (sp) => sp.category === 'amenity' && (sp.id === plotId || sp.plotNumber === plotId || sp.id === `plot-el-${plotId}`)
+    );
+    if (seedAmenity) {
+      return { ok: true, plot: seedAmenity };
     }
     if (apiRes.status === 404) {
       return { ok: false, error: 'PLOT_NOT_FOUND' };

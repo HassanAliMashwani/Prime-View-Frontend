@@ -145,6 +145,41 @@ export default function InteractiveBlockMap({
   // Quick lookup map: plotNumber -> Plot
   const plotLookup = useMemo(() => {
     const map = new Map<string, Plot>();
+
+    // Seed traced amenity areas from map config as fallback plots so public amenities
+    // like Prime View Club (Plot 170) are recognized even if not seeded in backend DB
+    if (config?.areas) {
+      config.areas.forEach((area) => {
+        if (!area.isGroupedRange && area.plotNumber && area.category === 'amenity') {
+          const amenityTitle =
+            area.amenityName === 'primeViewClub' || area.amenityType === 'primeViewClub'
+              ? 'Prime View Club'
+              : area.amenityName || (area.amenityType ? area.amenityType.replace(/([A-Z])/g, ' $1').trim() : 'Public Amenity');
+
+          const fallbackAmenity: Plot = {
+            id: `plot-${area.blockId}-${area.plotNumber}`,
+            blockId: area.blockId,
+            plotNumber: area.plotNumber,
+            size: area.sizeLabel,
+            category: 'amenity',
+            plotType: `amenity_${area.amenityType || 'general'}`,
+            price: 0,
+            status: 'available',
+            amenityName: amenityTitle,
+          };
+          map.set(area.plotNumber.toLowerCase(), fallbackAmenity);
+          const stripped = area.plotNumber.replace(/^[a-z]+-/i, '').toLowerCase();
+          if (stripped !== area.plotNumber.toLowerCase()) {
+            map.set(stripped, fallbackAmenity);
+          }
+          const unpadded = stripped.replace(/^0+/, '');
+          if (unpadded && unpadded !== stripped) {
+            map.set(unpadded, fallbackAmenity);
+          }
+        }
+      });
+    }
+
     plots.forEach((p) => {
       map.set(p.plotNumber.toLowerCase(), p);
       // Also map without prefixes if present (e.g. 'el-233' -> '233', 'A-01' -> '01' & '1')
@@ -158,7 +193,7 @@ export default function InteractiveBlockMap({
       }
     });
     return map;
-  }, [plots]);
+  }, [plots, config]);
 
   if (loadingMap || !config) {
     return (
@@ -212,7 +247,26 @@ export default function InteractiveBlockMap({
 
     if (!area.plotNumber) return;
 
-    const plot = plotLookup.get(area.plotNumber.toLowerCase());
+    let plot = plotLookup.get(area.plotNumber.toLowerCase());
+    if (!plot && area.category === 'amenity') {
+      const amenityTitle =
+        area.amenityName === 'primeViewClub' || area.amenityType === 'primeViewClub'
+          ? 'Prime View Club'
+          : area.amenityName || (area.amenityType ? area.amenityType.replace(/([A-Z])/g, ' $1').trim() : 'Public Amenity');
+
+      plot = {
+        id: `plot-${area.blockId}-${area.plotNumber}`,
+        blockId: area.blockId,
+        plotNumber: area.plotNumber,
+        size: area.sizeLabel,
+        category: 'amenity',
+        plotType: `amenity_${area.amenityType || 'general'}`,
+        price: 0,
+        status: 'available',
+        amenityName: amenityTitle,
+      };
+    }
+
     if (plot) {
       onSelectPlot(plot);
     } else {
