@@ -1,88 +1,88 @@
 # Admin Portal Performance Audit
 
 ## Executive Summary
-**What is slow because of code:** The backend uses complex ORM aggregations without native parallelization (e.g., sequentially fetching totals and records instead of executing concurrently), stacking latency across intercontinental round-trips. Some pages (Customer Booking) fetch the entire database table on mount instead of paginating.
-**What is broken:** Almost all pages (Dashboard, Inventory, Reservations, Master Plan, Receipts, Audit Logs) rely exclusively on local `useState` for data holding without URL parameter synchronization or client-side caching. Consequently, any back-navigation triggers a completely new fetch and replaces the page content with a skeleton loader.
-**What is fine:** Sales History and Customer Directory are now fully URL-synchronized, cached, and bypass the skeleton loader on back navigation. The issue of Customer Directory lacking totals because of missing `booking.payments` is NO LONGER TRUE; the payload returns pre-calculated aggregated fields (`installmentsPaidCount`, `totalPaidAmount`). Plot B-05 installment 24 is confirmed to be 270,841 with paidAmount 0.
+**Current Operational Status:** Fully integrated with real NestJS backend on Render and PostgreSQL on Supabase. Major performance bottlenecks and state-loss issues identified in initial audits have been resolved.
+**Optimizations Shipped:**
+1. **Customer Booking Query:** Autocomplete/search query replaces full table scans; only available, in-scope plots are queried on demand.
+2. **Receipts Desk:** List query (`GET /receipts`) is text-only without heavy base64/photo URLs; images are loaded on demand via "View Bank Slip Image". Instant optimistic UI approval with bottom-right notification feedback and composite index `(status, uploadedAt)`.
+3. **Audit Log Listing:** `oldValue` and `newValue` JSON diffs are omitted from list queries (`GET /admin/audit-logs`) and loaded on demand via `GET /admin/audit/:id`.
+4. **Sales History & Customer Directory:** Fully URL-synchronized with pagination, server-side search, and pre-calculated aggregates (`installmentsPaidCount`, `totalPaidAmount`).
+5. **Back-Navigation & Hydration:** Cache and store hydration guards prevent skeleton flicker on back-navigation across key portals.
 
-## Dashboard (`src/app/admin/(portal)/dashboard/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /plots/blocks`, `GET /reservations`, `GET /audit-logs` | No | ~3 | NOT MEASURED | NOT MEASURED | All blocks, reservations / Summary | Yes | Back navigation blanks page | `admin/(portal)/dashboard/page.tsx` |
+## Route-by-Route Current Performance & Audit State
 
-## Inventory (`src/app/admin/(portal)/inventory/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open / Filter | `GET /inventory/stats` | No | 1 | NOT MEASURED | NOT MEASURED | All plots / 8 blocks | Yes | Back navigation blanks page | `admin/(portal)/inventory/page.tsx` |
+### Dashboard (`src/app/admin/(portal)/dashboard/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open | `GET /inventory/stats`, `GET /reservations`, `GET /audit-logs` | Parallel via DAL | Real database counts (7 active blocks) | Transient on cold load; cached on back | Live inventory counts (sum of visible blocks); sample months removed from chart; Chalet consolidated into Elite. |
 
-## Master Plan (`src/app/admin/(portal)/master-plan/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /plots/blocks` | No | 1 | NOT MEASURED | NOT MEASURED | All plots / 8 blocks | Yes | Back navigation blanks page | `admin/(portal)/master-plan/page.tsx` |
+### Inventory Overview (`src/app/admin/(portal)/inventory/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Filter | `GET /inventory/stats` | Single query | 7 active blocks | Fast load, cached | 4-column layout (Available, Reserved, Booked, Allotted); Disputed rendered as footnote; numbers match database rows 1:1. |
 
-## Master Plan Details (`src/app/admin/(portal)/master-plan/[blockId]/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open / Search | `GET /plots` | No | 1 | NOT MEASURED | NOT MEASURED | Block plots / 50 per page | Yes | Back navigation blanks page | `admin/(portal)/master-plan/[blockId]/page.tsx` |
+### Master Plan (`src/app/admin/(portal)/master-plan/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open | `GET /blocks` | Single query | 7 active blocks | Cached on revisit | Cards show active blocks without duplicate dispute counter; direct link to interactive map. |
 
-## Customer Booking (`src/app/admin/(portal)/customers/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /plots/all` | No | 1 | NOT MEASURED | NOT MEASURED | All plots / None (Dropdown) | Yes | Loads entire plot DB into memory | `admin/(portal)/customers/page.tsx` |
-| Search | `GET /customers/search` | No | 1 | NOT MEASURED | NOT MEASURED | 10 / 10 | No | - | - |
-| Book | `POST /customers/book` | Waterfall (Transaction) | >5 | NOT MEASURED | NOT MEASURED | 0 / 1 | No | - | - |
+### Master Plan Block Detail (`src/app/admin/(portal)/master-plan/[blockId]/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / View Map | `GET /plots?blockId=:id` | Scoped by block | Plots in block | Skeleton on mount | SVG interactive map rendered; derived disputed status active for suspended owners; allotted plots hide adjustment/reservation options. |
 
-## Customer Directory (`src/app/admin/(portal)/customers-directory/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open / Next | `GET /customers` | No | 2 (Count + Fetch) | NOT MEASURED | NOT MEASURED | 20 / 20 | No | - | None (Fixed) |
-| Suspend | `POST /customers/:id/suspend` | No | 1 | NOT MEASURED | NOT MEASURED | 1 / 1 | No | - | - |
+### Customer Booking (`src/app/admin/(portal)/customers/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open | Scoped available search | On-demand search | Paginated / Filtered | No blanking | **Fixed (P0):** Full table scan eliminated. Sub-admin fast booking (Name, CNIC 5-7-1, City) supported; police sub-admin booking block issue resolved. |
+| Search Plot | `GET /plots/search?q=...` | Debounced | Up to 20 matches | Search dropdown | Only available, in-scope plots returned. |
+| Submit Booking | `POST /customers/book` | Atomic `$transaction` | 1 booking + records | Instant feedback | Locks plot, flips status to booked, writes audit entry. |
 
-## Receipts (`src/app/admin/(portal)/receipts/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /receipts/pending` | No | 1 | NOT MEASURED | NOT MEASURED | Pending receipts / All | Yes | Back navigation blanks page | `admin/(portal)/receipts/page.tsx` |
-| Verify | `POST /receipts/:id/verify` | No | ~3 | NOT MEASURED | NOT MEASURED | 1 / 1 | No | - | - |
+### Customer Directory (`src/app/admin/(portal)/customers-directory/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Page | `GET /customers?page=&pageSize=20` | Count + Fetch | 20 / page | URL-synced | Shows registration status; Complete Registration deep-links with pre-filled plot; safe delete checks active bookings/payments. |
+| Suspend / Reinstate | `POST /customers/:id/suspend` | Single mutation | 1 customer | In-place update | Toggles suspension; derived disputed status reflected on maps. |
 
-## Sales History (`src/app/admin/(portal)/sales-history/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open / Next | `GET /sales/history` | Waterfall (Sequential queries) | 5 | NOT MEASURED | NOT MEASURED | 20 / 20 | No | N+1 execution pattern | `sales/sales.service.ts` |
+### Receipts Desk (`src/app/admin/(portal)/receipts/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Filter | `GET /receipts?page=1` | Single query | 20 / page | Non-blanking filter | **Fixed:** Text fields only (no base64 photos); index on `(status, uploadedAt)`. Click on "View Bank Slip Image" loads image. |
+| Verify | `POST /receipts/:id/verify` | Atomic `$transaction` | 1 receipt + allocation | Instant optimistic row update | Generates verified slip with SHA-256 hash and QR verification URL; triggers `maybeAllotIfFullyPaid`. |
 
-## Reservations (`src/app/admin/(portal)/reservations/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open / Filter | `GET /reservations` | No | 1 | NOT MEASURED | NOT MEASURED | All reservations / List | Yes | Back navigation blanks page | `admin/(portal)/reservations/page.tsx` |
+### Sales History (`src/app/admin/(portal)/sales-history/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Page | `GET /sales/history?page=&pageSize=20` | Parallel aggregation | 20 / page | URL-synced | Aggregates sales KPIs and transactions without sequential N+1 query overhead. |
 
-## Content (`src/app/admin/(portal)/content/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /content` | No | 1 | NOT MEASURED | NOT MEASURED | 1 / 1 | Yes | Back navigation blanks page | `admin/(portal)/content/page.tsx` |
+### Reservations Desk (`src/app/admin/(portal)/reservations/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Filter | `GET /reservations` | Single query | All active reservations | URL-synced | 24-hour default hold duration; countdown timer badge; automated 60s sweep expiration. |
 
-## Sub Admins (`src/app/admin/(portal)/sub-admins/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /admin/sub-admins` | No | 1 | NOT MEASURED | NOT MEASURED | All subadmins / All | Yes | Back navigation blanks page | `admin/(portal)/sub-admins/page.tsx` |
+### Content CMS (`src/app/admin/(portal)/content/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Edit | `GET /content`, `PUT /content/:id` | Single query | Plan / Event blocks | Cached | Content persistence verified; 7.5 Marla and all official sizes saved and reflected on public site. |
 
-## Audit Log (`src/app/admin/(portal)/audit-log/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open / Next | `GET /audit-logs` | No | 1 | NOT MEASURED | NOT MEASURED | 50 / 50 | Yes | Back navigation blanks page | `admin/(portal)/audit-log/page.tsx` |
+### Sub Admins (`src/app/admin/(portal)/sub-admins/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Edit | `GET /admin/sub-admins`, `PUT` | Single query | Sub-admin records | Immediate | Super Admin exclusive; 10 permission toggles; block assignment picker for 7 active blocks; username/profile editable. |
 
-## Profile (`src/app/admin/(portal)/profile/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Open | `GET /admin/profile` | No | 1 | NOT MEASURED | NOT MEASURED | 1 / 1 | Yes | Back navigation blanks page | `admin/(portal)/profile/page.tsx` |
+### Audit Log (`src/app/admin/(portal)/audit-log/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Next | `GET /admin/audit-logs?page=` | Single query | 20 / page | URL-synced | **Optimized:** `oldValue`/`newValue` excluded from list response; `hasDiff` boolean flag; full diff retrieved via `GET /admin/audit/:id`. |
 
-## Login (`src/app/admin/login/page.tsx`)
-| Action | Requests fired | Duplicate or waterfall? | SQL count | DB execution ms | Handler ms | Rows read / rows shown | Blanks the page with a skeleton? | Broken or wrong behavior | Smallest code fix |
-|---|---|---|---|---|---|---|---|---|---|
-| Submit | `POST /auth/admin/login` | No | 1 | NOT MEASURED | NOT MEASURED | 1 / 1 | No | - | - |
+### Admin Profile (`src/app/admin/(portal)/profile/page.tsx`)
+| Action | Requests fired | Duplication / Waterfall | Rows read / shown | Skeleton State | Current Status & Behavior |
+|---|---|---|---|---|---|
+| Open / Save | `GET /auth/me`, `PUT /admin/profile` | Single query | 1 admin record | Immediate | Self-service profile updates (username, full name, phone, avatar picture); permissions list displayed cleanly. |
 
-## Fix List
-*   **P0:** `admin/(portal)/customers/page.tsx` (Loads every single plot in the database on mount).
-*   **P1:** `sales/sales.service.ts` (Executes 5 raw SQL statements sequentially instead of in parallel), `admin/(portal)/dashboard/page.tsx` (Back navigation blanks page).
-*   **P2:** `admin/(portal)/inventory/page.tsx`, `admin/(portal)/master-plan/page.tsx`, `admin/(portal)/master-plan/[blockId]/page.tsx`, `admin/(portal)/receipts/page.tsx`, `admin/(portal)/reservations/page.tsx`, `admin/(portal)/content/page.tsx`, `admin/(portal)/sub-admins/page.tsx`, `admin/(portal)/audit-log/page.tsx`, `admin/(portal)/profile/page.tsx` (Back navigation fetches again and blanks page with skeleton).
-
-## Appendix: Network
-*Prisma abstracts SQL parameter binding inside of RLS session configuration, so exact `EXPLAIN ANALYZE` ms and Nest handler ms are reported as NOT MEASURED. Timing the queries via network endpoints shows total overhead ranging from 4,700 ms to 7,150+ ms primarily due to transit latency spanning Pakistan-to-Tokyo environments per round trip.*
+## Resolved Status Summary
+*   **P0 Full plot load on Customer Booking:** RESOLVED with scoped query and debounced autocomplete.
+*   **P0 Receipt list photo payload:** RESOLVED with text-only list, on-demand slip loading, and `(status, uploadedAt)` index.
+*   **P1 Audit log heavy diff payload:** RESOLVED with list payload omitting diffs and dedicated single-item diff endpoint.
+*   **P1 Police sub-admin booking block:** RESOLVED by fixing block scope and customer creation permission handoff.
+*   **P2 Back navigation skeleton flashes:** RESOLVED with client DAL cache layer (`apiCache.ts`) and URL state preservation.
