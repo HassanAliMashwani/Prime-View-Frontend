@@ -91,6 +91,8 @@ function getTotalStillOwed(sched?: PlotPaymentSchedule | null): number {
 function PaymentsContent() {
   const searchParams = useSearchParams();
   const initialPlotParam = searchParams.get('plot');
+  const uploadParam = searchParams.get('upload');
+  const installmentParam = searchParams.get('installment');
 
   const { schedules, plots, profile, fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -442,6 +444,16 @@ function PaymentsContent() {
     setBalloonError(null);
     setShowUploadModal(true);
   };
+
+  // Auto-open upload modal if ?upload=true is passed via URL
+  useEffect(() => {
+    if (uploadParam === 'true' && schedules.length > 0) {
+      openUploadModalWithPlot(
+        initialPlotParam || undefined,
+        installmentParam ? Number(installmentParam) : undefined
+      );
+    }
+  }, [uploadParam, initialPlotParam, installmentParam, schedules.length]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1209,176 +1221,30 @@ function PaymentsContent() {
             )}
 
             {/* ══════════════════════════════════════════════════════════════ */}
-            {/* SUBMITTED RECEIPTS & OFFICIAL TWO-PART SLIPS (Requirement 8)  */}
+            {/* LINK TO SUBMITTED RECEIPTS (Separated Receipts Page)          */}
             {/* ══════════════════════════════════════════════════════════════ */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-3.5 sm:p-8 space-y-4 sm:space-y-6 shadow-xs mt-3 sm:mt-10 min-w-0">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 sm:pb-5 border-b border-black/[0.06]">
-                <div className="space-y-0.5">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#43612B]">
-                    Payment Verification Desk
-                  </span>
-                  <h3 className="font-display font-bold text-lg sm:text-xl text-[#151914]">
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs mt-3 sm:mt-8 min-w-0">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0">
+                    <Receipt className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
                     Submitted Receipts &amp; Official Slips
                   </h3>
-                  <p className="text-xs text-[#6B7462]">
-                    Track uploaded bank deposit slips and view official society verified member slips.
-                  </p>
                 </div>
-
-                <button
-                  type="button"
-                  onClick={() => openUploadModalWithPlot()}
-                  className="w-full sm:w-auto min-h-[44px] px-4 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center justify-center gap-2 shadow-xs cursor-pointer shrink-0"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>Upload New Receipt</span>
-                </button>
+                <p className="text-xs text-[#6B7462] max-w-xl">
+                  Review all your submitted payment receipts grouped by plot, monitor approval statuses, and download official verified A4 member slips.
+                </p>
               </div>
 
-              {receipts.length === 0 ? (
-                <div className="py-8 sm:py-10 text-center space-y-3 bg-[#FAF9F7] rounded-2xl border border-black/[0.05] p-4">
-                  <Receipt className="w-9 h-9 sm:w-10 sm:h-10 text-[#6B7462] opacity-40 mx-auto" />
-                  <p className="text-xs font-semibold text-[#151914]">No payment receipts submitted yet</p>
-                  <p className="text-[11px] text-[#6B7462] max-w-md mx-auto">
-                    When you pay your installments or booking charges at the bank, upload a photo or scan of your deposit slip here to receive your official verified member slip.
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y divide-black/[0.06]">
-                  {receipts.map((sub) => {
-                    const subPlot = plots.find((p) => p.id === (sub as any).plotId || p.plotNumber === sub.plotNumber);
-                    return (
-                      <div
-                        key={sub.id}
-                        className="py-3.5 sm:py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 hover:bg-black/[0.01] px-1 sm:px-2 rounded-xl transition-colors min-w-0"
-                      >
-                        <div className="space-y-1.5 min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                          {(() => {
-                            const blockTitle = sub.blockName || (subPlot as any)?.blockName || subPlot?.blockId || '';
-                            return (
-                              <span className="font-display font-bold text-sm text-[#151914]">
-                                Plot {sub.plotNumber || subPlot?.plotNumber || '—'} {blockTitle ? `(${blockTitle})` : ''}
-                              </span>
-                            );
-                          })()}
-                            <span className="text-xs text-[#6B7462]">&bull;</span>
-                            <span className="text-xs font-semibold text-[#43612B]">
-                              {(sub as any).paymentKind === 'balloon'
-                                ? 'Balloon Payment'
-                                : sub.paymentType === 'installment'
-                                ? `Installment #${sub.installmentNumber}`
-                                : 'Full Payment Settlement'}
-                            </span>
-                          {sub.paymentType === 'one_time' && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
-                              Documentation Record
-                            </span>
-                          )}
-                          {/* Status Badge */}
-                          {sub.status === ('Sending' as any) ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1.5 animate-pulse">
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping" />
-                              <span>Sending</span>
-                            </span>
-                          ) : sub.status === 'verified' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                              <span>Verified</span>
-                            </span>
-                          ) : sub.status === 'cancelled' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-300 flex items-center gap-1">
-                              <XCircle className="w-3 h-3 text-slate-500" />
-                              <span>Cancelled</span>
-                            </span>
-                          ) : sub.status === 'replaced' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200 flex items-center gap-1">
-                              <RefreshCw className="w-3 h-3 text-purple-600" />
-                              <span>Replaced</span>
-                            </span>
-                          ) : sub.status === 'payment_reversed' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3 text-rose-600" />
-                              <span>Payment reversed</span>
-                            </span>
-                          ) : sub.status === 'rejected' ? (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
-                              <AlertCircle className="w-3 h-3" />
-                              <span>{(sub as any).canRetry ? 'Submission Failed' : 'Declined'}</span>
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              <span>Pending Admin Verification</span>
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="text-xs text-[#6B7462] flex items-center gap-2 sm:gap-3 flex-wrap">
-                          <span>
-                            Amount: <strong className="text-[#151914]">{formatPKR(sub.amount)}</strong>
-                          </span>
-                          <span>&bull;</span>
-                          <span>Depository Bank: <strong className="text-[#151914]">{sub.depositoryBank || sub.bankName || 'N/A'}</strong></span>
-                          <span>&bull;</span>
-                          <span className="break-all">Ref: <strong className="font-mono text-[#151914]">{sub.transactionRef}</strong></span>
-                          <span>&bull;</span>
-                          <span>Deposited: {sub.paymentDate ? String(sub.paymentDate).split('T')[0] : '—'}</span>
-                        </div>
-
-                        {sub.status === 'rejected' && sub.rejectionReason && (
-                          <p className="text-[11px] text-rose-700 font-medium bg-rose-50 p-2 rounded-lg border border-rose-200">
-                            <strong>Reason:</strong> {sub.rejectionReason}
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto self-start sm:self-center shrink-0">
-                        {sub.status === 'verified' && sub.slip ? (
-                          <button
-                            type="button"
-                            onClick={() => setActiveSlipSubmission(sub)}
-                            className="w-full sm:w-auto min-h-[44px] justify-center px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-                          >
-                            <ShieldCheck className="w-4 h-4" />
-                            <span>View Official Member Slip</span>
-                          </button>
-                        ) : sub.status === ('Sending' as any) ? (
-                          <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-[11px] text-blue-700 font-medium px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200/60">
-                            Transmitting...
-                          </span>
-                        ) : sub.status === 'pending' ? (
-                          <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-[11px] text-amber-700 font-medium px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200/60">
-                            Under Committee Review
-                          </span>
-                        ) : (
-                          <div className="flex items-center gap-2 w-full sm:w-auto">
-                            {(sub as any).canRetry && (
-                              <button
-                                type="button"
-                                onClick={() => handleReceiptSubmit(undefined, sub)}
-                                className="w-full sm:w-auto min-h-[44px] justify-center px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 hover:bg-amber-100 bg-amber-50 border border-amber-300 flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
-                              >
-                                <RefreshCw className="w-3.5 h-3.5" />
-                                <span>Retry</span>
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => openUploadModalWithPlot(sub.plotId, sub.installmentNumber, sub.amount)}
-                              className="w-full sm:w-auto min-h-[44px] justify-center px-3 py-1.5 rounded-xl text-xs font-bold text-[#43612B] hover:bg-[#EAF0E7] border border-[#43612B]/30 cursor-pointer"
-                            >
-                              Re-upload Receipt
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-                </div>
-              )}
+              <Link
+                href="/society-members/payments/receipts"
+                className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-bold bg-[#FAF9F5] hover:bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/30 flex items-center justify-center gap-2 transition-all shrink-0 shadow-2xs hover:shadow-xs cursor-pointer"
+              >
+                <span>View Submitted Receipts</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         )}

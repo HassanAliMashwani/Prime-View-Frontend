@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   X,
   FileText,
+  Receipt,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: '/society-members/properties', label: 'My Properties', icon: Home },
   { href: '/society-members/documents', label: 'Documents', icon: FileText },
   { href: '/society-members/payments', label: 'Payments', icon: CreditCard },
+  { href: '/society-members/payments/receipts', label: 'Submitted Receipts', icon: Receipt },
   { href: '/society-members/payments/history', label: 'Payment History', icon: History },
   { href: '/society-members/profile', label: 'Profile', icon: User },
 ];

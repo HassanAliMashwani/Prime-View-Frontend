@@ -899,12 +899,12 @@ export default function AdminReceiptsPage() {
                       {approvingReceiptId === sub.id ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Approving and generating the slip…</span>
+                          <span>Approving…</span>
                         </>
                       ) : (
                         <>
                           <Check className="w-3.5 h-3.5" />
-                          <span>Approve &amp; Generate A4 Slip</span>
+                          <span>Approve</span>
                         </>
                       )}
                     </button>
