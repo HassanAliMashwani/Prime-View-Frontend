@@ -103,12 +103,16 @@ export default function InventoryOverviewChart({
   const rawData: ChartPoint[] = useMemo(() => {
     let list = (monthlyData && monthlyData.length > 0) ? [...monthlyData] : [...internalData];
     if (list.length > 0 && (currentAvailable > 0 || currentReserved > 0 || currentBooked > 0)) {
-      list = list.map((point) => ({
-        ...point,
+      // Keep true historical trajectory for past months, and update the latest (current) month with live status
+      const updated = [...list];
+      const lastIdx = updated.length - 1;
+      updated[lastIdx] = {
+        ...updated[lastIdx],
         available: currentAvailable,
         reserved: currentReserved,
         booked: currentBooked,
-      }));
+      };
+      return updated;
     }
     return list;
   }, [monthlyData, internalData, currentAvailable, currentReserved, currentBooked]);
@@ -123,10 +127,14 @@ export default function InventoryOverviewChart({
     }
   };
 
-  const available = currentAvailable;
-  const reserved = currentReserved;
-  const booked = currentBooked;
-  const total = available + reserved + booked;
+  const latestPoint = rawData.length > 0 ? rawData[rawData.length - 1] : null;
+  const liveTotal = currentAvailable + currentReserved + currentBooked;
+  const available = (liveTotal > 0 || !latestPoint) ? currentAvailable : latestPoint.available;
+  const reserved = (liveTotal > 0 || !latestPoint) ? currentReserved : latestPoint.reserved;
+  const booked = (liveTotal > 0 || !latestPoint) ? currentBooked : latestPoint.booked;
+  const total = liveTotal > 0
+    ? liveTotal
+    : ((latestPoint?.available ?? 0) + (latestPoint?.reserved ?? 0) + (latestPoint?.booked ?? 0));
 
   // Chart dimensions in SVG coordinates
   const svgWidth = 720;
