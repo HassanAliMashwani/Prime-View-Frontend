@@ -49,6 +49,7 @@ import {
   CreateCustomerWithBookingInput,
   setRegisteredPlotsCache,
   getAdminCustomerById,
+  setPaymentPlanForHeldPlot,
   PickerMember,
   searchMembersForPicker,
 } from '@/lib/dal/customers';
@@ -158,6 +159,17 @@ function CustomersPageContent() {
   const queryCustomerId = searchParams.get('customerId') || '';
   const queryTab = searchParams.get('tab') || '';
   const queryCompleteCustomer = searchParams.get('completeCustomer') || searchParams.get('completeCustomerId') || '';
+  const querySetPlanCustomer = searchParams.get('setPlanCustomer') || '';
+  const isSetPlanMode = Boolean(querySetPlanCustomer && queryPlotId);
+
+  // Set Payment Plan Mode State (Super Admin Exclusivity)
+  const [setPlanCustomer, setSetPlanCustomer] = useState<Customer | null>(null);
+  const [setPlanPlot, setSetPlanPlot] = useState<Plot | null>(null);
+  const [setPlanPrice, setSetPlanPrice] = useState<number>(0);
+  const [setPlanPaymentType, setSetPlanPaymentType] = useState<PaymentType>('installment');
+  const [setPlanYears, setSetPlanYears] = useState<number>(1);
+  const [setPlanPaperRef, setSetPlanPaperRef] = useState<string>('');
+  const [setPlanSubmitting, setSetPlanSubmitting] = useState<boolean>(false);
 
   const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
   const sessionRef = useRef<AdminSession | null>(session);
@@ -393,6 +405,136 @@ function CustomersPageContent() {
       });
     }
 
+    // Handle Set Payment Plan for held plot on registered member (Super Admin Exclusivity)
+    if (querySetPlanCustomer && queryPlotId && cur) {
+      if (cur.role !== 'super_admin') {
+        router.replace('/admin/customers-directory');
+        return;
+      }
+
+      runLane1({
+        screen: 'customer-booking',
+        fn: async (signal) => getAdminCustomerById(cur, querySetPlanCustomer, signal),
+      }).then(async (res) => {
+        if (res.ok && res.data) {
+          const cust = res.data;
+          if (cust.registrationStatus === 'minimal') {
+            router.replace(`/admin/customers?completeCustomer=${cust.id}&plotId=${queryPlotId}`);
+            return;
+          }
+          setSetPlanCustomer(cust);
+          setActiveTab('path_a');
+
+          let targetBooking = cust.bookings?.find((b: any) => b.plotId === queryPlotId || b.plot?.id === queryPlotId);
+          let targetPlot = targetBooking?.plot;
+          if (!targetPlot && queryPlotId) {
+            const plotRes = await getAdminPlotDetails(cur, queryPlotId);
+            if (plotRes.ok && plotRes.plot) {
+              targetPlot = plotRes.plot;
+            }
+          }
+
+          const targetPlotId = queryPlotId || targetBooking?.plotId || targetPlot?.id;
+          const customTotal = targetBooking?.installmentPlan?.totalPayment
+            ? Number(targetBooking.installmentPlan.totalPayment)
+            : (targetPlot?.price ? Number(targetPlot.price) : undefined);
+
+          if (targetPlot && targetPlot.price && targetPlot.plotNumber && targetPlot.blockId) {
+            applyPlot(targetPlot, customTotal);
+          } else if (targetPlotId) {
+            await loadPlotById(targetPlotId, customTotal);
+          }
+
+          if (targetPlot) {
+            setSetPlanPlot(targetPlot);
+            setSetPlanPrice(customTotal || targetPlot.price || 0);
+            setSelectedPlotA(targetPlot);
+            setSelectedPlotB(targetPlot);
+            setTotalPaymentA(customTotal || targetPlot.price || 0);
+            setTotalPaymentB(customTotal || targetPlot.price || 0);
+          }
+
+          if (targetBooking?.installmentPlan?.planYears) {
+            const py = Number(targetBooking.installmentPlan.planYears);
+            if (!isNaN(py) && py > 0) {
+              setYearsA(py);
+              setYearsB(py);
+              setSetPlanYears(py);
+            }
+          }
+
+          const currentCity = cust.city || cust.mailingAddress || '';
+          setMemberCity(currentCity);
+
+          // Populate all existing member details into Path A form
+          setPathAForm((prev) => ({
+            ...prev,
+            plotId: queryPlotId || targetPlotId || prev.plotId,
+            fullName: cust.fullName || '',
+            cnic: cust.cnic ? formatCnic(cust.cnic) : '',
+            phone: cust.phone || '',
+            email: cust.email || '',
+            mailingAddress: cust.mailingAddress || currentCity,
+            membershipNo: cust.membershipNo || '',
+            fatherOrHusbandName: (cust.fatherOrHusbandName && cust.fatherOrHusbandName !== 'Pending Information') ? cust.fatherOrHusbandName : '',
+            nokName: cust.nokName || '',
+            nokCnic: cust.nokCnic ? formatCnic(cust.nokCnic) : '',
+            portalPassword: '',
+            paymentType: (targetBooking?.paymentType as PaymentType) || 'installment',
+            paperInstallmentRef: targetBooking?.paperInstallmentRef || '',
+            applicantPhotoUrl: cust.applicantPhotoUrl || prev.applicantPhotoUrl,
+            cnicCopyUrl: cust.cnicCopyUrl || prev.cnicCopyUrl,
+            nokCnicCopyUrl: cust.nokCnicCopyUrl || prev.nokCnicCopyUrl,
+          }));
+
+          // Populate document files if URLs exist on profile
+          setDocFiles({
+            photo: cust.applicantPhotoUrl ? { name: 'applicant-photo.jpg', sizeKb: 100, dataUrl: cust.applicantPhotoUrl } : undefined,
+            cnic: cust.cnicCopyUrl ? { name: 'cnic-copy.jpg', sizeKb: 100, dataUrl: cust.cnicCopyUrl } : undefined,
+            nokCnic: cust.nokCnicCopyUrl ? { name: 'nok-cnic-copy.jpg', sizeKb: 100, dataUrl: cust.nokCnicCopyUrl } : undefined,
+          });
+
+          // Populate Sub Admin form
+          setSubAdminForm({
+            customerName: cust.fullName || '',
+            cnic: cust.cnic ? formatCnic(cust.cnic) : '',
+            city: currentCity,
+            customerId: cust.id,
+          });
+
+          // Also populate Path B
+          const bookings = (cust.bookings || []).map((b: any) => ({
+            plotId: b.plotId || b.plot?.id,
+            plotNumber: b.plot?.plotNumber || '',
+            blockId: b.plot?.blockId || '',
+            category: b.plot?.category || '',
+            size: b.plot?.size || '',
+            price: Number(b.plot?.price || 0),
+            paymentType: b.paymentType || 'installment',
+            status: b.status,
+            bookingDate: b.bookingDate,
+            hasPaymentPlan: Boolean(b.installmentPlan || (b.payments && b.payments.length > 0)),
+            billsCount: b.payments?.length || 0,
+          }));
+
+          setSelectedCustomer({
+            id: cust.id,
+            membershipNo: cust.membershipNo || '',
+            fullName: cust.fullName || '',
+            fatherOrHusbandName: cust.fatherOrHusbandName || '',
+            cnic: cust.cnic ? formatCnic(cust.cnic) : '',
+            phone: cust.phone || '',
+            email: cust.email || '',
+            mailingAddress: cust.mailingAddress || '',
+            accountStatus: cust.accountStatus || 'active',
+            propertiesCount: bookings.length,
+            bookings,
+          });
+          setIsCustomerConfirmed(true);
+        }
+      }).catch(() => {});
+    }
+
     // Handle Complete Registration for quick-booked member (CR 07 §5)
     if (queryCompleteCustomer && cur) {
       runLane1({
@@ -451,7 +593,7 @@ function CustomersPageContent() {
     }
 
     setLoading(false);
-  }, [router, queryPlotId, queryLockToken, queryCustomerId, queryCompleteCustomer, queryCustomerName, queryCustomerPhone, queryCustomerEmail]);
+  }, [router, queryPlotId, queryLockToken, queryCustomerId, queryCompleteCustomer, querySetPlanCustomer, queryCustomerName, queryCustomerPhone, queryCustomerEmail]);
 
   useEffect(() => {
     loadInitialData();
@@ -739,8 +881,10 @@ function CustomersPageContent() {
       return;
     }
     const isNokCnicUnchanged = Boolean(
-      completeTargetCustomer &&
-      pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')
+      (completeTargetCustomer &&
+        pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
+      (setPlanCustomer &&
+        pathAForm.nokCnic === (setPlanCustomer.nokCnic ? formatCnic(setPlanCustomer.nokCnic) : ''))
     );
     if (!isNokCnicUnchanged && (!pathAForm.nokCnic || !isValidCnic(pathAForm.nokCnic))) {
       setFeedback({ type: 'error', message: 'Nominee CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
@@ -751,7 +895,7 @@ function CustomersPageContent() {
     const canIssueCreds = session.role === 'super_admin';
 
     // Minimum 8 characters check if issuing credentials
-    if (canIssueCreds && pathAForm.portalPassword && pathAForm.portalPassword.trim().length < 8) {
+    if (canIssueCreds && !setPlanCustomer && pathAForm.portalPassword && pathAForm.portalPassword.trim().length < 8) {
       setFeedback({ type: 'error', message: 'Initial customer portal password must be at least 8 characters long.' });
       return;
     }
@@ -776,6 +920,74 @@ function CustomersPageContent() {
         planYears: yearsA,
         years: yearsA,
       };
+    }
+
+    // If setting payment plan for a held plot on an existing registered member (Super Admin exclusivity):
+    if (setPlanCustomer) {
+      setPathASubmitting(true);
+      const res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => setPaymentPlanForHeldPlot(session, setPlanCustomer.id, pathAForm.plotId || queryPlotId, {
+          paymentType: pathAForm.paymentType,
+          installmentPlan,
+          paperInstallmentRef: pathAForm.paperInstallmentRef?.trim() || undefined,
+          plotPrice: finalPriceA,
+        }),
+      });
+      setPathASubmitting(false);
+
+      if (!res.ok) {
+        if (res.error === 'BOOKING_NOT_FOUND' || res.message?.includes('No held booking')) {
+          setPathASubmitting(true);
+          const attachRes = await runLane1({
+            screen: 'customer-booking',
+            isSave: true,
+            fn: async () => addBookingToCustomer(session, {
+              customerId: setPlanCustomer.id,
+              plotId: pathAForm.plotId || queryPlotId,
+              paymentType: pathAForm.paymentType,
+              paperInstallmentRef: pathAForm.paperInstallmentRef,
+              lockToken: queryLockToken || undefined,
+              reservationId: queryReservationId || undefined,
+              installmentPlan,
+              plotPrice: finalPriceA,
+            }),
+          });
+          setPathASubmitting(false);
+
+          if (!attachRes.ok) {
+            setFeedback({ type: 'error', message: attachRes.message || attachRes.error || 'Failed to attach plot to member.' });
+            return;
+          }
+        } else {
+          setFeedback({ type: 'error', message: res.message || res.error || 'Failed to assign payment plan.' });
+          return;
+        }
+      }
+
+      isCommittedRef.current = true;
+      setFeedback({
+        type: 'success',
+        message: `Official payment plan assigned to Plot ${plot.plotNumber} for ${setPlanCustomer.fullName}!`,
+      });
+
+      if (plot) {
+        setAgreementModal({
+          open: false,
+          customer: setPlanCustomer,
+          plot,
+          paymentType: pathAForm.paymentType,
+          paperRef: pathAForm.paperInstallmentRef,
+          bookingDate: new Date().toLocaleDateString('en-GB'),
+          installmentPlan,
+        });
+      }
+
+      setTimeout(() => {
+        router.push('/admin/customers-directory');
+      }, 1200);
+      return;
     }
 
     // If completing registration for a quick-booked member (CR 07 §5):
@@ -1151,20 +1363,51 @@ function CustomersPageContent() {
     }
 
     setPathBSubmitting(true);
-    const res = await runLane1({
-      screen: 'customer-booking',
-      isSave: true,
-      fn: async () => addBookingToCustomer(session, {
-        customerId: selectedCustomer.id,
-        plotId: pathBPlotId,
-        paymentType: pathBPaymentType,
-        paperInstallmentRef: pathBPaperRef,
-        lockToken: queryLockToken || undefined,
-        reservationId: queryReservationId || undefined,
-        installmentPlan,
-        plotPrice: finalPriceB,
-      }),
-    });
+    let res: any;
+    if (querySetPlanCustomer || setPlanCustomer) {
+      const targetCustId = selectedCustomer.id || querySetPlanCustomer;
+      res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => setPaymentPlanForHeldPlot(session, targetCustId, pathBPlotId, {
+          paymentType: pathBPaymentType,
+          installmentPlan,
+          paperInstallmentRef: pathBPaperRef?.trim() || undefined,
+          plotPrice: finalPriceB,
+        }),
+      });
+      if (!res.ok && (res.error === 'BOOKING_NOT_FOUND' || res.message?.includes('No held booking'))) {
+        res = await runLane1({
+          screen: 'customer-booking',
+          isSave: true,
+          fn: async () => addBookingToCustomer(session, {
+            customerId: targetCustId,
+            plotId: pathBPlotId,
+            paymentType: pathBPaymentType,
+            paperInstallmentRef: pathBPaperRef,
+            lockToken: queryLockToken || undefined,
+            reservationId: queryReservationId || undefined,
+            installmentPlan,
+            plotPrice: finalPriceB,
+          }),
+        });
+      }
+    } else {
+      res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => addBookingToCustomer(session, {
+          customerId: selectedCustomer.id,
+          plotId: pathBPlotId,
+          paymentType: pathBPaymentType,
+          paperInstallmentRef: pathBPaperRef,
+          lockToken: queryLockToken || undefined,
+          reservationId: queryReservationId || undefined,
+          installmentPlan,
+          plotPrice: finalPriceB,
+        }),
+      });
+    }
     setPathBSubmitting(false);
 
     if (!res.ok) {
@@ -1350,6 +1593,74 @@ function CustomersPageContent() {
       </div>
     );
   }
+
+  // Set Payment Plan Submit Handler (Super Admin Exclusivity)
+  const handleSetPaymentPlanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (setPlanSubmitting) return;
+
+    const cur = session || getActiveAdminSession();
+    if (!cur || cur.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Only the Super Admin can set payment plans.' });
+      return;
+    }
+
+    if (!setPlanCustomer || !queryPlotId) {
+      setFeedback({ type: 'error', message: 'Target member or plot not found.' });
+      return;
+    }
+
+    if (setPlanPrice <= 0 || isNaN(setPlanPrice)) {
+      setFeedback({ type: 'error', message: 'Please enter a valid plot price (PKR).' });
+      return;
+    }
+
+    let installmentPlan: InstallmentPlanConfig | undefined = undefined;
+    if (setPlanPaymentType === 'installment') {
+      installmentPlan = {
+        totalPayment: setPlanPrice,
+        planYears: setPlanYears,
+        years: setPlanYears,
+      };
+    }
+
+    setSetPlanSubmitting(true);
+    try {
+      const res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => setPaymentPlanForHeldPlot(cur, setPlanCustomer.id, queryPlotId, {
+          paymentType: setPlanPaymentType,
+          installmentPlan,
+          paperInstallmentRef: setPlanPaperRef.trim() || undefined,
+          plotPrice: setPlanPrice,
+        }),
+      });
+
+      if (!res.ok) {
+        setFeedback({ type: 'error', message: res.message || res.error || 'Failed to assign payment plan.' });
+        setSetPlanSubmitting(false);
+        return;
+      }
+
+      setFeedback({
+        type: 'success',
+        message: `Official payment plan assigned to Plot ${setPlanPlot?.plotNumber || queryPlotId} for ${setPlanCustomer.fullName}!`,
+      });
+
+      setTimeout(() => {
+        router.push('/admin/customers-directory');
+      }, 1200);
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err?.message || 'Error assigning payment plan.' });
+      setSetPlanSubmitting(false);
+    }
+  };
+
+  // Calculations for Set Payment Plan Mode
+  const planSet = (setPlanPrice > 0 && setPlanPaymentType === 'installment')
+    ? generateFrontendSchedule({ plotPriceRupees: setPlanPrice, planYears: setPlanYears })
+    : null;
 
   const canIssueCredentials = session?.role === 'super_admin';
 
@@ -1571,7 +1882,7 @@ function CustomersPageContent() {
         </div>
       ) : (
         <>
-          {/* Header & Navigation Pills / Completion Mode Banner */}
+                    {/* Header & Navigation Pills / Completion Mode Banner */}
           {completeTargetCustomer || queryCompleteCustomer ? (
             <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-50 border-2 border-amber-500/40 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
@@ -1596,6 +1907,42 @@ function CustomersPageContent() {
                   </h1>
                   <p className="text-xs text-slate-600 mt-0.5">
                     Establish installment schedule on the 5th of each month, and issue official portal access credentials.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCancelLockAndReturn}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 bg-white hover:bg-slate-50 text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer shadow-xs"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Cancel &amp; Return to Directory</span>
+              </button>
+            </div>
+          ) : setPlanCustomer || querySetPlanCustomer ? (
+            <div className="bg-gradient-to-r from-emerald-600/15 via-teal-600/10 to-emerald-50 border-2 border-emerald-600/40 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-12 h-12 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded-md bg-emerald-700 text-white font-black text-[10px] uppercase tracking-wider">
+                      Set Payment Plan
+                    </span>
+                    <span className="text-xs text-emerald-900 font-bold">
+                      Existing Registered Member • Held Plot Assignment
+                    </span>
+                  </div>
+                  <h1 className="text-lg font-bold text-slate-900 font-serif">
+                    {setPlanCustomer ? (
+                      `${setPlanCustomer.fullName} (${setPlanCustomer.membershipNo || formatCnic(setPlanCustomer.cnic)})`
+                    ) : (
+                      <span className="inline-block h-5 w-48 bg-emerald-300/40 animate-pulse rounded align-middle" />
+                    )}
+                  </h1>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    Assign official payment schedule and generate ledger bills for Plot {setPlanPlot?.plotNumber || queryPlotId}. Existing member profile details are prefilled.
                   </p>
                 </div>
               </div>
@@ -1831,6 +2178,21 @@ function CustomersPageContent() {
                         Login credentials cannot be issued by your account. An authorized administrator can generate them later from the Customer Directory.
                       </p>
                     </div>
+                  </div>
+                ) : setPlanCustomer ? (
+                  <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div>
+                        <span className="font-bold">Existing Member Portal Account Active</span>
+                        <div className="text-[11px] text-emerald-700 mt-0.5">
+                          Member signs in using Membership # <strong className="font-mono">{setPlanCustomer.membershipNo}</strong>. Credentials are already active on file.
+                        </div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded border border-emerald-300">
+                      Active Account
+                    </span>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2411,6 +2773,7 @@ function CustomersPageContent() {
                 !isValidCnic(pathAForm.cnic) ||
                 !(
                   (completeTargetCustomer && pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
+                  (setPlanCustomer && pathAForm.nokCnic === (setPlanCustomer.nokCnic ? formatCnic(setPlanCustomer.nokCnic) : '')) ||
                   isValidCnic(pathAForm.nokCnic)
                 )
               }
@@ -2419,12 +2782,12 @@ function CustomersPageContent() {
               {pathASubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                  <span>{completeTargetCustomer ? 'Completing Registration…' : 'Enrolling Customer…'}</span>
+                  <span>{setPlanCustomer ? 'Assigning Payment Plan…' : completeTargetCustomer ? 'Completing Registration…' : 'Enrolling Customer…'}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4 text-[#D4AF37] shrink-0" />
-                  <span>{completeTargetCustomer ? 'Complete Registration & Issue Portal Credentials' : 'Submit Application & Register Plot'}</span>
+                  <span>{setPlanCustomer ? 'Assign Payment Plan & Activate Ledger' : completeTargetCustomer ? 'Complete Registration & Issue Portal Credentials' : 'Submit Application & Register Plot'}</span>
                 </>
               )}
             </button>

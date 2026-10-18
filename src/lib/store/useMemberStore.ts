@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Customer } from '../mock/types';
 import { EnrichedPlot, getMyPlots } from '../dal/plots';
 import { getCustomerProfile } from '../dal/customers';
-import { getPaymentSchedule, getPaymentHistory, PlotPaymentSchedule, PaymentTransaction } from '../dal/payments';
+import { getPaymentSchedule, getPaymentHistory, PlotPaymentSchedule, PaymentTransaction, HeldPlotInfo } from '../dal/payments';
 import { getMyDocuments, PlotDocuments } from '../dal/documents';
 import { getActiveSession } from '../dal/auth';
 
@@ -13,6 +13,7 @@ interface MemberState {
   profile: Customer | null;
   plots: EnrichedPlot[];
   schedules: PlotPaymentSchedule[];
+  heldPlots: HeldPlotInfo[];
   transactions: PaymentTransaction[];
   documents: PlotDocuments[];
   isLoading: boolean;
@@ -37,6 +38,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   profile: null,
   plots: [],
   schedules: [],
+  heldPlots: [],
   transactions: [],
   documents: [],
   isLoading: false,
@@ -76,6 +78,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                 : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
               schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
+              heldPlots: (schedulesRes as any)?.heldPlots || [],
               isLoading: false,
             }));
           },
@@ -111,6 +114,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                 : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
               schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
+              heldPlots: (schedulesRes as any)?.heldPlots || [],
             }));
           },
         });
@@ -242,6 +246,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
             ]);
             set((state) => ({
               schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
+              heldPlots: (schedRes as any)?.heldPlots || [],
               transactions: histRes.data || [],
               isLoading: false,
             }));
@@ -265,6 +270,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
             ]);
             set((state) => ({
               schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
+              heldPlots: (schedRes as any)?.heldPlots || [],
               transactions: histRes.data || [],
             }));
           },

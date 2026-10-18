@@ -5,6 +5,15 @@ import { computePlotLedger } from '../ledger/plotLedger';
 import { fetchWith60sCache } from './apiCache';
 import { getMemberRawPlots } from './plots';
 
+export interface HeldPlotInfo {
+  plotId: string;
+  plotNumber: string;
+  blockId: string;
+  blockName: string;
+  size: string;
+  status: 'held_pending_plan';
+}
+
 export interface PlotPaymentSchedule {
   plotId: string;
   plotNumber: string;
@@ -45,7 +54,7 @@ export async function getMemberRawPayments(token: string, customerId: string, si
 export async function getPaymentSchedule(
   plotId?: string,
   signal?: AbortSignal
-): Promise<{ ok: boolean; data: PlotPaymentSchedule[]; error?: string }> {
+): Promise<{ ok: boolean; data: PlotPaymentSchedule[]; heldPlots: HeldPlotInfo[]; error?: string }> {
   try {
     const session = requireMemberSession();
 
@@ -60,11 +69,12 @@ export async function getPaymentSchedule(
     if (plotId && plotId !== 'all') {
       plots = plots.filter((p) => p.id === plotId || p.plotNumber === plotId);
       if (plots.length === 0) {
-        return { ok: false, data: [], error: 'NOT_FOUND' };
+        return { ok: false, data: [], heldPlots: [], error: 'NOT_FOUND' };
       }
     }
 
     const schedules: PlotPaymentSchedule[] = [];
+    const heldPlots: HeldPlotInfo[] = [];
 
     for (const plot of plots) {
       const booking = plot.bookings && plot.bookings.length > 0 ? plot.bookings[0] : null;
@@ -80,11 +90,6 @@ export async function getPaymentSchedule(
           paidAmount: Number(p.paidAmount) || 0,
         }));
 
-      // Fixed statutory fees
-      const admissionFee = bookingPayments.find((p) => p.feeType === 'admission_fee');
-      const shareSubscriptionFee = bookingPayments.find((p) => p.feeType === 'share_subscription_fee');
-      const downpaymentFee = bookingPayments.find((p) => p.feeType === 'plot_downpayment');
-
       // Plot price payments only
       const plotPricePayments = bookingPayments.filter(
         (p) =>
@@ -94,6 +99,24 @@ export async function getPaymentSchedule(
           p.feeType === 'plot_biannual' ||
           p.feeType === 'plot_possession'
       );
+
+      // Separate held plots BEFORE any balance is calculated so a plot with zero bills shows no amount owed
+      if (plotPricePayments.length === 0) {
+        heldPlots.push({
+          plotId: plot.id,
+          plotNumber: plot.plotNumber || 'Plot',
+          blockId: String(plot.blockId || ''),
+          blockName: plot.block?.name || plot.blockName || 'Prime View Block',
+          size: plot.size || '',
+          status: 'held_pending_plan',
+        });
+        continue;
+      }
+
+      // Fixed statutory fees
+      const admissionFee = bookingPayments.find((p) => p.feeType === 'admission_fee');
+      const shareSubscriptionFee = bookingPayments.find((p) => p.feeType === 'share_subscription_fee');
+      const downpaymentFee = bookingPayments.find((p) => p.feeType === 'plot_downpayment');
 
       const ledger = computePlotLedger(plot.price, bookingPayments);
       const totalPrice = ledger.totalPlotPrice;
@@ -125,12 +148,12 @@ export async function getPaymentSchedule(
       });
     }
 
-    return { ok: true, data: schedules };
+    return { ok: true, data: schedules, heldPlots };
   } catch (err: unknown) {
     if (err instanceof Error && err.message === 'UNAUTHORIZED') {
-      return { ok: false, data: [], error: 'UNAUTHORIZED' };
+      return { ok: false, data: [], heldPlots: [], error: 'UNAUTHORIZED' };
     }
-    return { ok: false, data: [], error: 'UNKNOWN_ERROR' };
+    return { ok: false, data: [], heldPlots: [], error: 'UNKNOWN_ERROR' };
   }
 }
 

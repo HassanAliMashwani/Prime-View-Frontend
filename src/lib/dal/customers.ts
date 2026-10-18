@@ -74,7 +74,17 @@ export interface CustomerDirectoryPlot {
   price: number;
   paymentType: PaymentType;
   bookingDate: string;
+  hasPaymentPlan?: boolean;
+  billsCount?: number;
 }
+
+export interface SetPaymentPlanInput {
+  paymentType: 'one_time' | 'installment';
+  installmentPlan?: InstallmentPlanConfig;
+  paperInstallmentRef?: string;
+  plotPrice?: number;
+}
+
 
 export interface CustomerDirectoryEntry {
   id: string;
@@ -774,4 +784,31 @@ export async function completeMemberRegistration(
     credentials: res.data.credentials,
     message: res.data.message,
   };
+}
+
+
+/**
+ * Set payment plan on an existing held plot for an already registered member (Super Admin only).
+ */
+export async function setPaymentPlanForHeldPlot(
+  session: AdminSession,
+  customerId: string,
+  plotId: string,
+  input: SetPaymentPlanInput
+): Promise<{ ok: boolean; data?: any; error?: string; message?: string }> {
+  try {
+    const res = await apiPost<any>(
+      `/customers/${customerId}/plots/${plotId}/payment-plan`,
+      input,
+      session.token
+    );
+    if (res.data) {
+      clearCachePrefix('/customers');
+      clearCachePrefix('/me/plots');
+      return { ok: true, data: res.data };
+    }
+    return { ok: false, error: res.error || 'FAILED_TO_SET_PLAN', message: res.message || 'Failed to set payment plan.' };
+  } catch (err: any) {
+    return { ok: false, error: err.error || 'FAILED_TO_SET_PLAN', message: err.message || 'Failed to set payment plan.' };
+  }
 }

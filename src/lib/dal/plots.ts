@@ -6,6 +6,8 @@ import { fetchWith60sCache } from './apiCache';
 
 export interface EnrichedPlot extends Plot {
   booking: Booking;
+  hasPaymentPlan?: boolean;
+  billsCount?: number;
   paymentSummary: {
     paymentType: PaymentType;
     totalAmount: number;
@@ -49,6 +51,11 @@ export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; d
         ? apiBooking.payments
         : [];
 
+      const billsCount = bookingPayments.filter((p: any) =>
+        ['plot_installment', 'plot_one_time', 'plot_downpayment', 'plot_biannual', 'plot_possession'].includes(p.feeType),
+      ).length;
+      const hasPaymentPlan = Boolean(plot.hasPaymentPlan ?? (billsCount > 0));
+
       const effectivePrice = apiBooking?.installmentPlan?.totalPayment
         ? Number(apiBooking.installmentPlan.totalPayment)
         : plot.price;
@@ -72,6 +79,8 @@ export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; d
 
       return {
         ...plot,
+        hasPaymentPlan,
+        billsCount,
         price: ledger.totalPlotPrice,
         booking,
         paymentSummary: {

@@ -62,13 +62,14 @@ export default function MemberDashboardPage() {
 
   const declinedReceipts = receipts.filter((r) => r.status === 'rejected');
 
-  // Aggregate stats strictly for display cards
-  const totalProperties = plots.length;
-  const totalInvestment = plots.reduce(
+  // Aggregate stats strictly for display cards (excluding held plots with 0 bills)
+  const payablePlots = plots.filter((p) => p.hasPaymentPlan !== false && (p.billsCount ?? 1) > 0);
+  const totalProperties = payablePlots.length;
+  const totalInvestment = payablePlots.reduce(
     (sum, p) => sum + p.paymentSummary.totalAmount,
     0
   );
-  const totalPaid = plots.reduce(
+  const totalPaid = payablePlots.reduce(
     (sum, p) => sum + p.paymentSummary.paidAmount,
     0
   );
@@ -90,7 +91,7 @@ export default function MemberDashboardPage() {
   let upcomingAlert: UpcomingAlert | null = null;
   const today = new Date().toISOString().split('T')[0];
 
-  for (const plot of plots) {
+  for (const plot of payablePlots) {
     if (plot.paymentSummary.installmentProgress) {
       const prog = plot.paymentSummary.installmentProgress;
       if (prog.hasOverdue) hasOverdue = true;

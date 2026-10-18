@@ -107,7 +107,7 @@ function PaymentsContent() {
     }
   }, [initialPlotParam]);
 
-  const { schedules, plots, profile, fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
+  const { schedules, plots, profile, heldPlots = [], fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [activeTab, setActiveTab] = useState<'installment' | 'one_time'>('installment');
   const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
@@ -158,17 +158,19 @@ function PaymentsContent() {
   const availablePlotOptions = React.useMemo(() => {
     let options: any[] = [];
     if (plots && plots.length > 0) {
-      options = plots.map((p) => {
-        const matchingSchedule = schedules.find((s) => s.plotId === p.id);
-        return {
-          id: p.id,
-          plotNumber: p.plotNumber,
-          blockName: matchingSchedule?.blockName || (p as any).blockName || p.blockId,
-          size: p.size,
-          category: p.category,
-          paymentType: matchingSchedule?.paymentType || (p.paymentSummary?.paymentType as any) || 'installment',
-        };
-      });
+      options = plots
+        .filter((p) => p.hasPaymentPlan !== false && (p.billsCount ?? 1) > 0)
+        .map((p) => {
+          const matchingSchedule = schedules.find((s) => s.plotId === p.id);
+          return {
+            id: p.id,
+            plotNumber: p.plotNumber,
+            blockName: matchingSchedule?.blockName || (p as any).blockName || p.blockId,
+            size: p.size,
+            category: p.category,
+            paymentType: matchingSchedule?.paymentType || (p.paymentSummary?.paymentType as any) || 'installment',
+          };
+        });
     } else if (schedules && schedules.length > 0) {
       options = schedules.map((s) => ({
         id: s.plotId,
@@ -182,7 +184,7 @@ function PaymentsContent() {
 
     return options.filter((opt) => {
       const s = schedules.find((sched) => sched.plotId === opt.id);
-      if (!s) return true; // Keep if schedule not loaded yet
+      if (!s) return false; // Held plot or plot without schedule cannot be selected
       if (opt.paymentType === 'one_time') {
         // Allow exactly ONE documentation receipt for an already-settled one-time plot
         const alreadySubmitted = receipts.some((r) => r.plotId === opt.id);
@@ -796,31 +798,112 @@ function PaymentsContent() {
             </div>
           </div>
         ) : schedules.length === 0 ? (
-          /* Single unified empty state for zero-plot accounts */
-          <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-12 text-center space-y-3 sm:space-y-4 shadow-xs">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">
-              <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-[#43612B]/70" />
+          heldPlots.length > 0 ? (
+            <div className="space-y-4">
+              <div className="bg-amber-50/80 rounded-2xl sm:rounded-3xl border border-amber-200 p-6 sm:p-8 space-y-4 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-display font-bold text-base sm:text-lg text-amber-950">
+                      Plots on Administrative Hold
+                    </h4>
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      You have {heldPlots.length} property plot{heldPlots.length > 1 ? 's' : ''} currently held pending payment plan finalization by the society administration. No bills have been issued, and no payments are due at this time.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                  {heldPlots.map((hp) => (
+                    <div
+                      key={hp.plotId}
+                      className="bg-white rounded-xl p-4 border border-amber-200/80 shadow-xs space-y-2"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
+                            {hp.blockName}
+                          </span>
+                          <h5 className="font-display font-bold text-base text-[#151914]">
+                            Plot {hp.plotNumber}
+                          </h5>
+                          <p className="text-xs text-[#6B7462]">{hp.size}</p>
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
+                          Hold Active
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-black/5 flex items-center justify-between text-xs text-[#6B7462]">
+                        <span>Amount Owed: <strong className="text-[#151914] font-mono">PKR 0</strong></span>
+                        <span className="font-semibold text-amber-700">Awaiting Plan</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              <h4 className="font-display font-bold text-base sm:text-lg text-[#151914]">
-                No Properties Linked to Your Account Yet
-              </h4>
-              <p className="text-xs text-[#6B7462] max-w-md mx-auto leading-relaxed">
-                Once a property is registered to your membership, your payment ledgers and installment schedules will appear here.
-              </p>
+          ) : (
+            /* Single unified empty state for zero-plot accounts */
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-12 text-center space-y-3 sm:space-y-4 shadow-xs">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-[#FAF9F5] text-[#6B7462] flex items-center justify-center mx-auto">
+                <CreditCard className="w-7 h-7 sm:w-8 sm:h-8 text-[#43612B]/70" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-display font-bold text-base sm:text-lg text-[#151914]">
+                  No Properties Linked to Your Account Yet
+                </h4>
+                <p className="text-xs text-[#6B7462] max-w-md mx-auto leading-relaxed">
+                  Once a property is registered to your membership, your payment ledgers and installment schedules will appear here.
+                </p>
+              </div>
+              <div className="pt-2">
+                <Link
+                  href="/society-members/properties"
+                  className="w-full sm:w-auto min-h-[44px] justify-center inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#43612B] text-white text-xs font-bold hover:bg-[#344c22] transition-colors"
+                >
+                  <span>Check Properties</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
-            <div className="pt-2">
-              <Link
-                href="/society-members/properties"
-                className="w-full sm:w-auto min-h-[44px] justify-center inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#43612B] text-white text-xs font-bold hover:bg-[#344c22] transition-colors"
-              >
-                <span>Check Properties</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
+          )
         ) : (
           <div className="space-y-3 sm:space-y-6">
+            {/* ── Informational banner for held plots awaiting payment plan ── */}
+            {heldPlots.length > 0 && (
+              <div className="space-y-2">
+                {heldPlots.map((hp) => (
+                  <div
+                    key={hp.plotId}
+                    className="rounded-2xl p-3.5 sm:p-4 border border-amber-200 bg-amber-50/80 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-200 text-amber-900">
+                            Held Plot • Pending Plan
+                          </span>
+                          <span className="text-xs font-bold text-amber-950">
+                            Plot {hp.plotNumber} ({hp.blockName}, {hp.size})
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-800">
+                          On administrative hold awaiting payment plan assignment by society office. Amount owed: <strong className="font-mono text-amber-950">PKR 0</strong>.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-100/90 text-amber-800 border border-amber-300/50 shrink-0">
+                      Plan Pending Finalization
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
             {/* ── Top-Level Payment Type Tabs (Equal buttons in 1 row) ── */}
             <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:gap-3 border-b border-black/[0.08] pb-3">
               <button

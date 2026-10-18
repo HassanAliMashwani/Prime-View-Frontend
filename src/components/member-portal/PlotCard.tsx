@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { EnrichedPlot } from '@/lib/dal/plots';
 import {
   MapPin,
+  Clock,
   Calendar,
   CreditCard,
   ChevronDown,
@@ -39,6 +40,7 @@ const formatCategory = (cat: string) => {
 export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const isHeld = plot.hasPaymentPlan === false || plot.billsCount === 0;
   const isInstallment = plot.paymentSummary.paymentType === 'installment';
   const progress = plot.paymentSummary.installmentProgress;
 
@@ -103,85 +105,108 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
 
         {/* Badges: Left-aligned wrapping on phone, right-aligned on desktop */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          {/* Status Badge */}
-          <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span className="capitalize">{plot.status}</span>
-          </span>
-
-          {/* Payment Type Badge */}
-          <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-[#FAF9F5] text-[#151914] border border-black/[0.08]">
-            {isInstallment ? 'Installment Plan' : 'Full Payment'}
-          </span>
-        </div>
-      </div>
-
-      {/* Financial Overview Grid: 3 figures in 1 row on mobile (>=380px) and desktop; 2 on row 1 + Remaining on row 2 when narrower */}
-      <div className="grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 py-2.5 sm:py-4">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
-            Total Value
-          </p>
-          <p className="font-display font-bold text-base text-[#151914] mt-0.5 tabular-nums truncate">
-            {formattedPrice}
-          </p>
-        </div>
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
-            Total Paid
-          </p>
-          <p className="font-display font-bold text-base text-[#43612B] mt-0.5 tabular-nums truncate">
-            {formattedPaid}
-          </p>
-        </div>
-        <div className="min-w-0 col-span-2 min-[380px]:col-span-1 sm:col-span-1">
-          <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
-            Remaining
-          </p>
-          <p className="font-display font-bold text-base text-[#151914] mt-0.5 tabular-nums truncate">
-            {formattedRemaining}
-          </p>
-        </div>
-      </div>
-
-      {/* Dynamic Payment Progress Bar */}
-      <div className="py-2.5 px-3 sm:py-3 sm:px-4 rounded-xl bg-[#FAF9F7] border border-black/[0.06] space-y-1.5 sm:space-y-2">
-        <div className="flex items-center justify-between text-xs font-semibold">
-          <span className="text-[#151914] truncate mr-2">
-            {isInstallment && progress
-              ? `Installments Paid: ${progress.paidCount} of ${progress.totalCount}`
-              : `Progress: ${formattedPaid} of ${formattedPrice}`}
-          </span>
-          <span className="text-[#43612B] font-mono shrink-0">{clampedPercent}% Completed</span>
-        </div>
-
-        {/* Progress track */}
-        <div className="w-full h-2 sm:h-2.5 bg-black/10 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-[#43612B] rounded-full transition-all duration-500"
-            style={{ width: `${clampedPercent}%` }}
-          />
-        </div>
-
-        {/* Overdue alert or status text */}
-        <div className="flex items-center justify-between text-[11px] pt-0.5 text-[#6B7462]">
-          {isInstallment && progress ? (
-            progress.hasOverdue ? (
-              <span className="text-red-600 font-semibold flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" />
-                Installment Overdue
-              </span>
-            ) : (
-              <span>Next Due: {progress.nextDueDate ? String(progress.nextDueDate).split('T')[0] : 'All Paid'}</span>
-            )
-          ) : (
-            <span>
-              {clampedPercent >= 100 ? 'Full Payment Settled' : 'Awaiting Settlement'}
+          {isHeld ? (
+            <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-300 flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              <span>Held (Plan Pending)</span>
             </span>
+          ) : (
+            <>
+              {/* Status Badge */}
+              <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20 flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span className="capitalize">{plot.status}</span>
+              </span>
+
+              {/* Payment Type Badge */}
+              <span className="px-2.5 py-0.5 sm:py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-[#FAF9F5] text-[#151914] border border-black/[0.08]">
+                {isInstallment ? 'Installment Plan' : 'Full Payment'}
+              </span>
+            </>
           )}
-          <span>{isInstallment ? 'Monthly Terms' : 'One-Time Clearance'}</span>
         </div>
       </div>
+
+      {isHeld ? (
+        <div className="py-4 px-4 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-900 space-y-1 my-3">
+          <div className="flex items-center gap-2 font-bold text-xs">
+            <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+            <span>Awaiting Payment Plan Assignment</span>
+          </div>
+          <p className="text-xs text-amber-800 leading-relaxed">
+            This plot is on administrative hold. No payment plan or bills have been established yet. Once the official plan is assigned by the society administration, your schedule and payable amounts will appear here.
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* Financial Overview Grid: 3 figures in 1 row on mobile (>=380px) and desktop; 2 on row 1 + Remaining on row 2 when narrower */}
+          <div className="grid grid-cols-2 min-[380px]:grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 py-2.5 sm:py-4">
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
+                Total Value
+              </p>
+              <p className="font-display font-bold text-base text-[#151914] mt-0.5 tabular-nums truncate">
+                {formattedPrice}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
+                Total Paid
+              </p>
+              <p className="font-display font-bold text-base text-[#43612B] mt-0.5 tabular-nums truncate">
+                {formattedPaid}
+              </p>
+            </div>
+            <div className="min-w-0 col-span-2 min-[380px]:col-span-1 sm:col-span-1">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-[#6B7462] truncate">
+                Remaining
+              </p>
+              <p className="font-display font-bold text-base text-[#151914] mt-0.5 tabular-nums truncate">
+                {formattedRemaining}
+              </p>
+            </div>
+          </div>
+
+          {/* Dynamic Payment Progress Bar */}
+          <div className="py-2.5 px-3 sm:py-3 sm:px-4 rounded-xl bg-[#FAF9F7] border border-black/[0.06] space-y-1.5 sm:space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="text-[#151914] truncate mr-2">
+                {isInstallment && progress
+                  ? `Installments Paid: ${progress.paidCount} of ${progress.totalCount}`
+                  : `Progress: ${formattedPaid} of ${formattedPrice}`}
+              </span>
+              <span className="text-[#43612B] font-mono shrink-0">{clampedPercent}% Completed</span>
+            </div>
+
+            {/* Progress track */}
+            <div className="w-full h-2 sm:h-2.5 bg-black/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#43612B] rounded-full transition-all duration-500"
+                style={{ width: `${clampedPercent}%` }}
+              />
+            </div>
+
+            {/* Overdue alert or status text */}
+            <div className="flex items-center justify-between text-[11px] pt-0.5 text-[#6B7462]">
+              {isInstallment && progress ? (
+                progress.hasOverdue ? (
+                  <span className="text-red-600 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    Installment Overdue
+                  </span>
+                ) : (
+                  <span>Next Due: {progress.nextDueDate ? String(progress.nextDueDate).split('T')[0] : 'All Paid'}</span>
+                )
+              ) : (
+                <span>
+                  {clampedPercent >= 100 ? 'Full Payment Settled' : 'Awaiting Settlement'}
+                </span>
+              )}
+              <span>{isInstallment ? 'Monthly Terms' : 'One-Time Clearance'}</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Expandable Details Section */}
       {isExpanded && (
@@ -215,13 +240,20 @@ export const PlotCard: React.FC<PlotCardProps> = ({ plot }) => {
           {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
 
-        <Link
-          href={`/society-members/payments?plot=${plot.id}`}
-          className="min-h-[44px] inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] text-white hover:bg-[#365222] shadow-[0_2px_8px_rgba(67,97,43,0.25)] transition-all whitespace-nowrap w-full min-[350px]:w-auto"
-        >
-          <CreditCard className="w-3.5 h-3.5" />
-          <span>Payments Schedule</span>
-        </Link>
+        {isHeld ? (
+          <span className="min-h-[44px] inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-semibold bg-black/5 text-[#6B7462] border border-black/10 cursor-not-allowed whitespace-nowrap w-full min-[350px]:w-auto">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Plan Pending Finalization</span>
+          </span>
+        ) : (
+          <Link
+            href={`/society-members/payments?plot=${plot.id}`}
+            className="min-h-[44px] inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs font-bold bg-[#43612B] text-white hover:bg-[#365222] shadow-[0_2px_8px_rgba(67,97,43,0.25)] transition-all whitespace-nowrap w-full min-[350px]:w-auto"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Payments Schedule</span>
+          </Link>
+        )}
       </div>
     </div>
   );

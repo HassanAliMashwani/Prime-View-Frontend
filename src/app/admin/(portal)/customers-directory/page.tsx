@@ -29,12 +29,15 @@ import {
   Trash2,
   Copy,
   Check,
-  Loader2
+  Clock,
+  Loader2,
+  ChevronDown
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { 
   getCustomersDirectory, 
+  getAdminCustomerById,
   assignCustomerStrike, 
   toggleCustomerSuspension, 
   resetCustomerPassword, 
@@ -51,6 +54,15 @@ import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
 
+function formatFeeType(payment: any): string {
+  if (payment.feeType === 'plot_downpayment') return 'Downpayment';
+  if (payment.feeType === 'plot_possession') return 'Possession Fee';
+  if (payment.feeType === 'plot_biannual') return `Bi-Annual #${payment.installmentNumber || ''}`;
+  if (payment.feeType === 'plot_installment') return `Monthly #${payment.installmentNumber || ''}`;
+  if (payment.feeType === 'plot_one_time') return 'Full Payment';
+  return String(payment.feeType || 'Installment').replace(/_/g, ' ').toUpperCase();
+}
+
 const PAGE_SIZE = 10;
 
 function CustomersDirectoryContent() {
@@ -59,7 +71,8 @@ function CustomersDirectoryContent() {
   const queryCompleteCustId = searchParams?.get('completeCustomer');
 
   const [mounted, setMounted] = useState<boolean>(false);
-  const [session, setSession] = useState<AdminSession | null>(null);
+  const [session, setSession] = useState<AdminSession | null>(() => (typeof window === 'undefined' ? null : getActiveAdminSession()));
+  const isSuperAdmin = (session?.role || (typeof window !== 'undefined' ? getActiveAdminSession()?.role : undefined)) === 'super_admin';
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [customers, setCustomers] = useState<CustomerDirectoryEntry[]>([]);
@@ -124,6 +137,45 @@ function CustomersDirectoryContent() {
     router.push(`/admin/customers?completeCustomer=${cust.id}&plotId=${plotId}`);
   };
 
+  // Helper to redirect to Customer Booking page to set payment plan on held plot (Super Admin exclusivity)
+  const openSetPaymentPlan = (cust: CustomerDirectoryEntry, plotId: string) => {
+    router.push(`/admin/customers?setPlanCustomer=${cust.id}&plotId=${plotId}`);
+  };
+
+  // Detailed plot bills & installment ledger for dossier modal
+  const [dossierCustomerDetail, setDossierCustomerDetail] = useState<any | null>(null);
+  const [dossierLoadingDetail, setDossierLoadingDetail] = useState<boolean>(false);
+  const [expandedPlotId, setExpandedPlotId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!dossierCustomer) {
+      setDossierCustomerDetail(null);
+      setExpandedPlotId(null);
+      return;
+    }
+    const curSession = session || getActiveAdminSession();
+    if (!curSession) return;
+    let isCurrent = true;
+    setDossierLoadingDetail(true);
+    getAdminCustomerById(curSession, dossierCustomer.id)
+      .then((res) => {
+        if (isCurrent && res.ok && res.data) {
+          setDossierCustomerDetail(res.data);
+        }
+      })
+      .finally(() => {
+        if (isCurrent) setDossierLoadingDetail(false);
+      });
+    return () => {
+      isCurrent = false;
+    };
+  }, [dossierCustomer, session]);
+
+  const openDossierWithPlot = (cust: CustomerDirectoryEntry, plotId?: string) => {
+    setDossierCustomer(cust);
+    setExpandedPlotId(plotId || null);
+  };
+
   const statusFilterRef = useRef(statusFilter);
   useEffect(() => { statusFilterRef.current = statusFilter; }, [statusFilter]);
 
@@ -135,7 +187,7 @@ function CustomersDirectoryContent() {
     const s = session || getActiveAdminSession();
     if (s) {
       const adminId = s.adminId || 'admin';
-      const key = `/customers:${adminId}:page=1:size=${PAGE_SIZE}:search=${search}:status=${newStatus}`;
+      const key = `/customers:v2:${adminId}:page=1:size=${PAGE_SIZE}:search=${search}:status=${newStatus}`;
       const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
       if (cached) {
         setCustomers(cached.customers);
@@ -152,7 +204,7 @@ function CustomersDirectoryContent() {
   const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, searchParam = '', statusParam = 'all', background = false) => {
     const reqId = ++reqIdRef.current;
     const adminId = currentSession.adminId || 'admin';
-    const key = `/customers:${adminId}:page=${pageParam}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
+    const key = `/customers:v2:${adminId}:page=${pageParam}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
 
     if (!background) {
       const cached = getCache<{ customers: CustomerDirectoryEntry[], total: number }>(key, true);
@@ -211,7 +263,7 @@ function CustomersDirectoryContent() {
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
         if (pageParam < totalPages) {
           const nextPage = pageParam + 1;
-          const nextKey = `/customers:${adminId}:page=${nextPage}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
+          const nextKey = `/customers:v2:${adminId}:page=${nextPage}:size=${PAGE_SIZE}:search=${searchParam}:status=${statusParam}`;
           if (!getCache(nextKey, false)) {
             enqueueLane2(
               async (signal) => {
@@ -685,68 +737,87 @@ function CustomersDirectoryContent() {
                   {c.plots.length === 0 ? (
                     <span className="text-xs text-slate-400 italic">No plots attached</span>
                   ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {c.plots.map((p) => (
-                        <span
-                          key={p.bookingId}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-xs"
-                        >
-                          <Building2 className="w-3 h-3 text-indigo-600 shrink-0" />
-                          <span>{p.blockName}: {p.plotNumber}</span>
-                          <span className="text-[10px] text-indigo-600/80">({p.size})</span>
-                        </span>
-                      ))}
+                    <div className="flex flex-col gap-2">
+                      {c.plots.map((p) => {
+                        const isHeld = p.hasPaymentPlan === false || (p.billsCount !== undefined && p.billsCount === 0);
+                        return (
+                          <div
+                            key={p.bookingId || p.plotId}
+                            className={`flex items-center justify-between gap-2 p-2 rounded-lg border transition-all ${
+                              isHeld
+                                ? 'bg-amber-50/80 border-amber-200'
+                                : 'bg-indigo-50/50 border-indigo-100 hover:border-indigo-200'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <Building2 className={`w-3.5 h-3.5 ${isHeld ? 'text-amber-600' : 'text-indigo-600'} shrink-0`} />
+                              <div className="font-semibold text-xs text-slate-800 truncate">
+                                <span>{p.blockName}: {p.plotNumber}</span>
+                                <span className={`ml-1 text-[10px] ${isHeld ? 'text-amber-700' : 'text-indigo-600/80'}`}>({p.size})</span>
+                              </div>
+                              {isHeld ? (
+                                <span className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-200 text-amber-950 uppercase shrink-0">
+                                  Held
+                                </span>
+                              ) : (
+                                <span className="ml-1 px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-100 text-indigo-900 uppercase shrink-0">
+                                  Active
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Dedicated payment button per plot */}
+                            <div className="shrink-0 flex items-center">
+                              {isHeld ? (
+                                c.registrationStatus === 'minimal' ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openCompleteRegistration(c)}
+                                    title="Complete registration to configure payment plan"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                                  >
+                                    <CreditCard className="w-3 h-3" />
+                                    <span>Set payment plan</span>
+                                  </button>
+                                ) : isSuperAdmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => openSetPaymentPlan(c, p.plotId || (p as any).id)}
+                                    title="Set Payment Plan (Super Admin Exclusivity)"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                                  >
+                                    <CreditCard className="w-3 h-3" />
+                                    <span>Set payment plan</span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    title="Only Super Admin can assign payment plans"
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-medium text-[10px] border border-slate-200"
+                                  >
+                                    <Clock className="w-3 h-3 text-slate-400" />
+                                    <span>Plan Pending</span>
+                                  </span>
+                                )
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openDossierWithPlot(c, p.plotId || (p as any).id)}
+                                  title="View payment plan and schedule details"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 hover:border-indigo-300 rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                                >
+                                  <FileText className="w-3 h-3 text-indigo-600" />
+                                  <span>View payment plan</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
 
-                {/* 4. Installment Standing */}
-                <div className="space-y-1.5 text-xs border-t border-slate-100 pt-2.5">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Installments</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-emerald-700 font-bold">{c.installmentsPaidCount} Paid</span>
-                      <span className="text-slate-400">•</span>
-                      <span className="text-slate-600">{c.installmentsDueCount} Due</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                    <div
-                      className="bg-emerald-600 h-2 rounded-full"
-                      style={{
-                        width: `${
-                          c.installmentsPaidCount + c.installmentsDueCount > 0
-                            ? Math.round(
-                                (c.installmentsPaidCount /
-                                  (c.installmentsPaidCount + c.installmentsDueCount)) *
-                                  100
-                              )
-                            : 0
-                        }%`,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* 5. Financial Ledger */}
-                <div className="flex items-center justify-between text-xs border-t border-slate-100 pt-2.5">
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Total Paid</span>
-                    <span className="text-slate-900 font-bold font-mono text-sm">
-                      PKR {c.totalPaidAmount.toLocaleString()}
-                    </span>
-                  </div>
-                  {c.totalOutstandingAmount > 0 && (
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-amber-700 block tracking-wider">Outstanding</span>
-                      <span className="text-amber-800 font-bold font-mono text-sm">
-                        PKR {c.totalOutstandingAmount.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 6. Compliance Status */}
+                {/* Compliance Status */}
                 <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2.5">
                   {c.registrationStatus === 'minimal' ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
@@ -789,7 +860,7 @@ function CustomersDirectoryContent() {
 
                 {/* 7. Actions */}
                 <div className="flex items-center justify-end gap-1 border-t border-slate-100 pt-2.5 flex-wrap">
-                  {c.registrationStatus === 'minimal' && session?.role === 'super_admin' && (
+                  {c.registrationStatus === 'minimal' && (session?.role === 'super_admin' || getActiveAdminSession()?.role === 'super_admin') && (
                     <button
                       onClick={() => openCompleteRegistration(c)}
                       title="Complete Member Registration (Super Admin)"
@@ -799,6 +870,7 @@ function CustomersDirectoryContent() {
                       <span>Complete Registration</span>
                     </button>
                   )}
+
 
                   <button
                     onClick={() => setDossierCustomer(c)}
@@ -873,14 +945,12 @@ function CustomersDirectoryContent() {
 
       {/* Customers Table (Desktop >= 768px) */}
       <div className="hidden md:block">
-        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} loading={loading} minWidthClass="min-w-[1080px]">
+        <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} loading={loading} minWidthClass="min-w-[860px]">
           <thead className="sticky top-0 z-10">
             <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
               <th className="py-3.5 px-4 bg-slate-50 min-w-[220px]">Member Info</th>
               <th className="py-3.5 px-4 bg-slate-50 min-w-[190px]">Contact Details</th>
-              <th className="py-3.5 px-4 bg-slate-50 min-w-[170px]">Allotted Properties</th>
-              <th className="py-3.5 px-4 bg-slate-50 min-w-[150px]">Installment Standing</th>
-              <th className="py-3.5 px-4 bg-slate-50 min-w-[140px]">Financial Ledger</th>
+              <th className="py-3.5 px-4 bg-slate-50 min-w-[280px]">Allotted Properties</th>
               <th className="py-3.5 px-4 bg-slate-50 min-w-[140px]">Compliance Status</th>
               <th className="py-3.5 px-4 text-right bg-slate-50 min-w-[70px]">Actions</th>
             </tr>
@@ -891,16 +961,14 @@ function CustomersDirectoryContent() {
                 <tr key={i} className="animate-pulse">
                   <td className="py-3.5 px-4 min-w-[220px]"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
                   <td className="py-3.5 px-4 min-w-[190px]"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4 min-w-[170px]"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4 min-w-[150px]"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                  <td className="py-3.5 px-4 min-w-[140px]"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
+                  <td className="py-3.5 px-4 min-w-[280px]"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
                   <td className="py-3.5 px-4 min-w-[140px]"><div className="h-4 w-16 bg-slate-200 rounded" /></td>
                   <td className="py-3.5 px-4 text-right min-w-[70px]"><div className="h-6 w-12 bg-slate-200 rounded ml-auto" /></td>
                 </tr>
               ))
             ) : customers.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                  <td colSpan={5} className="py-12 text-center text-slate-400">
                     No customers found matching the search or filter criteria.
                   </td>
                 </tr>
@@ -991,55 +1059,84 @@ function CustomersDirectoryContent() {
                         {c.plots.length === 0 ? (
                           <span className="text-[11px] text-slate-400 italic">No plots attached</span>
                         ) : (
-                          <div className="flex flex-wrap gap-1.5 max-w-xs">
-                            {c.plots.map((p) => (
-                              <span
-                                key={p.bookingId}
-                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold text-[11px]"
-                              >
-                                <Building2 className="w-3 h-3 text-indigo-600 shrink-0" />
-                                <span>{p.blockName}: {p.plotNumber}</span>
-                                <span className="text-[9px] text-indigo-600/80">({p.size})</span>
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
+                          <div className="flex flex-col gap-1.5 min-w-[280px] max-w-sm">
+                            {c.plots.map((p) => {
+                              const isHeld = p.hasPaymentPlan === false || (p.billsCount !== undefined && p.billsCount === 0);
+                              return (
+                                <div
+                                  key={p.bookingId || p.plotId}
+                                  className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border transition-all ${
+                                    isHeld
+                                      ? 'bg-amber-50/80 border-amber-200 hover:border-amber-300'
+                                      : 'bg-indigo-50/50 border-indigo-100 hover:border-indigo-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Building2 className={`w-3.5 h-3.5 ${isHeld ? 'text-amber-600' : 'text-indigo-600'} shrink-0`} />
+                                    <span className="font-semibold text-[11px] text-slate-800 truncate">
+                                      {p.blockName}: {p.plotNumber}
+                                    </span>
+                                    <span className={`text-[10px] shrink-0 ${isHeld ? 'text-amber-700' : 'text-indigo-600/80'}`}>
+                                      ({p.size})
+                                    </span>
+                                    {isHeld ? (
+                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-200 text-amber-950 uppercase shrink-0">
+                                        Held
+                                      </span>
+                                    ) : (
+                                      <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-indigo-100 text-indigo-900 uppercase shrink-0">
+                                        Active
+                                      </span>
+                                    )}
+                                  </div>
 
-                      {/* Installment Standing */}
-                      <td className="py-3.5 px-4">
-                        <div className="space-y-1 w-32">
-                          <div className="flex justify-between text-[11px] font-semibold">
-                            <span className="text-emerald-700">{c.installmentsPaidCount} Paid</span>
-                            <span className="text-slate-500">{c.installmentsDueCount} Due</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className="bg-emerald-600 h-1.5 rounded-full"
-                              style={{
-                                width: `${
-                                  c.installmentsPaidCount + c.installmentsDueCount > 0
-                                    ? Math.round(
-                                        (c.installmentsPaidCount /
-                                          (c.installmentsPaidCount + c.installmentsDueCount)) *
-                                          100
+                                  {/* Dedicated payment button per plot */}
+                                  <div className="shrink-0 flex items-center">
+                                    {isHeld ? (
+                                      c.registrationStatus === 'minimal' ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => openCompleteRegistration(c)}
+                                          title="Complete registration to configure payment plan"
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
+                                        >
+                                          <CreditCard className="w-2.5 h-2.5" />
+                                          <span>Set payment plan</span>
+                                        </button>
+                                      ) : isSuperAdmin ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => openSetPaymentPlan(c, p.plotId || (p as any).id)}
+                                          title="Set Payment Plan (Super Admin Exclusivity)"
+                                          className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
+                                        >
+                                          <CreditCard className="w-2.5 h-2.5" />
+                                          <span>Set payment plan</span>
+                                        </button>
+                                      ) : (
+                                        <span
+                                          title="Only Super Admin can assign payment plans"
+                                          className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded font-medium text-[9px] border border-slate-200"
+                                        >
+                                          <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                          <span>Plan Pending</span>
+                                        </span>
                                       )
-                                    : 0
-                                }%`,
-                              }}
-                            />
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Financial Ledger */}
-                      <td className="py-3.5 px-4 space-y-0.5">
-                        <div className="text-slate-900 font-bold font-mono text-[11px]">
-                          PKR {c.totalPaidAmount.toLocaleString()}
-                        </div>
-                        {c.totalOutstandingAmount > 0 && (
-                          <div className="text-[10px] text-amber-700 font-medium">
-                            Due: PKR {c.totalOutstandingAmount.toLocaleString()}
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={() => openDossierWithPlot(c, p.plotId || (p as any).id)}
+                                        title="View payment plan and schedule details"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 hover:border-indigo-300 rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
+                                      >
+                                        <FileText className="w-2.5 h-2.5 text-indigo-600" />
+                                        <span>View payment plan</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
                       </td>
@@ -1090,7 +1187,7 @@ function CustomersDirectoryContent() {
                       {/* Action Buttons */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1">
-                          {c.registrationStatus === 'minimal' && session?.role === 'super_admin' && (
+                          {c.registrationStatus === 'minimal' && (session?.role === 'super_admin' || getActiveAdminSession()?.role === 'super_admin') && (
                             <button
                               onClick={() => openCompleteRegistration(c)}
                               title="Complete Member Registration (Super Admin)"
@@ -1100,6 +1197,7 @@ function CustomersDirectoryContent() {
                               <span>Complete Registration</span>
                             </button>
                           )}
+
 
                           <button
                             onClick={() => setDossierCustomer(c)}
@@ -1177,9 +1275,14 @@ function CustomersDirectoryContent() {
 
       {/* ── MODAL: CUSTOMER DOSSIER ── */}
       {dossierCustomer && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-slate-200 shadow-2xl overflow-hidden my-auto flex flex-col max-h-[100dvh]">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+        <div 
+          className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 overflow-hidden"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setDossierCustomer(null);
+          }}
+        >
+          <div className="bg-white rounded-2xl max-w-3xl w-full border border-slate-200 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-3">
                 {(() => {
                   const memberAvatar = dossierCustomer.applicantPhotoUrl || null;
@@ -1210,13 +1313,13 @@ function CustomersDirectoryContent() {
               </div>
               <button
                 onClick={() => setDossierCustomer(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto text-xs flex-1">
+            <div className="p-4 sm:p-6 space-y-6 overflow-y-auto text-xs flex-1 min-h-0">
               {/* Member & NOK Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
                 <div>
@@ -1248,26 +1351,213 @@ function CustomersDirectoryContent() {
                     Total Volume: PKR {dossierCustomer.totalPaidAmount.toLocaleString()}
                   </span>
                 </div>
-                <div className="space-y-2">
-                  {dossierCustomer.plots.map((p) => (
-                    <div
-                      key={p.bookingId}
-                      className="p-3.5 rounded-xl border border-slate-200 bg-white space-y-3"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-bold text-slate-900">{p.blockName} • Plot {p.plotNumber}</div>
-                          <div className="text-slate-500 text-[11px]">
-                            {p.size} • {p.category.toUpperCase()} • Scheme: {p.paymentType === 'installment' ? '24-Month Installments' : 'Full Payment'}
+                <div className="space-y-3">
+                  {dossierCustomer.plots.map((p) => {
+                    const isHeld = p.hasPaymentPlan === false || p.billsCount === 0;
+                    const isSuperAdmin = (session?.role || getActiveAdminSession()?.role) === 'super_admin';
+                    const plotKey = p.plotId || (p as any).id || p.bookingId;
+                    const booking = dossierCustomerDetail?.bookings?.find(
+                      (b: any) => b.id === p.bookingId || b.plotId === p.plotId || b.plot?.plotNumber === p.plotNumber
+                    );
+                    const payments: any[] = booking?.payments || [];
+                    const isExpanded = expandedPlotId === plotKey || expandedPlotId === p.plotId || expandedPlotId === p.bookingId;
+                    const plotPaid = payments.reduce((sum: number, pay: any) => sum + (Number(pay.paidAmount) || 0), 0);
+                    const plotRemaining = Math.max(0, p.price - plotPaid);
+                    const paidBillsCount = payments.filter((pay: any) => pay.status === 'paid').length;
+                    const dueBillsCount = payments.filter((pay: any) => pay.status === 'pending' || pay.status === 'overdue').length;
+
+                    return (
+                      <div
+                        key={p.bookingId}
+                        className={`p-3.5 sm:p-4 rounded-xl border space-y-3 transition-all ${
+                          isHeld ? 'bg-amber-50/70 border-amber-300 shadow-xs' : 'bg-white border-slate-200 shadow-xs'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5 flex-wrap">
+                              <span>{p.blockName} • Plot {p.plotNumber}</span>
+                              {isHeld ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-200 text-amber-950 border border-amber-400 uppercase tracking-wide">
+                                  HELD • PENDING PLAN
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-900 border border-indigo-200 uppercase tracking-wide">
+                                  PLAN ACTIVE
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-slate-500 text-[11px]">
+                              {p.size} • {p.category.toUpperCase()} • Scheme:{' '}
+                              <strong className={isHeld ? 'text-amber-800' : 'text-slate-700'}>
+                                {isHeld ? 'Awaiting Super Admin Assignment' : p.paymentType === 'installment' ? 'Installments' : 'Full Payment'}
+                              </strong>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-bold font-mono text-slate-900 text-sm">PKR {p.price.toLocaleString()}</div>
+                            <div className="text-[10px] text-slate-400">Booked: {p.bookingDate}</div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-bold font-mono text-slate-900">PKR {p.price.toLocaleString()}</div>
-                          <div className="text-[10px] text-slate-400">Booked: {p.bookingDate}</div>
-                        </div>
+
+                        {/* Set Payment Plan Action Row for Super Admin on Registered Member */}
+                        {isHeld && dossierCustomer.registrationStatus !== 'minimal' && isSuperAdmin && (
+                          <div className="pt-2.5 border-t border-amber-200/90 flex items-center justify-between gap-3 flex-wrap bg-amber-100/50 -mx-3.5 -mb-3.5 p-3 rounded-b-xl">
+                            <div className="flex items-center gap-1.5 text-amber-900 text-xs font-semibold">
+                              <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                              <span>Held plot with zero bills. Super Admin plan required.</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDossierCustomer(null);
+                                openSetPaymentPlan(dossierCustomer, p.plotId || (p as any).id);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Set payment plan</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Complete Registration Action Row for Minimal Member */}
+                        {isHeld && dossierCustomer.registrationStatus === 'minimal' && (
+                          <div className="pt-2.5 border-t border-amber-200/90 flex items-center justify-between gap-3 flex-wrap bg-amber-100/50 -mx-3.5 -mb-3.5 p-3 rounded-b-xl">
+                            <div className="flex items-center gap-1.5 text-amber-900 text-xs font-semibold">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                              <span>Initial registration required before setting payment plan.</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDossierCustomer(null);
+                                openCompleteRegistration(dossierCustomer);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                            >
+                              <CreditCard className="w-3.5 h-3.5" />
+                              <span>Set payment plan</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Active Plot Ledger Controls */}
+                        {!isHeld && (
+                          <div className="pt-2.5 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
+                            <div className="flex items-center gap-2 text-xs flex-wrap">
+                              <div className="flex items-center gap-1.5 text-emerald-800 font-semibold">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                <span>{p.paymentType === 'installment' ? 'Installment Schedule Assigned' : 'Full Payment'}</span>
+                              </div>
+                              {payments.length > 0 && (
+                                <span className="font-mono text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                  {paidBillsCount} Paid / {payments.length} Total
+                                </span>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setExpandedPlotId(isExpanded ? null : plotKey)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors cursor-pointer"
+                            >
+                              <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                              <span>{isExpanded ? 'Hide Installment Ledger' : 'View Installment Ledger'}</span>
+                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Expanded Installment Ledger for this specific plot */}
+                        {!isHeld && isExpanded && (
+                          <div className="mt-2.5 pt-3 border-t border-slate-200 space-y-3 bg-slate-50/70 -mx-3.5 -mb-3.5 sm:-mx-4 sm:-mb-4 p-3.5 sm:p-4 rounded-b-xl">
+                            {dossierLoadingDetail ? (
+                              <div className="p-4 flex items-center justify-center gap-2 text-slate-500 text-xs">
+                                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                                <span>Loading plot installment ledger...</span>
+                              </div>
+                            ) : payments.length === 0 ? (
+                              <div className="p-3 text-center text-slate-500 italic text-xs bg-white border border-slate-200 rounded-lg">
+                                Installment schedule records are currently being finalized by accounts.
+                              </div>
+                            ) : (
+                              <div className="space-y-2.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Plot Price</span>
+                                    <span className="font-mono font-bold text-slate-900 text-xs">PKR {p.price.toLocaleString()}</span>
+                                  </div>
+                                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Total Paid</span>
+                                    <span className="font-mono font-bold text-emerald-700 text-xs">PKR {plotPaid.toLocaleString()}</span>
+                                  </div>
+                                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Remaining Due</span>
+                                    <span className="font-mono font-bold text-amber-800 text-xs">PKR {plotRemaining.toLocaleString()}</span>
+                                  </div>
+                                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Installments</span>
+                                    <span className="font-mono font-bold text-slate-700 text-xs">{paidBillsCount} Paid • {dueBillsCount} Due</span>
+                                  </div>
+                                </div>
+
+                                <div className="max-h-56 overflow-y-auto border border-slate-200 rounded-lg bg-white shadow-2xs">
+                                  <table className="w-full text-[11px] text-left">
+                                    <thead className="bg-slate-100 sticky top-0 border-b border-slate-200 text-[10px] uppercase font-bold text-slate-500">
+                                      <tr>
+                                        <th className="py-2 px-2.5">Installment / Fee</th>
+                                        <th className="py-2 px-2.5">Due Date</th>
+                                        <th className="py-2 px-2.5 text-right">Amount</th>
+                                        <th className="py-2 px-2.5 text-right">Paid</th>
+                                        <th className="py-2 px-2.5 text-center">Status</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                      {payments.map((pay: any, idx: number) => {
+                                        const isPaid = pay.status === 'paid';
+                                        const isOverdue = pay.status === 'overdue';
+                                        const label = formatFeeType(pay);
+                                        return (
+                                          <tr key={pay.id || idx} className="hover:bg-slate-50/80">
+                                            <td className="py-1.5 px-2.5 font-medium text-slate-800">
+                                              {label}
+                                            </td>
+                                            <td className="py-1.5 px-2.5 font-mono text-slate-600">
+                                              {pay.dueDate ? String(pay.dueDate).split('T')[0] : '—'}
+                                            </td>
+                                            <td className="py-1.5 px-2.5 font-mono text-slate-900 font-semibold text-right">
+                                              PKR {Number(pay.amount).toLocaleString()}
+                                            </td>
+                                            <td className="py-1.5 px-2.5 font-mono text-emerald-700 font-semibold text-right">
+                                              PKR {Number(pay.paidAmount || 0).toLocaleString()}
+                                            </td>
+                                            <td className="py-1.5 px-2.5 text-center">
+                                              <span
+                                                className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                                  isPaid
+                                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                                                    : isOverdue
+                                                    ? 'bg-rose-100 text-rose-800 border border-rose-300'
+                                                    : 'bg-amber-100 text-amber-900 border border-amber-300'
+                                                }`}
+                                              >
+                                                {pay.status || 'pending'}
+                                              </span>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

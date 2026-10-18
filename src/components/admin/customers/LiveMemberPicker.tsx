@@ -161,44 +161,24 @@ export default function LiveMemberPicker({
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      {/* If a saved member is selected, show locked identity badge with Clear control */}
+      {/* If a saved member is selected, show compact locked field with name and clear control */}
       {selectedMember ? (
-        <div className="flex items-center justify-between p-2.5 bg-emerald-50/90 border border-emerald-300 rounded-xl text-xs shadow-xs transition-all animate-in fade-in duration-150">
+        <div className="flex items-center justify-between px-3 py-2 bg-emerald-50/80 border border-emerald-300 rounded-xl text-xs h-[38px] shadow-2xs transition-all">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-              <UserCheck className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-emerald-950 truncate">{selectedMember.fullName}</span>
-                {selectedMember.membershipNo && (
-                  <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">
-                    {selectedMember.membershipNo}
-                  </span>
-                )}
-                <span className="font-mono text-[10px] text-emerald-800">
-                  {selectedMember.cnic}
-                </span>
-              </div>
-              <div className="text-[10px] text-emerald-700 flex items-center gap-2 mt-0.5">
-                <span>{selectedMember.city || 'No city'}</span>
-                <span>•</span>
-                <span>
-                  {selectedMember.plotCount} {selectedMember.plotCount === 1 ? 'Plot' : 'Plots'} on file
-                </span>
-              </div>
-            </div>
+            <UserCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <span className="font-bold text-emerald-950 truncate text-xs">
+              {selectedMember.fullName}
+            </span>
           </div>
 
           <button
             type="button"
             onClick={handleClear}
             disabled={disabled}
-            className="ml-2 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:text-rose-700 hover:bg-rose-50 border border-emerald-300 hover:border-rose-200 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1"
-            title="Clear selection and unlock fields"
+            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors cursor-pointer shrink-0 ml-2 flex items-center justify-center"
+            title="Clear and change customer"
           >
             <X className="w-3.5 h-3.5" />
-            <span>Clear</span>
           </button>
         </div>
       ) : (
