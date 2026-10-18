@@ -43,6 +43,7 @@ import {
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking, PickerMember } from '@/lib/dal/customers';
 import LiveMemberPicker from '@/components/admin/customers/LiveMemberPicker';
+import LiveCnicMemberPicker from '@/components/admin/customers/LiveCnicMemberPicker';
 import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
@@ -2041,19 +2042,27 @@ function BlockPlotsContent() {
                     </span>
                   )}
                 </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={15}
+                <LiveCnicMemberPicker
                   value={minimalForm.cnic}
-                  disabled={Boolean(minimalSelectedMember)}
-                  onChange={(e) => setMinimalForm({ ...minimalForm, cnic: formatCnic(e.target.value) })}
+                  onChange={(val) => setMinimalForm((prev) => ({ ...prev, cnic: val }))}
+                  selectedMember={minimalSelectedMember}
+                  onSelectMember={(member) => {
+                    setMinimalSelectedMember(member);
+                    if (member) {
+                      setMinimalForm((prev) => ({
+                        ...prev,
+                        customerName: member.fullName,
+                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
+                        city: member.city || prev.city,
+                        customerId: member.id,
+                      }));
+                    } else {
+                      setMinimalForm((prev) => ({ ...prev, customerId: '' }));
+                    }
+                  }}
                   placeholder="00000-0000000-0"
-                  className={`w-full px-3 py-2 border rounded-xl text-slate-900 font-mono transition-all ${
-                    minimalSelectedMember
-                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
-                      : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10'
-                  }`}
+                  inputClassName="bg-slate-50 border-slate-200 focus:bg-white"
+                  required
                 />
               </div>
 

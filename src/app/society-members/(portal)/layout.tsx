@@ -69,10 +69,10 @@ function MemberPortalContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="relative min-h-screen bg-[#F8F7F5]">
-      {/* Background Member Portal - softly blurred and non-interactive when terms popup is active */}
+      {/* Background Member Portal - non-interactive when terms popup is active (no blur) */}
       <div
         className={`min-h-screen flex transition-all duration-300 ${
-          isTermsActive ? 'filter blur-[5px] pointer-events-none select-none' : ''
+          isTermsActive ? 'pointer-events-none select-none' : ''
         }`}
         aria-hidden={isTermsActive}
       >

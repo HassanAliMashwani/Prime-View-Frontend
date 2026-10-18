@@ -53,6 +53,7 @@ import {
   searchMembersForPicker,
 } from '@/lib/dal/customers';
 import LiveMemberPicker from '@/components/admin/customers/LiveMemberPicker';
+import LiveCnicMemberPicker from '@/components/admin/customers/LiveCnicMemberPicker';
 import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice, getAdminPlotDetails } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
@@ -1487,19 +1488,26 @@ function CustomersPageContent() {
                     </span>
                   )}
                 </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={15}
+                <LiveCnicMemberPicker
                   value={subAdminForm.cnic}
-                  disabled={Boolean(subAdminSelectedMember)}
-                  onChange={(e) => setSubAdminForm({ ...subAdminForm, cnic: formatCnic(e.target.value) })}
+                  onChange={(val) => setSubAdminForm((prev) => ({ ...prev, cnic: val }))}
+                  selectedMember={subAdminSelectedMember}
+                  onSelectMember={(member) => {
+                    setSubAdminSelectedMember(member);
+                    if (member) {
+                      setSubAdminForm((prev) => ({
+                        ...prev,
+                        customerName: member.fullName,
+                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
+                        city: member.city || prev.city,
+                        customerId: member.id,
+                      }));
+                    } else {
+                      setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
+                    }
+                  }}
                   placeholder="00000-0000000-0"
-                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
-                    subAdminSelectedMember
-                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
-                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
-                  }`}
+                  required
                 />
               </div>
 

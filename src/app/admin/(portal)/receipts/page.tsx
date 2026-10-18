@@ -58,6 +58,7 @@ export default function AdminReceiptsPage() {
   // Modals
   const [activeSlip, setActiveSlip] = useState<ReceiptSubmission | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [cardSlipErrors, setCardSlipErrors] = useState<Record<string, string>>({});
   const [rejectModalReceipt, setRejectModalReceipt] = useState<ReceiptSubmission | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [assignStrike, setAssignStrike] = useState(false);
@@ -104,6 +105,17 @@ export default function AdminReceiptsPage() {
       return () => clearTimeout(t);
     }
   }, [bottomNotice]);
+
+  // Escape key listener to close Bank Slip image modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && previewImage) {
+        setPreviewImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [previewImage]);
 
   const loadData = useCallback(
     async (
@@ -265,6 +277,11 @@ export default function AdminReceiptsPage() {
 
   const handleViewSlipImage = async (receiptId: string) => {
     setLoadingPhotoReceiptId(receiptId);
+    setCardSlipErrors((prev) => {
+      const next = { ...prev };
+      delete next[receiptId];
+      return next;
+    });
     try {
       const res = await runLane1({
         screen: 'receipt-slip',
@@ -273,18 +290,22 @@ export default function AdminReceiptsPage() {
       if (res.ok && res.fileUrl) {
         setPreviewImage(res.fileUrl);
       } else {
+        const errorMsg = res.error || 'Bank slip file is missing or inaccessible from storage.';
+        setCardSlipErrors((prev) => ({ ...prev, [receiptId]: errorMsg }));
         setBottomNotice({
           id: receiptId,
           type: 'error',
-          message: res.error || 'Failed to load bank slip image.',
+          message: errorMsg,
         });
       }
     } catch (err: any) {
       if (err?.message !== 'REQUEST_SUPERSEDED') {
+        const errorMsg = err?.message || 'Storage link failed or bank slip is inaccessible.';
+        setCardSlipErrors((prev) => ({ ...prev, [receiptId]: errorMsg }));
         setBottomNotice({
           id: receiptId,
           type: 'error',
-          message: 'Failed to load bank slip image.',
+          message: errorMsg,
         });
       }
     } finally {
@@ -857,6 +878,15 @@ export default function AdminReceiptsPage() {
                     <strong>Rejection Reason:</strong> {sub.rejectionReason}
                   </div>
                 )}
+
+                {cardSlipErrors[sub.id] && (
+                  <div className="text-xs text-rose-800 bg-rose-50 p-2.5 rounded-xl border border-rose-200 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>Bank Slip Notice:</strong> {cardSlipErrors[sub.id]}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Action buttons */}
@@ -1121,6 +1151,76 @@ export default function AdminReceiptsPage() {
       )}
 
       
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* BANK DEPOSIT SLIP DOCUMENT VIEWER MODAL (Photo or PDF)        */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {previewImage && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bank-slip-modal-title"
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div
+            className="relative w-full max-w-4xl max-h-[92vh] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 bg-slate-50/70 shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-5 h-5 text-emerald-700 shrink-0" />
+                <div className="min-w-0">
+                  <h3 id="bank-slip-modal-title" className="text-sm font-bold text-slate-800 font-serif truncate">
+                    Bank Deposit Slip Document
+                  </h3>
+                  <p className="text-[11px] text-slate-500 font-mono">
+                    Official member uploaded deposit proof
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewImage}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1.5 rounded-xl text-slate-600 hover:text-slate-900 bg-slate-200/50 hover:bg-slate-200 transition-colors flex items-center gap-1.5 text-xs font-semibold cursor-pointer"
+                  title="Open in new tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Open in Tab</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                  aria-label="Close bank slip modal"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-auto p-4 sm:p-6 bg-slate-100/60 flex items-center justify-center min-h-[300px]">
+              {previewImage.toLowerCase().includes('.pdf') || previewImage.startsWith('data:application/pdf') ? (
+                <iframe
+                  src={previewImage}
+                  title="Bank Deposit Slip PDF"
+                  className="w-full h-[75vh] rounded-xl border border-slate-200 bg-white shadow-xs"
+                />
+              ) : (
+                <img
+                  src={previewImage}
+                  alt="Bank Deposit Slip"
+                  className="max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-xs border border-slate-200 bg-white"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* OFFICIAL A4 VERIFIED PAYMENT SLIP MODAL (Both Parts)          */}
       {/* ══════════════════════════════════════════════════════════════ */}

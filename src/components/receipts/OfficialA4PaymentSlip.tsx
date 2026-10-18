@@ -55,46 +55,42 @@ export function getSlipVerifyUrl(slipNumber: string): string {
   return `${base}/verify/${clean}`;
 }
 
-const qrSvgCache = new Map<string, string>();
+const qrDataCache = new Map<string, string>();
 
 /**
- * Hook to generate SVG QR code data URI using qrcode package.
+ * Hook to generate clean PNG QR code data URI using qrcode package.
  * Encodes getSlipVerifyUrl(slipNumber) with error correction 'M' and margin 2.
+ * Renders as a single crisp image (avoids SVG duplicate-stack rendering quirks in browser img tags).
  */
 export function useSlipQrCode(verifyUrl: string): string {
-  const [dataUri, setDataUri] = React.useState<string>(() => qrSvgCache.get(verifyUrl) || '');
+  const [dataUri, setDataUri] = React.useState<string>(() => qrDataCache.get(verifyUrl) || '');
 
   React.useEffect(() => {
     if (!verifyUrl) return;
-    if (qrSvgCache.has(verifyUrl)) {
-      setDataUri(qrSvgCache.get(verifyUrl)!);
+    if (qrDataCache.has(verifyUrl)) {
+      setDataUri(qrDataCache.get(verifyUrl)!);
       return;
     }
     let isCurrent = true;
-    QRCode.toString(verifyUrl, {
-      type: 'svg',
+    QRCode.toDataURL(verifyUrl, {
       errorCorrectionLevel: 'M',
       margin: 2,
+      width: 280,
+      color: {
+        dark: '#000000',
+        light: '#ffffff',
+      },
     })
-      .then((svg) => {
-        const uri = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-        qrSvgCache.set(verifyUrl, uri);
+      .then((pngUri) => {
+        qrDataCache.set(verifyUrl, pngUri);
         if (isCurrent) {
-          setDataUri(uri);
+          setDataUri(pngUri);
         }
       })
-      .catch(() => {
-        QRCode.toDataURL(verifyUrl, { errorCorrectionLevel: 'M', margin: 2, width: 280 })
-          .then((pngUri) => {
-            qrSvgCache.set(verifyUrl, pngUri);
-            if (isCurrent) {
-              setDataUri(pngUri);
-            }
-          })
-          .catch((err) => {
-            console.error('Failed to generate verification QR code:', err);
-          });
+      .catch((err) => {
+        console.error('Failed to generate verification QR code:', err);
       });
+
     return () => {
       isCurrent = false;
     };

@@ -56,14 +56,20 @@ export interface ApiResponse<T> {
   details?: any;
 }
 
-function sanitizeErrorMessage(rawMessage?: any): string {
-  if (!rawMessage) return 'Something went wrong. Please try again.';
-  if (typeof rawMessage === 'string') return rawMessage;
-  if (Array.isArray(rawMessage)) return rawMessage.join(', ');
-  if (typeof rawMessage === 'object' && rawMessage.message) {
-    return sanitizeErrorMessage(rawMessage.message);
+function sanitizeErrorMessage(rawMessage?: any, rawError?: any): string {
+  if (rawMessage && typeof rawMessage === 'string' && rawMessage.trim() && rawMessage !== 'Something went wrong. Please try again.') {
+    return rawMessage;
   }
-  return String(rawMessage);
+  if (rawError && typeof rawError === 'string' && rawError.trim()) {
+    return rawError;
+  }
+  if (Array.isArray(rawMessage)) return rawMessage.join(', ');
+  if (typeof rawMessage === 'object' && rawMessage) {
+    if (rawMessage.message) return sanitizeErrorMessage(rawMessage.message, rawMessage.error);
+    if (rawMessage.error) return sanitizeErrorMessage(rawMessage.error);
+  }
+  if (rawMessage) return String(rawMessage);
+  return rawError ? String(rawError) : 'Something went wrong. Please try again.';
 }
 
 /**
@@ -77,7 +83,7 @@ export async function apiGet<T>(path: string, token?: string, signal?: AbortSign
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const safeMsg = sanitizeErrorMessage(body?.message);
+      const safeMsg = sanitizeErrorMessage(body?.message, body?.error);
       return {
         ok: false,
         error: safeMsg,
@@ -90,7 +96,7 @@ export async function apiGet<T>(path: string, token?: string, signal?: AbortSign
     if (err?.name === 'AbortError') {
       return { ok: false, error: 'REQUEST_ABORTED' };
     }
-    const safeMsg = 'Something went wrong. Please try again.';
+    const safeMsg = err?.message || 'Something went wrong. Please try again.';
     return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
@@ -116,7 +122,7 @@ export async function apiPost<T>(
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const safeMsg = sanitizeErrorMessage(body?.message);
+      const safeMsg = sanitizeErrorMessage(body?.message, body?.error);
       return {
         ok: false,
         error: safeMsg,
@@ -125,8 +131,8 @@ export async function apiPost<T>(
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch {
-    const safeMsg = 'Something went wrong. Please try again.';
+  } catch (err: any) {
+    const safeMsg = err?.message || 'Something went wrong. Please try again.';
     return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
@@ -143,7 +149,7 @@ export async function apiPatch<T>(path: string, bodyData: any, token?: string): 
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const safeMsg = sanitizeErrorMessage(body?.message);
+      const safeMsg = sanitizeErrorMessage(body?.message, body?.error);
       return {
         ok: false,
         error: safeMsg,
@@ -152,8 +158,8 @@ export async function apiPatch<T>(path: string, bodyData: any, token?: string): 
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch {
-    const safeMsg = 'Something went wrong. Please try again.';
+  } catch (err: any) {
+    const safeMsg = err?.message || 'Something went wrong. Please try again.';
     return { ok: false, error: safeMsg, message: safeMsg };
   }
 }
@@ -169,7 +175,7 @@ export async function apiDelete<T = any>(path: string, token?: string): Promise<
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      const safeMsg = sanitizeErrorMessage(body?.message);
+      const safeMsg = sanitizeErrorMessage(body?.message, body?.error);
       return {
         ok: false,
         error: safeMsg,
@@ -178,8 +184,8 @@ export async function apiDelete<T = any>(path: string, token?: string): Promise<
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch {
-    const safeMsg = 'Something went wrong. Please try again.';
+  } catch (err: any) {
+    const safeMsg = err?.message || 'Something went wrong. Please try again.';
     return { ok: false, error: safeMsg, message: safeMsg };
   }
 }

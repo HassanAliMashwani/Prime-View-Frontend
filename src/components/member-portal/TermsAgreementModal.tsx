@@ -27,38 +27,56 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
     return null;
   }
 
-  const handleAccept = async () => {
+  const handleAccept = () => {
     if (!agreed && isMandatory) return;
-    setIsSubmitting(true);
     setError(null);
 
-    try {
-      if (profile) {
-        const res = await runLane1({
-          screen: 'member-terms',
-          isSave: true,
-          fn: async () => acceptTermsAndConditions(profile.id),
-        });
-        if (res.ok) {
+    if (profile) {
+      const targetCustomerId = profile.id;
+
+      // 1. In the same click: close the box and mark the member as accepted on the screen
+      useMemberStore.setState((state) => ({
+        ...state,
+        profile: state.profile
+          ? { ...state.profile, termsAccepted: true, termsAcceptedAt: new Date().toISOString() }
+          : null,
+        termsModalOpen: false,
+      }));
+      closeTermsModal();
+
+      // 2. Save the acceptance in the background without blocking or reloading profile
+      (async () => {
+        try {
+          const res = await runLane1({
+            screen: 'member-terms',
+            isSave: true,
+            fn: async () => acceptTermsAndConditions(targetCustomerId),
+          });
+          if (!res.ok) {
+            // If the save fails, open the box again and show the error
+            useMemberStore.setState((state) => ({
+              ...state,
+              profile: state.profile
+                ? { ...state.profile, termsAccepted: false }
+                : null,
+              termsModalOpen: true,
+            }));
+            setError(res.error || 'Failed to record acceptance. Please try again.');
+          }
+        } catch (err: any) {
+          // If the save fails, open the box again and show the error
           useMemberStore.setState((state) => ({
             ...state,
             profile: state.profile
-              ? { ...state.profile, termsAccepted: true, termsAcceptedAt: new Date().toISOString() }
+              ? { ...state.profile, termsAccepted: false }
               : null,
-            termsModalOpen: false,
+            termsModalOpen: true,
           }));
-          await fetchProfile();
-          closeTermsModal();
-        } else {
-          setError(res.error || 'Failed to record acceptance. Please try again.');
+          setError(err?.message || 'An unexpected error occurred while saving terms acceptance.');
         }
-      } else {
-        closeTermsModal();
-      }
-    } catch (err) {
-      setError('An unexpected error occurred. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+      })();
+    } else {
+      closeTermsModal();
     }
   };
 
@@ -340,21 +358,12 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
 
           <button
             type="button"
-            disabled={(!agreed && isMandatory) || isSubmitting}
+            disabled={!agreed && isMandatory}
             onClick={handleAccept}
             className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(67,97,43,0.3)] transition-all cursor-pointer disabled:cursor-not-allowed"
           >
-            {isSubmitting ? (
-              <>
-                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Recording Agreement...</span>
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                <span>{isMandatory ? 'Agree & Enter Member Portal' : 'Accept Terms & Save'}</span>
-              </>
-            )}
+            <CheckCircle className="w-4 h-4" />
+            <span>{isMandatory ? 'Agree & Enter Member Portal' : 'Accept Terms & Save'}</span>
           </button>
         </div>
     </div>
@@ -365,7 +374,7 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-in fade-in duration-150">
       {cardContent}
     </div>
   );
