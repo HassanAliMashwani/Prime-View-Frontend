@@ -39,6 +39,55 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+
+// ── Member Payment Form Canonical Helpers ──
+function getNextUnpaidBill(sched?: PlotPaymentSchedule | null): import('@/lib/mock/types').PaymentRecord | null {
+  if (!sched || !sched.schedule || sched.schedule.length === 0) return null;
+  const dueStatuses = ['pending', 'overdue', 'partially_paid'];
+  const eligibleTypes = ['plot_downpayment', 'plot_installment', 'plot_biannual', 'plot_possession'];
+
+  const unpaid = sched.schedule
+    .filter((item) => eligibleTypes.includes(item.feeType) && dueStatuses.includes(item.status))
+    .sort((a, b) => {
+      if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
+      if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
+      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return (a.installmentNumber || 0) - (b.installmentNumber || 0);
+    });
+
+  return unpaid[0] || null;
+}
+
+function getBillLabel(bill: import('@/lib/mock/types').PaymentRecord | null): string {
+  if (!bill) return 'No unpaid installments';
+  if (bill.feeType === 'plot_downpayment') return 'Down Payment';
+  if (bill.feeType === 'plot_possession') {
+    return bill.installmentNumber ? `Installment #${bill.installmentNumber} (Possession)` : 'Possession Bill';
+  }
+  if (bill.feeType === 'plot_biannual') {
+    return bill.installmentNumber ? `Installment #${bill.installmentNumber} (Bi-Annual)` : 'Bi-Annual Installment';
+  }
+  return `Installment #${bill.installmentNumber || 1}`;
+}
+
+function getTotalStillOwed(sched?: PlotPaymentSchedule | null): number {
+  if (!sched) return 0;
+  if (sched.remainingBalance !== undefined && sched.remainingBalance !== null && sched.remainingBalance > 0) {
+    return sched.remainingBalance;
+  }
+  const dueStatuses = ['pending', 'overdue', 'partially_paid'];
+  const eligibleTypes = ['plot_downpayment', 'plot_installment', 'plot_biannual', 'plot_possession', 'plot_one_time'];
+  const unpaid = (sched.schedule || []).filter(
+    (item) => eligibleTypes.includes(item.feeType) && dueStatuses.includes(item.status)
+  );
+  if (unpaid.length > 0) {
+    return unpaid.reduce((sum, item) => sum + Math.max(0, (Number(item.amount) || 0) - (Number(item.paidAmount) || 0)), 0);
+  }
+  return sched.remainingBalance || sched.totalPrice || 0;
+}
+
 function PaymentsContent() {
   const searchParams = useSearchParams();
   const initialPlotParam = searchParams.get('plot');
@@ -136,16 +185,35 @@ function PaymentsContent() {
       return;
     }
     const numAmt = Number(formAmount);
+    const activeSched = schedules.find((s) => s.plotId === formPlotId);
+    const nextBill = getNextUnpaidBill(activeSched);
+    const nextBillUnpaid = nextBill
+      ? Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0))
+      : 0;
+    const totalOwed = getTotalStillOwed(activeSched);
+
     if (isNaN(numAmt) || numAmt <= 0) {
       setPreviewData(null);
       setBalloonError(null);
       return;
     }
 
+    if (numAmt < nextBillUnpaid) {
+      setPreviewData(null);
+      setBalloonError(`A balloon payment cannot be smaller than the next bill (PKR ${nextBillUnpaid.toLocaleString()}).`);
+      return;
+    }
+
+    if (numAmt > totalOwed) {
+      setPreviewData(null);
+      setBalloonError(`A balloon payment cannot exceed the total balance owed on the plot (PKR ${totalOwed.toLocaleString()}).`);
+      return;
+    }
+
+    setBalloonError(null);
     setIsPreviewLoading(true);
     const t = setTimeout(async () => {
       try {
-        const activeSched = schedules.find((s) => s.plotId === formPlotId);
         const bookingId = (activeSched as any)?.bookingId || (activeSched as any)?.id;
         const res = await runLane1({
           screen: 'member-payments-balloon',
@@ -166,7 +234,7 @@ function PaymentsContent() {
       } finally {
         setIsPreviewLoading(false);
       }
-    }, 500);
+    }, 400);
     return () => clearTimeout(t);
   }, [formAmount, formPaymentKind, formPaymentType, formPlotId, schedules]);
 
@@ -233,10 +301,23 @@ function PaymentsContent() {
       if (initialPlotParam) {
         const matchingSchedule = schedules.find((s) => s.plotId === initialPlotParam);
         if (matchingSchedule) {
-          setActiveTab(matchingSchedule.paymentType === 'installment' ? 'installment' : 'one_time');
+          const isOneTime = matchingSchedule.paymentType === 'one_time';
+          setActiveTab(isOneTime ? 'one_time' : 'installment');
           setSelectedPlotId(matchingSchedule.plotId);
           setFormPlotId(matchingSchedule.plotId);
-          setFormPaymentType(matchingSchedule.paymentType === 'installment' ? 'installment' : 'one_time');
+          setFormPaymentType(isOneTime ? 'one_time' : 'installment');
+          setFormPaymentKind('regular');
+          if (isOneTime) {
+            setFormAmount(String(getTotalStillOwed(matchingSchedule)));
+            setFormInstallmentNo(1);
+          } else {
+            const nextBill = getNextUnpaidBill(matchingSchedule);
+            if (nextBill) {
+              setFormInstallmentNo(nextBill.installmentNumber || 0);
+              const unpaid = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
+              setFormAmount(String(unpaid));
+            }
+          }
           return;
         }
       }
@@ -251,8 +332,20 @@ function PaymentsContent() {
         ? availablePlotOptions.find((p) => p.id === selectedPlotId) || availablePlotOptions[0]
         : availablePlotOptions[0];
       setFormPlotId(defaultPlot.id);
-      if (defaultPlot.paymentType) {
-        setFormPaymentType(defaultPlot.paymentType === 'one_time' ? 'one_time' : 'installment');
+      const sched = schedules.find((s) => s.plotId === defaultPlot.id);
+      const isOneTime = (defaultPlot.paymentType || sched?.paymentType) === 'one_time';
+      setFormPaymentType(isOneTime ? 'one_time' : 'installment');
+      setFormPaymentKind('regular');
+      if (isOneTime) {
+        setFormAmount(String(getTotalStillOwed(sched)));
+        setFormInstallmentNo(1);
+      } else {
+        const nextBill = getNextUnpaidBill(sched);
+        if (nextBill) {
+          setFormInstallmentNo(nextBill.installmentNumber || 0);
+          const unpaid = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
+          setFormAmount(String(unpaid));
+        }
       }
     }
   }, [schedules, availablePlotOptions, initialPlotParam, formPlotId, selectedPlotId]);
@@ -323,32 +416,24 @@ function PaymentsContent() {
     setFormPlotId(targetPlotId);
 
     const targetPlot = availablePlotOptions.find((p) => p.id === targetPlotId);
-    if (targetPlot?.paymentType) {
-      setFormPaymentType(targetPlot.paymentType === 'one_time' ? 'one_time' : 'installment');
-    }
+    const sched = schedules.find((s) => s.plotId === targetPlotId);
+    const effectivePaymentType = targetPlot?.paymentType || sched?.paymentType || 'installment';
+    setFormPaymentType(effectivePaymentType === 'one_time' ? 'one_time' : 'installment');
+    setFormPaymentKind('regular');
 
-    if (installmentNo !== undefined) {
-      setFormInstallmentNo(installmentNo);
-    } else if (targetPlotId) {
-      const sched = schedules.find((s) => s.plotId === targetPlotId);
-      const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue');
-      if (nextPending?.installmentNumber) {
-        setFormInstallmentNo(nextPending.installmentNumber);
-      }
-    }
-
-    if (amount !== undefined) {
-      setFormAmount(String(amount));
-    } else if (targetPlotId) {
-      const sched = schedules.find((s) => s.plotId === targetPlotId);
-      if (sched?.paymentType === 'one_time') {
-        setFormAmount(String(sched.totalPrice || sched.paidAmount || ''));
+    if (effectivePaymentType === 'one_time') {
+      const fullUnpaid = getTotalStillOwed(sched);
+      setFormAmount(String(fullUnpaid));
+      setFormInstallmentNo(1);
+    } else {
+      const nextBill = getNextUnpaidBill(sched);
+      if (nextBill) {
+        setFormInstallmentNo(nextBill.installmentNumber || 0);
+        const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
+        setFormAmount(String(outstanding));
       } else {
-        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
-        if (nextPending?.amount) {
-          const outstanding = (Number(nextPending.amount) || 0) - (Number((nextPending as any).paidAmount) || 0);
-          setFormAmount(String(outstanding));
-        }
+        setFormInstallmentNo(installmentNo || 1);
+        setFormAmount(amount !== undefined ? String(amount) : '0');
       }
     }
 
@@ -389,9 +474,47 @@ function PaymentsContent() {
       return;
     }
 
+    const targetSched = schedules.find((s) => s.plotId === plotIdToUse);
+    const effectivePaymentType = targetSched?.paymentType || (retrySub ? retrySub.paymentType : formPaymentType);
+    const effectivePaymentKind = retrySub ? retrySub.paymentKind : formPaymentKind;
+
     if (isNaN(amountNum) || amountNum <= 0) {
       setUploadError('Please enter a valid deposited amount (PKR).');
       return;
+    }
+
+    if (effectivePaymentType === 'installment') {
+      const nextBill = getNextUnpaidBill(targetSched);
+      const unpaidOnNextBill = nextBill
+        ? Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0))
+        : 0;
+      const totalStillOwed = getTotalStillOwed(targetSched);
+
+      if (effectivePaymentKind === 'balloon') {
+        if (amountNum < unpaidOnNextBill) {
+          setUploadError(`A balloon payment cannot be smaller than the next bill (PKR ${unpaidOnNextBill.toLocaleString()}).`);
+          return;
+        }
+        if (amountNum > totalStillOwed) {
+          setUploadError(`A balloon payment cannot exceed the total balance owed on the plot (PKR ${totalStillOwed.toLocaleString()}).`);
+          return;
+        }
+      } else {
+        if (unpaidOnNextBill > 0 && Math.abs(amountNum - unpaidOnNextBill) > 0.01) {
+          setUploadError(`Regular payment must be exactly what is still unpaid on the next bill (PKR ${unpaidOnNextBill.toLocaleString()}).`);
+          return;
+        }
+      }
+    } else if (effectivePaymentType === 'one_time') {
+      if (effectivePaymentKind === 'balloon') {
+        setUploadError('Balloon payments are not permitted on full-payment plots.');
+        return;
+      }
+      const totalStillOwed = getTotalStillOwed(targetSched);
+      if (totalStillOwed > 0 && Math.abs(amountNum - totalStillOwed) > 0.01) {
+        setUploadError(`Deposited amount must be the full amount still unpaid on this plot (PKR ${totalStillOwed.toLocaleString()}).`);
+        return;
+      }
     }
 
     if (!txnRefToUse) {
@@ -634,7 +757,7 @@ function PaymentsContent() {
                 No Properties Linked to Your Account Yet
               </h4>
               <p className="text-xs text-[#6B7462] max-w-md mx-auto leading-relaxed">
-                Once a property is registered to your membership, your payment ledgers, statutory fees, and installment schedules will appear here.
+                Once a property is registered to your membership, your payment ledgers and installment schedules will appear here.
               </p>
             </div>
             <div className="pt-2">
@@ -764,7 +887,7 @@ function PaymentsContent() {
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-[#6B7462] font-medium truncate mr-2">
-                    Select a plot below to view its statutory fees and isolated payment schedule:
+                    Select a plot below to view its isolated payment schedule:
                   </p>
                   <span className="text-xs font-semibold text-[#151914] shrink-0">
                     {currentTabPlots.length} {currentTabPlots.length === 1 ? 'Plot' : 'Plots'} Found
@@ -1328,21 +1451,25 @@ function PaymentsContent() {
                       const newPlotId = e.target.value;
                       setFormPlotId(newPlotId);
                       const selected = availablePlotOptions.find((p) => p.id === newPlotId);
-                      if (selected?.paymentType) {
-                        setFormPaymentType(selected.paymentType === 'one_time' ? 'one_time' : 'installment');
-                      }
-                      // Auto-fill next due installment or one-time total amount if available
                       const sched = schedules.find((s) => s.plotId === newPlotId);
-                      if (selected?.paymentType === 'one_time' && sched) {
-                        setFormAmount(String(sched.totalPrice || sched.paidAmount || ''));
+                      const isOneTime = (selected?.paymentType || sched?.paymentType) === 'one_time';
+                      setFormPaymentType(isOneTime ? 'one_time' : 'installment');
+                      setFormPaymentKind('regular');
+                      setBalloonError(null);
+                      setPreviewData(null);
+
+                      if (isOneTime) {
+                        setFormAmount(String(getTotalStillOwed(sched)));
+                        setFormInstallmentNo(1);
                       } else {
-                        const nextPending = sched?.schedule.find((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
-                        if (nextPending?.installmentNumber) {
-                          setFormInstallmentNo(nextPending.installmentNumber);
-                        }
-                        if (nextPending?.amount) {
-                          const outstanding = (Number(nextPending.amount) || 0) - (Number((nextPending as any).paidAmount) || 0);
-                          setFormAmount(String(outstanding));
+                        const nextBill = getNextUnpaidBill(sched);
+                        if (nextBill) {
+                          setFormInstallmentNo(nextBill.installmentNumber || 0);
+                          const unpaid = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
+                          setFormAmount(String(unpaid));
+                        } else {
+                          setFormAmount('0');
+                          setFormInstallmentNo(1);
                         }
                       }
                     }}
@@ -1363,87 +1490,220 @@ function PaymentsContent() {
                   </select>
                 </div>
 
-                {/* Payment Nature */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                    Payment Type
-                  </label>
-                  <select
-                    value={formPaymentType}
-                    onChange={(e) => setFormPaymentType(e.target.value as 'installment' | 'one_time')}
-                    disabled={true}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed"
-                  >
-                    <option value="installment">Installment Plan</option>
-                    <option value="one_time">Full Payment</option>
-                  </select>
-                </div>
-
-                {/* Payment Kind */}
-                {formPaymentType === 'installment' && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                      Payment Kind
-                    </label>
-                    <select
-                      value={formPaymentKind}
-                      onChange={(e) => setFormPaymentKind(e.target.value as 'regular' | 'balloon')}
-                      className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] cursor-pointer"
-                    >
-                      <option value="regular">Regular Installment</option>
-                      <option value="balloon">Balloon / Bulk Payment</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* Installment Number */}
-                {formPaymentType === 'installment' && formPaymentKind === 'regular' && (
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                        Installment Number
-                      </label>
-                      <span className="text-[10px] text-[#6B7462]">Assigned automatically</span>
-                    </div>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="w-4 h-4 text-[#6B7462]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                        </svg>
+                {/* Payment Nature & Kind */}
+                {formPaymentType === 'one_time' ? (
+                  <>
+                    {/* Locked Payment Type */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                          Payment Type
+                        </label>
+                        <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
+                          <ShieldCheck className="w-3 h-3 text-[#43612B]" />
+                          Locked
+                        </span>
                       </div>
                       <input
                         type="text"
-                        value={formInstallmentNo ? `Installment #${formInstallmentNo}` : 'Loading...'}
+                        value="Full Payment"
                         disabled
-                        className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed"
+                        readOnly
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed font-medium"
                       />
                     </div>
-                  </div>
+
+                    {/* Locked Payment Kind (No Balloon on full-payment plot) */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                          Payment Kind
+                        </label>
+                        <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
+                          <ShieldCheck className="w-3 h-3 text-[#43612B]" />
+                          Locked
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value="Regular"
+                        disabled
+                        readOnly
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed font-medium"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Locked Payment Type for Installment */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                          Payment Type
+                        </label>
+                        <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
+                          <ShieldCheck className="w-3 h-3 text-[#43612B]" />
+                          Locked
+                        </span>
+                      </div>
+                      <input
+                        type="text"
+                        value="Installment Plan"
+                        disabled
+                        readOnly
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed font-medium"
+                      />
+                    </div>
+
+                    {/* Payment Kind Dropdown for Installment Plot */}
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                        Payment Kind
+                      </label>
+                      <select
+                        value={formPaymentKind}
+                        onChange={(e) => {
+                          const newKind = e.target.value as 'regular' | 'balloon';
+                          setFormPaymentKind(newKind);
+                          setBalloonError(null);
+                          const sched = schedules.find((s) => s.plotId === formPlotId);
+                          const nextBill = getNextUnpaidBill(sched);
+                          const nextBillUnpaid = nextBill
+                            ? Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0))
+                            : 0;
+                          setFormAmount(String(nextBillUnpaid));
+                          if (newKind === 'regular') {
+                            setPreviewData(null);
+                          }
+                        }}
+                        className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] cursor-pointer font-medium"
+                      >
+                        <option value="regular">Regular Installment</option>
+                        <option value="balloon">Balloon / Bulk Payment</option>
+                      </select>
+                    </div>
+                  </>
                 )}
 
-                {/* Amount */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                    Deposited Amount (PKR)
-                  </label>
-                  <input
-                    type="number"
-                    value={formAmount}
-                    onChange={(e) => setFormAmount(e.target.value)}
-                    placeholder="e.g. 50000"
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
-                    required
-                  />
-                  {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (
-                    <div className="text-[10px] text-[#6B7462] mt-1 space-y-0.5 leading-snug">
-                      <p><strong>Note:</strong> Balloon payment allocations apply to oldest outstanding installments first.</p>
-                      <p>Customer ledger is updated only after admin verification.</p>
+                {/* Installment Number / Bill Label */}
+                {formPaymentType === 'installment' && formPaymentKind === 'regular' && (() => {
+                  const currentSched = schedules.find((s) => s.plotId === formPlotId);
+                  const currentNextBill = getNextUnpaidBill(currentSched);
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                          Installment Bill
+                        </label>
+                        <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
+                          <ShieldCheck className="w-3 h-3 text-[#43612B]" />
+                          Locked
+                        </span>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <svg className="w-4 h-4 text-[#6B7462]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                          </svg>
+                        </div>
+                        <input
+                          type="text"
+                          value={getBillLabel(currentNextBill)}
+                          disabled
+                          readOnly
+                          className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed font-medium"
+                        />
+                      </div>
                     </div>
-                  )}
-                  {formPaymentType === 'installment' && formPaymentKind === 'balloon' && balloonError && (
-                    <p className="text-xs font-semibold text-rose-600 mt-1.5">{balloonError}</p>
-                  )}
-                </div>
+                  );
+                })()}
+
+                {/* Deposited Amount */}
+                {(() => {
+                  const currentSched = schedules.find((s) => s.plotId === formPlotId);
+                  const currentNextBill = getNextUnpaidBill(currentSched);
+                  const currentUnpaidOnNextBill = currentNextBill
+                    ? Math.max(0, (Number(currentNextBill.amount) || 0) - (Number(currentNextBill.paidAmount) || 0))
+                    : 0;
+                  const currentTotalStillOwed = getTotalStillOwed(currentSched);
+                  const isAmountLocked = formPaymentType === 'one_time' || formPaymentKind === 'regular';
+
+                  let dynamicBalloonError: string | null = null;
+                  if (formPaymentType === 'installment' && formPaymentKind === 'balloon') {
+                    const entered = Number(formAmount);
+                    if (!isNaN(entered) && formAmount !== '') {
+                      if (entered < currentUnpaidOnNextBill) {
+                        dynamicBalloonError = `A balloon payment cannot be smaller than the next bill (PKR ${currentUnpaidOnNextBill.toLocaleString()}).`;
+                      } else if (entered > currentTotalStillOwed) {
+                        dynamicBalloonError = `A balloon payment cannot exceed the total balance owed on the plot (PKR ${currentTotalStillOwed.toLocaleString()}).`;
+                      }
+                    }
+                  }
+
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                          Deposited Amount (PKR)
+                        </label>
+                        {isAmountLocked && (
+                          <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
+                            <ShieldCheck className="w-3 h-3 text-[#43612B]" />
+                            Locked
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        {isAmountLocked && (
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="w-4 h-4 text-[#6B7462]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          </div>
+                        )}
+                        <input
+                          type="number"
+                          value={formAmount}
+                          onChange={(e) => {
+                            if (!isAmountLocked) {
+                              setFormAmount(e.target.value);
+                            }
+                          }}
+                          readOnly={isAmountLocked}
+                          disabled={isAmountLocked}
+                          placeholder={
+                            formPaymentKind === 'balloon'
+                              ? `Min: PKR ${currentUnpaidOnNextBill.toLocaleString()} • Max: PKR ${currentTotalStillOwed.toLocaleString()}`
+                              : 'e.g. 50000'
+                          }
+                          className={`w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl ${
+                            isAmountLocked
+                              ? 'pl-9 bg-black/5 text-[#6B7462] cursor-not-allowed font-mono font-bold'
+                              : 'bg-white text-[#151914] focus:ring-2 focus:ring-[#43612B] font-mono'
+                          }`}
+                          required
+                        />
+                      </div>
+
+                      {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (
+                        <div className="text-[10px] text-[#6B7462] mt-1 space-y-0.5 leading-snug">
+                          <p>
+                            <strong>Min Allowed:</strong> PKR {currentUnpaidOnNextBill.toLocaleString()} (Next Bill) •{' '}
+                            <strong>Max Allowed:</strong> PKR {currentTotalStillOwed.toLocaleString()} (Total Owed)
+                          </p>
+                          <p>Allocations apply to oldest unpaid bills first. Verified by society desk.</p>
+                        </div>
+                      )}
+
+                      {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (balloonError || dynamicBalloonError) && (
+                        <div className="p-2.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 mt-1.5 font-medium">
+                          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                          <span>{dynamicBalloonError || balloonError}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 {/* Preview UI */}
                 {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (previewData || isPreviewLoading) && (
@@ -1597,23 +1857,37 @@ function PaymentsContent() {
                   Cancel
                 </button>
 
-                <button
-                  type="submit"
-                  disabled={isSubmittingReceipt || isCompressing}
-                  className="px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-50 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs cursor-pointer transition-all"
-                >
-                  {isSubmittingReceipt ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Submitting payment...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Submit for Verification</span>
-                    </>
-                  )}
-                </button>
+                {(() => {
+                  const currentSched = schedules.find((s) => s.plotId === formPlotId);
+                  const currentNextBill = getNextUnpaidBill(currentSched);
+                  const currentUnpaidOnNextBill = currentNextBill
+                    ? Math.max(0, (Number(currentNextBill.amount) || 0) - (Number(currentNextBill.paidAmount) || 0))
+                    : 0;
+                  const currentTotalStillOwed = getTotalStillOwed(currentSched);
+                  const isBalloonInvalid = formPaymentType === 'installment' && formPaymentKind === 'balloon' && (
+                    Number(formAmount) < currentUnpaidOnNextBill || Number(formAmount) > currentTotalStillOwed || isNaN(Number(formAmount)) || Number(formAmount) <= 0
+                  );
+
+                  return (
+                    <button
+                      type="submit"
+                      disabled={isSubmittingReceipt || isCompressing || isBalloonInvalid}
+                      className="px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-50 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs cursor-pointer transition-all"
+                    >
+                      {isSubmittingReceipt ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Submitting payment...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>Submit for Verification</span>
+                        </>
+                      )}
+                    </button>
+                  );
+                })()}
               </div>
             </form>
           </div>

@@ -1325,7 +1325,7 @@ function CustomersDirectoryContent() {
                     <div>
                       <div className="font-bold text-xs">Admin Quick Booking — Formalities Incomplete</div>
                       <div className="text-[11px] text-amber-800">
-                        This member was booked under the 3-field Admin quick flow. Statutory fees, formal membership number, and portal credentials remain pending.
+                        This member was booked under the 3-field Admin quick flow. Formal membership number and portal credentials remain pending.
                       </div>
                     </div>
                   </div>

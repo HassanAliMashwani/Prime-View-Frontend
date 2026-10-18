@@ -49,6 +49,7 @@ export interface CreateCustomerWithBookingInput {
   reservationId?: string;
   installmentPlan?: InstallmentPlanConfig;
   customerId?: string;
+  plotPrice?: number;
 }
 
 export interface AddBookingToCustomerInput {
@@ -59,6 +60,7 @@ export interface AddBookingToCustomerInput {
   lockToken?: string;
   reservationId?: string;
   installmentPlan?: InstallmentPlanConfig;
+  plotPrice?: number;
 }
 
 export interface CustomerDirectoryPlot {
@@ -138,6 +140,7 @@ export interface CompleteMemberRegistrationInput {
   applicantPhotoUrl?: string;
   cnicCopyUrl?: string;
   nokCnicCopyUrl?: string;
+  plotPrice?: number;
 }
 
 // In-memory plot cache to support synchronous plot verification
@@ -328,6 +331,7 @@ export async function createCustomerWithBooking(
     applicantPhotoUrl: input.applicantPhotoUrl,
     cnicCopyUrl: input.cnicCopyUrl,
     nokCnicCopyUrl: input.nokCnicCopyUrl,
+    plotPrice: input.plotPrice,
   };
 
   const res = await apiPost<any>('/customers', payload, session?.token);
@@ -368,6 +372,7 @@ export async function addBookingToCustomer(
     paperInstallmentRef: input.paperInstallmentRef,
     lockToken: input.lockToken,
     reservationId: input.reservationId,
+    plotPrice: input.plotPrice,
   };
 
   const res = await apiPost<any>(`/customers/${input.customerId}/bookings`, payload, session?.token);

@@ -131,7 +131,7 @@ export async function getAdminReceipts(
 
 
 /**
- * Verify and approve a submitted payment receipt.
+ * Verify and a submitted payment receipt.
  * Calls backend POST /receipts/:id/verify.
  */
 export async function verifyReceipt(

@@ -754,6 +754,16 @@ function CustomersPageContent() {
       return;
     }
 
+    if (session.role === 'super_admin') {
+      if (!totalPaymentA || isNaN(totalPaymentA) || totalPaymentA <= 0) {
+        setFeedback({
+          type: 'error',
+          message: 'Total Payment (Plot Price) must be a valid positive amount greater than zero.',
+        });
+        return;
+      }
+    }
+
     const finalPriceA = (session.role === 'super_admin' && totalPaymentA > 0) ? totalPaymentA : plot.price;
 
     // Build installment plan config if installment type
@@ -791,6 +801,7 @@ function CustomersPageContent() {
           paymentType: pathAForm.paymentType,
           paperInstallmentRef: pathAForm.paperInstallmentRef,
           installmentPlan,
+          plotPrice: finalPriceA,
         }),
       });
       setPathASubmitting(false);
@@ -806,6 +817,7 @@ function CustomersPageContent() {
         message: `Member registration completed successfully for ${res.customer?.fullName} on Plot ${plot.plotNumber}!`,
       });
 
+      // Show credentials modal immediately
       setCredentialsModal({
         open: true,
         username: res.credentials?.username || res.customer?.membershipNo || pathAForm.membershipNo,
@@ -826,7 +838,10 @@ function CustomersPageContent() {
         });
       }
 
-      loadInitialData();
+      // Background non-blocking load without freezing the UI or credentials modal
+      setTimeout(() => {
+        loadInitialData();
+      }, 50);
       return;
     }
 
@@ -852,6 +867,7 @@ function CustomersPageContent() {
           lockToken: queryLockToken || undefined,
           reservationId: queryReservationId || undefined,
           installmentPlan,
+          plotPrice: finalPriceA,
         }),
       });
       setPathASubmitting(false);
@@ -895,6 +911,7 @@ function CustomersPageContent() {
         reservationId: queryReservationId || undefined,
         installmentPlan,
         portalPassword: canIssueCreds ? pathAForm.portalPassword : '',
+        plotPrice: finalPriceA,
       }),
     });
     setPathASubmitting(false);
@@ -1105,17 +1122,14 @@ function CustomersPageContent() {
       return;
     }
 
-    const finalPriceB = (session.role === 'super_admin' && totalPaymentB > 0) ? totalPaymentB : plot.price;
-
-    // Synchronize price if Super Admin updated plot price
-    if (session.role === 'super_admin' && totalPaymentB > 0 && totalPaymentB !== plot.price) {
-      await runLane1({
-        screen: 'customer-booking',
-        isSave: true,
-        fn: async () => updatePlotPrice(session, plot.id, totalPaymentB),
-      });
-      plot.price = totalPaymentB;
+    if (session.role === 'super_admin') {
+      if (!totalPaymentB || isNaN(totalPaymentB) || totalPaymentB <= 0) {
+        setPathBPlotError('Total Payment (Plot Price) must be a valid positive amount greater than zero.');
+        return;
+      }
     }
+
+    const finalPriceB = (session.role === 'super_admin' && totalPaymentB > 0) ? totalPaymentB : plot.price;
 
     // Build installment plan config if installment type
     let installmentPlan: InstallmentPlanConfig | undefined = undefined;
@@ -1139,6 +1153,7 @@ function CustomersPageContent() {
         lockToken: queryLockToken || undefined,
         reservationId: queryReservationId || undefined,
         installmentPlan,
+        plotPrice: finalPriceB,
       }),
     });
     setPathBSubmitting(false);
@@ -1393,7 +1408,7 @@ function CustomersPageContent() {
                 Quick Plot Booking (Admin)
               </h1>
               <p className="text-xs text-slate-500">
-                Streamlined 3-field quick booking flow. Statutory society fees and payment schedule will be finalized upon formal member registration.
+                Streamlined 3-field quick booking flow. Payment schedule and member credentials will be finalized upon formal member registration.
               </p>
             </div>
           </div>
@@ -1514,7 +1529,7 @@ function CustomersPageContent() {
             </div>
 
             <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-950 leading-relaxed">
-              ℹ️ <strong>Formalities Pending:</strong> Submitting this quick booking will secure the plot immediately as <strong>Booked (Pending Formalities)</strong> to prevent double-booking. Member registration, issuance of membership credentials, and attachment of statutory fees can be finalized in the Customer Directory.
+              ℹ️ <strong>Formalities Pending:</strong> Submitting this quick booking will secure the plot immediately as <strong>Booked (Pending Formalities)</strong> to prevent double-booking. Member registration and issuance of membership credentials can be finalized in the Customer Directory.
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
@@ -1564,7 +1579,7 @@ function CustomersPageContent() {
                     )}
                   </h1>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Complete statutory fee allocation, establish installment schedule on the 5th of each month, and issue official portal access credentials.
+                    Establish installment schedule on the 5th of each month, and issue official portal access credentials.
                   </p>
                 </div>
               </div>
@@ -1628,16 +1643,7 @@ function CustomersPageContent() {
       {/* ==================================================== */}
       {activeTab === 'path_a' && (
         <form onSubmit={handleSubmitPathA} className="space-y-6">
-          {/* Statutory Fee Notice Banner */}
-          <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-4 text-xs text-amber-950 flex items-start gap-3 shadow-xs">
-            <Info className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-            <div>
-              <div className="font-bold text-amber-900">Statutory Society Fees Notice</div>
-              <p className="mt-0.5 leading-relaxed text-amber-800">
-                In compliance with society regulations, an <strong>Admission Fee of PKR 2,000</strong> and a <strong>Share Subscription Fee of PKR 10,000</strong> will be automatically billed and marked paid upfront upon enrollment. These fees remain strictly segregated from the plot purchase value.
-              </p>
-            </div>
-          </div>
+
 
           {/* Section 1: Applicant Details */}
           <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
@@ -2246,16 +2252,8 @@ function CustomersPageContent() {
               </div>
             )}
 
-            {/* Financial Statutory Breakdown Box */}
+            {/* Financial Breakdown Box */}
             <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-xs space-y-1.5">
-              <div className="font-bold text-slate-800 flex items-center justify-between">
-                <span>Admission Fee (Statutory Isolated):</span>
-                <span className="font-mono text-emerald-700 font-bold">PKR 2,000 (Paid)</span>
-              </div>
-              <div className="font-bold text-slate-800 flex items-center justify-between">
-                <span>Share Subscription Fee (Statutory Isolated):</span>
-                <span className="font-mono text-emerald-700 font-bold">PKR 10,000 (Paid)</span>
-              </div>
               {selectedPlotA && pathAForm.paymentType === 'installment' && planA && (
                 <div className="font-bold text-slate-800 flex items-center justify-between">
                   <span>Plot Downpayment (25% Collected Upfront):</span>
@@ -2264,10 +2262,18 @@ function CustomersPageContent() {
                   </span>
                 </div>
               )}
+              {selectedPlotA && pathAForm.paymentType === 'one_time' && (
+                <div className="font-bold text-slate-800 flex items-center justify-between">
+                  <span>Plot Full Upfront Payment:</span>
+                  <span className="font-mono text-emerald-700 font-bold">
+                    PKR {(effectivePriceA || selectedPlotA.price).toLocaleString(undefined, { minimumFractionDigits: 2 })} (Paid)
+                  </span>
+                </div>
+              )}
               <div className="pt-1.5 border-t border-slate-200 flex items-center justify-between text-slate-600 font-bold">
                 <span>Total Upfront Settlement on Enrollment:</span>
                 <span className="font-mono font-bold text-slate-900">
-                  PKR {(12000 + (pathAForm.paymentType === 'installment' && planA ? planA[0].amount : (selectedPlotA?.price || 0))).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  PKR {(pathAForm.paymentType === 'installment' && planA ? planA[0].amount : (effectivePriceA || selectedPlotA?.price || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -3526,33 +3532,21 @@ function CustomersPageContent() {
                   </table>
                 </div>
 
-                {/* Statutory Society Fees & Payment Terms */}
+                {/* Payment Terms & Schedule Structure */}
                 <div>
                   <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1 border-b border-slate-200 pb-1">
-                    Section III: Statutory Fees & Schedule Structure
+                    Section III: Payment Terms & Schedule Structure
                   </div>
                   <table className="w-full text-xs border border-slate-300">
                     <thead>
                       <tr className="bg-slate-100 border-b border-slate-300 text-left">
-                        <th className="p-1.5 sm:p-2">Fee Description</th>
+                        <th className="p-1.5 sm:p-2">Description</th>
                         <th className="p-1.5 sm:p-2">Amount (PKR)</th>
                         <th className="p-1.5 sm:p-2">Payment Status</th>
                         <th className="p-1.5 sm:p-2">Classification</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 font-semibold">Society Admission Fee</td>
-                        <td className="p-1.5 sm:p-2 font-mono">2,000</td>
-                        <td className="p-1.5 sm:p-2 font-bold text-emerald-700">PAID UPFRONT</td>
-                        <td className="p-1.5 sm:p-2 text-slate-500">Statutory Membership Fee</td>
-                      </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 font-semibold">Share Subscription Fee</td>
-                        <td className="p-1.5 sm:p-2 font-mono">10,000</td>
-                        <td className="p-1.5 sm:p-2 font-bold text-emerald-700">PAID UPFRONT</td>
-                        <td className="p-1.5 sm:p-2 text-slate-500">Statutory Society Share</td>
-                      </tr>
                       {agreementModal.installmentPlan && (
                         <tr className="border-b border-slate-200">
                           <td className="p-1.5 sm:p-2 font-semibold">Plot Upfront Downpayment</td>

@@ -659,8 +659,8 @@ export default function VerifySlipPage() {
                 )}
                 <p className="text-xs text-slate-400 leading-relaxed pt-1">
                   This payment submission has been received and is awaiting review by the finance desk. It has{' '}
-                  <strong className="text-amber-300">not yet been cleared or approved</strong>. Do not treat this as an
-                  approved payment.
+                  <strong className="text-amber-300">not yet been cleared or d</strong>. Do not treat this as an
+                  d payment.
                 </p>
               </div>
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-400 space-y-2">

@@ -74,8 +74,10 @@ export default function AdminReceiptsPage() {
   const [driftReceipt, setDriftReceipt] = useState<ReceiptSubmission | null>(null);
   const [driftNewPreview, setDriftNewPreview] = useState<any>(null);
 
-  // A4 generation state
-  const [generatingReceiptId, setGeneratingReceiptId] = useState<string | null>(null);
+  // Action in-progress states
+  const [approvingReceiptId, setApprovingReceiptId] = useState<string | null>(null);
+  const [decliningReceiptId, setDecliningReceiptId] = useState<string | null>(null);
+  const [rejectModalError, setRejectModalError] = useState<string | null>(null);
 
   // Cancel modal state (super_admin only)
   const [cancelModalReceipt, setCancelModalReceipt] = useState<ReceiptSubmission | null>(null);
@@ -294,9 +296,8 @@ export default function AdminReceiptsPage() {
   const idempotencyKeysRef = React.useRef<Map<string, string>>(new Map());
 
   const handleVerify = async (receiptId: string, confirmPreviewDrift = false) => {
-    if (!session) return;
-    setIsProcessing(true);
-    setGeneratingReceiptId(receiptId);
+    if (!session || approvingReceiptId || decliningReceiptId) return;
+    setApprovingReceiptId(receiptId);
 
     // Reuse existing key if retrying this approval click; otherwise generate a new UUID once per click
     let idempotencyKey = idempotencyKeysRef.current.get(receiptId);
@@ -306,13 +307,6 @@ export default function AdminReceiptsPage() {
         : `idemp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
       idempotencyKeysRef.current.set(receiptId, idempotencyKey);
     }
-
-    // Show busy notice immediately
-    setBottomNotice({
-      id: receiptId,
-      type: 'success',
-      message: 'Processing...',
-    });
 
     try {
       const res = await runLane1({
@@ -329,7 +323,7 @@ export default function AdminReceiptsPage() {
           message: `Official Slip #${slipNumber} was generated successfully!`,
         });
 
-        // Draw result only from server answer
+        // Update the card immediately from the server's answer
         setReceipts((prev) =>
           prev.map((r) => (r.id === receiptId ? { ...r, ...res.receipt, status: 'verified' as const } : r))
         );
@@ -337,6 +331,9 @@ export default function AdminReceiptsPage() {
         setDriftReceipt(null);
         setDriftNewPreview(null);
         setActiveSlip(res.receipt);
+
+        // Refresh receipt list in the background
+        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
       } else {
         if (res.error === 'PREVIEW_DRIFT') {
           setBottomNotice(null);
@@ -359,59 +356,99 @@ export default function AdminReceiptsPage() {
         setBottomNotice({
           id: receiptId,
           type: 'error',
-          message: 'An unexpected error occurred during verification.',
+          message: err?.message || 'An unexpected error occurred during verification.',
         });
       }
     } finally {
-      setIsProcessing(false);
-      setGeneratingReceiptId(null);
+      setApprovingReceiptId(null);
     }
   };
 
   const handleRejectSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session || !rejectModalReceipt) return;
+    if (!session || !rejectModalReceipt || approvingReceiptId || decliningReceiptId) return;
 
-    if (!rejectionReason.trim()) {
-      setFeedback({ type: 'error', message: 'Please specify the rejection reason.' });
+    const trimmedReason = rejectionReason.trim();
+    if (!trimmedReason) {
+      setRejectModalError('Please specify the reason for declining.');
       return;
     }
 
-    setIsProcessing(true);
+    const targetId = rejectModalReceipt.id;
+    const memberName = rejectModalReceipt.customerName || (rejectModalReceipt as any).customer?.fullName || 'Member';
+    const plotNumber = rejectModalReceipt.plotNumber || (rejectModalReceipt as any).plot?.plotNumber || '';
+
+    setDecliningReceiptId(targetId);
+    setRejectModalError(null);
+
     try {
       const res = await runLane1({
         screen: 'receipts',
         isSave: true,
-        fn: async () => rejectReceipt(session, rejectModalReceipt.id, {
-          reason: rejectionReason.trim(),
+        fn: async () => rejectReceipt(session, targetId, {
+          reason: trimmedReason,
           assignStrike,
-          strikeReason: strikeReason.trim() || rejectionReason.trim(),
+          strikeReason: strikeReason.trim() || trimmedReason,
         }),
       });
+
       if (res.ok) {
-        setFeedback({
+        const strikeMsg = res.strikeAssigned ? ' A compliance strike was assigned to the member.' : '';
+        const successMsg = `Receipt for ${memberName}${plotNumber ? ` and Plot ${plotNumber}` : ''} was declined.${strikeMsg}`;
+        
+        // Show one notice and update card immediately from server's answer
+        setBottomNotice({
+          id: targetId,
           type: 'success',
-          message: `Receipt submission ${rejectModalReceipt.id} has been declined.${
-            res.strikeAssigned ? ' A compliance strike was assigned to the member.' : ''
-          }`,
+          message: successMsg,
         });
+
+        // The card leaves Pending Verification and shows Declined, with the reason on the card
+        setReceipts((prev) =>
+          prev.map((r) =>
+            r.id === targetId
+              ? {
+                  ...r,
+                  status: 'rejected' as const,
+                  rejectionReason: trimmedReason,
+                  customerStrikeCount: res.strikeAssigned
+                    ? ((r as any).customerStrikeCount ?? (r as any).customer?.strikeCount ?? 0) + 1
+                    : ((r as any).customerStrikeCount ?? (r as any).customer?.strikeCount ?? 0),
+                }
+              : r
+          )
+        );
+
+        // Close decline modal window
         setRejectModalReceipt(null);
         setRejectionReason('');
         setAssignStrike(false);
         setStrikeReason('');
-        loadData(session, page, statusFilter, searchQuery, false);
+        setRejectModalError(null);
+
+        // Refresh receipt list in background
+        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
       } else {
-        setFeedback({
+        const errMsg = res.message || res.error || 'Failed to decline receipt.';
+        setRejectModalError(errMsg);
+        setBottomNotice({
+          id: targetId,
           type: 'error',
-          message: res.message || res.error || 'Failed to decline receipt.',
+          message: errMsg,
         });
       }
     } catch (err: any) {
       if (err?.message !== 'REQUEST_SUPERSEDED') {
-        setFeedback({ type: 'error', message: 'An unexpected error occurred.' });
+        const errMsg = err?.message || 'An unexpected error occurred.';
+        setRejectModalError(errMsg);
+        setBottomNotice({
+          id: targetId,
+          type: 'error',
+          message: errMsg,
+        });
       }
     } finally {
-      setIsProcessing(false);
+      setDecliningReceiptId(null);
     }
   };
 
@@ -850,14 +887,19 @@ export default function AdminReceiptsPage() {
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                     <button
                       type="button"
-                      disabled={isProcessing || generatingReceiptId === sub.id}
+                      disabled={
+                        approvingReceiptId === sub.id ||
+                        decliningReceiptId === sub.id ||
+                        Boolean(approvingReceiptId) ||
+                        Boolean(decliningReceiptId)
+                      }
                       onClick={() => handleVerify(sub.id)}
                       className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-75 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
                     >
-                      {generatingReceiptId === sub.id ? (
+                      {approvingReceiptId === sub.id ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Generating A4 slip…</span>
+                          <span>Approving and generating the slip…</span>
                         </>
                       ) : (
                         <>
@@ -869,15 +911,33 @@ export default function AdminReceiptsPage() {
 
                     <button
                       type="button"
-                      disabled={isProcessing}
+                      disabled={
+                        approvingReceiptId === sub.id ||
+                        decliningReceiptId === sub.id ||
+                        Boolean(approvingReceiptId) ||
+                        Boolean(decliningReceiptId)
+                      }
                       onClick={() => {
+                        if (approvingReceiptId || decliningReceiptId) return;
                         setRejectModalReceipt(sub);
                         setRejectionReason('');
+                        setAssignStrike(false);
+                        setStrikeReason('');
+                        setRejectModalError(null);
                       }}
-                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[44px]"
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-75 disabled:cursor-not-allowed text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[44px]"
                     >
-                      <X className="w-3.5 h-3.5" />
-                      <span>Decline</span>
+                      {decliningReceiptId === sub.id ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 text-rose-600 animate-spin" />
+                          <span>Declining…</span>
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-3.5 h-3.5" />
+                          <span>Decline</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 )}
@@ -921,6 +981,146 @@ export default function AdminReceiptsPage() {
       </div>
       </AdminTableShell>
 
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {/* DECLINE RECEIPT MODAL WINDOW                                   */}
+      {/* ══════════════════════════════════════════════════════════════ */}
+      {rejectModalReceipt && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-md w-full bg-white rounded-3xl border border-black/10 shadow-2xl p-5 sm:p-6 space-y-4 my-auto animate-scale-in">
+            <div className="flex items-start justify-between pb-3 border-b border-black/[0.06]">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
+                    Decline Deposit Receipt
+                  </h3>
+                  <p className="text-xs text-[#6B7462]">
+                    {rejectModalReceipt.customerName || (rejectModalReceipt as any).customer?.fullName || 'Member'} • Plot {rejectModalReceipt.plotNumber || (rejectModalReceipt as any).plot?.plotNumber}
+                    {rejectModalReceipt.installmentNumber ? ` • Inst. #${rejectModalReceipt.installmentNumber}` : ''}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (decliningReceiptId) return;
+                  setRejectModalReceipt(null);
+                  setRejectionReason('');
+                  setAssignStrike(false);
+                  setStrikeReason('');
+                  setRejectModalError(null);
+                }}
+                disabled={decliningReceiptId === rejectModalReceipt.id}
+                className="p-1.5 rounded-lg hover:bg-black/5 text-[#6B7462] hover:text-[#151914] cursor-pointer disabled:opacity-40"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {rejectModalError && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
+                <span>{rejectModalError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleRejectSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
+                  Reason for Declining <span className="text-rose-600">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectionReason}
+                  onChange={(e) => {
+                    setRejectionReason(e.target.value);
+                    if (rejectModalError) setRejectModalError(null);
+                  }}
+                  placeholder="Specify the reason why this deposit receipt is being declined (e.g. unverified transaction reference, deposit not found on bank statement)..."
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-rose-500 bg-white text-[#151914] resize-none"
+                  required
+                  disabled={decliningReceiptId === rejectModalReceipt.id}
+                />
+              </div>
+
+              {/* Optional Strike */}
+              <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2">
+                <label className="flex items-center gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={assignStrike}
+                    onChange={(e) => setAssignStrike(e.target.checked)}
+                    disabled={decliningReceiptId === rejectModalReceipt.id}
+                    className="w-4 h-4 text-amber-700 rounded border-amber-300 focus:ring-amber-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-bold text-amber-950">
+                    Assign a compliance strike to member
+                  </span>
+                </label>
+                <p className="text-[11px] text-amber-800/90 pl-6 leading-tight">
+                  Adds 1 strike to the member's account. Three strikes lead to suspension.
+                </p>
+
+                {assignStrike && (
+                  <div className="pl-6 pt-1 space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-amber-900 block">
+                      Strike Note (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={strikeReason}
+                      onChange={(e) => setStrikeReason(e.target.value)}
+                      disabled={decliningReceiptId === rejectModalReceipt.id}
+                      placeholder="Defaults to decline reason if left blank"
+                      className="w-full px-3 py-1.5 text-xs border border-amber-300 rounded-lg bg-white text-slate-900 focus:ring-2 focus:ring-amber-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-black/[0.06] flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRejectModalReceipt(null);
+                    setRejectionReason('');
+                    setAssignStrike(false);
+                    setStrikeReason('');
+                    setRejectModalError(null);
+                  }}
+                  disabled={decliningReceiptId === rejectModalReceipt.id}
+                  className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-black/5 disabled:opacity-40 cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={!rejectionReason.trim() || decliningReceiptId === rejectModalReceipt.id}
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs cursor-pointer transition-all"
+                >
+                  {decliningReceiptId === rejectModalReceipt.id ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Declining…</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="w-3.5 h-3.5" />
+                      <span>Confirm Decline</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      
       {/* ══════════════════════════════════════════════════════════════ */}
       {/* OFFICIAL A4 VERIFIED PAYMENT SLIP MODAL (Both Parts)          */}
       {/* ══════════════════════════════════════════════════════════════ */}

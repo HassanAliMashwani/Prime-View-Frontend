@@ -288,14 +288,23 @@ function BlockPlotsContent() {
   // Close Plot Action Drawer and clean up deep-link query param if present
   const handleCloseDrawer = useCallback(() => {
     activeSelectedPlotIdRef.current = null;
-    if (focusPlotId) {
-      dismissedFocusPlotRef.current = focusPlotId;
+    const dismissedId = focusPlotId;
+    if (dismissedId) {
+      dismissedFocusPlotRef.current = dismissedId;
     }
+    // 1. Hide the card immediately on the same click
     setSelectedPlot(null);
     setActionError(null);
     setIsEditingPrice(false);
-    if (focusPlotId) {
-      router.replace(`/admin/master-plan/${blockId}`, { scroll: false });
+
+    // 2. Clear page address in history immediately without blocking, then sync Next router without reopening
+    if (dismissedId) {
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', `/admin/master-plan/${blockId}`);
+      }
+      setTimeout(() => {
+        router.replace(`/admin/master-plan/${blockId}`, { scroll: false });
+      }, 50);
     }
   }, [focusPlotId, router, blockId]);
 
@@ -383,17 +392,22 @@ function BlockPlotsContent() {
     }
   }, [focusPlotId, plots, hasTraced, viewMode, handleSelectPlot]);
 
-  // Keyboard shortcut: Escape to close drawer
+  // Keyboard shortcut: Escape to close drawer and modals immediately
   useEffect(() => {
-    if (!selectedPlot) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && !isReserveModalOpen) {
-        handleCloseDrawer();
+      if (e.key === 'Escape') {
+        if (isReserveModalOpen) {
+          closeReserveModal();
+        } else if (isMinimalBookModalOpen) {
+          closeMinimalBookModal();
+        } else if (selectedPlot) {
+          handleCloseDrawer();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedPlot, isReserveModalOpen, handleCloseDrawer]);
+  }, [selectedPlot, isReserveModalOpen, isMinimalBookModalOpen, handleCloseDrawer]);
 
   // Open Reserve Modal (Broadcast non-blocking PLOT_RESERVING)
   const openReserve = async () => {
@@ -413,24 +427,34 @@ function BlockPlotsContent() {
     await startReservingPlot(session, selectedPlot.id);
   };
 
-  // Cancel / Close Reserve Modal (Broadcast PLOT_RESERVING_CANCELLED)
-  const closeReserveModal = async () => {
-    if (session && selectedPlot) {
-      await cancelReservingPlot(session, selectedPlot.id);
-    }
+  // Cancel / Close Reserve Modal: close window first immediately, then cancel reserve in background
+  const closeReserveModal = () => {
+    const plotToCancel = selectedPlot;
     setReserveSelectedMember(null);
     setIsReserveModalOpen(false);
-    if (session) await loadPlots(session);
+
+    if (session && plotToCancel) {
+      cancelReservingPlot(session, plotToCancel.id)
+        .catch(() => {})
+        .finally(() => {
+          if (session) loadPlots(session);
+        });
+    }
   };
 
-  // Cancel / Close Minimal Booking Modal (Release soft lock)
-  const closeMinimalBookModal = async () => {
-    if (session && selectedPlot) {
-      await releaseLock(session, selectedPlot.id);
-    }
+  // Cancel / Close Minimal Booking Modal: close window first immediately, then release lock in background
+  const closeMinimalBookModal = () => {
+    const plotToRelease = selectedPlot;
     setMinimalSelectedMember(null);
     setIsMinimalBookModalOpen(false);
-    if (session) await loadPlots(session);
+
+    if (session && plotToRelease) {
+      releaseLock(session, plotToRelease.id)
+        .catch(() => {})
+        .finally(() => {
+          if (session) loadPlots(session);
+        });
+    }
   };
 
   // Submit Admin Minimal Quick Booking
@@ -1182,7 +1206,7 @@ function BlockPlotsContent() {
       {/* Plot Detail Modal / Action Drawer */}
       {selectedPlot && (
         <div 
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:py-6 overflow-hidden cursor-pointer"
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-2 sm:p-4 md:py-6 overflow-hidden cursor-pointer"
           onClick={(e) => {
             if (e.target === e.currentTarget) handleCloseDrawer();
           }}
@@ -1649,7 +1673,7 @@ function BlockPlotsContent() {
             </div>
 
             {/* Modal Fixed / Pinned Action Footer */}
-            <div className="p-3 sm:px-5 sm:py-3.5 border-t border-slate-200/90 bg-slate-50/90 backdrop-blur-xs shrink-0 flex flex-col gap-2 shadow-xs">
+            <div className="p-3 sm:px-5 sm:py-3.5 border-t border-slate-200 bg-slate-50 shrink-0 flex flex-col gap-2 shadow-xs">
               {selectedPlot.isAdjustment ? (
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                   <div className="flex-1 py-2 px-3 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-1.5 w-full">
@@ -1734,7 +1758,7 @@ function BlockPlotsContent() {
 
       {/* Reserve Plot Modal */}
       {isReserveModalOpen && selectedPlot && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) closeReserveModal(); }}>
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
@@ -1873,7 +1897,7 @@ function BlockPlotsContent() {
 
       {/* Town Planning / Boundary Re-survey Freeze Modal (Super Admin Only) */}
       {isAdjustmentModalOpen && selectedPlot && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) setIsAdjustmentModalOpen(false); }}>
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
@@ -1940,7 +1964,7 @@ function BlockPlotsContent() {
 
       {/* Admin Minimal Booking Modal (Change Request 07 §5) */}
       {isMinimalBookModalOpen && selectedPlot && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) closeMinimalBookModal(); }}>
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">

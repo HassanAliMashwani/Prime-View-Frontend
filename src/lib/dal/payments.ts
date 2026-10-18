@@ -151,6 +151,9 @@ export async function getPaymentHistory(
 
     let payments = Array.isArray(paymentsData) ? paymentsData : [];
 
+    // Filter out obsolete statutory fees
+    payments = payments.filter((p) => p.feeType !== 'admission_fee' && p.feeType !== 'share_subscription_fee');
+
     if (filterPlotId && filterPlotId !== 'all') {
       payments = payments.filter((p) => {
         const plot = plotMap.get(p.plotId);

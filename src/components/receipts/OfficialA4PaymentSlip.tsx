@@ -148,9 +148,7 @@ export interface SlipRenderModel {
   isFullSettlementCategory: boolean;
   isBookingCategory: boolean;
   isTransferFeeCategory: boolean;
-  isMembershipFeeCategory: boolean;
   isDownPaymentCategory: boolean;
-  isShareFeeCategory: boolean;
   // Membership plan boxes:
   isFullPaymentPlan: boolean;
   isInstallmentsPlan: boolean;
@@ -283,9 +281,7 @@ export function buildSlipDataFromSubmission(
   const isFullSettlementCategory = (feeType === 'plot_one_time' || (sub.paymentType === 'one_time' && instNum === null));
   const isBookingCategory = false;
   const isTransferFeeCategory = false;
-  const isMembershipFeeCategory = feeType === 'admission_fee';
   const isDownPaymentCategory = feeType === 'plot_downpayment';
-  const isShareFeeCategory = feeType === 'share_subscription_fee';
 
   const isInstallmentsPlan = isInstallment || isDownPaymentCategory;
   const isFullPaymentPlan = isFullPayment || isFullSettlementCategory || (!isInstallmentsPlan && isExplicitOneTime);
@@ -297,10 +293,6 @@ export function buildSlipDataFromSubmission(
     onAccountOf = 'Full Payment';
   } else if (isDownPaymentCategory) {
     onAccountOf = 'Down Payment';
-  } else if (isMembershipFeeCategory) {
-    onAccountOf = 'Membership Fee';
-  } else if (isShareFeeCategory) {
-    onAccountOf = 'Share Fee';
   } else {
     onAccountOf = (sub as any).notes || 'Full Payment';
   }
@@ -340,9 +332,7 @@ export function buildSlipDataFromSubmission(
     isFullSettlementCategory,
     isBookingCategory,
     isTransferFeeCategory,
-    isMembershipFeeCategory,
     isDownPaymentCategory,
-    isShareFeeCategory,
     isFullPaymentPlan,
     isInstallmentsPlan,
     isCash: false,
@@ -773,9 +763,7 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
                 <SlipCheckbox label="Full settlement" checked={slip.isFullSettlementCategory} />
                 <SlipCheckbox label="Booking" checked={slip.isBookingCategory} />
                 <SlipCheckbox label="Transfer Fee" checked={slip.isTransferFeeCategory} />
-                <SlipCheckbox label="Membership Fee" checked={slip.isMembershipFeeCategory} />
                 <SlipCheckbox label="Down Payment" checked={slip.isDownPaymentCategory} />
-                <SlipCheckbox label="Share Fee" checked={slip.isShareFeeCategory} />
               </div>
             </div>
 

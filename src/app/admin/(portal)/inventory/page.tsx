@@ -357,9 +357,7 @@ export default function InventoryOverviewPage() {
               Live Plot Status
             </span>
           </div>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1">
-            Real-time plot status counts across all authorized society blocks • Live sync every 15s
-          </p>
+          
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
@@ -399,10 +397,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500" />
-            Current Live Inventory Totals (All Authorized Blocks)
-          </h2>
+          
           {mounted && session?.role === 'sub_admin' && (
             <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-medium">
               Scoped to assigned blocks

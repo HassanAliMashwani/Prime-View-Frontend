@@ -97,49 +97,202 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
         </div>
 
         {/* Scrollable Terms Content */}
-        <div className="max-h-64 sm:max-h-72 overflow-y-auto pr-3 space-y-4 text-xs text-[#4A5347] leading-relaxed border border-black/[0.06] rounded-2xl p-4 bg-[#FAF9F7]">
-          <div>
-            <h4 className="font-bold text-[#151914] mb-1">
-              1. Statutory Jurisdiction &amp; Society Bylaws
+        <div className="max-h-72 sm:max-h-80 overflow-y-auto pr-3 space-y-3.5 text-xs text-[#4A5347] leading-relaxed border border-black/[0.06] rounded-2xl p-4 sm:p-5 bg-[#FAF9F7]">
+          <div className="space-y-1">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                1
+              </span>
+              <span>Society Byelaws Compliance</span>
             </h4>
-            <p>
-              By accessing this member portal, you affirm that you are an authorized allotment holder or provisional member of Prime View Co-operative Housing Society Ltd. You agree to be governed by the Co-operative Societies Act 1925, the KPK Co-operative Societies Rules 1927, and the approved society constitution and bylaws.
+            <p className="pl-7">
+              That the applicant shall abide by the byelaws of the Society.
             </p>
           </div>
 
-          <div>
-            <h4 className="font-bold text-[#151914] mb-1">
-              2. Installment Schedules &amp; Surcharge Obligations
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                2
+              </span>
+              <span>Ownership Basis &amp; Master Plan Allotment</span>
             </h4>
-            <p>
-              Installment amounts, down payments, and developmental surcharges must be cleared on or before their stipulated due dates. Any failure to deposit dues within the prescribed grace period may incur administrative surcharges or subject the allotment file to executive review pursuant to society bylaws.
+            <p className="pl-7">
+              The Plots offered to the buyers in the project shall be on ownership basis &amp; allotment shall be subject to Master Plan after Completion of All Dues.
             </p>
           </div>
 
-          <div>
-            <h4 className="font-bold text-[#151914] mb-1">
-              3. Payment Receipt Upload &amp; Verification Protocol
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                3
+              </span>
+              <span>Down Payment &amp; Monthly Installments Schedule</span>
             </h4>
-            <p>
-              All online deposit slips and banking receipts uploaded via this portal are subject to administrative clearance with the society&apos;s designated scheduled bank accounts. Digital receipts become legally binding only upon the generation and issuance of the official two-part verified slip bearing the cryptographic seal.
+            <p className="pl-7">
+              Down Payment at the time of Booking is Mandatory. If purchased on installments, Monthly installments shall be payable and cleared on or before the 5th of each month through suitable banking channel (Online/Direct Deposit).
             </p>
           </div>
 
-          <div>
-            <h4 className="font-bold text-[#151914] mb-1">
-              4. Digital Security &amp; Member Confidentiality
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                4
+              </span>
+              <span>Bi-Annual / Half-Yearly Installments</span>
             </h4>
-            <p>
-              You are strictly responsible for maintaining the confidentiality of your member credentials. Passwords must be at least 8 characters. Any activity performed using your member credentials will be presumed authorized by you unless promptly reported to the society secretariat.
+            <p className="pl-7">
+              Bi-Annual/Half-Yearly Payments are subject to clear concurrently with the Monthly Installment of that respective month.
             </p>
           </div>
 
-          <div>
-            <h4 className="font-bold text-[#151914] mb-1">
-              5. File Transfer &amp; Allotment Integrity
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                5
+              </span>
+              <span>Payment Schedule &amp; Cancellation Liability</span>
             </h4>
-            <p>
-              Digital plot allotment files and member records remain the exclusive property of Prime View Housing Society until official physical execution of the sub-lease/allotment certificate following 100% financial settlement and society clearance.
+            <p className="pl-7">
+              The applicant shall make the payment of installments within the period specified. If the applicant fails to pay the payment / dues within the period as mentioned in the Booking Form and any additional document provided by the Society, the application will be liable to cancellation as per byelaws of the Society.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                6
+              </span>
+              <span>Final Notice, Cancellation &amp; Refund Policy</span>
+            </h4>
+            <p className="pl-7">
+              In case of failure on the part of the applicant to make payments within the prescribed period as per schedule or after being served the FINAL NOTICE, the application / allotment will stand cancelled. The amount deposited by the applicant shall be refunded after deduction of 100% of down-payment, and 20% of Installments amount.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                7
+              </span>
+              <span>Development Charges &amp; TMA Formalities</span>
+            </h4>
+            <p className="pl-7">
+              The cost of the plot includes all development charges. The applicant will pay transfer expenses, documentation charges and all other ancillary and miscellaneous expenses to the PVCHS Hazara Division as determined for fulfillment of formalities of various departments / agencies as and when asked by the TMA Abbottabad within the prescribed period (legal time).
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                8
+              </span>
+              <span>Taxes &amp; Statutory Government Charges</span>
+            </h4>
+            <p className="pl-7">
+              The allotee will pay all taxes and other charges levied by Federal, Provincial or Local Govt, local bodies and Municipal Bodies or any other Authorities, including those existing at present and those, which may be levied by the above-mentioned, and / or other Authorities in future.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                9
+              </span>
+              <span>Late Payment Surcharge (KIBOR + 5%)</span>
+            </h4>
+            <p className="pl-7">
+              Registered members are requested to make payments as per schedule given by PVCHS Hazara Division. A surcharge @ 6 months KIBOR plus 5% for each day of delay shall be levied for the amount in default subject to Byelaws of Society.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                10
+              </span>
+              <span>Plot Position &amp; Master Plan Protection</span>
+            </h4>
+            <p className="pl-7">
+              PVCHS Hazara Division, shall not change the position of plot, master Plan shall be strictly obeyed, if any changes were required, same shall be done after consent of Applicant.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                11
+              </span>
+              <span>Allotment Letter &amp; Physical Possession</span>
+            </h4>
+            <p className="pl-7">
+              Formal / Final allotment letter(s) and physical possession of the plot are subject to complete clearance of all dues as mentioned under society byelaws.
+            </p>
+          </div>
+
+          <div className="pt-3 pb-1 border-t border-black/[0.08]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[#43612B] bg-[#EAF0E7] px-2.5 py-1 rounded-md">
+              Membership Eligibility &amp; Statutory Standing
+            </span>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                12
+              </span>
+              <span>Age Requirement</span>
+            </h4>
+            <p className="pl-7">
+              Should be of more than 18 years of age, unless he/she is a minor nominee of a deceased member.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                13
+              </span>
+              <span>Moral Character</span>
+            </h4>
+            <p className="pl-7">
+              Must possess good moral character.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                14
+              </span>
+              <span>Share Purchase Requirement</span>
+            </h4>
+            <p className="pl-7">
+              Purchase at least one share.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                15
+              </span>
+              <span>Membership Approval &amp; Nominee Standing</span>
+            </h4>
+            <p className="pl-7">
+              Has applied for membership or his/her membership is approved, as a nominee or legal representative of deceased member.
+            </p>
+          </div>
+
+          <div className="space-y-1 pt-2 border-t border-black/[0.04]">
+            <h4 className="font-bold text-[#151914] flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-[#EAF0E7] text-[#43612B] text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                16
+              </span>
+              <span>Statutory Compliance with Amended By-Laws &amp; Acts</span>
+            </h4>
+            <p className="pl-7">
+              Is in accordance with the directions issued by the Prime View Co-operative Housing Society Ltd Hazara Division Amendend by-Laws, &amp; Co-operative Society Act 1925 Amended 2020 &amp; Co-operative societies rules 1927, from time to time.
             </p>
           </div>
         </div>
