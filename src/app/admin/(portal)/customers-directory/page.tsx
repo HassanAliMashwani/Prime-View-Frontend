@@ -607,11 +607,7 @@ function CustomersDirectoryContent() {
                 <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2.5">
                     {(() => {
-                      const memberAvatar =
-                        c.applicantPhotoUrl ||
-                        (typeof window !== 'undefined'
-                          ? localStorage.getItem(`pv_member_avatar_${c.id}`)
-                          : null);
+                      const memberAvatar = c.applicantPhotoUrl || null;
                       if (memberAvatar) {
                         return (
                           <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
@@ -919,11 +915,7 @@ function CustomersDirectoryContent() {
                       <td className="py-3.5 px-4 min-w-[220px]">
                         <div className="flex items-center gap-3">
                           {(() => {
-                            const memberAvatar =
-                              c.applicantPhotoUrl ||
-                              (typeof window !== 'undefined'
-                                ? localStorage.getItem(`pv_member_avatar_${c.id}`)
-                                : null);
+                            const memberAvatar = c.applicantPhotoUrl || null;
                             if (memberAvatar) {
                               return (
                                 <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">
@@ -1190,11 +1182,7 @@ function CustomersDirectoryContent() {
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div className="flex items-center gap-3">
                 {(() => {
-                  const memberAvatar =
-                    dossierCustomer.applicantPhotoUrl ||
-                    (typeof window !== 'undefined'
-                      ? localStorage.getItem(`pv_member_avatar_${dossierCustomer.id}`)
-                      : null);
+                  const memberAvatar = dossierCustomer.applicantPhotoUrl || null;
                   if (memberAvatar) {
                     return (
                       <div className="w-10 h-10 rounded-xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">

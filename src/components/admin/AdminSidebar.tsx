@@ -285,9 +285,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
                 const sidebarAvatar =
                   session?.avatarUrl ||
                   (session?.permissions as any)?.avatarUrl ||
-                  (typeof window !== 'undefined' && session?.adminId
-                    ? localStorage.getItem(`pv_admin_avatar_${session.adminId}`)
-                    : null);
+                  null;
                 if (sidebarAvatar) {
                   return (
                     <div className="w-5 h-5 rounded-md overflow-hidden border border-slate-200/90 shrink-0 mt-0.5">

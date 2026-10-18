@@ -124,9 +124,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             const headerAvatar =
               session?.avatarUrl ||
               (session?.permissions as any)?.avatarUrl ||
-              (typeof window !== 'undefined' && session?.adminId
-                ? localStorage.getItem(`pv_admin_avatar_${session.adminId}`)
-                : null);
+              null;
 
             if (headerAvatar) {
               return (

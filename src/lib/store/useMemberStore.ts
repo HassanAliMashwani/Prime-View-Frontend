@@ -68,7 +68,12 @@ export const useMemberStore = create<MemberState>((set, get) => ({
             }
 
             set((state) => ({
-              profile: profileRes.data || state.profile,
+              profile: profileRes.data
+                ? {
+                    ...profileRes.data,
+                    termsAccepted: Boolean(state.profile?.termsAccepted || profileRes.data.termsAccepted),
+                  }
+                : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
               schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
               isLoading: false,
@@ -98,7 +103,12 @@ export const useMemberStore = create<MemberState>((set, get) => ({
             }
 
             set((state) => ({
-              profile: profileRes.data || state.profile,
+              profile: profileRes.data
+                ? {
+                    ...profileRes.data,
+                    termsAccepted: Boolean(state.profile?.termsAccepted || profileRes.data.termsAccepted),
+                  }
+                : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
               schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
             }));
@@ -124,7 +134,13 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               fn: async (signal) => {
                 const res = await getCustomerProfile(signal);
                 if (res.ok && res.data) {
-                  set({ profile: res.data });
+                  const profileData: Customer = res.data;
+                  set((state) => ({
+                    profile: {
+                      ...profileData,
+                      termsAccepted: Boolean(state.profile?.termsAccepted || profileData.termsAccepted),
+                    },
+                  }));
                 }
               },
             });
@@ -142,7 +158,13 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               fn: async (signal) => {
                 const res = await getCustomerProfile(signal);
                 if (res.ok && res.data) {
-                  set({ profile: res.data });
+                  const profileData: Customer = res.data;
+                  set((state) => ({
+                    profile: {
+                      ...profileData,
+                      termsAccepted: Boolean(state.profile?.termsAccepted || profileData.termsAccepted),
+                    },
+                  }));
                 }
               },
             });

@@ -719,10 +719,7 @@ export default function TeamsPage() {
                         const avatarSrc =
                           admin.avatarUrl ||
                           (admin.permissions as any)?.avatarUrl ||
-                          (typeof window !== 'undefined'
-                            ? (localStorage.getItem(`pv_admin_avatar_${admin.id}`) ||
-                               (admin.username ? localStorage.getItem(`pv_admin_avatar_${admin.username}`) : null))
-                            : null);
+                          null;
 
                         if (avatarSrc) {
                           return (
@@ -1204,10 +1201,7 @@ export default function TeamsPage() {
                   const editAvatar =
                     editingAdmin.avatarUrl ||
                     (editingAdmin.permissions as any)?.avatarUrl ||
-                    (typeof window !== 'undefined'
-                      ? (localStorage.getItem(`pv_admin_avatar_${editingAdmin.id}`) ||
-                         (editingAdmin.username ? localStorage.getItem(`pv_admin_avatar_${editingAdmin.username}`) : null))
-                      : null);
+                    null;
                   if (editAvatar) {
                     return (
                       <div className="w-10 h-10 rounded-2xl overflow-hidden border border-slate-200/90 shadow-xs shrink-0 ring-1 ring-slate-900/5 bg-white">

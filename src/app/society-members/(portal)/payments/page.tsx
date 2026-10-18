@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense, useCallback } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { PaymentScheduleTable } from '@/components/member-portal/PaymentScheduleTable';
 import { MemberPaymentsSkeleton } from '@/components/ui/skeleton';
@@ -89,10 +89,23 @@ function getTotalStillOwed(sched?: PlotPaymentSchedule | null): number {
 }
 
 function PaymentsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const initialPlotParam = searchParams.get('plot');
   const uploadParam = searchParams.get('upload');
   const installmentParam = searchParams.get('installment');
+
+  const initialPlotHandledRef = React.useRef(false);
+  const lastInitialPlotParamRef = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    if (initialPlotParam !== lastInitialPlotParamRef.current) {
+      lastInitialPlotParamRef.current = initialPlotParam;
+      if (initialPlotParam) {
+        initialPlotHandledRef.current = false;
+      }
+    }
+  }, [initialPlotParam]);
 
   const { schedules, plots, profile, fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -300,9 +313,10 @@ function PaymentsContent() {
 
   useEffect(() => {
     if (schedules.length > 0) {
-      if (initialPlotParam) {
+      if (initialPlotParam && !initialPlotHandledRef.current) {
         const matchingSchedule = schedules.find((s) => s.plotId === initialPlotParam);
         if (matchingSchedule) {
+          initialPlotHandledRef.current = true;
           const isOneTime = matchingSchedule.paymentType === 'one_time';
           setActiveTab(isOneTime ? 'one_time' : 'installment');
           setSelectedPlotId(matchingSchedule.plotId);
@@ -408,9 +422,31 @@ function PaymentsContent() {
       maximumFractionDigits: 0,
     }).format(val);
 
+  const handleBackToList = () => {
+    setSelectedPlotId(null);
+    initialPlotHandledRef.current = true;
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('plot');
+      url.searchParams.delete('upload');
+      url.searchParams.delete('installment');
+      window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+    }
+    router.replace('/society-members/payments');
+  };
+
   const handleTabChange = (tab: 'installment' | 'one_time') => {
     setActiveTab(tab);
     setSelectedPlotId(null);
+    initialPlotHandledRef.current = true;
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('plot');
+      url.searchParams.delete('upload');
+      url.searchParams.delete('installment');
+      window.history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+    }
+    router.replace('/society-members/payments');
   };
 
   const openUploadModalWithPlot = (plotId?: string, installmentNo?: number, amount?: number) => {
@@ -1028,7 +1064,7 @@ function PaymentsContent() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <button
                     type="button"
-                    onClick={() => setSelectedPlotId(null)}
+                    onClick={handleBackToList}
                     className="min-h-[44px] inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-[#43612B] bg-[#EAF0E7] hover:bg-[#d8e4d3] transition-colors border border-[#43612B]/20 cursor-pointer"
                   >
                     <ArrowLeft className="w-3.5 h-3.5" />
@@ -1221,33 +1257,7 @@ function PaymentsContent() {
               </div>
             )}
 
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* LINK TO SUBMITTED RECEIPTS (Separated Receipts Page)          */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-5 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs mt-3 sm:mt-8 min-w-0">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-[#EAF0E7] text-[#43612B] flex items-center justify-center shrink-0">
-                    <Receipt className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-display font-bold text-base sm:text-lg text-[#151914]">
-                    Submitted Receipts &amp; Official Slips
-                  </h3>
-                </div>
-                <p className="text-xs text-[#6B7462] max-w-xl">
-                  Review all your submitted payment receipts grouped by plot, monitor approval statuses, and download official verified A4 member slips.
-                </p>
-              </div>
-
-              <Link
-                href="/society-members/payments/receipts"
-                className="w-full sm:w-auto min-h-[44px] px-5 py-2.5 rounded-xl text-xs font-bold bg-[#FAF9F5] hover:bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/30 flex items-center justify-center gap-2 transition-all shrink-0 shadow-2xs hover:shadow-xs cursor-pointer"
-              >
-                <span>View Submitted Receipts</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-            </div>
-          </div>
+                      </div>
         )}
       </main>
 

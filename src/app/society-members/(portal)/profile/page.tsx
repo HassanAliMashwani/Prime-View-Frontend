@@ -9,6 +9,7 @@ import { useMemberStore } from '@/lib/store/useMemberStore';
 import { updateProfile, changeCustomerPassword } from '@/lib/dal/customers';
 import { runLane1 } from '@/lib/requestLanes';
 import { formatCnic } from '@/lib/utils/cnic';
+import { uploadProfilePhoto } from '@/lib/utils/profilePhotoUpload';
 import {
   User,
   Shield,
@@ -62,69 +63,93 @@ export default function ProfilePage() {
   const avatarInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (profile?.id) {
-      try {
-        const saved = localStorage.getItem(`pv_member_avatar_${profile.id}`);
-        if (saved) setMemberAvatar(saved);
-      } catch {}
+    if (profile?.applicantPhotoUrl) {
+      setMemberAvatar(profile.applicantPhotoUrl);
+    } else {
+      setMemberAvatar('');
     }
-  }, [profile?.id]);
+  }, [profile?.applicantPhotoUrl]);
 
-  const handleMemberAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMemberAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile?.id) return;
-    setAvatarSaving(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const raw = event.target?.result as string;
-      if (!raw) return;
-      const img = new window.Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxDim = 320;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > maxDim) {
-            height = Math.round((height * maxDim) / width);
-            width = maxDim;
-          }
-        } else {
-          if (height > maxDim) {
-            width = Math.round((width * maxDim) / height);
-            height = maxDim;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.drawImage(img, 0, 0, width, height);
-          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
-          setMemberAvatar(dataUrl);
-          try {
-            localStorage.setItem(`pv_member_avatar_${profile.id}`, dataUrl);
-          } catch {}
-          setToastMessage({ type: 'success', text: 'Profile picture updated successfully.' });
 
-          // Persist to backend asynchronously
-          updateProfile({ applicantPhotoUrl: dataUrl }).catch(() => {});
-        }
+    if (!file.type.startsWith('image/')) {
+      setToastMessage({ type: 'error', text: 'Please select a valid image file (PNG, JPG, WebP).' });
+      return;
+    }
+
+    setAvatarSaving(true);
+    setToastMessage(null);
+
+    try {
+      // 1. Shrink step & upload to public-media bucket via presigned URL
+      const uploadRes = await uploadProfilePhoto(file);
+      if (!uploadRes.ok || !uploadRes.fileUrl) {
+        setToastMessage({ type: 'error', text: uploadRes.error || 'Failed to upload profile picture to storage.' });
         setAvatarSaving(false);
-      };
-      img.src = raw;
-    };
-    reader.readAsDataURL(file);
+        return;
+      }
+
+      const httpsUrl = uploadRes.fileUrl;
+
+      // 2. Save only the returned https file link to the server
+      const res = await updateProfile({ applicantPhotoUrl: httpsUrl });
+      if (res.ok) {
+        setMemberAvatar(httpsUrl);
+        useMemberStore.setState((state) => ({
+          ...state,
+          profile: state.profile ? { ...state.profile, applicantPhotoUrl: httpsUrl } : null,
+        }));
+
+        // Delete old browser copy
+        try {
+          localStorage.removeItem(`pv_member_avatar_${profile.id}`);
+        } catch {}
+
+        // Show success notice only after the link is saved
+        setToastMessage({ type: 'success', text: 'Profile picture updated successfully.' });
+      } else {
+        setToastMessage({ type: 'error', text: res.message || res.error || 'Failed to save updated profile picture.' });
+      }
+    } catch (err: any) {
+      setToastMessage({ type: 'error', text: err?.message || 'Failed to process selected image.' });
+    } finally {
+      setAvatarSaving(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = '';
+      }
+    }
   };
 
-  const handleRemoveMemberAvatar = () => {
+  const handleRemoveMemberAvatar = async () => {
     if (!profile?.id) return;
-    setMemberAvatar('');
+    setAvatarSaving(true);
+    setToastMessage(null);
+
     try {
-      localStorage.removeItem(`pv_member_avatar_${profile.id}`);
-    } catch {}
-    setToastMessage({ type: 'success', text: 'Profile picture reset to default.' });
-    updateProfile({ applicantPhotoUrl: '' }).catch(() => {});
+      const res = await updateProfile({ applicantPhotoUrl: '' });
+      if (res.ok) {
+        setMemberAvatar('');
+        useMemberStore.setState((state) => ({
+          ...state,
+          profile: state.profile ? { ...state.profile, applicantPhotoUrl: undefined } : null,
+        }));
+
+        // Delete old browser copy
+        try {
+          localStorage.removeItem(`pv_member_avatar_${profile.id}`);
+        } catch {}
+
+        setToastMessage({ type: 'success', text: 'Profile picture reset to default.' });
+      } else {
+        setToastMessage({ type: 'error', text: res.message || res.error || 'Failed to reset profile picture.' });
+      }
+    } catch (err: any) {
+      setToastMessage({ type: 'error', text: err?.message || 'Failed to reset profile picture.' });
+    } finally {
+      setAvatarSaving(false);
+    }
   };
 
   const {

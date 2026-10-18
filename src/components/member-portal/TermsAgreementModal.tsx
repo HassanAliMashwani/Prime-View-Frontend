@@ -5,7 +5,7 @@ import { useMemberStore } from '@/lib/store/useMemberStore';
 import { acceptTermsAndConditions } from '@/lib/dal/customers';
 import { runLane1 } from '@/lib/requestLanes';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { Shield, FileCheck, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
+import { Shield, FileCheck, CheckCircle, AlertCircle, LogOut, Loader2 } from 'lucide-react';
 
 interface TermsAgreementModalProps {
   standalone?: boolean;
@@ -27,56 +27,60 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
     return null;
   }
 
-  const handleAccept = () => {
+  const handleAccept = async () => {
+    if (isSubmitting) return;
     if (!agreed && isMandatory) return;
+    setIsSubmitting(true);
     setError(null);
 
-    if (profile) {
-      const targetCustomerId = profile.id;
+    const startTime = Date.now();
 
-      // 1. In the same click: close the box and mark the member as accepted on the screen
-      useMemberStore.setState((state) => ({
-        ...state,
-        profile: state.profile
-          ? { ...state.profile, termsAccepted: true, termsAcceptedAt: new Date().toISOString() }
-          : null,
-        termsModalOpen: false,
-      }));
-      closeTermsModal();
+    try {
+      let isSuccess = true;
+      let errorMsg: string | null = null;
 
-      // 2. Save the acceptance in the background without blocking or reloading profile
-      (async () => {
-        try {
-          const res = await runLane1({
-            screen: 'member-terms',
-            isSave: true,
-            fn: async () => acceptTermsAndConditions(targetCustomerId),
-          });
-          if (!res.ok) {
-            // If the save fails, open the box again and show the error
-            useMemberStore.setState((state) => ({
-              ...state,
-              profile: state.profile
-                ? { ...state.profile, termsAccepted: false }
-                : null,
-              termsModalOpen: true,
-            }));
-            setError(res.error || 'Failed to record acceptance. Please try again.');
-          }
-        } catch (err: any) {
-          // If the save fails, open the box again and show the error
-          useMemberStore.setState((state) => ({
-            ...state,
-            profile: state.profile
-              ? { ...state.profile, termsAccepted: false }
-              : null,
-            termsModalOpen: true,
-          }));
-          setError(err?.message || 'An unexpected error occurred while saving terms acceptance.');
+      if (profile) {
+        const targetCustomerId = profile.id;
+        const res = await runLane1({
+          screen: 'member-terms',
+          isSave: true,
+          fn: async () => acceptTermsAndConditions(targetCustomerId),
+        });
+
+        if (!res.ok) {
+          isSuccess = false;
+          errorMsg = res.error || 'Failed to record acceptance. Please try again.';
         }
-      })();
-    } else {
-      closeTermsModal();
+      }
+
+      // Enforce approximately 1 second visible duration for the spinner and "Saving…"
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
+      }
+
+      if (isSuccess) {
+        // Close the box only after the server has stored the acceptance
+        useMemberStore.setState((state) => ({
+          ...state,
+          profile: state.profile
+            ? { ...state.profile, termsAccepted: true, termsAcceptedAt: new Date().toISOString() }
+            : null,
+          termsModalOpen: false,
+        }));
+        closeTermsModal();
+      } else {
+        // If the save fails, leave the box open and show the error
+        setError(errorMsg);
+      }
+    } catch (err: any) {
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 1000) {
+        await new Promise((resolve) => setTimeout(resolve, 1000 - elapsed));
+      }
+      setError(err?.message || 'An unexpected error occurred while saving terms acceptance.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -358,12 +362,21 @@ export const TermsAgreementModal: React.FC<TermsAgreementModalProps> = ({ standa
 
           <button
             type="button"
-            disabled={!agreed && isMandatory}
+            disabled={(!agreed && isMandatory) || isSubmitting}
             onClick={handleAccept}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(67,97,43,0.3)] transition-all cursor-pointer disabled:cursor-not-allowed"
+            className="w-full sm:w-auto min-w-[200px] px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center justify-center gap-2 shadow-[0_4px_16px_rgba(67,97,43,0.3)] transition-all cursor-pointer disabled:cursor-not-allowed"
           >
-            <CheckCircle className="w-4 h-4" />
-            <span>{isMandatory ? 'Agree & Enter Member Portal' : 'Accept Terms & Save'}</span>
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <span>Saving…</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span>{isMandatory ? 'Agree & Enter Member Portal' : 'Accept Terms & Save'}</span>
+              </>
+            )}
           </button>
         </div>
     </div>

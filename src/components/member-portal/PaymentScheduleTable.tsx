@@ -15,6 +15,10 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
   totalPrice,
   paidAmount,
 }) => {
+  const remainingBalance = Math.max(0, totalPrice - paidAmount);
+  const isFullyPaid = totalPrice > 0 && remainingBalance === 0 && (schedule.length === 0 || schedule.every((p) => p.status === 'paid'));
+  const hasNoSchedule = schedule.length === 0;
+
   // Find upcoming payment or overdue payment
   const overdueInstallment = schedule.find((p) => p.status === 'overdue');
   const nextPendingInstallment = schedule.find((p) => p.status === 'pending' || p.status === 'partially_paid');
@@ -115,11 +119,33 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
             </p>
           </div>
         </div>
-      ) : (
+      ) : isFullyPaid ? (
         <div className="bg-[#EAF0E7] border border-[#43612B]/20 rounded-2xl p-4 flex items-center gap-3 text-[#43612B]">
           <CheckCircle2 className="w-5 h-5 shrink-0" />
           <p className="text-xs font-semibold">
             All installments have been fully paid. Your property clearance certificate is ready.
+          </p>
+        </div>
+      ) : hasNoSchedule ? (
+        <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-4 sm:p-5 flex items-start gap-4 text-amber-900">
+          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-700">
+            <Clock className="w-5 h-5" />
+          </div>
+          <div className="space-y-1">
+            <h4 className="font-bold text-sm text-amber-900">
+              Official Installment Schedule Pending Finalization
+            </h4>
+            <p className="text-xs text-amber-800 leading-relaxed">
+              This plot booking is active with an outstanding balance of{' '}
+              <span className="font-bold text-[#151914]">{formatPKR(remainingBalance)}</span>. Your verified installment plan breakdown will appear here once finalized by the society accounts office.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-[#FAF9F7] border border-black/10 rounded-2xl p-4 flex items-center gap-3 text-[#151914]">
+          <Clock className="w-5 h-5 shrink-0 text-[#6B7462]" />
+          <p className="text-xs font-medium text-[#6B7462]">
+            Remaining plot balance: <span className="font-bold text-[#151914]">{formatPKR(remainingBalance)}</span>. No overdue installments recorded.
           </p>
         </div>
       )}
@@ -131,10 +157,26 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
             Official Installment Ledger
           </h4>
           <span className="text-xs font-semibold text-[#6B7462]">
-            {schedule.filter((p) => p.status === 'paid').length} of {schedule.length} Paid
+            {schedule.length === 0
+              ? 'Pending Plan Assignment'
+              : `${schedule.filter((p) => p.status === 'paid').length} of ${schedule.length} Paid`}
           </span>
         </div>
 
+        {schedule.length === 0 ? (
+          <div className="p-8 sm:p-12 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-black/5 text-[#6B7462] flex items-center justify-center mx-auto mb-3">
+              <Calendar className="w-6 h-6 opacity-60" />
+            </div>
+            <h5 className="font-bold text-sm text-[#151914]">
+              No Installment Records Generated Yet
+            </h5>
+            <p className="text-xs text-[#6B7462] max-w-md mx-auto mt-1 leading-relaxed">
+              The installment payment schedule for this plot file is awaiting final administrative assignment. Once your plan is activated by the society office, all recurring due dates and amounts will appear in this ledger.
+            </p>
+          </div>
+        ) : (
+          <>
         {/* Mobile Stacked Cards (< 768px) */}
         <div className="md:hidden space-y-3 p-4">
           {schedule.map((record) => {
@@ -291,6 +333,8 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
             </tbody>
           </table>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

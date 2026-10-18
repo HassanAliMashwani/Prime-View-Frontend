@@ -58,6 +58,9 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       adminId: payload.adminId,
       username: payload.username,
       fullName: payload.fullName,
+      email: payload.email,
+      phone: payload.phone,
+      avatarUrl: payload.avatarUrl || (payload.permissions as any)?.avatarUrl || '',
       role: payload.role,
       assignedBlocks: payload.assignedBlocks || [],
       permissions: payload.permissions || {},
@@ -81,6 +84,21 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       error: 'Something went wrong. Please try again.',
     };
   }
+}
+
+/**
+ * Update cached admin session in storage
+ */
+export function updateActiveAdminSession(updates: Partial<AdminSession>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = getActiveAdminSession();
+    if (current) {
+      const merged: AdminSession = { ...current, ...updates };
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(merged));
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(merged));
+    }
+  } catch {}
 }
 
 /**

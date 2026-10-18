@@ -1175,7 +1175,7 @@ function BlockPlotsContent() {
                 </div>
 
                 {/* Super Admin Quick Adjust Plot Action on Card */}
-                {session?.role === 'super_admin' && (plot.category === 'residential' || plot.category === 'commercial') && visualStatus !== 'allotted' && !isAdjustment && (
+                {session?.role === 'super_admin' && (plot.category === 'residential' || plot.category === 'commercial') && visualStatus !== 'allotted' && visualStatus !== 'booked' && !isBooked && plot.status !== 'booked' && !isAdjustment && (
                   <button
                     type="button"
                     onClick={(e) => handleOpenAdjustPlot(plot, e)}
@@ -1771,8 +1771,8 @@ function BlockPlotsContent() {
                     </button>
                   )}
 
-                  {/* Super Admin Master Plan Adjustment Button: Stays for booked, HIDDEN for allotted */}
-                  {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && !selectedPlot.isAdjustment && (
+                  {/* Super Admin Master Plan Adjustment Button: HIDDEN for booked and allotted */}
+                  {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && selectedPlot.status !== 'booked' && !selectedPlot.isAdjustment && (
                     <button
                       type="button"
                       onClick={() => handleOpenAdjustPlot(selectedPlot)}

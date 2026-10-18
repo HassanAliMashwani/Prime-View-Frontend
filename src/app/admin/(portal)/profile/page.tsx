@@ -31,6 +31,7 @@ import {
 } from 'lucide-react';
 import {
   getActiveAdminSession,
+  updateActiveAdminSession,
   getAdminProfile,
   updateAdminProfile,
   changeAdminPassword,
@@ -40,6 +41,7 @@ import {
 import { toast } from '@/lib/toast';
 import { getCache, setCache } from '@/lib/dal/apiCache';
 import { runLane1 } from '@/lib/requestLanes';
+import { uploadProfilePhoto } from '@/lib/utils/profilePhotoUpload';
 
 const BLOCK_COLORS: Record<string, string> = {
   abbott: 'bg-emerald-50 text-emerald-800 border-emerald-200',
@@ -83,13 +85,9 @@ export default function AdminProfilePage() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      // Load saved avatar from localStorage if available
-      try {
-        const localAvatar = localStorage.getItem(`pv_admin_avatar_${s.adminId}`);
-        if (localAvatar) {
-          setAvatar(localAvatar);
-        }
-      } catch {}
+      if (s.avatarUrl) {
+        setAvatar(s.avatarUrl);
+      }
 
       runLane1({
         screen: 'admin-profile',
@@ -104,11 +102,9 @@ export default function AdminProfilePage() {
             setEditFullName(res.admin.fullName || s.fullName || '');
             setEditEmail(res.admin.email || (s.username ? `${s.username}@primeview.pk` : ''));
             setEditPhone(res.admin.phone || s.phone || '');
-            if (res.admin.avatarUrl) {
-              setAvatar(res.admin.avatarUrl);
-              try {
-                localStorage.setItem(`pv_admin_avatar_${s.adminId}`, res.admin.avatarUrl);
-              } catch {}
+            setAvatar(res.admin.avatarUrl || '');
+            if (res.admin.avatarUrl !== s.avatarUrl) {
+              updateActiveAdminSession({ avatarUrl: res.admin.avatarUrl || '' });
             }
           }
         })
@@ -125,7 +121,7 @@ export default function AdminProfilePage() {
       setEditFullName(details.fullName || '');
       setEditEmail(details.email || '');
       setEditPhone(details.phone || '');
-      if (details.avatarUrl && !avatar) {
+      if (details.avatarUrl !== undefined) {
         setAvatar(details.avatarUrl);
       }
     } else if (session) {
@@ -136,7 +132,7 @@ export default function AdminProfilePage() {
     }
   }, [details, session]);
 
-  // Handle Profile Picture selection and optimization
+  // Handle Profile Picture selection and optimization via public-media storage
   const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !session) return;
@@ -149,69 +145,48 @@ export default function AdminProfilePage() {
     setAvatarSaving(true);
 
     try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const rawDataUrl = event.target?.result as string;
-        if (!rawDataUrl) return;
+      // 1. Shrink step & upload to public-media bucket via presigned URL
+      const uploadRes = await uploadProfilePhoto(file);
+      if (!uploadRes.ok || !uploadRes.fileUrl) {
+        toast.error(uploadRes.error || 'Failed to upload profile picture.');
+        setAvatarSaving(false);
+        return;
+      }
 
-        // Resize & compress image using canvas to ensure fast load and reasonable size
-        const img = new window.Image();
-        img.onload = async () => {
-          const canvas = document.createElement('canvas');
-          const maxDim = 320;
-          let width = img.width;
-          let height = img.height;
+      const httpsUrl = uploadRes.fileUrl;
 
-          if (width > height) {
-            if (width > maxDim) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            }
-          } else {
-            if (height > maxDim) {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
+      // 2. Save only the returned https file link to the server
+      const res = await runLane1({
+        screen: 'admin-profile',
+        isSave: true,
+        fn: async () => updateAdminProfile(session, { avatarUrl: httpsUrl }),
+      });
+
+      if (res.ok && res.admin) {
+        setAvatar(httpsUrl);
+        setDetails(res.admin);
+        setCache(`/profile:${session.adminId}`, res.admin);
+        updateActiveAdminSession({ avatarUrl: httpsUrl });
+
+        // Delete old browser copy
+        try {
+          localStorage.removeItem(`pv_admin_avatar_${session.adminId}`);
+          if (session.username) {
+            localStorage.removeItem(`pv_admin_avatar_${session.username}`);
           }
+        } catch {}
 
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(img, 0, 0, width, height);
-            const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.88);
-
-            setAvatar(optimizedDataUrl);
-            try {
-              localStorage.setItem(`pv_admin_avatar_${session.adminId}`, optimizedDataUrl);
-              if (session.username) {
-                localStorage.setItem(`pv_admin_avatar_${session.username}`, optimizedDataUrl);
-              }
-            } catch {}
-
-            // Save to backend
-            const res = await runLane1({
-              screen: 'admin-profile',
-              isSave: true,
-              fn: async () => updateAdminProfile(session, { avatarUrl: optimizedDataUrl }),
-            });
-
-            if (res.ok && res.admin) {
-              setDetails(res.admin);
-              setCache(`/profile:${session.adminId}`, res.admin);
-              toast.success('Profile picture updated successfully.');
-            } else {
-              toast.error(res.error || 'Failed to save updated profile picture.');
-            }
-          }
-          setAvatarSaving(false);
-        };
-        img.src = rawDataUrl;
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      toast.error('Failed to process selected image.');
+        toast.success('Profile picture updated successfully.');
+      } else {
+        toast.error(res.error || 'Failed to save updated profile picture.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to process selected image.');
+    } finally {
       setAvatarSaving(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -219,14 +194,6 @@ export default function AdminProfilePage() {
     if (!session) return;
     setAvatarSaving(true);
     try {
-      setAvatar('');
-      try {
-        localStorage.removeItem(`pv_admin_avatar_${session.adminId}`);
-        if (session.username) {
-          localStorage.removeItem(`pv_admin_avatar_${session.username}`);
-        }
-      } catch {}
-
       const res = await runLane1({
         screen: 'admin-profile',
         isSave: true,
@@ -234,14 +201,25 @@ export default function AdminProfilePage() {
       });
 
       if (res.ok && res.admin) {
+        setAvatar('');
         setDetails(res.admin);
         setCache(`/profile:${session.adminId}`, res.admin);
-        toast.success('Profile picture removed. Restored official emblem.');
+        updateActiveAdminSession({ avatarUrl: '' });
+
+        // Delete old browser copy
+        try {
+          localStorage.removeItem(`pv_admin_avatar_${session.adminId}`);
+          if (session.username) {
+            localStorage.removeItem(`pv_admin_avatar_${session.username}`);
+          }
+        } catch {}
+
+        toast.success('Emblem restored as default profile picture.');
       } else {
-        toast.error(res.error || 'Failed to remove profile picture.');
+        toast.error(res.error || 'Failed to reset profile picture.');
       }
     } catch {
-      toast.error('Failed to reset profile picture.');
+      toast.error('An unexpected network error occurred.');
     } finally {
       setAvatarSaving(false);
     }

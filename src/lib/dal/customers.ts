@@ -10,7 +10,7 @@ import {
 import { getActiveSession } from './auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
-import { fetchWith60sCache } from './apiCache';
+import { fetchWith60sCache, clearCachePrefix } from './apiCache';
 
 export interface CustomerDisambiguation {
   id: string;
@@ -487,6 +487,8 @@ export async function acceptTermsAndConditions(
   if (!res.ok) {
     return { ok: false, error: res.error || 'Failed to record acceptance.' };
   }
+  clearCachePrefix(`/customers/${customerId}`);
+  clearCachePrefix('/customers');
   return { ok: true };
 }
 

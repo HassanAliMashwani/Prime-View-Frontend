@@ -60,8 +60,16 @@ export const MemberHeader: React.FC<MemberHeaderProps> = ({
         </button>
 
         <div className="flex items-center gap-2.5 pl-2 border-l border-black/10">
-          <div className="w-11 h-11 min-w-[44px] min-h-[44px] sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full bg-[#43612B] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
-            <User className="w-4 h-4" />
+          <div className="relative w-11 h-11 min-w-[44px] min-h-[44px] sm:w-9 sm:h-9 sm:min-w-0 sm:min-h-0 rounded-full bg-[#43612B] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0 overflow-hidden">
+            {profile?.applicantPhotoUrl ? (
+              <img
+                src={profile.applicantPhotoUrl}
+                alt={currentUser?.fullName || 'Member'}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <User className="w-4 h-4" />
+            )}
           </div>
           <div className="hidden md:block text-left" suppressHydrationWarning>
             {mounted && currentUser?.fullName ? (
