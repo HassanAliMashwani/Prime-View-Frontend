@@ -90,7 +90,9 @@ export async function getPaymentSchedule(
         (p) =>
           p.feeType === 'plot_installment' ||
           p.feeType === 'plot_one_time' ||
-          p.feeType === 'plot_downpayment'
+          p.feeType === 'plot_downpayment' ||
+          p.feeType === 'plot_biannual' ||
+          p.feeType === 'plot_possession'
       );
 
       const ledger = computePlotLedger(plot.price, bookingPayments);
@@ -114,12 +116,11 @@ export async function getPaymentSchedule(
         downpaymentFee,
         installmentPlan: booking.installmentPlan,
         schedule: plotPricePayments.sort((a, b) => {
+          const dateDiff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          if (dateDiff !== 0) return dateDiff;
           const numA = a.installmentNumber ?? (a.feeType === 'plot_downpayment' ? 0 : 999);
           const numB = b.installmentNumber ?? (b.feeType === 'plot_downpayment' ? 0 : 999);
-          if (numA !== numB) {
-            return numA - numB;
-          }
-          return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+          return numA - numB;
         }),
       });
     }

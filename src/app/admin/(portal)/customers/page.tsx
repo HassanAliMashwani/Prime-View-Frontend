@@ -35,6 +35,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { AdminSession, PaymentType, Plot, Customer, InstallmentPlanConfig } from '@/lib/mock/types';
+import { generateFrontendSchedule, FrontendScheduleRow } from '@/lib/utils/installmentSchedule';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import {
   searchCustomers,
@@ -48,7 +49,10 @@ import {
   CreateCustomerWithBookingInput,
   setRegisteredPlotsCache,
   getAdminCustomerById,
+  PickerMember,
+  searchMembersForPicker,
 } from '@/lib/dal/customers';
+import LiveMemberPicker from '@/components/admin/customers/LiveMemberPicker';
 import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice, getAdminPlotDetails } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
@@ -182,17 +186,11 @@ function CustomersPageContent() {
   // INSTALLMENT SCHEDULE CONFIG STATE (Item 6)
   // ----------------------------------------------------
   // Path A Installment State
-  const [yearsA, setYearsA] = useState<number>(2);
-  const [paidAfterEveryA, setPaidAfterEveryA] = useState<number>(1); // months
-  const [downpaymentA, setDownpaymentA] = useState<number>(0);
-  const [downpaymentCustomizedA, setDownpaymentCustomizedA] = useState<boolean>(false);
+  const [yearsA, setYearsA] = useState<number>(1);
   const [totalPaymentA, setTotalPaymentA] = useState<number>(0);
 
   // Path B Installment State
-  const [yearsB, setYearsB] = useState<number>(2);
-  const [paidAfterEveryB, setPaidAfterEveryB] = useState<number>(1); // months
-  const [downpaymentB, setDownpaymentB] = useState<number>(0);
-  const [downpaymentCustomizedB, setDownpaymentCustomizedB] = useState<boolean>(false);
+  const [yearsB, setYearsB] = useState<number>(1);
   const [totalPaymentB, setTotalPaymentB] = useState<number>(0);
 
   // ----------------------------------------------------
@@ -248,7 +246,12 @@ function CustomersPageContent() {
     customerName: queryCustomerName || '',
     cnic: '',
     city: '',
+    customerId: '',
   });
+  const [subAdminSelectedMember, setSubAdminSelectedMember] = useState<PickerMember | null>(null);
+  const [pathASelectedMember, setPathASelectedMember] = useState<PickerMember | null>(null);
+  const pathBSearchAbortRef = useRef<AbortController | null>(null);
+  const [pathBHighlightedIndex, setPathBHighlightedIndex] = useState<number>(-1);
   const [subAdminSubmitting, setSubAdminSubmitting] = useState(false);
   const [subAdminPlotError, setSubAdminPlotError] = useState<string | null>(null);
 
@@ -311,8 +314,6 @@ function CustomersPageContent() {
       const tot = customTotal ?? p.price;
       setTotalPaymentA(tot);
       setTotalPaymentB(p.price);
-      setDownpaymentA(Math.round(tot * 0.2));
-      setDownpaymentB(Math.round(p.price * 0.2));
       setPathAPlotError(null);
       setPathBPlotError(null);
     };
@@ -658,9 +659,6 @@ function CustomersPageContent() {
 
     setSelectedPlotA(plot);
     setTotalPaymentA(plot.price);
-    if (!downpaymentCustomizedA) {
-      setDownpaymentA(Math.round(plot.price * 0.2));
-    }
   };
 
   const handleVerifyPlotB = (plotId: string) => {
@@ -703,9 +701,6 @@ function CustomersPageContent() {
 
     setSelectedPlotB(plot);
     setTotalPaymentB(plot.price);
-    if (!downpaymentCustomizedB) {
-      setDownpaymentB(Math.round(plot.price * 0.2));
-    }
   };
 
   // ----------------------------------------------------
@@ -764,13 +759,10 @@ function CustomersPageContent() {
     // Build installment plan config if installment type
     let installmentPlan: InstallmentPlanConfig | undefined = undefined;
     if (pathAForm.paymentType === 'installment') {
-      const calc = calculatePlan(finalPriceA, downpaymentA, yearsA, paidAfterEveryA);
       installmentPlan = {
-        totalPayment: calc.totalPayment,
-        downpayment: calc.downpayment,
-        years: calc.years,
-        paidAfterEvery: calc.paidAfterEvery,
-        numberOfInstallments: calc.numberOfInstallments,
+        totalPayment: finalPriceA,
+        planYears: yearsA,
+        years: yearsA,
       };
     }
 
@@ -838,12 +830,65 @@ function CustomersPageContent() {
       return;
     }
 
+    // If a saved complete member was selected from LiveMemberPicker, attach plot to that member
+    if (pathASelectedMember) {
+      if (pathASelectedMember.registrationStatus === 'minimal') {
+        setFeedback({
+          type: 'error',
+          message: 'Selected member has a pending minimal registration. Complete registration on their existing file first before adding another plot.',
+        });
+        return;
+      }
+
+      setPathASubmitting(true);
+      const res = await runLane1({
+        screen: 'customer-booking',
+        isSave: true,
+        fn: async () => addBookingToCustomer(session, {
+          customerId: pathASelectedMember.id,
+          plotId: pathAForm.plotId || queryPlotId,
+          paymentType: pathAForm.paymentType,
+          paperInstallmentRef: pathAForm.paperInstallmentRef,
+          lockToken: queryLockToken || undefined,
+          reservationId: queryReservationId || undefined,
+          installmentPlan,
+        }),
+      });
+      setPathASubmitting(false);
+
+      if (!res.ok) {
+        setFeedback({ type: 'error', message: res.message || res.error || 'Failed to attach plot to member.' });
+        return;
+      }
+
+      isCommittedRef.current = true;
+      setFeedback({
+        type: 'success',
+        message: `Plot ${plot.plotNumber} successfully added to member ${pathASelectedMember.fullName} (${pathASelectedMember.membershipNo})!`,
+      });
+
+      if (plot) {
+        setAgreementModal({
+          open: false,
+          customer: { ...pathASelectedMember, id: pathASelectedMember.id } as any,
+          plot,
+          paymentType: pathAForm.paymentType,
+          paperRef: pathAForm.paperInstallmentRef,
+          bookingDate: new Date().toLocaleDateString('en-GB'),
+          installmentPlan,
+        });
+      }
+      loadInitialData();
+      return;
+    }
+
     setPathASubmitting(true);
     const res = await runLane1({
       screen: 'customer-booking',
       isSave: true,
       fn: async () => createCustomerWithBooking(session, {
         ...pathAForm,
+        customerId: undefined,
         cnic: formatCnic(pathAForm.cnic),
         nokCnic: formatCnic(pathAForm.nokCnic),
         lockToken: queryLockToken || undefined,
@@ -925,26 +970,107 @@ function CustomersPageContent() {
   };
 
   // ----------------------------------------------------
-  // SEARCH PATH B CUSTOMERS
+  // SEARCH PATH B CUSTOMERS & LIVE PICKER HOOK
   // ----------------------------------------------------
+  const handleSelectCustomer = async (cust: CustomerDisambiguation) => {
+    setSelectedCustomer(cust);
+    setIsCustomerConfirmed(false);
+    if (session) {
+      const res = await getAdminCustomerById(session, cust.id);
+      if (res.ok && res.data) {
+        const bookings = res.data.bookings || [];
+        setSelectedCustomer({
+          ...cust,
+          city: (cust as any).city || res.data.city,
+          propertiesCount: bookings.length,
+          bookings,
+        });
+      }
+    }
+  };
+
+  // Path B Live debounced search (~250ms)
+  useEffect(() => {
+    if (!searchQuery.trim() || selectedCustomer) {
+      if (!selectedCustomer) {
+        setSearchResults([]);
+      }
+      setIsSearching(false);
+      if (pathBSearchAbortRef.current) {
+        pathBSearchAbortRef.current.abort();
+        pathBSearchAbortRef.current = null;
+      }
+      return;
+    }
+
+    setIsSearching(true);
+    setPathBHighlightedIndex(-1);
+
+    if (pathBSearchAbortRef.current) {
+      pathBSearchAbortRef.current.abort();
+    }
+    const controller = new AbortController();
+    pathBSearchAbortRef.current = controller;
+
+    const timer = setTimeout(async () => {
+      try {
+        if (!session) return;
+        const res = await searchMembersForPicker(session, searchQuery, controller.signal);
+        if (!controller.signal.aborted) {
+          if (res.ok && res.members) {
+            const mapped: CustomerDisambiguation[] = res.members.slice(0, 8).map((m) => ({
+              id: m.id,
+              fullName: m.fullName,
+              membershipNo: m.membershipNo || '',
+              cnic: m.cnic,
+              phone: m.phone || '',
+              propertiesCount: m.plotCount,
+              accountStatus: 'active',
+              registrationStatus: (m.registrationStatus === 'minimal' ? 'minimal' : 'complete') as 'minimal' | 'complete',
+              city: m.city,
+            }));
+            setSearchResults(mapped);
+          } else {
+            setSearchResults([]);
+          }
+          setIsSearching(false);
+        }
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          setIsSearching(false);
+          setSearchResults([]);
+        }
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [searchQuery, selectedCustomer, session]);
+
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session || !searchQuery.trim()) return;
     setIsSearching(true);
     try {
-      const res = await runLane1({
-        screen: 'customer-search',
-        fn: async (signal) => searchCustomers(session, searchQuery, signal),
-      });
-      if (res && res.ok) {
-        setSearchResults(res.customers);
-        setSelectedCustomer(null);
-        setIsCustomerConfirmed(false);
+      const res = await searchMembersForPicker(session, searchQuery);
+      if (res && res.ok && res.members) {
+        const mapped: CustomerDisambiguation[] = res.members.slice(0, 8).map((m) => ({
+          id: m.id,
+          fullName: m.fullName,
+          membershipNo: m.membershipNo || '',
+          cnic: m.cnic,
+          phone: m.phone || '',
+          propertiesCount: m.plotCount,
+          accountStatus: 'active',
+          registrationStatus: (m.registrationStatus === 'minimal' ? 'minimal' : 'complete') as 'minimal' | 'complete',
+          city: m.city,
+        }));
+        setSearchResults(mapped);
       }
     } catch (err: any) {
-      if (err?.message !== 'REQUEST_SUPERSEDED') {
-        // non-blocking
-      }
+      // non-blocking
     } finally {
       setIsSearching(false);
     }
@@ -994,13 +1120,10 @@ function CustomersPageContent() {
     // Build installment plan config if installment type
     let installmentPlan: InstallmentPlanConfig | undefined = undefined;
     if (pathBPaymentType === 'installment') {
-      const calc = calculatePlan(finalPriceB, downpaymentB, yearsB, paidAfterEveryB);
       installmentPlan = {
-        totalPayment: calc.totalPayment,
-        downpayment: calc.downpayment,
-        years: calc.years,
-        paidAfterEvery: calc.paidAfterEvery,
-        numberOfInstallments: calc.numberOfInstallments,
+        totalPayment: finalPriceB,
+        planYears: yearsB,
+        years: yearsB,
       };
     }
 
@@ -1039,7 +1162,7 @@ function CustomersPageContent() {
     // Open Printable Agreement Modal
     setAgreementModal({
       open: true,
-      customer: selectedCustomer,
+      customer: selectedCustomer as any,
       plot,
       paymentType: pathBPaymentType,
       paperRef: pathBPaperRef,
@@ -1107,6 +1230,7 @@ function CustomersPageContent() {
         city: subAdminForm.city,
         lockToken: queryLockToken || undefined,
         reservationId: queryReservationId || undefined,
+        customerId: subAdminSelectedMember?.id || subAdminForm.customerId || undefined,
       }),
     });
     setSubAdminSubmitting(false);
@@ -1122,7 +1246,8 @@ function CustomersPageContent() {
       message: `Quick booking successfully created for ${res.customer?.fullName} on Plot ${plot.plotNumber} (Booked - Pending Formalities)!`,
     });
 
-    setSubAdminForm({ customerName: '', cnic: '', city: '' });
+    setSubAdminForm({ customerName: '', cnic: '', city: '', customerId: '' });
+    setSubAdminSelectedMember(null);
     if (!queryPlotId) {
       setSubAdminPlotId('');
     }
@@ -1206,14 +1331,14 @@ function CustomersPageContent() {
 
   // Calculations for Path A
   const effectivePriceA = (session?.role === 'super_admin' && totalPaymentA > 0) ? totalPaymentA : (selectedPlotA?.price || 0);
-  const planA = selectedPlotA
-    ? calculatePlan(effectivePriceA, downpaymentA, yearsA, paidAfterEveryA)
+  const planA = (selectedPlotA && pathAForm.paymentType === 'installment')
+    ? generateFrontendSchedule({ plotPriceRupees: effectivePriceA, planYears: yearsA })
     : null;
 
   // Calculations for Path B
   const effectivePriceB = (session?.role === 'super_admin' && totalPaymentB > 0) ? totalPaymentB : (selectedPlotB?.price || 0);
-  const planB = selectedPlotB
-    ? calculatePlan(effectivePriceB, downpaymentB, yearsB, paidAfterEveryB)
+  const planB = (selectedPlotB && pathBPaymentType === 'installment')
+    ? generateFrontendSchedule({ plotPriceRupees: effectivePriceB, planYears: yearsB })
     : null;
 
   return (
@@ -1315,42 +1440,75 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Customer Full Name <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
+                <LiveMemberPicker
                   value={subAdminForm.customerName}
-                  onChange={(e) => setSubAdminForm({ ...subAdminForm, customerName: e.target.value })}
-                  placeholder="e.g. Hamza Tariq"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(val) => setSubAdminForm((prev) => ({ ...prev, customerName: val }))}
+                  selectedMember={subAdminSelectedMember}
+                  onSelectMember={(member) => {
+                    setSubAdminSelectedMember(member);
+                    if (member) {
+                      setSubAdminForm((prev) => ({
+                        ...prev,
+                        customerName: member.fullName,
+                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
+                        city: member.city || prev.city,
+                        customerId: member.id,
+                      }));
+                    } else {
+                      setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
+                    }
+                  }}
+                  placeholder="e.g. Hamza Tariq (type to search saved members)"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Customer CNIC <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Customer CNIC <span className="text-rose-500">*</span></span>
+                  {subAdminSelectedMember && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
                   required
                   maxLength={15}
                   value={subAdminForm.cnic}
+                  disabled={Boolean(subAdminSelectedMember)}
                   onChange={(e) => setSubAdminForm({ ...subAdminForm, cnic: formatCnic(e.target.value) })}
                   placeholder="00000-0000000-0"
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                    subAdminSelectedMember
+                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  City <span className="text-rose-500">*</span>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>City <span className="text-rose-500">*</span></span>
+                  {subAdminSelectedMember && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
                   required
                   value={subAdminForm.city}
+                  disabled={Boolean(subAdminSelectedMember)}
                   onChange={(e) => setSubAdminForm({ ...subAdminForm, city: e.target.value })}
                   placeholder="e.g. Lahore, Rawalpindi, Islamabad"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
+                    subAdminSelectedMember
+                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
               </div>
             </div>
@@ -1506,13 +1664,40 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Full Name of Applicant *
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Muhammad Aslam Khan"
+                <LiveMemberPicker
                   value={pathAForm.fullName}
-                  onChange={(e) => setPathAForm({ ...pathAForm, fullName: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(val) => setPathAForm((prev) => ({ ...prev, fullName: val }))}
+                  selectedMember={pathASelectedMember}
+                  onSelectMember={async (member) => {
+                    setPathASelectedMember(member);
+                    if (member) {
+                      if (member.registrationStatus === 'minimal') {
+                        if (session) {
+                          const res = await getAdminCustomerById(session, member.id);
+                          if (res.ok && res.data) {
+                            setCompleteTargetCustomer(res.data);
+                          }
+                        }
+                      }
+                      setPathAForm((prev) => ({
+                        ...prev,
+                        fullName: member.fullName,
+                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
+                        phone: member.phone || prev.phone,
+                        email: member.email || prev.email,
+                        membershipNo: member.membershipNo || prev.membershipNo,
+                      }));
+                      if (member.city) {
+                        setMemberCity(member.city);
+                      }
+                    } else {
+                      if (completeTargetCustomer && completeTargetCustomer.id === pathASelectedMember?.id) {
+                        setCompleteTargetCustomer(null);
+                      }
+                    }
+                  }}
+                  placeholder="e.g. Muhammad Aslam Khan (type name, CNIC, phone or membership #)"
+                  required
                 />
               </div>
 
@@ -1909,16 +2094,16 @@ function CustomersPageContent() {
               </div>
             )}
 
-            {/* Installment Form Fields (Item 6) */}
+            {/* Installment Form Fields: Fixed Prime View Schedule */}
             {pathAForm.paymentType === 'installment' && selectedPlotA && (
               <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <span className="text-xs font-bold text-slate-900 font-serif">Installment Plan Parameters</span>
-                  <span className="text-[11px] text-slate-500 font-medium">Customizable duration and payment frequency</span>
+                  <span className="text-xs font-bold text-slate-900 font-serif">Fixed Prime View Installment Schedule</span>
+                  <span className="text-[11px] text-slate-500 font-medium">Standard 4-Way Pool Division (25% / 38.2% / 28.8% / 8%)</span>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Field 1: Total Payment */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Total Payment */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
                       <label className="block text-[11px] font-bold text-slate-700">
@@ -1943,13 +2128,7 @@ function CustomersPageContent() {
                           min={100000}
                           step={50000}
                           value={totalPaymentA || ''}
-                          onChange={(e) => {
-                            const newTot = Number(e.target.value);
-                            setTotalPaymentA(newTot);
-                            if (!downpaymentCustomizedA && newTot > 0) {
-                              setDownpaymentA(Math.round(newTot * 0.2));
-                            }
-                          }}
+                          onChange={(e) => setTotalPaymentA(Number(e.target.value))}
                           className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                         />
                       </div>
@@ -1963,175 +2142,103 @@ function CustomersPageContent() {
                     )}
                   </div>
 
-                  {/* Field 2: Downpayment */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[11px] font-bold text-slate-700">
-                        Downpayment (PKR) *
-                      </label>
-                      <span className="text-[10px] text-emerald-700 font-bold">Paid Upfront</span>
-                    </div>
-                    <input
-                      type="number"
-                      required
-                      min={0}
-                      max={effectivePriceA}
-                      step={5000}
-                      value={downpaymentA}
-                      onChange={(e) => {
-                        setDownpaymentA(Number(e.target.value));
-                        setDownpaymentCustomizedA(true);
-                      }}
-                      className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                    />
-                    <div className="flex gap-1 mt-1.5">
-                      {[10, 20, 25, 50].map((pct) => {
-                        const isSelected =
-                          effectivePriceA > 0 &&
-                          downpaymentA === Math.round(effectivePriceA * (pct / 100));
-                        return (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => {
-                              setDownpaymentA(Math.round(effectivePriceA * (pct / 100)));
-                              setDownpaymentCustomizedA(true);
-                            }}
-                            className={`text-[10px] px-2 py-0.5 rounded-md font-medium cursor-pointer transition-colors ${
-                              isSelected
-                                ? 'bg-emerald-700 text-white font-bold'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            {pct}%
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Field 3: Number of Years */}
+                  {/* Plan Length Selector */}
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Number of Years *
+                      Plan Length (Years) *
                     </label>
-                    <input
-                      type="number"
-                      required
-                      min={0.5}
-                      max={10}
-                      step={0.5}
-                      value={yearsA}
-                      onChange={(e) => setYearsA(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                    />
-                    <div className="flex gap-1 mt-1.5">
+                    <div className="grid grid-cols-5 gap-1.5">
                       {[1, 2, 3, 4, 5].map((y) => (
                         <button
                           key={y}
                           type="button"
                           onClick={() => setYearsA(y)}
-                          className={`text-[10px] px-2 py-0.5 rounded-md font-medium cursor-pointer ${
+                          className={`py-2 text-xs rounded-xl font-bold transition-all cursor-pointer ${
                             yearsA === y
-                              ? 'bg-emerald-700 text-white font-bold'
-                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                              ? 'bg-emerald-700 text-white shadow-xs'
+                              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
                           }`}
                         >
-                          {y}Y
+                          {y} {y === 1 ? 'Year' : 'Years'}
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  {/* Field 4: Paid After Every */}
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                      Paid After Every (Months) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min={1}
-                      max={24}
-                      value={paidAfterEveryA}
-                      onChange={(e) => setPaidAfterEveryA(Number(e.target.value))}
-                      className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                    />
-                    <div className="flex gap-1 mt-1.5">
-                      {[
-                        { label: '1M (Monthly)', val: 1 },
-                        { label: '3M (Quarterly)', val: 3 },
-                        { label: '6M (Semi-Ann)', val: 6 },
-                        { label: '12M (Ann)', val: 12 },
-                      ].map((f) => (
-                        <button
-                          key={f.val}
-                          type="button"
-                          onClick={() => setPaidAfterEveryA(f.val)}
-                          className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium cursor-pointer ${
-                            paidAfterEveryA === f.val
-                              ? 'bg-emerald-700 text-white font-bold'
-                              : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                          }`}
-                        >
-                          {f.val}M
-                        </button>
-                      ))}
-                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      {yearsA * 12} Monthly bills + {yearsA * 2} Bi-annual bills + Downpayment + Possession
+                    </span>
                   </div>
                 </div>
 
-                {/* Field 5: Auto-Calculated Number of Installments & Breakdown */}
+                {/* Interactive Preview Schedule Table */}
                 {planA && (
-                  <div className="pt-3 border-t border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                    <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                      <span className="text-[11px] text-slate-500 font-bold block uppercase tracking-wider">
-                        Auto-Calculated Installments
-                      </span>
-                      <div className="text-base font-bold font-mono text-emerald-800">
-                        {planA.numberOfInstallments} Installments
+                  <div className="space-y-3 pt-2 border-t border-slate-200">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                      <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                        <span className="text-[10px] uppercase font-bold text-emerald-800 block">Down payment (25%)</span>
+                        <span className="text-sm font-mono font-bold text-emerald-950 mt-0.5 block">
+                          PKR {planA[0].amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-emerald-700">Paid upfront</span>
                       </div>
-                      <div className="text-[10px] text-slate-500 font-medium">
-                        Formula: {planA.years} Years × 12 = {Math.round(planA.years * 12)} Mos ÷ {planA.paidAfterEvery} Mos
+                      <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200">
+                        <span className="text-[10px] uppercase font-bold text-blue-800 block">Monthly Pool (38.2%)</span>
+                        <span className="text-sm font-mono font-bold text-blue-950 mt-0.5 block">
+                          PKR {(Math.floor((Math.round(effectivePriceA * 100) * 382) / 1000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-blue-700">{yearsA * 12} monthly bills</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+                        <span className="text-[10px] uppercase font-bold text-sky-800 block">Bi-annual Pool (28.8%)</span>
+                        <span className="text-sm font-mono font-bold text-sky-950 mt-0.5 block">
+                          PKR {(Math.floor((Math.round(effectivePriceA * 100) * 288) / 1000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-sky-700">{yearsA * 2} bi-annual bills</span>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200">
+                        <span className="text-[10px] uppercase font-bold text-purple-800 block">Possession (8% + rem)</span>
+                        <span className="text-sm font-mono font-bold text-purple-950 mt-0.5 block">
+                          PKR {(planA.find((r) => r.feeType === 'plot_possession')?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                        <span className="text-[10px] text-purple-700">Final handover</span>
                       </div>
                     </div>
 
-                    <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                      <span className="text-[11px] text-slate-500 font-bold block uppercase tracking-wider">
-                        Financed Balance Remaining
-                      </span>
-                      <div className="text-base font-bold font-mono text-slate-900">
-                        PKR {planA.financed.toLocaleString()}
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                      <div className="px-3 py-2 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-xs">
+                        <span className="font-bold text-slate-800">Preview Installment Schedule ({planA.length} Rows)</span>
+                        <span className="text-[11px] font-mono text-slate-600">Total: PKR {effectivePriceA.toLocaleString()}</span>
                       </div>
-                      <div className="text-[10px] text-slate-500">
-                        Total {selectedPlotA.price.toLocaleString()} − Downpayment {planA.downpayment.toLocaleString()}
-                      </div>
-                    </div>
-
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
-                      <span className="text-[11px] text-emerald-800 font-bold block uppercase tracking-wider">
-                        Installment Amount Breakdown
-                      </span>
-                      <div className="text-xs font-bold text-emerald-950 font-mono">
-                        {planA.numberOfInstallments > 1 ? (
-                          <>
-                            {planA.numberOfInstallments - 1} × PKR {planA.baseInstallment.toLocaleString()}
-                            <div className="text-[11px] text-emerald-700 font-bold mt-0.5">
-                              Final Installment: PKR {planA.finalInstallment.toLocaleString()}
-                              {planA.remainder > 0 && (
-                                <span className="text-[10px] font-normal text-emerald-600 block">
-                                  (absorbs rounding remainder of PKR {planA.remainder})
-                                </span>
-                              )}
-                            </div>
-                          </>
-                        ) : (
-                          <span>1 Installment: PKR {planA.finalInstallment.toLocaleString()}</span>
-                        )}
-                        <div className="text-[10px] text-emerald-800 font-semibold mt-1 flex items-center gap-1">
-                          <Calendar className="w-3 h-3 text-emerald-700" />
-                          <span>First Due: {planA.firstDueFormatted} (5th of each month)</span>
-                        </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="sticky top-0 bg-slate-100 text-slate-600 border-b border-slate-200 text-[10px] uppercase tracking-wider font-semibold">
+                            <tr>
+                              <th className="py-2 px-3">Year</th>
+                              <th className="py-2 px-3">Payment Type</th>
+                              <th className="py-2 px-3">Due Date</th>
+                              <th className="py-2 px-3 text-right">Amount</th>
+                              <th className="py-2 px-3 text-right">Cumulative Paid</th>
+                              <th className="py-2 px-3 text-right">Balance</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                            {planA.map((row) => (
+                              <tr key={row.seq} className="hover:bg-slate-50 transition-colors">
+                                <td className="py-1.5 px-3 text-slate-600">Year {row.year}</td>
+                                <td className="py-1.5 px-3 font-sans font-medium text-slate-800">{row.label}</td>
+                                <td className="py-1.5 px-3 text-slate-600">{row.dueDateStr}</td>
+                                <td className="py-1.5 px-3 text-right font-bold text-slate-900">
+                                  PKR {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-1.5 px-3 text-right text-emerald-700 font-semibold">
+                                  PKR {row.cumulativePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                                <td className="py-1.5 px-3 text-right text-slate-700">
+                                  PKR {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   </div>
@@ -2151,16 +2258,16 @@ function CustomersPageContent() {
               </div>
               {selectedPlotA && pathAForm.paymentType === 'installment' && planA && (
                 <div className="font-bold text-slate-800 flex items-center justify-between">
-                  <span>Plot Downpayment (Collected Upfront):</span>
+                  <span>Plot Downpayment (25% Collected Upfront):</span>
                   <span className="font-mono text-emerald-700 font-bold">
-                    PKR {planA.downpayment.toLocaleString()} (Paid)
+                    PKR {planA[0].amount.toLocaleString(undefined, { minimumFractionDigits: 2 })} (Paid)
                   </span>
                 </div>
               )}
               <div className="pt-1.5 border-t border-slate-200 flex items-center justify-between text-slate-600 font-bold">
                 <span>Total Upfront Settlement on Enrollment:</span>
                 <span className="font-mono font-bold text-slate-900">
-                  PKR {(12000 + (pathAForm.paymentType === 'installment' && planA ? planA.downpayment : (selectedPlotA?.price || 0))).toLocaleString()}
+                  PKR {(12000 + (pathAForm.paymentType === 'installment' && planA ? planA[0].amount : (selectedPlotA?.price || 0))).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
@@ -2320,79 +2427,203 @@ function CustomersPageContent() {
               </div>
             </div>
 
-            <form onSubmit={handleSearchSubmit} className="flex gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                <input
-                  type="text"
-                  required
-                  placeholder="Search by full name, CNIC (e.g. 37405-...), or mobile number..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-blue-600"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isSearching}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
-              >
-                {isSearching ? 'Searching...' : 'Search'}
-              </button>
-            </form>
-
-            {/* Results Disambiguation List */}
-            {searchResults.length > 0 && !selectedCustomer && (
-              <div className="space-y-2 pt-2">
-                <span className="text-[11px] font-bold text-slate-600 uppercase tracking-wider block">
-                  Found {searchResults.length} Matching Profiles (Select to confirm)
-                </span>
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden">
-                  {searchResults.map((cust) => (
-                    <div
-                      key={cust.id}
-                      className="p-3.5 bg-white hover:bg-slate-50 flex items-center justify-between gap-4 transition"
-                    >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <strong className="text-xs text-slate-900 font-serif">{cust.fullName}</strong>
-                          <span className="font-mono text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold">
-                            {cust.membershipNo}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-mono">
-                          CNIC: {cust.cnic} • Phone: {cust.phone}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-slate-500">
-                          {cust.propertiesCount} {cust.propertiesCount === 1 ? 'Plot' : 'Plots'}
+            {/* If a customer is selected, show identity badge with Clear control */}
+            {selectedCustomer ? (
+              <div className="flex items-center justify-between p-3.5 bg-emerald-50/90 border border-emerald-300 rounded-xl text-xs shadow-xs transition-all">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <strong className="text-sm font-serif font-bold text-emerald-950 truncate">
+                        {selectedCustomer.fullName}
+                      </strong>
+                      {selectedCustomer.membershipNo && (
+                        <span className="font-mono text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-200">
+                          {selectedCustomer.membershipNo}
                         </span>
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            setSelectedCustomer(cust);
-                            setIsCustomerConfirmed(false);
-                            if (session) {
-                              const res = await getAdminCustomerById(session, cust.id);
-                              if (res.ok && res.data) {
-                                const bookings = res.data.bookings || [];
-                                setSelectedCustomer({
-                                  ...cust,
-                                  propertiesCount: bookings.length,
-                                  bookings,
-                                });
-                              }
-                            }
-                          }}
-                          className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-lg text-xs font-bold transition cursor-pointer"
-                        >
-                          Select Customer
-                        </button>
-                      </div>
+                      )}
+                      <span className="font-mono text-xs text-emerald-800">
+                        {selectedCustomer.cnic}
+                      </span>
                     </div>
-                  ))}
+                    <div className="text-[11px] text-emerald-700 flex items-center gap-2 mt-0.5">
+                      {selectedCustomer.phone && <span>Ph: {selectedCustomer.phone}</span>}
+                      {(selectedCustomer as any).city && <span>• {(selectedCustomer as any).city}</span>}
+                      <span>•</span>
+                      <span className="font-bold">
+                        {selectedCustomer.propertiesCount} {selectedCustomer.propertiesCount === 1 ? 'Plot' : 'Plots'} on file
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCustomer(null);
+                    setIsCustomerConfirmed(false);
+                    setSearchQuery('');
+                    setSearchResults([]);
+                  }}
+                  className="ml-3 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:text-rose-700 hover:bg-rose-50 border border-emerald-300 hover:border-rose-200 rounded-lg transition-colors cursor-pointer shrink-0 flex items-center gap-1.5"
+                  title="Clear selection and unlock search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear &amp; Change</span>
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSearchSubmit} className="flex gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Search by customer name, membership #, CNIC, or mobile..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                      const totalItems = searchResults.length + 1;
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setPathBHighlightedIndex((prev) => (prev + 1) % totalItems);
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setPathBHighlightedIndex((prev) => (prev - 1 + totalItems) % totalItems);
+                      } else if (e.key === 'Enter') {
+                        if (pathBHighlightedIndex >= 0 && pathBHighlightedIndex < searchResults.length) {
+                          e.preventDefault();
+                          handleSelectCustomer(searchResults[pathBHighlightedIndex]);
+                        } else if (pathBHighlightedIndex === searchResults.length) {
+                          e.preventDefault();
+                          setActiveTab('path_a');
+                          setPathAForm((prev) => ({ ...prev, fullName: searchQuery }));
+                        }
+                      } else if (e.key === 'Escape') {
+                        setSearchResults([]);
+                      }
+                    }}
+                    autoComplete="off"
+                    className="w-full pl-9 pr-8 py-2.5 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-blue-600 focus:ring-2 focus:ring-blue-600/10 transition-all"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSearchResults([]);
+                      }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSearching}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
+                >
+                  {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                  <span>{isSearching ? 'Searching...' : 'Search'}</span>
+                </button>
+              </form>
+            )}
+
+            {/* Live Results Table (updates while typing, max 8 rows) */}
+            {searchQuery.trim() && !selectedCustomer && (
+              <div className="space-y-2 pt-2 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <span>
+                    {isSearching
+                      ? 'Searching members...'
+                      : `Found ${searchResults.length} Matching Profiles (Click row or press Enter to select)`}
+                  </span>
+                  <span>Max 8 rows</span>
+                </div>
+
+                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                  {searchResults.map((cust, idx) => {
+                    const isHighlighted = idx === pathBHighlightedIndex;
+                    return (
+                      <div
+                        key={cust.id}
+                        onClick={() => handleSelectCustomer(cust)}
+                        onMouseEnter={() => setPathBHighlightedIndex(idx)}
+                        className={`p-3.5 flex items-center justify-between gap-4 transition cursor-pointer ${
+                          isHighlighted ? 'bg-blue-50/90 text-blue-950' : 'bg-white hover:bg-slate-50 text-slate-800'
+                        }`}
+                      >
+                        <div className="space-y-0.5 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <strong className="text-xs font-serif font-bold text-slate-900">
+                              {cust.fullName}
+                            </strong>
+                            {cust.membershipNo && (
+                              <span className="font-mono text-[10px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-bold border border-slate-200">
+                                {cust.membershipNo}
+                              </span>
+                            )}
+                            <span className="font-mono text-[11px] text-slate-500">
+                              CNIC: {cust.cnic}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
+                            {cust.phone && <span>Ph: {cust.phone}</span>}
+                            {(cust as any).city && <span>• {(cust as any).city}</span>}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs font-bold text-indigo-900 bg-indigo-50 border border-indigo-200 px-2.5 py-1 rounded-lg">
+                            {cust.propertiesCount} {cust.propertiesCount === 1 ? 'Plot' : 'Plots'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectCustomer(cust);
+                            }}
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
+                          >
+                            Select Customer
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Empty state while query typed */}
+                  {!isSearching && searchResults.length === 0 && (
+                    <div className="p-4 text-center text-xs text-slate-500 bg-slate-50">
+                      No saved members found matching &ldquo;{searchQuery}&rdquo;. You can register them as a new customer below.
+                    </div>
+                  )}
+
+                  {/* Last row: Use this as a new customer */}
+                  <div
+                    onClick={() => {
+                      setActiveTab('path_a');
+                      setPathAForm((prev) => ({ ...prev, fullName: searchQuery }));
+                    }}
+                    onMouseEnter={() => setPathBHighlightedIndex(searchResults.length)}
+                    className={`p-3 transition cursor-pointer flex items-center gap-2.5 text-xs font-semibold ${
+                      pathBHighlightedIndex === searchResults.length
+                        ? 'bg-blue-100/70 text-blue-900'
+                        : 'bg-slate-50 hover:bg-blue-50/60 text-slate-700'
+                    }`}
+                  >
+                    <UserPlus className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div className="min-w-0">
+                      <span>Use &ldquo;<strong>{searchQuery}</strong>&rdquo; as a new customer</span>
+                      <span className="text-[10px] text-slate-500 block font-normal">
+                        Switch to Path A to register a new member who is not on file
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -2730,16 +2961,16 @@ function CustomersPageContent() {
                 </div>
               )}
 
-              {/* Dynamic Installment Plan Parameters for Path B (Item 6) */}
+              {/* Dynamic Installment Plan Parameters for Path B: Fixed Prime View Schedule */}
               {pathBPaymentType === 'installment' && selectedPlotB && (
                 <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                    <span className="text-xs font-bold text-slate-900 font-serif">Installment Plan Parameters</span>
-                    <span className="text-[11px] text-slate-500 font-medium">Auto-calculated schedule with remainder absorption</span>
+                    <span className="text-xs font-bold text-slate-900 font-serif">Fixed Prime View Installment Schedule</span>
+                    <span className="text-[11px] text-slate-500 font-medium">Standard 4-Way Pool Division (25% / 38.2% / 28.8% / 8%)</span>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Total Payment */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Total Price */}
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <label className="block text-[11px] font-bold text-slate-700">
@@ -2764,13 +2995,7 @@ function CustomersPageContent() {
                             min={100000}
                             step={50000}
                             value={totalPaymentB || ''}
-                            onChange={(e) => {
-                              const newTot = Number(e.target.value);
-                              setTotalPaymentB(newTot);
-                              if (!downpaymentCustomizedB && newTot > 0) {
-                                setDownpaymentB(Math.round(newTot * 0.2));
-                              }
-                            }}
+                            onChange={(e) => setTotalPaymentB(Number(e.target.value))}
                             className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                           />
                         </div>
@@ -2784,175 +3009,103 @@ function CustomersPageContent() {
                       )}
                     </div>
 
-                    {/* Downpayment */}
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-[11px] font-bold text-slate-700">
-                          Downpayment (PKR) *
-                        </label>
-                        <span className="text-[10px] text-emerald-700 font-bold">Paid Upfront</span>
-                      </div>
-                      <input
-                        type="number"
-                        required
-                        min={0}
-                        max={effectivePriceB}
-                        step={5000}
-                        value={downpaymentB}
-                        onChange={(e) => {
-                          setDownpaymentB(Number(e.target.value));
-                          setDownpaymentCustomizedB(true);
-                        }}
-                        className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                      />
-                      <div className="flex gap-1 mt-1.5">
-                        {[10, 20, 25, 50].map((pct) => {
-                          const isSelected =
-                            effectivePriceB > 0 &&
-                            downpaymentB === Math.round(effectivePriceB * (pct / 100));
-                          return (
-                            <button
-                              key={pct}
-                              type="button"
-                              onClick={() => {
-                                setDownpaymentB(Math.round(effectivePriceB * (pct / 100)));
-                                setDownpaymentCustomizedB(true);
-                              }}
-                              className={`text-[10px] px-2 py-0.5 rounded-md font-medium cursor-pointer transition-colors ${
-                                isSelected
-                                  ? 'bg-emerald-700 text-white font-bold'
-                                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                              }`}
-                            >
-                              {pct}%
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Number of Years */}
+                    {/* Plan Length Selector */}
                     <div>
                       <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Number of Years *
+                        Plan Length (Years) *
                       </label>
-                      <input
-                        type="number"
-                        required
-                        min={0.5}
-                        max={10}
-                        step={0.5}
-                        value={yearsB}
-                        onChange={(e) => setYearsB(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                      />
-                      <div className="flex gap-1 mt-1.5">
+                      <div className="grid grid-cols-5 gap-1.5">
                         {[1, 2, 3, 4, 5].map((y) => (
                           <button
                             key={y}
                             type="button"
                             onClick={() => setYearsB(y)}
-                            className={`text-[10px] px-2 py-0.5 rounded-md font-medium cursor-pointer ${
+                            className={`py-2 text-xs rounded-xl font-bold transition-all cursor-pointer ${
                               yearsB === y
-                                ? 'bg-emerald-700 text-white font-bold'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
+                                ? 'bg-emerald-700 text-white shadow-xs'
+                                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
                             }`}
                           >
-                            {y}Y
+                            {y} {y === 1 ? 'Year' : 'Years'}
                           </button>
                         ))}
                       </div>
-                    </div>
-
-                    {/* Paid After Every */}
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-700 mb-1">
-                        Paid After Every (Months) *
-                      </label>
-                      <input
-                        type="number"
-                        required
-                        min={1}
-                        max={24}
-                        value={paidAfterEveryB}
-                        onChange={(e) => setPaidAfterEveryB(Number(e.target.value))}
-                        className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
-                      />
-                      <div className="flex gap-1 mt-1.5">
-                        {[
-                          { label: '1M (Monthly)', val: 1 },
-                          { label: '3M (Quarterly)', val: 3 },
-                          { label: '6M (Semi-Ann)', val: 6 },
-                          { label: '12M (Ann)', val: 12 },
-                        ].map((f) => (
-                          <button
-                            key={f.val}
-                            type="button"
-                            onClick={() => setPaidAfterEveryB(f.val)}
-                            className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium cursor-pointer ${
-                              paidAfterEveryB === f.val
-                                ? 'bg-emerald-700 text-white font-bold'
-                                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-100'
-                            }`}
-                          >
-                            {f.val}M
-                          </button>
-                        ))}
-                      </div>
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        {yearsB * 12} Monthly bills + {yearsB * 2} Bi-annual bills + Downpayment + Possession
+                      </span>
                     </div>
                   </div>
 
-                  {/* Summary & Remainder Absorption */}
+                  {/* Interactive Preview Schedule Table */}
                   {planB && (
-                    <div className="pt-3 border-t border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-                      <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                        <span className="text-[11px] text-slate-500 font-bold block uppercase tracking-wider">
-                          Auto-Calculated Installments
-                        </span>
-                        <div className="text-base font-bold font-mono text-emerald-800">
-                          {planB.numberOfInstallments} Installments
+                    <div className="space-y-3 pt-2 border-t border-slate-200">
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                        <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+                          <span className="text-[10px] uppercase font-bold text-emerald-800 block">Down payment (25%)</span>
+                          <span className="text-sm font-mono font-bold text-emerald-950 mt-0.5 block">
+                            PKR {planB[0].amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-emerald-700">Paid upfront</span>
                         </div>
-                        <div className="text-[10px] text-slate-500 font-medium">
-                          Formula: {planB.years} Years × 12 = {Math.round(planB.years * 12)} Mos ÷ {planB.paidAfterEvery} Mos
+                        <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200">
+                          <span className="text-[10px] uppercase font-bold text-blue-800 block">Monthly Pool (38.2%)</span>
+                          <span className="text-sm font-mono font-bold text-blue-950 mt-0.5 block">
+                            PKR {(Math.floor((Math.round(effectivePriceB * 100) * 382) / 1000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-blue-700">{yearsB * 12} monthly bills</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
+                          <span className="text-[10px] uppercase font-bold text-sky-800 block">Bi-annual Pool (28.8%)</span>
+                          <span className="text-sm font-mono font-bold text-sky-950 mt-0.5 block">
+                            PKR {(Math.floor((Math.round(effectivePriceB * 100) * 288) / 1000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-sky-700">{yearsB * 2} bi-annual bills</span>
+                        </div>
+                        <div className="p-2.5 rounded-xl bg-purple-50 border border-purple-200">
+                          <span className="text-[10px] uppercase font-bold text-purple-800 block">Possession (8% + rem)</span>
+                          <span className="text-sm font-mono font-bold text-purple-950 mt-0.5 block">
+                            PKR {(planB.find((r) => r.feeType === 'plot_possession')?.amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          </span>
+                          <span className="text-[10px] text-purple-700">Final handover</span>
                         </div>
                       </div>
 
-                      <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-1">
-                        <span className="text-[11px] text-slate-500 font-bold block uppercase tracking-wider">
-                          Financed Balance Remaining
-                        </span>
-                        <div className="text-base font-bold font-mono text-slate-900">
-                          PKR {planB.financed.toLocaleString()}
+                      <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+                        <div className="px-3 py-2 bg-slate-100/70 border-b border-slate-200 flex items-center justify-between text-xs">
+                          <span className="font-bold text-slate-800">Preview Installment Schedule ({planB.length} Rows)</span>
+                          <span className="text-[11px] font-mono text-slate-600">Total: PKR {effectivePriceB.toLocaleString()}</span>
                         </div>
-                        <div className="text-[10px] text-slate-500">
-                          Total {effectivePriceB.toLocaleString()} − Downpayment {planB.downpayment.toLocaleString()}
-                        </div>
-                      </div>
-
-                      <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1">
-                        <span className="text-[11px] text-emerald-800 font-bold block uppercase tracking-wider">
-                          Installment Amount Breakdown
-                        </span>
-                        <div className="text-xs font-bold text-emerald-950 font-mono">
-                          {planB.numberOfInstallments > 1 ? (
-                            <>
-                              {planB.numberOfInstallments - 1} × PKR {planB.baseInstallment.toLocaleString()}
-                              <div className="text-[11px] text-emerald-700 font-bold mt-0.5">
-                                Final Installment: PKR {planB.finalInstallment.toLocaleString()}
-                                {planB.remainder > 0 && (
-                                  <span className="text-[10px] font-normal text-emerald-600 block">
-                                    (absorbs rounding remainder of PKR {planB.remainder})
-                                  </span>
-                                )}
-                              </div>
-                            </>
-                          ) : (
-                            <span>1 Installment: PKR {planB.finalInstallment.toLocaleString()}</span>
-                          )}
-                          <div className="text-[10px] text-emerald-800 font-semibold mt-1 flex items-center gap-1">
-                            <Calendar className="w-3 h-3 text-emerald-700" />
-                            <span>First Due: {planB.firstDueFormatted} (5th of each month)</span>
-                          </div>
+                        <div className="max-h-60 overflow-y-auto">
+                          <table className="w-full text-left text-xs border-collapse">
+                            <thead className="sticky top-0 bg-slate-100 text-slate-600 border-b border-slate-200 text-[10px] uppercase tracking-wider font-semibold">
+                              <tr>
+                                <th className="py-2 px-3">Year</th>
+                                <th className="py-2 px-3">Payment Type</th>
+                                <th className="py-2 px-3">Due Date</th>
+                                <th className="py-2 px-3 text-right">Amount</th>
+                                <th className="py-2 px-3 text-right">Cumulative Paid</th>
+                                <th className="py-2 px-3 text-right">Balance</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 font-mono text-[11px]">
+                              {planB.map((row) => (
+                                <tr key={row.seq} className="hover:bg-slate-50 transition-colors">
+                                  <td className="py-1.5 px-3 text-slate-600">Year {row.year}</td>
+                                  <td className="py-1.5 px-3 font-sans font-medium text-slate-800">{row.label}</td>
+                                  <td className="py-1.5 px-3 text-slate-600">{row.dueDateStr}</td>
+                                  <td className="py-1.5 px-3 text-right font-bold text-slate-900">
+                                    PKR {row.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="py-1.5 px-3 text-right text-emerald-700 font-semibold">
+                                    PKR {row.cumulativePaid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="py-1.5 px-3 text-right text-slate-700">
+                                    PKR {row.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                       </div>
                     </div>
@@ -3403,7 +3556,7 @@ function CustomersPageContent() {
                       {agreementModal.installmentPlan && (
                         <tr className="border-b border-slate-200">
                           <td className="p-1.5 sm:p-2 font-semibold">Plot Upfront Downpayment</td>
-                          <td className="p-1.5 sm:p-2 font-mono">{agreementModal.installmentPlan.downpayment.toLocaleString()}</td>
+                          <td className="p-1.5 sm:p-2 font-mono">{(agreementModal.installmentPlan.downpayment ?? Math.floor(agreementModal.plot.price * 0.25)).toLocaleString()}</td>
                           <td className="p-1.5 sm:p-2 font-bold text-emerald-700">PAID UPFRONT</td>
                           <td className="p-1.5 sm:p-2 text-slate-500">Initial Booking Downpayment</td>
                         </tr>
@@ -3412,7 +3565,7 @@ function CustomersPageContent() {
                         <td className="p-1.5 sm:p-2 font-semibold">
                           Plot Payment:{' '}
                           {agreementModal.paymentType === 'installment'
-                            ? `${agreementModal.installmentPlan?.years || 2}-Year Installment Plan (${agreementModal.installmentPlan?.numberOfInstallments || 24} Installments)`
+                            ? `${agreementModal.installmentPlan?.planYears || agreementModal.installmentPlan?.years || 1}-Year Fixed Schedule`
                             : 'Full Upfront Payment'}
                         </td>
                         <td className="p-1.5 sm:p-2 font-mono font-bold">

@@ -13,6 +13,8 @@ export const PLOT_PRICE_FEE_TYPES = new Set([
   'plot_installment',
   'plot_one_time',
   'plot_downpayment',
+  'plot_biannual',
+  'plot_possession',
 ]);
 
 export interface PlotLedgerPaymentRow {

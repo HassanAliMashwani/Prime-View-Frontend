@@ -18,6 +18,8 @@ export type FeeType =
   | 'share_subscription_fee'
   | 'plot_downpayment'
   | 'plot_installment'
+  | 'plot_biannual'
+  | 'plot_possession'
   | 'plot_one_time';
 
 export type BlockId =
@@ -132,12 +134,14 @@ export interface Plot {
 
 export interface InstallmentPlanConfig {
   totalPayment: number;
-  downpayment: number;
+  downpayment?: number;
   planYears?: number;
   years?: number;
   paidAfterEveryMonths?: number;
   paidAfterEvery?: number;
-  numberOfInstallments: number;
+  numberOfInstallments?: number;
+  monthlyInstallmentCount?: number;
+  biannualInstallmentCount?: number;
 }
 
 export interface Booking {
@@ -257,6 +261,7 @@ export interface Reservation {
   cancelledAt?: string;
   cancelledByAdminId?: string;
   resolutionNote?: string;
+  customerId?: string;
 }
 
 // ── Content CMS (Phase 3) ──

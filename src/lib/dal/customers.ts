@@ -19,11 +19,13 @@ export interface CustomerDisambiguation {
   fatherOrHusbandName?: string;
   cnic: string;
   phone: string;
-  email: string;
-  mailingAddress: string;
+  email?: string;
+  mailingAddress?: string;
   accountStatus: AccountStatus;
   propertiesCount: number;
   bookings?: any[];
+  city?: string;
+  registrationStatus?: 'minimal' | 'complete';
 }
 
 export interface CreateCustomerWithBookingInput {
@@ -46,6 +48,7 @@ export interface CreateCustomerWithBookingInput {
   lockToken?: string;
   reservationId?: string;
   installmentPlan?: InstallmentPlanConfig;
+  customerId?: string;
 }
 
 export interface AddBookingToCustomerInput {
@@ -112,6 +115,7 @@ export interface CreateMinimalBookingInput {
   city: string;
   lockToken?: string;
   reservationId?: string;
+  customerId?: string;
 }
 
 export interface CompleteMemberRegistrationInput {
@@ -220,6 +224,72 @@ export async function searchCustomers(
   });
 
   return { ok: true, customers: disambiguated };
+}
+
+export interface PickerMember {
+  id: string;
+  fullName: string;
+  membershipNo: string;
+  cnic: string;
+  phone: string;
+  email: string;
+  city: string;
+  plotCount: number;
+  registrationStatus?: 'minimal' | 'complete';
+}
+
+/**
+ * Live Member Picker Search:
+ * Matches full name, membership number, CNIC, and phone across all society members.
+ * Accessible to both super_admin and sub_admin with booking/reserving permissions.
+ */
+export async function searchMembersForPicker(
+  session: AdminSession | null,
+  query: string,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; members: PickerMember[]; error?: string }> {
+  const q = (query || '').trim();
+  if (!q) {
+    return { ok: true, members: [] };
+  }
+
+  // 1. Primary endpoint: /customers/picker-search
+  const res = await apiGet<{ members: PickerMember[] }>(
+    `/customers/picker-search?q=${encodeURIComponent(q)}`,
+    session?.token,
+    signal
+  );
+
+  if (res.ok && res.data && Array.isArray(res.data.members)) {
+    return { ok: true, members: res.data.members };
+  }
+
+  // 2. Resilient fallback: /customers?search=
+  try {
+    const fallbackRes = await apiGet<any>(
+      `/customers?search=${encodeURIComponent(q)}&pageSize=8`,
+      session?.token,
+      signal
+    );
+    if (fallbackRes.ok && fallbackRes.data && Array.isArray(fallbackRes.data.customers)) {
+      const mapped: PickerMember[] = fallbackRes.data.customers.map((c: any) => ({
+        id: c.id,
+        fullName: c.fullName,
+        membershipNo: c.membershipNo || '',
+        cnic: c.cnic,
+        phone: c.phone || '',
+        email: c.email || '',
+        city: c.city || '',
+        plotCount: c.plotCount || c.propertiesCount || c.bookings?.length || 0,
+        registrationStatus: c.registrationStatus || 'minimal',
+      }));
+      return { ok: true, members: mapped };
+    }
+  } catch {
+    // Ignore fallback failure
+  }
+
+  return { ok: false, members: [], error: res.error || 'Failed to search members' };
 }
 
 /**

@@ -28,6 +28,46 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
 
   const cleanDate = (val?: string | null) => (val ? String(val).split('T')[0] : '');
 
+  const getFeeTypeBadge = (record: PaymentRecord) => {
+    if (record.feeType === 'plot_downpayment') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
+          Down payment
+        </span>
+      );
+    }
+    if (record.feeType === 'plot_biannual') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 text-[11px] font-bold border border-sky-200">
+          Bi-annual #{record.installmentNumber || ''}
+        </span>
+      );
+    }
+    if (record.feeType === 'plot_possession') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 text-[11px] font-bold border border-purple-200">
+          Possession
+        </span>
+      );
+    }
+    if (record.feeType === 'plot_one_time') {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 text-[11px] font-bold border border-amber-200">
+          Full Payment
+        </span>
+      );
+    }
+    return `Installment #${record.installmentNumber || '1'}`;
+  };
+
+  const getFeeTypeTitle = (record: PaymentRecord) => {
+    if (record.feeType === 'plot_downpayment') return 'Down payment';
+    if (record.feeType === 'plot_biannual') return `Bi-annual Installment #${record.installmentNumber || ''}`;
+    if (record.feeType === 'plot_possession') return 'Possession';
+    if (record.feeType === 'plot_one_time') return 'Full Payment';
+    return `Installment #${record.installmentNumber || '1'}`;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Banner Alert for Overdue or Upcoming Installment */}
@@ -38,7 +78,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
           </div>
           <div className="space-y-1">
             <h4 className="font-bold text-sm text-red-800">
-              Action Required: Installment #{overdueInstallment.installmentNumber} is Overdue
+              Action Required: {getFeeTypeTitle(overdueInstallment)} is Overdue
             </h4>
             <p className="text-xs text-red-700 leading-relaxed">
               An installment of{' '}
@@ -55,7 +95,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
           </div>
           <div className="space-y-1">
             <h4 className="font-bold text-sm text-[#151914]">
-              Next Upcoming Due: Installment #{nextPendingInstallment.installmentNumber}
+              Next Upcoming Due: {getFeeTypeTitle(nextPendingInstallment)}
               {nextPendingInstallment.status === 'partially_paid' && (
                 <span className="ml-2 text-xs font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">
                   Partially Settled
@@ -132,13 +172,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                 {/* 1. Inst. # & 4. Status */}
                 <div className="flex items-center justify-between border-b border-black/[0.05] pb-2">
                   <div className="font-bold text-[#151914] text-sm">
-                    {record.feeType === 'plot_downpayment' ? (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
-                        Downpayment
-                      </span>
-                    ) : (
-                      `Installment #${record.installmentNumber || '1'}`
-                    )}
+                    {getFeeTypeBadge(record)}
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${badgeClass}`}
@@ -224,13 +258,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                     }`}
                   >
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
-                      {record.feeType === 'plot_downpayment' ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-bold border border-emerald-200">
-                          Downpayment
-                        </span>
-                      ) : (
-                        `#${record.installmentNumber || '1'}`
-                      )}
+                      {getFeeTypeBadge(record)}
                     </td>
                     <td className="py-3.5 px-4 text-[#151914] font-medium">
                       {cleanDate(record.dueDate)}

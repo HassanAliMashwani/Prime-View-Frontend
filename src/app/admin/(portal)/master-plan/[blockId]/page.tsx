@@ -41,7 +41,8 @@ import {
   updatePlotPrice
 } from '@/lib/dal/adminPlots';
 import { releaseReservation } from '@/lib/dal/reservations';
-import { createMinimalBooking } from '@/lib/dal/customers';
+import { createMinimalBooking, PickerMember } from '@/lib/dal/customers';
+import LiveMemberPicker from '@/components/admin/customers/LiveMemberPicker';
 import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
@@ -145,7 +146,9 @@ function BlockPlotsContent() {
     cnic: '',
     city: '',
     lockToken: '',
+    customerId: '',
   });
+  const [minimalSelectedMember, setMinimalSelectedMember] = useState<PickerMember | null>(null);
 
   // Reservation Form State
   const [reserveForm, setReserveForm] = useState({
@@ -155,7 +158,9 @@ function BlockPlotsContent() {
     tokenFee: 50000,
     validDays: 1,
     note: '',
+    customerId: '',
   });
+  const [reserveSelectedMember, setReserveSelectedMember] = useState<PickerMember | null>(null);
 
   // Super Admin direct price editing
   const [isEditingPrice, setIsEditingPrice] = useState<boolean>(false);
@@ -393,6 +398,7 @@ function BlockPlotsContent() {
   // Open Reserve Modal (Broadcast non-blocking PLOT_RESERVING)
   const openReserve = async () => {
     if (!selectedPlot || !session) return;
+    setReserveSelectedMember(null);
     setReserveForm({
       customerName: '',
       customerPhone: '',
@@ -400,6 +406,7 @@ function BlockPlotsContent() {
       tokenFee: 50000,
       validDays: 1,
       note: '',
+      customerId: '',
     });
     setActionError(null);
     setIsReserveModalOpen(true);
@@ -411,6 +418,7 @@ function BlockPlotsContent() {
     if (session && selectedPlot) {
       await cancelReservingPlot(session, selectedPlot.id);
     }
+    setReserveSelectedMember(null);
     setIsReserveModalOpen(false);
     if (session) await loadPlots(session);
   };
@@ -420,6 +428,7 @@ function BlockPlotsContent() {
     if (session && selectedPlot) {
       await releaseLock(session, selectedPlot.id);
     }
+    setMinimalSelectedMember(null);
     setIsMinimalBookModalOpen(false);
     if (session) await loadPlots(session);
   };
@@ -449,6 +458,7 @@ function BlockPlotsContent() {
         cnic: minimalForm.cnic,
         city: minimalForm.city,
         lockToken: minimalForm.lockToken || undefined,
+        customerId: minimalSelectedMember?.id || minimalForm.customerId || undefined,
       });
 
       if (res.ok) {
@@ -498,6 +508,7 @@ function BlockPlotsContent() {
         tokenFee: Number(reserveForm.tokenFee) || 50000,
         validDays: Number(reserveForm.validDays) || 1,
         note: reserveForm.note,
+        customerId: reserveSelectedMember?.id || reserveForm.customerId || undefined,
       });
 
       if (res.ok) {
@@ -658,8 +669,8 @@ function BlockPlotsContent() {
     }
   };
 
-  // Open Booking Flow (Acquires Soft Lock Layer 1 and redirects to Customer Booking Form)
-  const openBook = async (prefillReservation?: Reservation) => {
+  // Open Booking Flow (Acquires Soft Lock Layer 1 and redirects to Customer Booking Form or opens Quick Booking)
+  const openBook = async (prefillReservation?: Reservation, forceQuick: boolean = false) => {
     if (!session || !selectedPlot) return;
 
     if (Number(selectedPlot.price) <= 0) {
@@ -693,13 +704,15 @@ function BlockPlotsContent() {
     }
 
     // Simplified Admin Booking Flow (Change Request 07 §5)
-    if (session.role === 'sub_admin') {
+    if (session.role === 'sub_admin' || forceQuick) {
       setMinimalForm({
         customerName: prefillReservation?.customerName || '',
         cnic: '',
         city: '',
         lockToken: lockRes.lockToken || '',
+        customerId: prefillReservation?.customerId || '',
       });
+      setMinimalSelectedMember(null);
       setIsMinimalBookModalOpen(true);
       setActionLoading(false);
       return;
@@ -715,7 +728,10 @@ function BlockPlotsContent() {
       params.set('reservationId', prefillReservation.id);
       params.set('customerName', prefillReservation.customerName);
       params.set('customerPhone', prefillReservation.customerPhone);
-      params.set('customerEmail', prefillReservation.customerEmail);
+      params.set('customerEmail', prefillReservation.customerEmail || '');
+      if (prefillReservation.customerId) {
+        params.set('customerId', prefillReservation.customerId);
+      }
     }
     router.push(`/admin/customers?${params.toString()}`);
   };
@@ -1670,18 +1686,29 @@ function BlockPlotsContent() {
 
                     {/* Lock & Book Button: Available or Reserved plots only */}
                     {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
-                      <button
-                        type="button"
-                        onClick={() => openBook()}
-                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId) || Number(selectedPlot.price) <= 0}
-                        title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
-                        className={`inline-flex items-center justify-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50 ${
-                          selectedPlot.status !== 'available' ? 'sm:col-span-2' : ''
-                        }`}
-                      >
-                        <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
-                        <span>Lock & Book Now</span>
-                      </button>
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openBook(undefined, true)}
+                          disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId) || Number(selectedPlot.price) <= 0}
+                          title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
+                          className="inline-flex items-center justify-center gap-2 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
+                        >
+                          <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
+                          <span>Quick Booking</span>
+                        </button>
+                        {session?.role === 'super_admin' && (
+                          <button
+                            type="button"
+                            onClick={() => openBook(undefined, false)}
+                            disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId) || Number(selectedPlot.price) <= 0}
+                            title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
+                            className="inline-flex items-center justify-center gap-2 py-2 px-3 bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 shadow-2xs transition-all cursor-pointer text-center disabled:opacity-50"
+                          >
+                            <span>Full Registration</span>
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
 
@@ -1723,14 +1750,29 @@ function BlockPlotsContent() {
 
             <form onSubmit={handleReserveSubmit} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-700 mb-1 font-semibold">Customer Full Name</label>
-                <input
-                  type="text"
-                  required
+                <label className="block text-slate-700 mb-1 font-semibold">
+                  Customer Full Name <span className="text-rose-500">*</span>
+                </label>
+                <LiveMemberPicker
                   value={reserveForm.customerName}
-                  onChange={(e) => setReserveForm({ ...reserveForm, customerName: e.target.value })}
-                  placeholder="e.g. Khurram Shehzad"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white"
+                  onChange={(val) => setReserveForm((prev) => ({ ...prev, customerName: val }))}
+                  selectedMember={reserveSelectedMember}
+                  onSelectMember={(member) => {
+                    setReserveSelectedMember(member);
+                    if (member) {
+                      setReserveForm((prev) => ({
+                        ...prev,
+                        customerName: member.fullName,
+                        customerPhone: member.phone || prev.customerPhone,
+                        customerEmail: member.email || prev.customerEmail,
+                        customerId: member.id,
+                      }));
+                    } else {
+                      setReserveForm((prev) => ({ ...prev, customerId: '' }));
+                    }
+                  }}
+                  placeholder="e.g. Khurram Shehzad (type name, CNIC, phone or membership #)"
+                  required
                 />
               </div>
 
@@ -1942,42 +1984,75 @@ function BlockPlotsContent() {
                 <label className="block text-slate-700 mb-1 font-semibold">
                   Customer Full Name <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
+                <LiveMemberPicker
                   value={minimalForm.customerName}
-                  onChange={(e) => setMinimalForm({ ...minimalForm, customerName: e.target.value })}
-                  placeholder="e.g. Hamza Tariq"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
+                  onChange={(val) => setMinimalForm((prev) => ({ ...prev, customerName: val }))}
+                  selectedMember={minimalSelectedMember}
+                  onSelectMember={(member) => {
+                    setMinimalSelectedMember(member);
+                    if (member) {
+                      setMinimalForm((prev) => ({
+                        ...prev,
+                        customerName: member.fullName,
+                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
+                        city: member.city || prev.city,
+                        customerId: member.id,
+                      }));
+                    } else {
+                      setMinimalForm((prev) => ({ ...prev, customerId: '' }));
+                    }
+                  }}
+                  placeholder="e.g. Hamza Tariq (type name, CNIC, phone or membership #)"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1 font-semibold">
-                  Customer CNIC <span className="text-rose-500">*</span>
+                <label className="block text-slate-700 mb-1 font-semibold flex items-center justify-between">
+                  <span>Customer CNIC <span className="text-rose-500">*</span></span>
+                  {minimalSelectedMember && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
                   required
                   maxLength={15}
                   value={minimalForm.cnic}
+                  disabled={Boolean(minimalSelectedMember)}
                   onChange={(e) => setMinimalForm({ ...minimalForm, cnic: formatCnic(e.target.value) })}
                   placeholder="00000-0000000-0"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
+                  className={`w-full px-3 py-2 border rounded-xl text-slate-900 font-mono transition-all ${
+                    minimalSelectedMember
+                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10'
+                  }`}
                 />
               </div>
 
               <div>
-                <label className="block text-slate-700 mb-1 font-semibold">
-                  City <span className="text-rose-500">*</span>
+                <label className="block text-slate-700 mb-1 font-semibold flex items-center justify-between">
+                  <span>City <span className="text-rose-500">*</span></span>
+                  {minimalSelectedMember && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
                   required
                   value={minimalForm.city}
+                  disabled={Boolean(minimalSelectedMember)}
                   onChange={(e) => setMinimalForm({ ...minimalForm, city: e.target.value })}
                   placeholder="e.g. Lahore, Rawalpindi, Islamabad"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10"
+                  className={`w-full px-3 py-2 border rounded-xl text-slate-900 transition-all ${
+                    minimalSelectedMember
+                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10'
+                  }`}
                 />
               </div>
 
