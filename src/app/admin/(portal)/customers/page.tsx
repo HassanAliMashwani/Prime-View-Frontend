@@ -425,16 +425,29 @@ function CustomersPageContent() {
           setSetPlanCustomer(cust);
           setActiveTab('path_a');
 
-          let targetBooking = cust.bookings?.find((b: any) => b.plotId === queryPlotId || b.plot?.id === queryPlotId);
+          // Match by UUID or plotNumber or find the member's unbilled held booking
+          let targetBooking = cust.bookings?.find((b: any) =>
+            b.plotId === queryPlotId ||
+            b.plot?.id === queryPlotId ||
+            b.plot?.plotNumber === queryPlotId ||
+            String(b.plot?.plotNumber).toLowerCase() === String(queryPlotId).toLowerCase()
+          );
+
+          if (!targetBooking && cust.bookings?.length) {
+            targetBooking = cust.bookings.find((b: any) =>
+              (!b.payments || b.payments.length === 0)
+            ) || cust.bookings[0];
+          }
+
           let targetPlot = targetBooking?.plot;
-          if (!targetPlot && queryPlotId) {
-            const plotRes = await getAdminPlotDetails(cur, queryPlotId);
+          const targetPlotId = targetBooking?.plotId || targetPlot?.id || queryPlotId;
+          if (!targetPlot && targetPlotId) {
+            const plotRes = await getAdminPlotDetails(cur, targetPlotId);
             if (plotRes.ok && plotRes.plot) {
               targetPlot = plotRes.plot;
             }
           }
 
-          const targetPlotId = queryPlotId || targetBooking?.plotId || targetPlot?.id;
           const customTotal = targetBooking?.installmentPlan?.totalPayment
             ? Number(targetBooking.installmentPlan.totalPayment)
             : (targetPlot?.price ? Number(targetPlot.price) : undefined);
@@ -469,7 +482,7 @@ function CustomersPageContent() {
           // Populate all existing member details into Path A form
           setPathAForm((prev) => ({
             ...prev,
-            plotId: queryPlotId || targetPlotId || prev.plotId,
+            plotId: targetPlotId,
             fullName: cust.fullName || '',
             cnic: cust.cnic ? formatCnic(cust.cnic) : '',
             phone: cust.phone || '',
@@ -925,10 +938,21 @@ function CustomersPageContent() {
     // If setting payment plan for a held plot on an existing registered member (Super Admin exclusivity):
     if (setPlanCustomer) {
       setPathASubmitting(true);
+      const realPlotId = setPlanPlot?.id ||
+        (setPlanCustomer as any).bookings?.find((b: any) =>
+          b.plotId === queryPlotId ||
+          b.plot?.id === queryPlotId ||
+          b.plot?.plotNumber === queryPlotId ||
+          String(b.plot?.plotNumber) === String(queryPlotId) ||
+          (!b.payments || b.payments.length === 0)
+        )?.plotId ||
+        pathAForm.plotId ||
+        queryPlotId;
+
       const res = await runLane1({
         screen: 'customer-booking',
         isSave: true,
-        fn: async () => setPaymentPlanForHeldPlot(session, setPlanCustomer.id, pathAForm.plotId || queryPlotId, {
+        fn: async () => setPaymentPlanForHeldPlot(session, setPlanCustomer.id, realPlotId, {
           paymentType: pathAForm.paymentType,
           installmentPlan,
           paperInstallmentRef: pathAForm.paperInstallmentRef?.trim() || undefined,
@@ -945,7 +969,7 @@ function CustomersPageContent() {
             isSave: true,
             fn: async () => addBookingToCustomer(session, {
               customerId: setPlanCustomer.id,
-              plotId: pathAForm.plotId || queryPlotId,
+              plotId: realPlotId,
               paymentType: pathAForm.paymentType,
               paperInstallmentRef: pathAForm.paperInstallmentRef,
               lockToken: queryLockToken || undefined,
@@ -1626,10 +1650,20 @@ function CustomersPageContent() {
 
     setSetPlanSubmitting(true);
     try {
+      const realPlotId = setPlanPlot?.id ||
+        (setPlanCustomer as any).bookings?.find((b: any) =>
+          b.plotId === queryPlotId ||
+          b.plot?.id === queryPlotId ||
+          b.plot?.plotNumber === queryPlotId ||
+          String(b.plot?.plotNumber) === String(queryPlotId) ||
+          (!b.payments || b.payments.length === 0)
+        )?.plotId ||
+        queryPlotId;
+
       const res = await runLane1({
         screen: 'customer-booking',
         isSave: true,
-        fn: async () => setPaymentPlanForHeldPlot(cur, setPlanCustomer.id, queryPlotId, {
+        fn: async () => setPaymentPlanForHeldPlot(cur, setPlanCustomer.id, realPlotId, {
           paymentType: setPlanPaymentType,
           installmentPlan,
           paperInstallmentRef: setPlanPaperRef.trim() || undefined,
