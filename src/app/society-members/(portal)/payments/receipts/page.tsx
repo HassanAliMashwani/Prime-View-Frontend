@@ -271,6 +271,7 @@ function SubmittedReceiptsContent() {
 
   const handleReceiptSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isSubmittingReceipt) return;
     if (!profile) return;
 
     if (!selectedReceiptFile && !formFileUrl) {
@@ -778,7 +779,7 @@ function SubmittedReceiptsContent() {
       {/* RECEIPT UPLOAD MODAL DIALOG                                   */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="max-w-xl w-full bg-white rounded-3xl border border-black/10 shadow-2xl p-4 sm:p-6 md:p-8 space-y-5 my-auto animate-scale-in max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start justify-between pb-4 border-b border-black/[0.06]">
               <div className="flex items-center gap-3">
@@ -1057,12 +1058,12 @@ function SubmittedReceiptsContent() {
                 <button
                   type="submit"
                   disabled={isSubmittingReceipt || isCompressing}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white shadow-xs disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className="min-w-[155px] justify-center px-5 py-2.5 rounded-xl text-xs font-bold bg-[#43612B] hover:bg-[#365222] text-white shadow-xs disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-all"
                 >
                   {isSubmittingReceipt || isCompressing ? (
                     <>
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>{isCompressing ? 'Processing Image…' : 'Submitting…'}</span>
+                      <span>{isCompressing ? 'Processing Image…' : 'Uploading…'}</span>
                     </>
                   ) : (
                     <>

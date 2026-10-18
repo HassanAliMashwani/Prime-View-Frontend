@@ -897,16 +897,16 @@ export default function AdminReceiptsPage() {
                     type="button"
                     disabled={loadingPhotoReceiptId === sub.id}
                     onClick={() => handleViewSlipImage(sub.id)}
-                    className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
+                    className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px] min-w-[175px]"
                   >
                     {loadingPhotoReceiptId === sub.id ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 text-slate-500 animate-spin" />
-                        <span>Loading slip…</span>
+                        <Loader2 className="w-3.5 h-3.5 text-slate-500 animate-spin shrink-0" />
+                        <span>Opening slip…</span>
                       </>
                     ) : (
                       <>
-                        <Eye className="w-3.5 h-3.5 text-slate-500" />
+                        <Eye className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                         <span>View Bank Slip Image</span>
                       </>
                     )}
@@ -924,16 +924,16 @@ export default function AdminReceiptsPage() {
                         Boolean(decliningReceiptId)
                       }
                       onClick={() => handleVerify(sub.id)}
-                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-75 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px]"
+                      className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-75 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer min-h-[44px] min-w-[110px]"
                     >
                       {approvingReceiptId === sub.id ? (
                         <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                           <span>Approving…</span>
                         </>
                       ) : (
                         <>
-                          <Check className="w-3.5 h-3.5" />
+                          <Check className="w-3.5 h-3.5 shrink-0" />
                           <span>Approve</span>
                         </>
                       )}
@@ -955,16 +955,16 @@ export default function AdminReceiptsPage() {
                         setStrikeReason('');
                         setRejectModalError(null);
                       }}
-                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-75 disabled:cursor-not-allowed text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[44px]"
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 disabled:opacity-75 disabled:cursor-not-allowed text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 cursor-pointer min-h-[44px] min-w-[95px]"
                     >
                       {decliningReceiptId === sub.id ? (
                         <>
-                          <Loader2 className="w-3.5 h-3.5 text-rose-600 animate-spin" />
+                          <Loader2 className="w-3.5 h-3.5 text-rose-600 animate-spin shrink-0" />
                           <span>Declining…</span>
                         </>
                       ) : (
                         <>
-                          <X className="w-3.5 h-3.5" />
+                          <X className="w-3.5 h-3.5 shrink-0" />
                           <span>Decline</span>
                         </>
                       )}
@@ -1130,16 +1130,16 @@ export default function AdminReceiptsPage() {
                 <button
                   type="submit"
                   disabled={!rejectionReason.trim() || decliningReceiptId === rejectModalReceipt.id}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs cursor-pointer transition-all"
+                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs tracking-wide flex items-center justify-center gap-2 shadow-xs cursor-pointer transition-all min-w-[140px]"
                 >
                   {decliningReceiptId === rejectModalReceipt.id ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                       <span>Declining…</span>
                     </>
                   ) : (
                     <>
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-3.5 h-3.5 shrink-0" />
                       <span>Confirm Decline</span>
                     </>
                   )}

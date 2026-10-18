@@ -20,10 +20,11 @@ export default function MemberLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage(null);
 
     if (!identifier.trim() || !password.trim()) {
-      setErrorMessage('Something went wrong. Please try again.');
+      setErrorMessage('Please enter both your username and password.');
       return;
     }
 
@@ -33,15 +34,11 @@ export default function MemberLoginPage() {
       if (res.ok) {
         router.push('/society-members/dashboard');
       } else {
-        const msg = res.error;
-        if (msg === 'Invalid credentials.' || msg === 'Account locked due to too many failed attempts.') {
-          setErrorMessage(msg);
-        } else {
-          setErrorMessage('Something went wrong. Please try again.');
-        }
+        const msg = res.error || 'Invalid credentials. Please try again.';
+        setErrorMessage(msg);
       }
-    } catch {
-      setErrorMessage('Something went wrong. Please try again.');
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Unable to connect to login server. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -153,12 +150,12 @@ export default function MemberLoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full mt-2 py-3 px-6 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-50 text-white font-bold text-xs sm:text-sm tracking-wide shadow-[0_4px_16px_rgba(67,97,43,0.3)] transition-all flex items-center justify-center gap-2"
+              className="w-full mt-2 min-h-[48px] py-3 px-6 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-60 text-white font-bold text-xs sm:text-sm tracking-wide shadow-[0_4px_16px_rgba(67,97,43,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
             >
               {isSubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Verifying Credentials...</span>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                  <span>Logging in…</span>
                 </>
               ) : (
                 <>

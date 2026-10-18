@@ -24,6 +24,7 @@ import {
   LayoutGrid,
   ChevronDown,
   Check,
+  Loader2,
 } from 'lucide-react';
 import { AdminMasterPlanSkeleton } from '@/components/ui/skeleton';
 import { PlotCategory, Block, Plot, AdminSession, Customer, Booking, Reservation } from '@/lib/mock/types';
@@ -167,6 +168,8 @@ function BlockPlotsContent() {
   const [isEditingPrice, setIsEditingPrice] = useState<boolean>(false);
   const [newPriceInput, setNewPriceInput] = useState<string>('');
   const [priceSaving, setPriceSaving] = useState<boolean>(false);
+  const [releasingReservationId, setReleasingReservationId] = useState<string | null>(null);
+  const [releasingFreeze, setReleasingFreeze] = useState<boolean>(false);
 
   const handleSavePrice = async () => {
     if (!session || !selectedPlot) return;
@@ -554,6 +557,7 @@ function BlockPlotsContent() {
   // Release / Cancel an Active Reservation (Enforces Ownership & Audit)
   const handleReleaseReservation = async (res: Reservation) => {
     if (!session || !selectedPlot) return;
+    if (releasingReservationId || actionLoading) return;
     const isOwner = res.reservedByAdminId === session.adminId;
     const isSuperAdmin = session.role === 'super_admin';
 
@@ -564,6 +568,7 @@ function BlockPlotsContent() {
     if (!confirm(confirmMsg)) {
       return;
     }
+    setReleasingReservationId(res.id);
     setActionLoading(true);
     setActionError(null);
 
@@ -617,6 +622,7 @@ function BlockPlotsContent() {
       setActionError('An unexpected error occurred while releasing the reservation.');
     } finally {
       setActionLoading(false);
+      setReleasingReservationId(null);
     }
   };
 
@@ -663,7 +669,9 @@ function BlockPlotsContent() {
 
   const handleReleaseAdjustment = async () => {
     if (!session || !selectedPlot) return;
+    if (releasingFreeze || actionLoading) return;
     if (!confirm(`Are you sure you want to release the Master Plan Adjustment Freeze on Plot ${selectedPlot.plotNumber}? This will return the plot to standard society operations.`)) return;
+    setReleasingFreeze(true);
     setActionLoading(true);
     setActionError(null);
     try {
@@ -691,6 +699,7 @@ function BlockPlotsContent() {
       setActionError('An error occurred while releasing plot adjustment freeze.');
     } finally {
       setActionLoading(false);
+      setReleasingFreeze(false);
     }
   };
 
@@ -1395,9 +1404,16 @@ function BlockPlotsContent() {
                           type="button"
                           onClick={handleSavePrice}
                           disabled={priceSaving}
-                          className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded cursor-pointer"
+                          className="min-w-[55px] justify-center px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold rounded cursor-pointer inline-flex items-center gap-1"
                         >
-                          {priceSaving ? '...' : 'Save'}
+                          {priceSaving ? (
+                            <>
+                              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                              <span>Saving…</span>
+                            </>
+                          ) : (
+                            'Save'
+                          )}
                         </button>
                         <button
                           type="button"
@@ -1514,8 +1530,8 @@ function BlockPlotsContent() {
                             <button
                               type="button"
                               onClick={() => handleReleaseReservation(res)}
-                              disabled={actionLoading}
-                              className={`inline-flex items-center gap-1 px-2.5 py-1.5 font-bold text-xs rounded-lg border transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50 ${
+                              disabled={actionLoading || releasingReservationId === res.id}
+                              className={`min-w-[85px] justify-center inline-flex items-center gap-1 px-2.5 py-1.5 font-bold text-xs rounded-lg border transition-all cursor-pointer shadow-2xs whitespace-nowrap disabled:opacity-50 ${
                                 res.reservedByAdminId === session.adminId || session.role === 'super_admin'
                                   ? 'bg-white hover:bg-rose-50 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
                                   : 'bg-slate-50 text-slate-400 border-slate-200'
@@ -1528,12 +1544,22 @@ function BlockPlotsContent() {
                                   : `Only reserving admin (${res.reservedByAdminName}) can release`
                               }
                             >
-                              {res.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
-                                <Lock className="w-3 h-3 text-slate-400" />
+                              {releasingReservationId === res.id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin text-rose-600" />
+                                  <span>Releasing…</span>
+                                </>
+                              ) : res.reservedByAdminId !== session.adminId && session.role !== 'super_admin' ? (
+                                <>
+                                  <Lock className="w-3 h-3 text-slate-400" />
+                                  <span>Release</span>
+                                </>
                               ) : (
-                                <RotateCcw className="w-3 h-3 text-slate-400 hover:text-rose-600" />
+                                <>
+                                  <RotateCcw className="w-3 h-3 text-slate-400 hover:text-rose-600" />
+                                  <span>Release</span>
+                                </>
                               )}
-                              <span>Release</span>
                             </button>
                           )}
 
@@ -1685,11 +1711,20 @@ function BlockPlotsContent() {
                     <button
                       type="button"
                       onClick={handleReleaseAdjustment}
-                      disabled={actionLoading}
-                      className="w-full sm:w-auto py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-colors cursor-pointer text-center shadow-xs flex items-center justify-center gap-1.5 shrink-0"
+                      disabled={actionLoading || releasingFreeze}
+                      className="w-full sm:w-auto min-w-[130px] justify-center py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer text-center shadow-xs flex items-center gap-1.5 shrink-0 disabled:opacity-50"
                     >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Release Freeze</span>
+                      {releasingFreeze ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Releasing…</span>
+                        </>
+                      ) : (
+                        <>
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Release Freeze</span>
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
@@ -1884,9 +1919,16 @@ function BlockPlotsContent() {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer min-w-[145px] flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {actionLoading ? 'Filing...' : 'Confirm Reservation'}
+                  {actionLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                      <span>Reserving…</span>
+                    </>
+                  ) : (
+                    <span>Confirm Reservation</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1953,9 +1995,16 @@ function BlockPlotsContent() {
                 <button
                   type="submit"
                   disabled={actionLoading || !adjustmentReasonInput.trim()}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 min-w-[140px] flex items-center justify-center gap-1.5"
                 >
-                  {actionLoading ? 'Flagging...' : 'Confirm Freeze'}
+                  {actionLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                      <span>Freezing…</span>
+                    </>
+                  ) : (
+                    <span>Confirm Freeze</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -2101,10 +2150,19 @@ function BlockPlotsContent() {
                 <button
                   type="submit"
                   disabled={actionLoading || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim()}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 min-w-[165px]"
                 >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>{actionLoading ? 'Booking...' : 'Confirm Quick Booking'}</span>
+                  {actionLoading ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                      <span>Booking…</span>
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Confirm Quick Booking</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

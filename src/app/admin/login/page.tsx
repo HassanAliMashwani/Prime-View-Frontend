@@ -17,8 +17,9 @@ export default function AdminLoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
     if (!username.trim() || !password.trim()) {
-      setError('Something went wrong. Please try again.');
+      setError('Please enter both your admin username and password.');
       return;
     }
 
@@ -30,15 +31,11 @@ export default function AdminLoginPage() {
       if (res.ok) {
         router.push('/admin/dashboard');
       } else {
-        const msg = res.error;
-        if (msg === 'Invalid credentials.' || msg === 'Account locked due to too many failed attempts.') {
-          setError(msg);
-        } else {
-          setError('Something went wrong. Please try again.');
-        }
+        const msg = res.error || 'Invalid admin credentials.';
+        setError(msg);
       }
-    } catch {
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      setError(err?.message || 'Unable to connect to administrative portal server.');
     } finally {
       setLoading(false);
     }
@@ -133,10 +130,19 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 px-4 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full mt-2 min-h-[48px] py-3 px-4 bg-[#10251E] hover:bg-[#18392C] text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span>{loading ? 'Authenticating...' : 'Sign In To Portal'}</span>
-              <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                  <span>Logging in…</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign In To Portal</span>
+                  <ArrowRight className="w-4 h-4 text-[#D4AF37]" />
+                </>
+              )}
             </button>
           </form>
         </div>

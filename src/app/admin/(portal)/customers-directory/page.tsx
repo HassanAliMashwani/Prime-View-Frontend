@@ -494,7 +494,11 @@ function CustomersDirectoryContent() {
       {/* Filters Toolbar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-white rounded-2xl border border-slate-200 shadow-xs">
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          {loading && Boolean(searchInput.trim()) ? (
+            <Loader2 className="w-4 h-4 text-emerald-600 animate-spin absolute left-3 top-2.5" />
+          ) : (
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+          )}
           <input
             type="text"
             value={searchInput}
@@ -1453,9 +1457,16 @@ function CustomersDirectoryContent() {
                 <button
                   type="submit"
                   disabled={strikeSubmitting}
-                  className="px-4 py-1.5 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-1.5 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 disabled:opacity-50 transition-colors min-w-[170px] flex items-center justify-center gap-1.5"
                 >
-                  {strikeSubmitting ? 'Recording Strike...' : 'Confirm Strike Assignment'}
+                  {strikeSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                      <span>Saving…</span>
+                    </>
+                  ) : (
+                    <span>Confirm Strike Assignment</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1532,17 +1543,22 @@ function CustomersDirectoryContent() {
                 <button
                   type="submit"
                   disabled={suspensionSubmitting}
-                  className={`px-4 py-1.5 rounded-xl font-bold text-white transition-colors ${
+                  className={`px-4 py-1.5 rounded-xl font-bold text-white transition-colors min-w-[160px] flex items-center justify-center gap-1.5 ${
                     suspensionCustomer.accountStatus === 'suspended'
                       ? 'bg-emerald-700 hover:bg-emerald-800'
                       : 'bg-rose-600 hover:bg-rose-700'
                   }`}
                 >
-                  {suspensionSubmitting
-                    ? 'Updating...'
-                    : suspensionCustomer.accountStatus === 'suspended'
-                    ? 'Confirm Reactivation'
-                    : 'Confirm Suspension'}
+                  {suspensionSubmitting ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                      <span>Saving…</span>
+                    </>
+                  ) : suspensionCustomer.accountStatus === 'suspended' ? (
+                    <span>Confirm Reactivation</span>
+                  ) : (
+                    <span>Confirm Suspension</span>
+                  )}
                 </button>
               </div>
             </form>
@@ -1711,9 +1727,16 @@ function CustomersDirectoryContent() {
                             loadData(session, page, search, statusFilter, false);
                           }
                         }}
-                        className="px-4 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                        className="px-4 py-1.5 rounded-xl bg-rose-600 text-white font-bold hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer min-w-[130px] flex items-center justify-center gap-1.5"
                       >
-                        {deleteSubmitting ? 'Deleting...' : 'Delete Member'}
+                        {deleteSubmitting ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                            <span>Deleting…</span>
+                          </>
+                        ) : (
+                          <span>Delete Member</span>
+                        )}
                       </button>
                     </div>
                   </>

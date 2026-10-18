@@ -466,6 +466,7 @@ function PaymentsContent() {
 
   const handleReceiptSubmit = async (e?: React.FormEvent, retrySub?: any) => {
     if (e) e.preventDefault();
+    if (isSubmittingReceipt) return;
     setUploadError(null);
     setUploadSuccess(null);
 
@@ -1254,7 +1255,7 @@ function PaymentsContent() {
       {/* RECEIPT UPLOAD MODAL DIALOG                                   */}
       {/* ══════════════════════════════════════════════════════════════ */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
           <div className="max-w-xl w-full bg-white rounded-3xl border border-black/10 shadow-2xl p-4 sm:p-6 md:p-8 space-y-5 my-auto animate-scale-in max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start justify-between pb-4 border-b border-black/[0.06]">
               <div className="flex items-center gap-3">
@@ -1738,12 +1739,12 @@ function PaymentsContent() {
                     <button
                       type="submit"
                       disabled={isSubmittingReceipt || isCompressing || isBalloonInvalid}
-                      className="px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-50 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs cursor-pointer transition-all"
+                      className="min-w-[190px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-50 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs cursor-pointer transition-all"
                     >
                       {isSubmittingReceipt ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Submitting payment...</span>
+                          <span>Uploading…</span>
                         </>
                       ) : (
                         <>

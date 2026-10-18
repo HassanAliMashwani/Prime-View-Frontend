@@ -172,6 +172,7 @@ export default function ProfilePage() {
   }, [profile, reset]);
 
   const onSubmit = async (data: ProfileFormValues) => {
+    if (isSubmitting) return;
     setIsSubmitting(true);
     setToastMessage(null);
 
@@ -211,6 +212,7 @@ export default function ProfilePage() {
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (passwordLoading) return;
     setPasswordToast(null);
 
     if (!profile?.id) return;
@@ -602,12 +604,12 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={isSubmitting || !isDirty}
-                className="w-full sm:w-auto min-h-[44px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                className="w-full sm:w-auto min-h-[44px] min-w-[130px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all cursor-pointer"
               >
                 {isSubmitting ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Saving...</span>
+                    <span>Saving…</span>
                   </>
                 ) : (
                   <>
@@ -754,12 +756,12 @@ export default function ProfilePage() {
               <button
                 type="submit"
                 disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
-                className="w-full sm:w-auto min-h-[44px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                className="w-full sm:w-auto min-h-[44px] min-w-[145px] justify-center px-6 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] disabled:opacity-40 text-white font-bold text-xs tracking-wide flex items-center gap-2 shadow-xs transition-all cursor-pointer"
               >
                 {passwordLoading ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Updating...</span>
+                    <span>Saving…</span>
                   </>
                 ) : (
                   <>

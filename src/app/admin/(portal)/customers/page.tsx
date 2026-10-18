@@ -296,6 +296,7 @@ function CustomersPageContent() {
   const [resetNewPassword, setResetNewPassword] = useState('');
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
+  const [selectingCustomerId, setSelectingCustomerId] = useState<string | null>(null);
 
   // Load active session and plots
   const loadInitialData = useCallback(() => {
@@ -991,19 +992,26 @@ function CustomersPageContent() {
   // SEARCH PATH B CUSTOMERS & LIVE PICKER HOOK
   // ----------------------------------------------------
   const handleSelectCustomer = async (cust: CustomerDisambiguation) => {
+    setSelectingCustomerId(cust.id);
     setSelectedCustomer(cust);
     setIsCustomerConfirmed(false);
     if (session) {
-      const res = await getAdminCustomerById(session, cust.id);
-      if (res.ok && res.data) {
-        const bookings = res.data.bookings || [];
-        setSelectedCustomer({
-          ...cust,
-          city: (cust as any).city || res.data.city,
-          propertiesCount: bookings.length,
-          bookings,
-        });
+      try {
+        const res = await getAdminCustomerById(session, cust.id);
+        if (res.ok && res.data) {
+          const bookings = res.data.bookings || [];
+          setSelectedCustomer({
+            ...cust,
+            city: (cust as any).city || res.data.city,
+            propertiesCount: bookings.length,
+            bookings,
+          });
+        }
+      } finally {
+        setSelectingCustomerId(null);
       }
+    } else {
+      setSelectingCustomerId(null);
     }
   };
 
@@ -2406,16 +2414,16 @@ function CustomersPageContent() {
                   isValidCnic(pathAForm.nokCnic)
                 )
               }
-              className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
+              className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[260px]"
             >
               {pathASubmitting ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>{completeTargetCustomer ? 'Completing Registration & Issuing Credentials...' : 'Enrolling Customer & Generating Schedule...'}</span>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                  <span>{completeTargetCustomer ? 'Completing Registration…' : 'Enrolling Customer…'}</span>
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" />
+                  <CheckCircle2 className="w-4 h-4 text-[#D4AF37] shrink-0" />
                   <span>{completeTargetCustomer ? 'Complete Registration & Issue Portal Credentials' : 'Submit Application & Register Plot'}</span>
                 </>
               )}
@@ -2539,10 +2547,10 @@ function CustomersPageContent() {
                 <button
                   type="submit"
                   disabled={isSearching}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[110px]"
                 >
-                  {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-                  <span>{isSearching ? 'Searching...' : 'Search'}</span>
+                  {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" /> : <Search className="w-3.5 h-3.5 shrink-0" />}
+                  <span>{isSearching ? 'Searching…' : 'Search'}</span>
                 </button>
               </form>
             )}
@@ -2597,13 +2605,21 @@ function CustomersPageContent() {
                           </span>
                           <button
                             type="button"
+                            disabled={Boolean(selectingCustomerId)}
                             onClick={(e) => {
                               e.stopPropagation();
                               handleSelectCustomer(cust);
                             }}
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs"
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-xs font-bold transition cursor-pointer shadow-2xs min-w-[125px] flex items-center justify-center gap-1.5"
                           >
-                            Select Customer
+                            {selectingCustomerId === cust.id ? (
+                              <>
+                                <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                                <span>Opening…</span>
+                              </>
+                            ) : (
+                              <span>Select Customer</span>
+                            )}
                           </button>
                         </div>
                       </div>
@@ -3140,16 +3156,16 @@ function CustomersPageContent() {
                 <button
                   type="submit"
                   disabled={pathBSubmitting || !selectedPlotB || Boolean(pathBPlotError)}
-                  className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-2"
+                  className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[240px]"
                 >
                   {pathBSubmitting ? (
                     <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Attaching Plot...</span>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
+                      <span>Attaching Plot…</span>
                     </>
                   ) : (
                     <>
-                      <Building className="w-4 h-4 text-[#D4AF37]" />
+                      <Building className="w-4 h-4 text-[#D4AF37] shrink-0" />
                       <span>Attach Plot Booking to Customer</span>
                     </>
                   )}
