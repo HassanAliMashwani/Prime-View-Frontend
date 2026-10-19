@@ -88,7 +88,7 @@ const BLOCK_BADGES: Record<string, string> = {
   'npf-phase-2': 'bg-cyan-50 text-cyan-800 border-cyan-200',
 };
 
-export const COMBINED_PERMISSION_GROUPS = [
+const COMBINED_PERMISSION_GROUPS = [
   {
     id: 'plots',
     label: 'Reserve, Book, Sort Reservations, and Master Plan',
@@ -109,7 +109,7 @@ export const COMBINED_PERMISSION_GROUPS = [
   },
 ] as const;
 
-export const STANDALONE_PERMISSIONS = [
+const STANDALONE_PERMISSIONS = [
   {
     key: 'can_edit_content',
     label: 'Edit Website Plans',
