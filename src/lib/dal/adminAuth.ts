@@ -60,7 +60,12 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       fullName: payload.fullName,
       email: payload.email,
       phone: payload.phone,
-      avatarUrl: payload.avatarUrl || (payload.permissions as any)?.avatarUrl || '',
+      avatarUrl:
+        (typeof payload.avatarUrl === 'string' && payload.avatarUrl.startsWith('https://'))
+          ? payload.avatarUrl
+          : ((typeof (payload.permissions as any)?.avatarUrl === 'string' && (payload.permissions as any).avatarUrl.startsWith('https://'))
+              ? (payload.permissions as any).avatarUrl
+              : ''),
       role: payload.role,
       assignedBlocks: payload.assignedBlocks || [],
       permissions: payload.permissions || {},
@@ -152,6 +157,9 @@ export function getActiveAdminSession(): AdminSession | null {
       adminLogout();
       return null;
     }
+    if (session.avatarUrl && !session.avatarUrl.startsWith('https://')) {
+      session.avatarUrl = '';
+    }
     return session;
   } catch {
     return null;
@@ -188,6 +196,7 @@ export interface AdminProfileDetails {
  */
 export async function getAdminProfile(session: AdminSession): Promise<{
   ok: boolean;
+  status?: number;
   admin?: AdminProfileDetails;
   error?: string;
 }> {
@@ -199,11 +208,11 @@ export async function getAdminProfile(session: AdminSession): Promise<{
     });
 
     if (!res.ok) {
-      return { ok: false, error: 'Something went wrong. Please try again.' };
+      return { ok: false, status: res.status, error: 'Failed to fetch admin profile.' };
     }
 
     const data = await res.json();
-    return { ok: true, admin: data.admin };
+    return { ok: true, status: res.status, admin: data.admin };
   } catch {
     return { ok: false, error: 'Something went wrong. Please try again.' };
   }

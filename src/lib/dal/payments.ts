@@ -4,6 +4,7 @@ import { apiGet } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
 import { fetchWith60sCache } from './apiCache';
 import { getMemberRawPlots } from './plots';
+import { sortLedgerBills } from '../utils/ledgerSort';
 
 export interface HeldPlotInfo {
   plotId: string;
@@ -25,8 +26,6 @@ export interface PlotPaymentSchedule {
   paidAmount: number;
   remainingBalance: number;
   percentSettled?: number;
-  admissionFee?: PaymentRecord;
-  shareSubscriptionFee?: PaymentRecord;
   downpaymentFee?: PaymentRecord;
   installmentPlan?: import('../mock/types').InstallmentPlanConfig;
   schedule: PaymentRecord[];
@@ -75,10 +74,19 @@ export async function getPaymentSchedule(
 
     const schedules: PlotPaymentSchedule[] = [];
     const heldPlots: HeldPlotInfo[] = [];
-
     for (const plot of plots) {
       const booking = plot.bookings && plot.bookings.length > 0 ? plot.bookings[0] : null;
-      if (!booking) continue;
+      if (!booking) {
+        heldPlots.push({
+          plotId: plot.id,
+          plotNumber: plot.plotNumber || 'Plot',
+          blockId: String(plot.blockId || ''),
+          blockName: plot.block?.name || plot.blockName || 'Prime View Block',
+          size: plot.size || '',
+          status: 'held_pending_plan',
+        });
+        continue;
+      }
 
       const bookingPayments = allPayments
         .filter((p) => p.bookingId === booking.id || p.plotId === plot.id)
@@ -113,12 +121,10 @@ export async function getPaymentSchedule(
         continue;
       }
 
-      // Fixed statutory fees
-      const admissionFee = bookingPayments.find((p) => p.feeType === 'admission_fee');
-      const shareSubscriptionFee = bookingPayments.find((p) => p.feeType === 'share_subscription_fee');
       const downpaymentFee = bookingPayments.find((p) => p.feeType === 'plot_downpayment');
 
-      const ledger = computePlotLedger(plot.price, bookingPayments);
+      const effectivePlotPrice = Number(booking.installmentPlan?.totalPayment || plot.price || 0);
+      const ledger = computePlotLedger(effectivePlotPrice, bookingPayments);
       const totalPrice = ledger.totalPlotPrice;
       const paidAmount = ledger.totalPaidToDate;
       const remainingBalance = ledger.remainingBalance;
@@ -134,17 +140,9 @@ export async function getPaymentSchedule(
         paidAmount,
         remainingBalance,
         percentSettled: ledger.percentSettled,
-        admissionFee,
-        shareSubscriptionFee,
         downpaymentFee,
         installmentPlan: booking.installmentPlan,
-        schedule: plotPricePayments.sort((a, b) => {
-          const dateDiff = new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-          if (dateDiff !== 0) return dateDiff;
-          const numA = a.installmentNumber ?? (a.feeType === 'plot_downpayment' ? 0 : 999);
-          const numB = b.installmentNumber ?? (b.feeType === 'plot_downpayment' ? 0 : 999);
-          return numA - numB;
-        }),
+        schedule: sortLedgerBills(plotPricePayments),
       });
     }
 
@@ -194,11 +192,7 @@ export async function getPaymentHistory(
         const plotNumber = plot ? plot.plotNumber : 'Plot';
 
         let desc = 'Plot Payment';
-        if (payment.feeType === 'admission_fee') {
-          desc = 'Admission Fee';
-        } else if (payment.feeType === 'share_subscription_fee') {
-          desc = 'Share Subscription Fee';
-        } else if (payment.feeType === 'plot_downpayment') {
+        if (payment.feeType === 'plot_downpayment') {
           desc = 'Plot Upfront Downpayment';
         } else if (payment.feeType === 'plot_installment' && payment.installmentNumber) {
           desc = `Installment #${payment.installmentNumber} Payment`;

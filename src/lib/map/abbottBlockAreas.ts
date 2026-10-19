@@ -8872,11 +8872,9 @@ export const abbottBlockAreas: TracedPlotArea[] = [
     ]
   },
   {
-    "slug": "AbbottBlock_filtrationPlant_337_3m",
+    "slug": "AbbottBlock_residential_337_3m",
     "blockId": "abbott",
-    "category": "amenity",
-    "amenityType": "filtrationPlant",
-    "amenityName": "filtrationPlant",
+    "category": "residential",
     "plotNumber": "337",
     "isGroupedRange": false,
     "sizeLabel": "3 Marla",

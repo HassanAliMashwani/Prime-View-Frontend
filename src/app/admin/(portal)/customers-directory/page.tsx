@@ -43,7 +43,8 @@ import {
   resetCustomerPassword, 
   issuePortalCredentials, 
   deleteCustomer,
-  CustomerDirectoryEntry 
+  CustomerDirectoryEntry,
+  CustomerDirectoryPlot
 } from '@/lib/dal/customers';
 import { AdminSession } from '@/lib/mock/types';
 import { formatCnic } from '@/lib/utils/cnic';
@@ -53,6 +54,8 @@ import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 import CustomerDocumentsManager from '@/components/admin/documents/CustomerDocumentsManager';
+import { BookingAgreementModal, BookingAgreementData } from '@/components/admin/BookingAgreementModal';
+import { sortLedgerBills } from '@/lib/utils/ledgerSort';
 
 function formatFeeType(payment: any): string {
   if (payment.feeType === 'plot_downpayment') return 'Downpayment';
@@ -118,6 +121,40 @@ function CustomersDirectoryContent() {
   const [deleteCustomerTarget, setDeleteCustomerTarget] = useState<CustomerDirectoryEntry | null>(null);
   const [deleteConfirmInput, setDeleteConfirmInput] = useState<string>('');
   const [deleteSubmitting, setDeleteSubmitting] = useState<boolean>(false);
+
+  // Booking agreement modal state (View Agreement)
+  const [agreementModalData, setAgreementModalData] = useState<BookingAgreementData | null>(null);
+
+  const handleOpenAgreement = (cust: CustomerDirectoryEntry | any, plot: CustomerDirectoryPlot | any, bookingDetail?: any) => {
+    const savedPlan = plot.installmentPlan || bookingDetail?.installmentPlan;
+    const savedPrice = Number(savedPlan?.totalPayment || plot.price || bookingDetail?.plot?.price || 0);
+
+    const agreementData: BookingAgreementData = {
+      customer: {
+        membershipNo: cust.membershipNo,
+        fullName: cust.fullName,
+        fatherOrHusbandName: cust.fatherOrHusbandName,
+        cnic: cust.cnic,
+        phone: cust.phone,
+        email: cust.email,
+        nokName: cust.nokName,
+        mailingAddress: cust.mailingAddress || cust.address,
+      },
+      plot: {
+        plotNumber: plot.plotNumber || bookingDetail?.plot?.plotNumber,
+        blockId: plot.blockName || plot.blockId || bookingDetail?.plot?.blockId,
+        size: plot.size || bookingDetail?.plot?.size,
+        category: plot.category || bookingDetail?.plot?.category,
+        price: savedPrice,
+      },
+      paymentType: plot.paymentType || bookingDetail?.paymentType || 'installment',
+      paperRef: plot.paperInstallmentRef || bookingDetail?.paperInstallmentRef,
+      bookingDate: plot.bookingDate || (bookingDetail?.bookingDate ? String(bookingDetail.bookingDate).split('T')[0] : undefined),
+      installmentPlan: savedPlan,
+    };
+
+    setAgreementModalData(agreementData);
+  };
 
   // Pagination state
   const [page, setPage] = useState<number>(parseInt(searchParams?.get('page') || '1', 10));
@@ -769,7 +806,18 @@ function CustomersDirectoryContent() {
                             </div>
 
                             {/* Dedicated payment button per plot */}
-                            <div className="shrink-0 flex items-center">
+                            <div className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
+                              {p.bookingId && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAgreement(c, p)}
+                                  title="View Official Booking Agreement"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                                >
+                                  <FileText className="w-3 h-3 text-amber-700" />
+                                  <span>View Agreement</span>
+                                </button>
+                              )}
                               {isHeld ? (
                                 c.registrationStatus === 'minimal' ? (
                                   <button
@@ -781,11 +829,11 @@ function CustomersDirectoryContent() {
                                     <CreditCard className="w-3 h-3" />
                                     <span>Set payment plan</span>
                                   </button>
-                                ) : isSuperAdmin ? (
+                                ) : (isSuperAdmin || (session?.role === 'sub_admin' && Boolean(session?.permissions?.can_book) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId))) ? (
                                   <button
                                     type="button"
                                     onClick={() => openSetPaymentPlan(c, p.plotId || (p as any).id)}
-                                    title="Set Payment Plan (Super Admin Exclusivity)"
+                                    title="Set Payment Plan"
                                     className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
                                   >
                                     <CreditCard className="w-3 h-3" />
@@ -793,7 +841,7 @@ function CustomersDirectoryContent() {
                                   </button>
                                 ) : (
                                   <span
-                                    title="Only Super Admin can assign payment plans"
+                                    title="Plan pending assignment"
                                     className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-500 rounded font-medium text-[10px] border border-slate-200"
                                   >
                                     <Clock className="w-3 h-3 text-slate-400" />
@@ -1093,7 +1141,18 @@ function CustomersDirectoryContent() {
                                   </div>
 
                                   {/* Dedicated payment button per plot */}
-                                  <div className="shrink-0 flex items-center">
+                                  <div className="shrink-0 flex items-center gap-1.5">
+                                    {p.bookingId && (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenAgreement(c, p)}
+                                        title="View Official Booking Agreement"
+                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
+                                      >
+                                        <FileText className="w-2.5 h-2.5 text-amber-700" />
+                                        <span>View Agreement</span>
+                                      </button>
+                                    )}
                                     {isHeld ? (
                                       c.registrationStatus === 'minimal' ? (
                                         <button
@@ -1105,11 +1164,11 @@ function CustomersDirectoryContent() {
                                           <CreditCard className="w-2.5 h-2.5" />
                                           <span>Set payment plan</span>
                                         </button>
-                                      ) : isSuperAdmin ? (
+                                      ) : isSuperAdmin || (session?.role === 'sub_admin' && Boolean(session?.permissions?.can_book) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId)) ? (
                                         <button
                                           type="button"
                                           onClick={() => openSetPaymentPlan(c, p.plotId || (p as any).id)}
-                                          title="Set Payment Plan (Super Admin Exclusivity)"
+                                          title="Set Payment Plan"
                                           className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
                                         >
                                           <CreditCard className="w-2.5 h-2.5" />
@@ -1117,7 +1176,7 @@ function CustomersDirectoryContent() {
                                         </button>
                                       ) : (
                                         <span
-                                          title="Only Super Admin can assign payment plans"
+                                          title="Only Super Admin or authorized Sub-Admin can assign payment plans"
                                           className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded font-medium text-[9px] border border-slate-200"
                                         >
                                           <Clock className="w-2.5 h-2.5 text-slate-400" />
@@ -1361,7 +1420,7 @@ function CustomersDirectoryContent() {
                     const booking = dossierCustomerDetail?.bookings?.find(
                       (b: any) => b.id === p.bookingId || b.plotId === p.plotId || b.plot?.plotNumber === p.plotNumber
                     );
-                    const payments: any[] = booking?.payments || [];
+                    const payments: any[] = sortLedgerBills(booking?.payments || []);
                     const isExpanded = expandedPlotId === plotKey || expandedPlotId === p.plotId || expandedPlotId === p.bookingId;
                     const plotPaid = payments.reduce((sum: number, pay: any) => sum + (Number(pay.paidAmount) || 0), 0);
                     const plotRemaining = Math.max(0, p.price - plotPaid);
@@ -1396,18 +1455,31 @@ function CustomersDirectoryContent() {
                               </strong>
                             </div>
                           </div>
-                          <div className="text-right shrink-0">
+                          <div className="text-right shrink-0 space-y-1">
                             <div className="font-bold font-mono text-slate-900 text-sm">PKR {p.price.toLocaleString()}</div>
                             <div className="text-[10px] text-slate-400">Booked: {p.bookingDate}</div>
+                            {p.bookingId && (
+                              <div className="pt-0.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAgreement({ ...dossierCustomer, ...dossierCustomerDetail }, p, booking)}
+                                  title="View Official Booking Agreement"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
+                                >
+                                  <FileText className="w-3 h-3 text-amber-700" />
+                                  <span>View Agreement</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {/* Set Payment Plan Action Row for Super Admin on Registered Member */}
-                        {isHeld && dossierCustomer.registrationStatus !== 'minimal' && isSuperAdmin && (
+                        {/* Set Payment Plan Action Row for Super Admin or Sub-Admin on Registered Member */}
+                        {isHeld && dossierCustomer.registrationStatus !== 'minimal' && (isSuperAdmin || (session?.role === 'sub_admin' && Boolean(session?.permissions?.can_book) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId))) && (
                           <div className="pt-2.5 border-t border-amber-200/90 flex items-center justify-between gap-3 flex-wrap bg-amber-100/50 -mx-3.5 -mb-3.5 p-3 rounded-b-xl">
                             <div className="flex items-center gap-1.5 text-amber-900 text-xs font-semibold">
                               <Clock className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-                              <span>Held plot with zero bills. Super Admin plan required.</span>
+                              <span>Held plot with zero bills. Payment plan configuration required.</span>
                             </div>
                             <button
                               type="button"
@@ -1459,15 +1531,28 @@ function CustomersDirectoryContent() {
                               )}
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => setExpandedPlotId(isExpanded ? null : plotKey)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors cursor-pointer"
-                            >
-                              <FileText className="w-3.5 h-3.5 text-indigo-600" />
-                              <span>{isExpanded ? 'Hide Installment Ledger' : 'View Installment Ledger'}</span>
-                              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                            </button>
+                            <div className="flex items-center gap-2">
+                              {p.bookingId && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenAgreement({ ...dossierCustomer, ...dossierCustomerDetail }, p, booking)}
+                                  title="View Official Booking Agreement"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-amber-700" />
+                                  <span>View Agreement</span>
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setExpandedPlotId(isExpanded ? null : plotKey)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs border border-indigo-200 transition-colors cursor-pointer"
+                              >
+                                <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                                <span>{isExpanded ? 'Hide Installment Ledger' : 'View Installment Ledger'}</span>
+                                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                              </button>
+                            </div>
                           </div>
                         )}
 
@@ -2026,6 +2111,13 @@ function CustomersDirectoryContent() {
           </div>
         </div>
       )}
+
+      {/* Booking Agreement Modal (Printable Official Agreement Document) */}
+      <BookingAgreementModal
+        open={Boolean(agreementModalData)}
+        onClose={() => setAgreementModalData(null)}
+        data={agreementModalData}
+      />
 
       {/* Action Toast Feedback */}
       <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />

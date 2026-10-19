@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { getActiveAdminSession } from '@/lib/dal/adminAuth';
+import { getActiveAdminSession, getAdminProfile, updateActiveAdminSession, adminLogout } from '@/lib/dal/adminAuth';
 import { AdminSession } from '@/lib/mock/types';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
@@ -22,10 +22,86 @@ export default function AdminPortalLayout({
     const active = getActiveAdminSession();
     if (!active) {
       router.push('/admin/login');
-    } else {
-      setSession(active);
+      setAuthChecked(true);
+      return;
     }
+    setSession(active);
     setAuthChecked(true);
+
+    let isMounted = true;
+
+    const refreshSessionFromProfile = async () => {
+      const current = getActiveAdminSession();
+      if (!current || !current.token) {
+        if (isMounted) {
+          await adminLogout();
+          router.push('/admin/login');
+        }
+        return;
+      }
+
+      const res = await getAdminProfile(current);
+      if (!isMounted) return;
+
+      if (!res.ok || res.status === 401 || res.status === 403) {
+        await adminLogout();
+        router.push('/admin/login');
+        return;
+      }
+
+      if (res.admin) {
+        const { status, permissions, assignedBlocks, fullName, username, email, phone, avatarUrl, role } = res.admin;
+
+        // If account is inactive or suspended, send open portal to login page
+        if (status === 'inactive' || status === 'suspended') {
+          await adminLogout();
+          router.push('/admin/login');
+          return;
+        }
+
+        const updated: AdminSession = {
+          ...current,
+          fullName: fullName || current.fullName,
+          username: username || current.username,
+          email: email || current.email,
+          phone: phone !== undefined ? phone : current.phone,
+          avatarUrl: avatarUrl !== undefined ? avatarUrl : current.avatarUrl,
+          role: role || current.role,
+          status: status,
+          permissions: (permissions as any) || {},
+          assignedBlocks: assignedBlocks || [],
+        };
+
+        updateActiveAdminSession(updated);
+        setSession(updated);
+      }
+    };
+
+    // Initial check on mount to ensure fresh state
+    refreshSessionFromProfile();
+
+    // Refresh every 30 seconds
+    const intervalId = setInterval(refreshSessionFromProfile, 30000);
+
+    // Refresh when tab becomes visible or receives focus
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshSessionFromProfile();
+      }
+    };
+    const handleFocus = () => {
+      refreshSessionFromProfile();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
   }, [router]);
 
   // Send the user to login only when the browser has checked and there is no session

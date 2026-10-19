@@ -1,3 +1,5 @@
+import { sortLedgerBills } from './ledgerSort';
+
 export interface FrontendScheduleRow {
   seq: number;
   feeType: 'plot_downpayment' | 'plot_installment' | 'plot_biannual' | 'plot_possession';
@@ -167,5 +169,5 @@ export function generateFrontendSchedule(options: GenerateFrontendScheduleOption
     paidAmount: 0,
   });
 
-  return schedule;
+  return sortLedgerBills(schedule);
 }

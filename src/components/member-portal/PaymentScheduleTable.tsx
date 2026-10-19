@@ -3,6 +3,7 @@
 import React from 'react';
 import { PaymentRecord } from '@/lib/mock/types';
 import { AlertCircle, CheckCircle2, Clock, Calendar, Check } from 'lucide-react';
+import { sortLedgerBills } from '@/lib/utils/ledgerSort';
 
 interface PaymentScheduleTableProps {
   schedule: PaymentRecord[];
@@ -11,10 +12,11 @@ interface PaymentScheduleTableProps {
 }
 
 export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
-  schedule,
+  schedule: rawSchedule,
   totalPrice,
   paidAmount,
 }) => {
+  const schedule = sortLedgerBills(rawSchedule);
   const remainingBalance = Math.max(0, totalPrice - paidAmount);
   const isFullyPaid = totalPrice > 0 && remainingBalance === 0 && (schedule.length === 0 || schedule.every((p) => p.status === 'paid'));
   const hasNoSchedule = schedule.length === 0;

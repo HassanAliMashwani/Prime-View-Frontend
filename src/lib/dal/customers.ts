@@ -76,6 +76,8 @@ export interface CustomerDirectoryPlot {
   bookingDate: string;
   hasPaymentPlan?: boolean;
   billsCount?: number;
+  installmentPlan?: any;
+  paperInstallmentRef?: string;
 }
 
 export interface SetPaymentPlanInput {
@@ -128,6 +130,7 @@ export interface CreateMinimalBookingInput {
   lockToken?: string;
   reservationId?: string;
   customerId?: string;
+  plotPrice?: number;
 }
 
 export interface CompleteMemberRegistrationInput {

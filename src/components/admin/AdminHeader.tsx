@@ -121,10 +121,14 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
           title="Open Administrator Profile"
         >
           {(() => {
-            const headerAvatar =
+            const rawAvatar =
               session?.avatarUrl ||
               (session?.permissions as any)?.avatarUrl ||
               null;
+            const headerAvatar =
+              rawAvatar && typeof rawAvatar === 'string' && rawAvatar.startsWith('https://')
+                ? rawAvatar
+                : null;
 
             if (headerAvatar) {
               return (

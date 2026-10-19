@@ -716,10 +716,14 @@ export default function TeamsPage() {
                     {/* Header Row: Avatar + Name / Role + Status */}
                     <div className="flex items-start gap-3">
                       {(() => {
-                        const avatarSrc =
+                        const rawAvatar =
                           admin.avatarUrl ||
                           (admin.permissions as any)?.avatarUrl ||
                           null;
+                        const avatarSrc =
+                          rawAvatar && typeof rawAvatar === 'string' && rawAvatar.startsWith('https://')
+                            ? rawAvatar
+                            : null;
 
                         if (avatarSrc) {
                           return (

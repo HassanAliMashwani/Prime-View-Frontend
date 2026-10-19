@@ -77,7 +77,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                   }
                 : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
-              schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
+              schedules: (schedulesRes.data && schedulesRes.data.length > 0)
+                ? reconcileItems(state.schedules, schedulesRes.data, (s) => s.plotId)
+                : [],
               heldPlots: (schedulesRes as any)?.heldPlots || [],
               isLoading: false,
             }));
@@ -113,7 +115,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                   }
                 : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
-              schedules: reconcileItems(state.schedules, schedulesRes.data || [], (s) => s.plotId),
+              schedules: (schedulesRes.data && schedulesRes.data.length > 0)
+                ? reconcileItems(state.schedules, schedulesRes.data, (s) => s.plotId)
+                : [],
               heldPlots: (schedulesRes as any)?.heldPlots || [],
             }));
           },
@@ -245,7 +249,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               getPaymentHistory(filterPlotId, signal),
             ]);
             set((state) => ({
-              schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
+              schedules: (schedRes.data && schedRes.data.length > 0)
+                ? reconcileItems(state.schedules, schedRes.data, (s) => s.plotId)
+                : [],
               heldPlots: (schedRes as any)?.heldPlots || [],
               transactions: histRes.data || [],
               isLoading: false,
@@ -269,7 +275,9 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               getPaymentHistory(filterPlotId, signal),
             ]);
             set((state) => ({
-              schedules: reconcileItems(state.schedules, schedRes.data || [], (s) => s.plotId),
+              schedules: (schedRes.data && schedRes.data.length > 0)
+                ? reconcileItems(state.schedules, schedRes.data, (s) => s.plotId)
+                : [],
               heldPlots: (schedRes as any)?.heldPlots || [],
               transactions: histRes.data || [],
             }));

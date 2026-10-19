@@ -149,6 +149,7 @@ function BlockPlotsContent() {
     city: '',
     lockToken: '',
     customerId: '',
+    price: '',
   });
   const [minimalSelectedMember, setMinimalSelectedMember] = useState<PickerMember | null>(null);
 
@@ -174,7 +175,10 @@ function BlockPlotsContent() {
   const handleSavePrice = async () => {
     if (!session || !selectedPlot) return;
     const num = Number(newPriceInput);
-    if (!num || num <= 0) return;
+    if (!num || num <= 0) {
+      alert('Price must be greater than 0.');
+      return;
+    }
     setPriceSaving(true);
     const res = await updatePlotPrice(session, selectedPlot.id, num);
     setPriceSaving(false);
@@ -183,7 +187,7 @@ function BlockPlotsContent() {
       setSelectedPlot(res.plot);
       await loadPlots(session);
     } else {
-      alert(res.message || 'This feature is not available yet (NOT_YET_IMPLEMENTED).');
+      alert(res.message || res.error || 'Failed to update plot price.');
       setIsEditingPrice(false);
     }
   };
@@ -466,8 +470,9 @@ function BlockPlotsContent() {
     e.preventDefault();
     if (!session || !selectedPlot) return;
 
-    if (Number(selectedPlot.price) <= 0) {
-      setActionError('This plot has an official price of PKR 0. Official pricing must be established before booking.');
+    const parsedPrice = Number(minimalForm.price);
+    if (!parsedPrice || parsedPrice <= 0) {
+      setActionError('Plot price must be greater than 0.');
       return;
     }
 
@@ -487,6 +492,7 @@ function BlockPlotsContent() {
         city: minimalForm.city,
         lockToken: minimalForm.lockToken || undefined,
         customerId: minimalSelectedMember?.id || minimalForm.customerId || undefined,
+        plotPrice: parsedPrice,
       });
 
       if (res.ok) {
@@ -707,11 +713,6 @@ function BlockPlotsContent() {
   const openBook = async (prefillReservation?: Reservation, forceQuick: boolean = false) => {
     if (!session || !selectedPlot) return;
 
-    if (Number(selectedPlot.price) <= 0) {
-      setActionError('This plot has an official price of PKR 0. Official pricing must be established before locking or booking.');
-      return;
-    }
-
     setActionLoading(true);
     setActionError(null);
 
@@ -745,6 +746,7 @@ function BlockPlotsContent() {
         city: '',
         lockToken: lockRes.lockToken || '',
         customerId: prefillReservation?.customerId || '',
+        price: Number(selectedPlot.price) > 0 ? String(selectedPlot.price) : '',
       });
       setMinimalSelectedMember(null);
       setIsMinimalBookModalOpen(true);
@@ -1391,10 +1393,11 @@ function BlockPlotsContent() {
                         <span className="text-[11px] font-mono font-bold text-slate-500">PKR</span>
                         <input
                           type="number"
-                          min={100000}
-                          step={50000}
+                          min={1}
+                          step={1000}
                           value={newPriceInput}
                           onChange={(e) => setNewPriceInput(e.target.value)}
+                          placeholder="Enter price"
                           className="w-full px-2 py-1 text-xs font-mono font-bold bg-white border border-emerald-400 rounded-md focus:outline-hidden"
                           autoFocus
                         />
@@ -1437,7 +1440,7 @@ function BlockPlotsContent() {
                           ? `PKR ${Number(selectedPlot.price).toLocaleString()}`
                           : 'Price not set'}
                       </span>
-                      {session?.role === 'super_admin' && selectedPlot.category !== 'amenity' && (
+                      {selectedPlot.category !== 'amenity' && selectedPlot.status !== 'allotted' && (session?.role === 'super_admin' || (session?.role === 'sub_admin' && Boolean(session?.permissions?.can_book) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(selectedPlot.blockId))) && (
                         <button
                           type="button"
                           onClick={() => {
@@ -1446,7 +1449,7 @@ function BlockPlotsContent() {
                           }}
                           className="text-[10px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 transition-colors cursor-pointer shrink-0"
                         >
-                          {Number(selectedPlot.price) > 0 ? 'Edit' : 'Set Price'}
+                          Edit
                         </button>
                       )}
                     </div>
@@ -1748,8 +1751,7 @@ function BlockPlotsContent() {
                     <button
                       type="button"
                       onClick={() => openBook(undefined, true)}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId) || Number(selectedPlot.price) <= 0}
-                      title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
+                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
                       className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
                     >
                       <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
@@ -1762,8 +1764,7 @@ function BlockPlotsContent() {
                     <button
                       type="button"
                       onClick={() => openBook(undefined, false)}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId) || Number(selectedPlot.price) <= 0}
-                      title={Number(selectedPlot.price) <= 0 ? 'Official price is PKR 0. Set pricing before locking or booking.' : undefined}
+                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
                       className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-200/80 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 hover:border-slate-400 shadow-2xs transition-all cursor-pointer text-center disabled:opacity-50"
                     >
                       <User className="w-4 h-4 text-slate-600 shrink-0" />
@@ -2139,6 +2140,22 @@ function BlockPlotsContent() {
                 />
               </div>
 
+              <div>
+                <label className="block text-slate-700 mb-1 font-semibold flex items-center justify-between">
+                  <span>Plot Price (PKR) <span className="text-rose-500">*</span></span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  step={1000}
+                  value={minimalForm.price}
+                  onChange={(e) => setMinimalForm({ ...minimalForm, price: e.target.value })}
+                  placeholder="Enter plot price"
+                  className="w-full px-3 py-2 border rounded-xl text-slate-900 bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 font-mono font-bold"
+                />
+              </div>
+
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -2149,7 +2166,7 @@ function BlockPlotsContent() {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim()}
+                  disabled={actionLoading || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim() || !minimalForm.price || Number(minimalForm.price) <= 0}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 min-w-[165px]"
                 >
                   {actionLoading ? (

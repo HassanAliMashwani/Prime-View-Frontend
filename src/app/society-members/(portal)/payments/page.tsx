@@ -154,44 +154,28 @@ function PaymentsContent() {
     }
   }, [bottomNotice]);
 
-  // Unified available plot files for selection in receipts and modal (plots with schedules fallback)
+  // Unified available plot files for selection in receipts and modal (only plots that have bills)
   const availablePlotOptions = React.useMemo(() => {
-    let options: any[] = [];
-    if (plots && plots.length > 0) {
-      options = plots
-        .filter((p) => p.hasPaymentPlan !== false && (p.billsCount ?? 1) > 0)
-        .map((p) => {
-          const matchingSchedule = schedules.find((s) => s.plotId === p.id);
-          return {
-            id: p.id,
-            plotNumber: p.plotNumber,
-            blockName: matchingSchedule?.blockName || (p as any).blockName || p.blockId,
-            size: p.size,
-            category: p.category,
-            paymentType: matchingSchedule?.paymentType || (p.paymentSummary?.paymentType as any) || 'installment',
-          };
-        });
-    } else if (schedules && schedules.length > 0) {
-      options = schedules.map((s) => ({
-        id: s.plotId,
-        plotNumber: s.plotNumber,
-        blockName: s.blockName,
-        size: s.size,
-        category: 'residential' as const,
-        paymentType: s.paymentType,
-      }));
-    }
-
-    return options.filter((opt) => {
-      const s = schedules.find((sched) => sched.plotId === opt.id);
-      if (!s) return false; // Held plot or plot without schedule cannot be selected
-      if (opt.paymentType === 'one_time') {
-        // Allow exactly ONE documentation receipt for an already-settled one-time plot
-        const alreadySubmitted = receipts.some((r) => r.plotId === opt.id);
-        return !alreadySubmitted;
-      }
-      return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
-    });
+    const payableSchedules = schedules.filter((s) => s.schedule && s.schedule.length > 0);
+    return payableSchedules
+      .filter((s) => {
+        if (s.paymentType === 'one_time') {
+          const alreadySubmitted = receipts.some((r) => r.plotId === s.plotId);
+          return !alreadySubmitted;
+        }
+        return s.schedule.some((item) => item.status === 'pending' || item.status === 'overdue' || item.status === 'partially_paid');
+      })
+      .map((s) => {
+        const matchingPlot = plots.find((p) => p.id === s.plotId);
+        return {
+          id: s.plotId,
+          plotNumber: s.plotNumber,
+          blockName: s.blockName,
+          size: s.size,
+          category: matchingPlot?.category || 'residential',
+          paymentType: s.paymentType,
+        };
+      });
   }, [plots, schedules, receipts]);
 
   // Debounced preview fetch for balloon payments
@@ -368,8 +352,8 @@ function PaymentsContent() {
     }
   }, [schedules, availablePlotOptions, initialPlotParam, formPlotId, selectedPlotId]);
 
-  const installmentPlots = schedules.filter((s) => s.paymentType === 'installment');
-  const oneTimePlots = schedules.filter((s) => s.paymentType === 'one_time');
+  const installmentPlots = schedules.filter((s) => s.paymentType === 'installment' && s.schedule && s.schedule.length > 0);
+  const oneTimePlots = schedules.filter((s) => s.paymentType === 'one_time' && s.schedule && s.schedule.length > 0);
 
   const currentTabPlots = activeTab === 'installment' ? installmentPlots : oneTimePlots;
   const activeSchedule: PlotPaymentSchedule | undefined = schedules.find(
@@ -800,45 +784,31 @@ function PaymentsContent() {
         ) : schedules.length === 0 ? (
           heldPlots.length > 0 ? (
             <div className="space-y-4">
-              <div className="bg-amber-50/80 rounded-2xl sm:rounded-3xl border border-amber-200 p-6 sm:p-8 space-y-4 shadow-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-display font-bold text-base sm:text-lg text-amber-950">
-                      Plots on Administrative Hold
-                    </h4>
-                    <p className="text-xs text-amber-800 leading-relaxed">
-                      You have {heldPlots.length} property plot{heldPlots.length > 1 ? 's' : ''} currently held pending payment plan finalization by the society administration. No bills have been issued, and no payments are due at this time.
-                    </p>
-                  </div>
+              <div className="bg-amber-50/60 rounded-2xl sm:rounded-3xl border border-amber-200/80 p-5 sm:p-6 space-y-3 shadow-xs">
+                <div className="flex items-center gap-2.5 text-amber-950">
+                  <Clock className="w-5 h-5 text-amber-700 shrink-0" />
+                  <h4 className="font-display font-bold text-base text-amber-950">
+                    Plots on Administrative Hold
+                  </h4>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-2">
                   {heldPlots.map((hp) => (
                     <div
                       key={hp.plotId}
-                      className="bg-white rounded-xl p-4 border border-amber-200/80 shadow-xs space-y-2"
+                      className="rounded-xl px-4 py-3 border border-amber-200 bg-white text-amber-950 flex flex-wrap items-center justify-between gap-2 shadow-xs"
                     >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block">
-                            {hp.blockName}
-                          </span>
-                          <h5 className="font-display font-bold text-base text-[#151914]">
-                            Plot {hp.plotNumber}
-                          </h5>
-                          <p className="text-xs text-[#6B7462]">{hp.size}</p>
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-200">
-                          Hold Active
+                      <div className="flex items-center gap-2.5">
+                        <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+                        <span className="font-bold text-sm text-[#151914]">
+                          Plot {hp.plotNumber}
+                        </span>
+                        <span className="text-xs text-amber-900 font-medium">
+                          ({hp.blockName}, {hp.size})
                         </span>
                       </div>
-                      <div className="pt-2 border-t border-black/5 flex items-center justify-between text-xs text-[#6B7462]">
-                        <span>Amount Owed: <strong className="text-[#151914] font-mono">PKR 0</strong></span>
-                        <span className="font-semibold text-amber-700">Awaiting Plan</span>
-                      </div>
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                        Held (Plan Pending)
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -871,34 +841,24 @@ function PaymentsContent() {
           )
         ) : (
           <div className="space-y-3 sm:space-y-6">
-            {/* ── Informational banner for held plots awaiting payment plan ── */}
             {heldPlots.length > 0 && (
               <div className="space-y-2">
                 {heldPlots.map((hp) => (
                   <div
                     key={hp.plotId}
-                    className="rounded-2xl p-3.5 sm:p-4 border border-amber-200 bg-amber-50/80 text-amber-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs"
+                    className="rounded-xl px-4 py-3 border border-amber-200 bg-amber-50/80 text-amber-950 flex flex-wrap items-center justify-between gap-2 shadow-xs"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 mt-0.5">
-                        <Clock className="w-4 h-4" />
-                      </div>
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-200 text-amber-900">
-                            Held Plot • Pending Plan
-                          </span>
-                          <span className="text-xs font-bold text-amber-950">
-                            Plot {hp.plotNumber} ({hp.blockName}, {hp.size})
-                          </span>
-                        </div>
-                        <p className="text-xs text-amber-800">
-                          On administrative hold awaiting payment plan assignment by society office. Amount owed: <strong className="font-mono text-amber-950">PKR 0</strong>.
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2.5">
+                      <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span className="font-bold text-sm text-[#151914]">
+                        Plot {hp.plotNumber}
+                      </span>
+                      <span className="text-xs text-amber-900 font-medium">
+                        ({hp.blockName}, {hp.size})
+                      </span>
                     </div>
-                    <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-amber-100/90 text-amber-800 border border-amber-300/50 shrink-0">
-                      Plan Pending Finalization
+                    <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                      Held (Plan Pending)
                     </span>
                   </div>
                 ))}

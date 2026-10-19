@@ -77,6 +77,7 @@ export default function AdminReceiptsPage() {
 
   // Action in-progress states
   const [approvingReceiptId, setApprovingReceiptId] = useState<string | null>(null);
+  const [approvedSuccessId, setApprovedSuccessId] = useState<string | null>(null);
   const [decliningReceiptId, setDecliningReceiptId] = useState<string | null>(null);
   const [rejectModalError, setRejectModalError] = useState<string | null>(null);
 
@@ -337,6 +338,7 @@ export default function AdminReceiptsPage() {
       });
       if (res.ok && res.receipt) {
         idempotencyKeysRef.current.delete(receiptId);
+        setApprovedSuccessId(receiptId);
         const slipNumber = res.receipt.slip?.slipNumber || (res.receipt as any).slipNumber || 'PV-SLIP';
         setBottomNotice({
           id: receiptId,
@@ -920,6 +922,7 @@ export default function AdminReceiptsPage() {
                       disabled={
                         approvingReceiptId === sub.id ||
                         decliningReceiptId === sub.id ||
+                        approvedSuccessId === sub.id ||
                         Boolean(approvingReceiptId) ||
                         Boolean(decliningReceiptId)
                       }
@@ -929,7 +932,12 @@ export default function AdminReceiptsPage() {
                       {approvingReceiptId === sub.id ? (
                         <>
                           <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
-                          <span>Approving…</span>
+                          <span>Saving…</span>
+                        </>
+                      ) : approvedSuccessId === sub.id ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-200 shrink-0" />
+                          <span>Success!</span>
                         </>
                       ) : (
                         <>

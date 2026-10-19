@@ -28,6 +28,7 @@ import {
   getSlipVerifyUrl,
   SlipRenderModel,
   buildSlipDataFromSubmission,
+  stripRoleFromOfficerName,
 } from '@/components/receipts/OfficialA4PaymentSlip';
 
 export default function VerifySlipPage() {
@@ -326,7 +327,9 @@ export default function VerifySlipPage() {
                             <Lock className="w-4 h-4 text-emerald-400" />
                             Issued By
                           </span>
-                          <span className="font-medium text-xs text-slate-300">{submission.issuer}</span>
+                          <span className="font-medium text-xs text-slate-300">
+                            {stripRoleFromOfficerName(submission.issuer)}
+                          </span>
                         </div>
                       )}
 

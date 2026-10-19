@@ -282,10 +282,14 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
           <div className="flex items-start justify-between gap-1.5 mb-2">
             <div className="flex items-start gap-2 min-w-0">
               {(() => {
-                const sidebarAvatar =
+                const rawAvatar =
                   session?.avatarUrl ||
                   (session?.permissions as any)?.avatarUrl ||
                   null;
+                const sidebarAvatar =
+                  rawAvatar && typeof rawAvatar === 'string' && rawAvatar.startsWith('https://')
+                    ? rawAvatar
+                    : null;
                 if (sidebarAvatar) {
                   return (
                     <div className="w-5 h-5 rounded-md overflow-hidden border border-slate-200/90 shrink-0 mt-0.5">
@@ -324,6 +328,30 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
               <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
             )}
           </div>
+
+          {session && !isSuper && (
+            <div className="mb-2 pt-2 border-t border-slate-100">
+              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+                Assigned Blocks
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {session.assignedBlocks && session.assignedBlocks.length > 0 ? (
+                  session.assignedBlocks.map((b) => (
+                    <span
+                      key={b}
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded border capitalize ${
+                        BLOCK_COLORS[b.toLowerCase()] || 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}
+                    >
+                      {b.replace('-', ' ')}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-[10px] text-slate-400 italic">No blocks assigned</span>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="border-t border-slate-100 pt-2 mt-2">
             <span className="text-[11px] text-emerald-700 font-semibold group-hover:underline inline-flex items-center gap-1">

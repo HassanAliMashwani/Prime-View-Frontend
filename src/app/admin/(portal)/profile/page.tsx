@@ -85,7 +85,7 @@ export default function AdminProfilePage() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      if (s.avatarUrl) {
+      if (s.avatarUrl && s.avatarUrl.startsWith('https://')) {
         setAvatar(s.avatarUrl);
       }
 
@@ -102,9 +102,10 @@ export default function AdminProfilePage() {
             setEditFullName(res.admin.fullName || s.fullName || '');
             setEditEmail(res.admin.email || (s.username ? `${s.username}@primeview.pk` : ''));
             setEditPhone(res.admin.phone || s.phone || '');
-            setAvatar(res.admin.avatarUrl || '');
-            if (res.admin.avatarUrl !== s.avatarUrl) {
-              updateActiveAdminSession({ avatarUrl: res.admin.avatarUrl || '' });
+            const cleanAvatar = res.admin.avatarUrl && res.admin.avatarUrl.startsWith('https://') ? res.admin.avatarUrl : '';
+            setAvatar(cleanAvatar);
+            if (cleanAvatar !== s.avatarUrl) {
+              updateActiveAdminSession({ avatarUrl: cleanAvatar });
             }
           }
         })
@@ -122,7 +123,7 @@ export default function AdminProfilePage() {
       setEditEmail(details.email || '');
       setEditPhone(details.phone || '');
       if (details.avatarUrl !== undefined) {
-        setAvatar(details.avatarUrl);
+        setAvatar(details.avatarUrl && details.avatarUrl.startsWith('https://') ? details.avatarUrl : '');
       }
     } else if (session) {
       setEditUsername(session.username || '');
@@ -154,6 +155,11 @@ export default function AdminProfilePage() {
       }
 
       const httpsUrl = uploadRes.fileUrl;
+      if (!httpsUrl || !httpsUrl.startsWith('https://')) {
+        toast.error('Profile photo must be an https link from storage.');
+        setAvatarSaving(false);
+        return;
+      }
 
       // 2. Save only the returned https file link to the server
       const res = await runLane1({
@@ -168,11 +174,13 @@ export default function AdminProfilePage() {
         setCache(`/profile:${session.adminId}`, res.admin);
         updateActiveAdminSession({ avatarUrl: httpsUrl });
 
-        // Delete old browser copy
+        // Delete old browser copies
         try {
-          localStorage.removeItem(`pv_admin_avatar_${session.adminId}`);
-          if (session.username) {
-            localStorage.removeItem(`pv_admin_avatar_${session.username}`);
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('pv_admin_avatar_')) {
+              localStorage.removeItem(k);
+            }
           }
         } catch {}
 
@@ -206,11 +214,13 @@ export default function AdminProfilePage() {
         setCache(`/profile:${session.adminId}`, res.admin);
         updateActiveAdminSession({ avatarUrl: '' });
 
-        // Delete old browser copy
+        // Delete old browser copies
         try {
-          localStorage.removeItem(`pv_admin_avatar_${session.adminId}`);
-          if (session.username) {
-            localStorage.removeItem(`pv_admin_avatar_${session.username}`);
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('pv_admin_avatar_')) {
+              localStorage.removeItem(k);
+            }
           }
         } catch {}
 
@@ -262,7 +272,7 @@ export default function AdminProfilePage() {
             fullName: trimmedName,
             email: trimmedEmail,
             phone: trimmedPhone,
-            avatarUrl: avatar || undefined,
+            avatarUrl: avatar && avatar.startsWith('https://') ? avatar : (avatar === '' ? '' : undefined),
           }),
       });
 
@@ -387,7 +397,7 @@ export default function AdminProfilePage() {
             {/* Editable Profile Picture Container */}
             <div className="relative group/avatar shrink-0">
               <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-white border-2 border-slate-200/90 shadow-md p-1.5 flex items-center justify-center overflow-hidden ring-4 ring-slate-100">
-                {avatar ? (
+                {avatar && avatar.startsWith('https://') ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={avatar}

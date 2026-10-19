@@ -58,6 +58,7 @@ import LiveCnicMemberPicker from '@/components/admin/customers/LiveCnicMemberPic
 import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice, getAdminPlotDetails } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
+import { BookingAgreementModal } from '@/components/admin/BookingAgreementModal';
 import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
 import { runLane1 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
@@ -66,11 +67,13 @@ import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 function PlotSelector({
   value,
   onChange,
+  onSelectPlot,
   onErrorClear,
   session
 }: {
   value: string;
   onChange: (plotId: string) => void;
+  onSelectPlot?: (plot: Plot) => void;
   onErrorClear?: () => void;
   session: AdminSession | null;
 }) {
@@ -112,9 +115,6 @@ function PlotSelector({
     }
   }, [debouncedSearch, session]);
 
-  // If a value is selected but not in results (e.g. from state), we should add it? 
-  // It shouldn't happen often if we only pick from results.
-  
   return (
     <div className="flex flex-col gap-2">
       <input 
@@ -127,7 +127,9 @@ function PlotSelector({
       <select
         value={value}
         onChange={(e) => {
+           const selected = results.find(p => p.id === e.target.value);
            onChange(e.target.value);
+           if (selected && onSelectPlot) onSelectPlot(selected);
            if (onErrorClear) onErrorClear();
         }}
         required
@@ -136,7 +138,7 @@ function PlotSelector({
         <option value="">{loading ? 'Searching...' : (results.length > 0 ? '-- Select Available Plot --' : '-- Type to search plots --')}</option>
         {results.map((p) => (
           <option key={p.id} value={p.id}>
-            {p.blockId.toUpperCase()} • Plot {p.plotNumber} ({p.size}) — PKR {p.price.toLocaleString()}
+            {p.blockId.toUpperCase()} • Plot {p.plotNumber} ({p.size}) — {p.price > 0 ? `PKR ${p.price.toLocaleString()}` : 'Price not set'}
           </option>
         ))}
       </select>
@@ -229,6 +231,7 @@ function CustomersPageContent() {
     lockToken: queryLockToken || undefined,
   });
   const [pathASubmitting, setPathASubmitting] = useState(false);
+  const [pathASuccess, setPathASuccess] = useState(false);
   const [pathAPlotError, setPathAPlotError] = useState<string | null>(null);
   const [selectedPlotA, setSelectedPlotA] = useState<Plot | null>(null);
 
@@ -250,6 +253,7 @@ function CustomersPageContent() {
   const [selectedPlotB, setSelectedPlotB] = useState<Plot | null>(null);
   const [pathBPlotError, setPathBPlotError] = useState<string | null>(null);
   const [pathBSubmitting, setPathBSubmitting] = useState(false);
+  const [pathBSuccess, setPathBSuccess] = useState(false);
 
   // ----------------------------------------------------
   // ADMIN 3-FIELD QUICK BOOKING STATE (CR 07 §5)
@@ -260,6 +264,7 @@ function CustomersPageContent() {
     cnic: '',
     city: '',
     customerId: '',
+    price: '',
   });
   const [subAdminSelectedMember, setSubAdminSelectedMember] = useState<PickerMember | null>(null);
   const [pathASelectedMember, setPathASelectedMember] = useState<PickerMember | null>(null);
@@ -328,6 +333,7 @@ function CustomersPageContent() {
       const tot = customTotal ?? p.price;
       setTotalPaymentA(tot);
       setTotalPaymentB(p.price);
+      setSubAdminForm((prev) => ({ ...prev, price: p.price > 0 ? String(p.price) : '' }));
       setPathAPlotError(null);
       setPathBPlotError(null);
     };
@@ -508,12 +514,13 @@ function CustomersPageContent() {
           });
 
           // Populate Sub Admin form
-          setSubAdminForm({
+          setSubAdminForm((prev) => ({
+            ...prev,
             customerName: cust.fullName || '',
             cnic: cust.cnic ? formatCnic(cust.cnic) : '',
             city: currentCity,
             customerId: cust.id,
-          });
+          }));
 
           // Also populate Path B
           const bookings = (cust.bookings || []).map((b: any) => ({
@@ -913,31 +920,42 @@ function CustomersPageContent() {
       return;
     }
 
-    if (session.role === 'super_admin') {
-      if (!totalPaymentA || isNaN(totalPaymentA) || totalPaymentA <= 0) {
-        setFeedback({
-          type: 'error',
-          message: 'Total Payment (Plot Price) must be a valid positive amount greater than zero.',
-        });
-        return;
-      }
+    const canEditPriceA = Boolean(
+      session.role === 'super_admin' ||
+      (session.role === 'sub_admin' &&
+        session.permissions?.can_book &&
+        Array.isArray(session.assignedBlocks) &&
+        session.assignedBlocks.includes(plot.blockId))
+    );
+
+    const finalPriceA = (canEditPriceA && totalPaymentA > 0) ? totalPaymentA : Number(plot.price);
+
+    if (!finalPriceA || isNaN(finalPriceA) || finalPriceA <= 0) {
+      setFeedback({
+        type: 'error',
+        message: 'Total Payment (Plot Price) must be a valid positive amount greater than zero.',
+      });
+      return;
     }
 
-    const finalPriceA = (session.role === 'super_admin' && totalPaymentA > 0) ? totalPaymentA : plot.price;
-
     // Build installment plan config if installment type
-    let installmentPlan: InstallmentPlanConfig | undefined = undefined;
+    let installmentPlan: any = undefined;
     if (pathAForm.paymentType === 'installment') {
       installmentPlan = {
         totalPayment: finalPriceA,
         planYears: yearsA,
         years: yearsA,
+        downpayment: Math.floor(finalPriceA * 0.25),
+        monthlyInstallmentCount: yearsA * 12,
+        biannualInstallmentCount: yearsA * 2,
+        numberOfInstallments: (yearsA * 12) + (yearsA * 2),
       };
     }
 
     // If setting payment plan for a held plot on an existing registered member (Super Admin exclusivity):
     if (setPlanCustomer) {
       setPathASubmitting(true);
+      setPathASuccess(false);
       const realPlotId = setPlanPlot?.id ||
         (setPlanCustomer as any).bookings?.find((b: any) =>
           b.plotId === queryPlotId ||
@@ -959,11 +977,9 @@ function CustomersPageContent() {
           plotPrice: finalPriceA,
         }),
       });
-      setPathASubmitting(false);
 
       if (!res.ok) {
         if (res.error === 'BOOKING_NOT_FOUND' || res.message?.includes('No held booking')) {
-          setPathASubmitting(true);
           const attachRes = await runLane1({
             screen: 'customer-booking',
             isSave: true,
@@ -978,18 +994,21 @@ function CustomersPageContent() {
               plotPrice: finalPriceA,
             }),
           });
-          setPathASubmitting(false);
 
           if (!attachRes.ok) {
+            setPathASubmitting(false);
             setFeedback({ type: 'error', message: attachRes.message || attachRes.error || 'Failed to attach plot to member.' });
             return;
           }
         } else {
+          setPathASubmitting(false);
           setFeedback({ type: 'error', message: res.message || res.error || 'Failed to assign payment plan.' });
           return;
         }
       }
 
+      setPathASubmitting(false);
+      setPathASuccess(true);
       isCommittedRef.current = true;
       setFeedback({
         type: 'success',
@@ -1000,7 +1019,7 @@ function CustomersPageContent() {
         setAgreementModal({
           open: false,
           customer: setPlanCustomer,
-          plot,
+          plot: { ...plot, price: finalPriceA },
           paymentType: pathAForm.paymentType,
           paperRef: pathAForm.paperInstallmentRef,
           bookingDate: new Date().toLocaleDateString('en-GB'),
@@ -1017,6 +1036,7 @@ function CustomersPageContent() {
     // If completing registration for a quick-booked member (CR 07 §5):
     if (completeTargetCustomer) {
       setPathASubmitting(true);
+      setPathASuccess(false);
       const res = await runLane1({
         screen: 'customer-booking',
         isSave: true,
@@ -1042,13 +1062,15 @@ function CustomersPageContent() {
           plotPrice: finalPriceA,
         }),
       });
-      setPathASubmitting(false);
 
       if (!res.ok) {
+        setPathASubmitting(false);
         setFeedback({ type: 'error', message: res.message || res.error || 'Failed to complete registration.' });
         return;
       }
 
+      setPathASubmitting(false);
+      setPathASuccess(true);
       isCommittedRef.current = true;
       setFeedback({
         type: 'success',
@@ -1068,7 +1090,7 @@ function CustomersPageContent() {
         setAgreementModal({
           open: false,
           customer: res.customer,
-          plot,
+          plot: (res as any).plot || { ...plot, price: finalPriceA },
           paymentType: pathAForm.paymentType,
           paperRef: pathAForm.paperInstallmentRef,
           bookingDate: new Date().toLocaleDateString('en-GB'),
@@ -1094,6 +1116,7 @@ function CustomersPageContent() {
       }
 
       setPathASubmitting(true);
+      setPathASuccess(false);
       const res = await runLane1({
         screen: 'customer-booking',
         isSave: true,
@@ -1108,13 +1131,15 @@ function CustomersPageContent() {
           plotPrice: finalPriceA,
         }),
       });
-      setPathASubmitting(false);
 
       if (!res.ok) {
+        setPathASubmitting(false);
         setFeedback({ type: 'error', message: res.message || res.error || 'Failed to attach plot to member.' });
         return;
       }
 
+      setPathASubmitting(false);
+      setPathASuccess(true);
       isCommittedRef.current = true;
       setFeedback({
         type: 'success',
@@ -1125,7 +1150,7 @@ function CustomersPageContent() {
         setAgreementModal({
           open: false,
           customer: { ...pathASelectedMember, id: pathASelectedMember.id } as any,
-          plot,
+          plot: (res as any).plot || { ...plot, price: finalPriceA },
           paymentType: pathAForm.paymentType,
           paperRef: pathAForm.paperInstallmentRef,
           bookingDate: new Date().toLocaleDateString('en-GB'),
@@ -1137,6 +1162,7 @@ function CustomersPageContent() {
     }
 
     setPathASubmitting(true);
+    setPathASuccess(false);
     const res = await runLane1({
       screen: 'customer-booking',
       isSave: true,
@@ -1152,15 +1178,17 @@ function CustomersPageContent() {
         plotPrice: finalPriceA,
       }),
     });
-    setPathASubmitting(false);
 
     if (!res.ok) {
       // NOTE: Form values are preserved on failure per specification!
+      setPathASubmitting(false);
       setFeedback({ type: 'error', message: res.message || res.error || 'Failed to complete booking.' });
       return;
     }
 
     // Mark committed to avoid unmount lock release
+    setPathASubmitting(false);
+    setPathASuccess(true);
     isCommittedRef.current = true;
 
     setFeedback({
@@ -1191,7 +1219,7 @@ function CustomersPageContent() {
       setAgreementModal({
         open: false,
         customer: res.customer,
-        plot,
+        plot: (res as any).plot || { ...plot, price: finalPriceA },
         paymentType: pathAForm.paymentType,
         paperRef: pathAForm.paperInstallmentRef,
         bookingDate: new Date().toLocaleDateString('en-GB'),
@@ -1367,26 +1395,37 @@ function CustomersPageContent() {
       return;
     }
 
-    if (session.role === 'super_admin') {
-      if (!totalPaymentB || isNaN(totalPaymentB) || totalPaymentB <= 0) {
-        setPathBPlotError('Total Payment (Plot Price) must be a valid positive amount greater than zero.');
-        return;
-      }
+    const canEditPriceB = Boolean(
+      session.role === 'super_admin' ||
+      (session.role === 'sub_admin' &&
+        session.permissions?.can_book &&
+        Array.isArray(session.assignedBlocks) &&
+        session.assignedBlocks.includes(plot.blockId))
+    );
+
+    const finalPriceB = (canEditPriceB && totalPaymentB > 0) ? totalPaymentB : Number(plot.price);
+
+    if (!finalPriceB || isNaN(finalPriceB) || finalPriceB <= 0) {
+      setPathBPlotError('Total Payment (Plot Price) must be a valid positive amount greater than zero.');
+      return;
     }
 
-    const finalPriceB = (session.role === 'super_admin' && totalPaymentB > 0) ? totalPaymentB : plot.price;
-
     // Build installment plan config if installment type
-    let installmentPlan: InstallmentPlanConfig | undefined = undefined;
+    let installmentPlan: any = undefined;
     if (pathBPaymentType === 'installment') {
       installmentPlan = {
         totalPayment: finalPriceB,
         planYears: yearsB,
         years: yearsB,
+        downpayment: Math.floor(finalPriceB * 0.25),
+        monthlyInstallmentCount: yearsB * 12,
+        biannualInstallmentCount: yearsB * 2,
+        numberOfInstallments: (yearsB * 12) + (yearsB * 2),
       };
     }
 
     setPathBSubmitting(true);
+    setPathBSuccess(false);
     let res: any;
     if (querySetPlanCustomer || setPlanCustomer) {
       const targetCustId = selectedCustomer.id || querySetPlanCustomer;
@@ -1432,15 +1471,17 @@ function CustomersPageContent() {
         }),
       });
     }
-    setPathBSubmitting(false);
 
     if (!res.ok) {
       // NOTE: Form values are preserved on failure per specification!
+      setPathBSubmitting(false);
       setFeedback({ type: 'error', message: res.message || res.error || 'Failed to attach booking.' });
       return;
     }
 
     // Mark committed to avoid unmount lock release
+    setPathBSubmitting(false);
+    setPathBSuccess(true);
     isCommittedRef.current = true;
 
     setFeedback({
@@ -1454,7 +1495,7 @@ function CustomersPageContent() {
     setAgreementModal({
       open: true,
       customer: selectedCustomer as any,
-      plot,
+      plot: res.plot || { ...plot, price: finalPriceB },
       paymentType: pathBPaymentType,
       paperRef: pathBPaperRef,
       bookingDate: new Date().toLocaleDateString('en-GB'),
@@ -1510,6 +1551,12 @@ function CustomersPageContent() {
       return;
     }
 
+    const parsedSubAdminPrice = Number(subAdminForm.price);
+    if (!parsedSubAdminPrice || parsedSubAdminPrice <= 0) {
+      setSubAdminPlotError('Plot price must be greater than 0.');
+      return;
+    }
+
     setSubAdminSubmitting(true);
     const res = await runLane1({
       screen: 'customer-booking',
@@ -1522,6 +1569,7 @@ function CustomersPageContent() {
         lockToken: queryLockToken || undefined,
         reservationId: queryReservationId || undefined,
         customerId: subAdminSelectedMember?.id || subAdminForm.customerId || undefined,
+        plotPrice: parsedSubAdminPrice,
       }),
     });
     setSubAdminSubmitting(false);
@@ -1537,7 +1585,7 @@ function CustomersPageContent() {
       message: `Quick booking successfully created for ${res.customer?.fullName} on Plot ${plot.plotNumber} (Booked - Pending Formalities)!`,
     });
 
-    setSubAdminForm({ customerName: '', cnic: '', city: '', customerId: '' });
+    setSubAdminForm({ customerName: '', cnic: '', city: '', customerId: '', price: '' });
     setSubAdminSelectedMember(null);
     if (!queryPlotId) {
       setSubAdminPlotId('');
@@ -1639,12 +1687,16 @@ function CustomersPageContent() {
       return;
     }
 
-    let installmentPlan: InstallmentPlanConfig | undefined = undefined;
+    let installmentPlan: any = undefined;
     if (setPlanPaymentType === 'installment') {
       installmentPlan = {
         totalPayment: setPlanPrice,
         planYears: setPlanYears,
         years: setPlanYears,
+        downpayment: Math.floor(setPlanPrice * 0.25),
+        monthlyInstallmentCount: setPlanYears * 12,
+        biannualInstallmentCount: setPlanYears * 2,
+        numberOfInstallments: (setPlanYears * 12) + (setPlanYears * 2),
       };
     }
 
@@ -1682,9 +1734,18 @@ function CustomersPageContent() {
         message: `Official payment plan assigned to Plot ${setPlanPlot?.plotNumber || queryPlotId} for ${setPlanCustomer.fullName}!`,
       });
 
-      setTimeout(() => {
-        router.push('/admin/customers-directory');
-      }, 1200);
+      const updatedPlot = (res as any).plot || (setPlanPlot ? { ...setPlanPlot, price: setPlanPrice } : { plotNumber: queryPlotId, blockId: '', size: '', price: setPlanPrice, category: 'residential' });
+      setAgreementModal({
+        open: true,
+        customer: setPlanCustomer,
+        plot: updatedPlot,
+        paymentType: setPlanPaymentType,
+        paperRef: setPlanPaperRef.trim() || undefined,
+        bookingDate: new Date().toLocaleDateString('en-GB'),
+        installmentPlan,
+      });
+
+      setSetPlanSubmitting(false);
     } catch (err: any) {
       setFeedback({ type: 'error', message: err?.message || 'Error assigning payment plan.' });
       setSetPlanSubmitting(false);
@@ -1698,14 +1759,32 @@ function CustomersPageContent() {
 
   const canIssueCredentials = session?.role === 'super_admin';
 
+  const canEditPriceA = Boolean(
+    session?.role === 'super_admin' ||
+    (session?.role === 'sub_admin' &&
+      session?.permissions?.can_book &&
+      Array.isArray(session?.assignedBlocks) &&
+      selectedPlotA &&
+      session.assignedBlocks.includes(selectedPlotA.blockId))
+  );
+
+  const canEditPriceB = Boolean(
+    session?.role === 'super_admin' ||
+    (session?.role === 'sub_admin' &&
+      session?.permissions?.can_book &&
+      Array.isArray(session?.assignedBlocks) &&
+      selectedPlotB &&
+      session.assignedBlocks.includes(selectedPlotB.blockId))
+  );
+
   // Calculations for Path A
-  const effectivePriceA = (session?.role === 'super_admin' && totalPaymentA > 0) ? totalPaymentA : (selectedPlotA?.price || 0);
+  const effectivePriceA = (canEditPriceA && totalPaymentA > 0) ? totalPaymentA : (selectedPlotA?.price || 0);
   const planA = (selectedPlotA && pathAForm.paymentType === 'installment')
     ? generateFrontendSchedule({ plotPriceRupees: effectivePriceA, planYears: yearsA })
     : null;
 
   // Calculations for Path B
-  const effectivePriceB = (session?.role === 'super_admin' && totalPaymentB > 0) ? totalPaymentB : (selectedPlotB?.price || 0);
+  const effectivePriceB = (canEditPriceB && totalPaymentB > 0) ? totalPaymentB : (selectedPlotB?.price || 0);
   const planB = (selectedPlotB && pathBPaymentType === 'installment')
     ? generateFrontendSchedule({ plotPriceRupees: effectivePriceB, planYears: yearsB })
     : null;
@@ -1794,6 +1873,9 @@ function CustomersPageContent() {
                 <PlotSelector
                   value={subAdminPlotId}
                   onChange={setSubAdminPlotId}
+                  onSelectPlot={(p) => {
+                    setSubAdminForm((prev) => ({ ...prev, price: p.price > 0 ? String(p.price) : '' }));
+                  }}
                   onErrorClear={() => setSubAdminPlotError(null)}
                   session={session}
                 />
@@ -1803,8 +1885,8 @@ function CustomersPageContent() {
               )}
             </div>
 
-            {/* 3 Required Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 4 Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Customer Full Name <span className="text-rose-500">*</span>
@@ -1887,6 +1969,22 @@ function CustomersPageContent() {
                   }`}
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Plot Price (PKR) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  required
+                  min={1}
+                  step={1000}
+                  value={subAdminForm.price}
+                  onChange={(e) => setSubAdminForm({ ...subAdminForm, price: e.target.value })}
+                  placeholder="Enter plot price"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 font-mono font-bold"
+                />
+              </div>
             </div>
 
             <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-950 leading-relaxed">
@@ -1905,7 +2003,7 @@ function CustomersPageContent() {
               )}
               <button
                 type="submit"
-                disabled={subAdminSubmitting || (!lockedPlot && !subAdminPlotId) || !isValidCnic(subAdminForm.cnic)}
+                disabled={subAdminSubmitting || (!lockedPlot && !subAdminPlotId) || !isValidCnic(subAdminForm.cnic) || !subAdminForm.price || Number(subAdminForm.price) <= 0}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -2487,16 +2585,17 @@ function CustomersPageContent() {
                       </span>
                     )}
                   </div>
-                  {session?.role === 'super_admin' ? (
+                  {canEditPriceA ? (
                     <div className="flex items-center gap-1">
                       <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                       <input
                         type="number"
                         required
-                        min={100000}
-                        step={50000}
+                        min={1}
+                        step={1000}
                         value={totalPaymentA || ''}
                         onChange={(e) => setTotalPaymentA(Number(e.target.value))}
+                        placeholder="Enter plot price"
                         className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                       />
                     </div>
@@ -2504,7 +2603,7 @@ function CustomersPageContent() {
                     <input
                       type="text"
                       disabled
-                      value={`PKR ${selectedPlotA.price.toLocaleString()}`}
+                      value={selectedPlotA.price > 0 ? `PKR ${selectedPlotA.price.toLocaleString()}` : 'Price not set'}
                       className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-100 text-slate-800 rounded-xl border border-slate-200 cursor-not-allowed"
                     />
                   )}
@@ -2537,16 +2636,17 @@ function CustomersPageContent() {
                         </span>
                       )}
                     </div>
-                    {session?.role === 'super_admin' ? (
+                    {canEditPriceA ? (
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                         <input
                           type="number"
                           required
-                          min={100000}
-                          step={50000}
+                          min={1}
+                          step={1000}
                           value={totalPaymentA || ''}
                           onChange={(e) => setTotalPaymentA(Number(e.target.value))}
+                          placeholder="Enter plot price"
                           className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                         />
                       </div>
@@ -2554,7 +2654,7 @@ function CustomersPageContent() {
                       <input
                         type="text"
                         disabled
-                        value={`PKR ${selectedPlotA.price.toLocaleString()}`}
+                        value={selectedPlotA.price > 0 ? `PKR ${selectedPlotA.price.toLocaleString()}` : 'Price not set'}
                         className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-100 text-slate-800 rounded-xl border border-slate-200 cursor-not-allowed"
                       />
                     )}
@@ -2801,6 +2901,7 @@ function CustomersPageContent() {
               type="submit"
               disabled={
                 pathASubmitting ||
+                pathASuccess ||
                 plotLoading ||
                 !selectedPlotA ||
                 Boolean(pathAPlotError) ||
@@ -2816,7 +2917,12 @@ function CustomersPageContent() {
               {pathASubmitting ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                  <span>{setPlanCustomer ? 'Assigning Payment Plan…' : completeTargetCustomer ? 'Completing Registration…' : 'Enrolling Customer…'}</span>
+                  <span>Saving…</span>
+                </>
+              ) : pathASuccess ? (
+                <>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Success!</span>
                 </>
               ) : (
                 <>
@@ -3363,16 +3469,17 @@ function CustomersPageContent() {
                         </span>
                       )}
                     </div>
-                    {session?.role === 'super_admin' ? (
+                    {canEditPriceB ? (
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                         <input
                           type="number"
                           required
-                          min={100000}
-                          step={50000}
+                          min={1}
+                          step={1000}
                           value={totalPaymentB || ''}
                           onChange={(e) => setTotalPaymentB(Number(e.target.value))}
+                          placeholder="Enter plot price"
                           className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                         />
                       </div>
@@ -3380,7 +3487,7 @@ function CustomersPageContent() {
                       <input
                         type="text"
                         disabled
-                        value={`PKR ${selectedPlotB.price.toLocaleString()}`}
+                        value={selectedPlotB.price > 0 ? `PKR ${selectedPlotB.price.toLocaleString()}` : 'Price not set'}
                         className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-100 text-slate-800 rounded-xl border border-slate-200 cursor-not-allowed"
                       />
                     )}
@@ -3413,16 +3520,17 @@ function CustomersPageContent() {
                           </span>
                         )}
                       </div>
-                      {session?.role === 'super_admin' ? (
+                      {canEditPriceB ? (
                         <div className="flex items-center gap-1">
                           <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                           <input
                             type="number"
                             required
-                            min={100000}
-                            step={50000}
+                            min={1}
+                            step={1000}
                             value={totalPaymentB || ''}
                             onChange={(e) => setTotalPaymentB(Number(e.target.value))}
+                            placeholder="Enter plot price"
                             className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                           />
                         </div>
@@ -3430,7 +3538,7 @@ function CustomersPageContent() {
                         <input
                           type="text"
                           disabled
-                          value={`PKR ${selectedPlotB.price.toLocaleString()}`}
+                          value={selectedPlotB.price > 0 ? `PKR ${selectedPlotB.price.toLocaleString()}` : 'Price not set'}
                           className="w-full px-3 py-2 text-xs font-mono font-bold bg-slate-100 text-slate-800 rounded-xl border border-slate-200 cursor-not-allowed"
                         />
                       )}
@@ -3552,13 +3660,18 @@ function CustomersPageContent() {
                 )}
                 <button
                   type="submit"
-                  disabled={pathBSubmitting || !selectedPlotB || Boolean(pathBPlotError)}
+                  disabled={pathBSubmitting || pathBSuccess || !selectedPlotB || Boolean(pathBPlotError)}
                   className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[240px]"
                 >
                   {pathBSubmitting ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" />
-                      <span>Attaching Plot…</span>
+                      <span>Saving…</span>
+                    </>
+                  ) : pathBSuccess ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Success!</span>
                     </>
                   ) : (
                     <>
@@ -3795,235 +3908,23 @@ function CustomersPageContent() {
       {/* ==================================================== */}
       {/* STYLED PRINTABLE BOOKING AGREEMENT MODAL             */}
       {/* ==================================================== */}
-      {agreementModal?.open && (
-        <div 
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 overflow-hidden print:p-0 print:bg-white print:static print:inset-auto print:overflow-visible"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setAgreementModal((prev) => (prev ? { ...prev, open: false } : null));
-              if (completeTargetCustomer) {
-                router.push('/admin/customers-directory');
-              }
-            }
-          }}
-        >
-          <div id="pv-booking-agreement-printable" className="bg-white rounded-2xl border border-slate-300 w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[100dvh] print:border-none print:shadow-none print:my-0 print:max-w-none print:max-h-none print:h-auto print:overflow-visible">
-            {/* Modal Actions Bar (Sticky/Anchored at top, hidden on print) */}
-            <div className="px-4 py-3 sm:px-5 sm:py-3.5 bg-slate-900 text-white flex items-center justify-between shrink-0 border-b border-slate-800 shadow-xs print:hidden">
-              <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#D4AF37]" />
-                <span className="text-xs font-bold uppercase tracking-wider hidden sm:inline">
-                  Official Booking Agreement Document (Preview)
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wider sm:hidden">
-                  Agreement Preview
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-1.5 bg-[#D4AF37] hover:bg-[#b5952f] text-slate-950 font-bold text-xs rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  <Printer className="w-3.5 h-3.5" />
-                  <span>Print Agreement</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAgreementModal((prev) => (prev ? { ...prev, open: false } : null));
-                    if (completeTargetCustomer) {
-                      router.push('/admin/customers-directory');
-                    }
-                  }}
-                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition cursor-pointer"
-                  title="Close preview"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            {/* Printable Document Body (Default 100% view) */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-5 text-slate-900 font-sans print:p-6 print:overflow-visible print:h-auto">
-              <div className="space-y-4 sm:space-y-5">
-                {/* Header with Prime View Logo on the Right Side */}
-                <div className="border-b-2 border-[#10251E] pb-3 sm:pb-4 flex items-center justify-between gap-3">
-                  {/* Left spacer to keep text centered on desktop */}
-                  <div className="hidden sm:block w-16 sm:w-20 shrink-0" />
-
-                  {/* Center Society Information */}
-                  <div className="flex-1 text-center">
-                    <div className="font-serif font-extrabold text-xl sm:text-2xl tracking-wider text-[#10251E]">
-                      PRIME VIEW HOUSING SCHEME
-                    </div>
-                    <div className="text-[11px] sm:text-xs uppercase tracking-widest text-[#D4AF37] font-bold">
-                      Executive Society Administration & Plot Allocation
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1">
-                      Main Expressway Sector, Islamabad / Rawalpindi Territory • UAN: (051) 111-PRIME
-                    </div>
-                    <div className="mt-2.5 sm:mt-3 inline-block bg-[#10251E] text-white px-3.5 sm:px-4 py-1 rounded text-[11px] sm:text-xs font-bold uppercase tracking-widest">
-                      PLOT BOOKING & ALLOTMENT AGREEMENT
-                    </div>
-                  </div>
-
-                  {/* Right Side: Official Prime View Logo */}
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 relative flex items-center justify-center">
-                    <Image
-                      src={siteConfig.logoPath}
-                      alt="Prime View Logo"
-                      width={80}
-                      height={80}
-                      className="object-contain"
-                      priority
-                    />
-                  </div>
-                </div>
-
-                {/* Reference & Date */}
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 py-1">
-                  <div>
-                    Membership Ref: <strong className="font-mono text-slate-950">{agreementModal.customer.membershipNo}</strong>
-                  </div>
-                  <div>
-                    Date of Issue: <strong>{agreementModal.bookingDate}</strong>
-                  </div>
-                </div>
-
-                {/* Customer Particulars Table */}
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1 border-b border-slate-200 pb-1">
-                    Section I: Allottee Particulars
-                  </div>
-                  <table className="w-full text-xs border border-slate-300">
-                    <tbody>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold w-1/4">Full Name:</td>
-                        <td className="p-1.5 sm:p-2 w-1/4">{agreementModal.customer.fullName}</td>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold w-1/4">S/O or W/O:</td>
-                        <td className="p-1.5 sm:p-2 w-1/4">{agreementModal.customer.fatherOrHusbandName || 'N/A'}</td>
-                      </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">CNIC Number:</td>
-                        <td className="p-1.5 sm:p-2 font-mono">{agreementModal.customer.cnic}</td>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Contact No:</td>
-                        <td className="p-1.5 sm:p-2 font-mono">{agreementModal.customer.phone}</td>
-                      </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Email Address:</td>
-                        <td className="p-1.5 sm:p-2">{agreementModal.customer.email}</td>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Nominee / NOK:</td>
-                        <td className="p-1.5 sm:p-2">{agreementModal.customer.nokName || 'N/A'}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Mailing Address:</td>
-                        <td colSpan={3} className="p-1.5 sm:p-2">{agreementModal.customer.mailingAddress}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Plot Allocation Particulars */}
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1 border-b border-slate-200 pb-1">
-                    Section II: Allocated Plot Particulars
-                  </div>
-                  <table className="w-full text-xs border border-slate-300">
-                    <tbody>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold w-1/4">Plot Number:</td>
-                        <td className="p-1.5 sm:p-2 font-mono font-bold w-1/4">{agreementModal.plot.plotNumber}</td>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold w-1/4">Assigned Block:</td>
-                        <td className="p-1.5 sm:p-2 uppercase font-bold w-1/4">{agreementModal.plot.blockId}</td>
-                      </tr>
-                      <tr className="border-b border-slate-200">
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Size / Dimensions:</td>
-                        <td className="p-1.5 sm:p-2">{agreementModal.plot.size}</td>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Category:</td>
-                        <td className="p-1.5 sm:p-2 capitalize">{agreementModal.plot.category}</td>
-                      </tr>
-                      <tr>
-                        <td className="p-1.5 sm:p-2 bg-slate-50 font-bold">Total Plot Value:</td>
-                        <td colSpan={3} className="p-1.5 sm:p-2 font-bold text-slate-900">
-                          PKR {agreementModal.plot.price.toLocaleString()}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Payment Terms & Schedule Structure */}
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-wider text-slate-600 mb-1 border-b border-slate-200 pb-1">
-                    Section III: Payment Terms & Schedule Structure
-                  </div>
-                  <table className="w-full text-xs border border-slate-300">
-                    <thead>
-                      <tr className="bg-slate-100 border-b border-slate-300 text-left">
-                        <th className="p-1.5 sm:p-2">Description</th>
-                        <th className="p-1.5 sm:p-2">Amount (PKR)</th>
-                        <th className="p-1.5 sm:p-2">Payment Status</th>
-                        <th className="p-1.5 sm:p-2">Classification</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {agreementModal.installmentPlan && (
-                        <tr className="border-b border-slate-200">
-                          <td className="p-1.5 sm:p-2 font-semibold">Plot Upfront Downpayment</td>
-                          <td className="p-1.5 sm:p-2 font-mono">{(agreementModal.installmentPlan.downpayment ?? Math.floor(agreementModal.plot.price * 0.25)).toLocaleString()}</td>
-                          <td className="p-1.5 sm:p-2 font-bold text-emerald-700">PAID UPFRONT</td>
-                          <td className="p-1.5 sm:p-2 text-slate-500">Initial Booking Downpayment</td>
-                        </tr>
-                      )}
-                      <tr>
-                        <td className="p-1.5 sm:p-2 font-semibold">
-                          Plot Payment:{' '}
-                          {agreementModal.paymentType === 'installment'
-                            ? `${agreementModal.installmentPlan?.planYears || agreementModal.installmentPlan?.years || 1}-Year Fixed Schedule`
-                            : 'Full Upfront Payment'}
-                        </td>
-                        <td className="p-1.5 sm:p-2 font-mono font-bold">
-                          {agreementModal.plot.price.toLocaleString()}
-                        </td>
-                        <td className="p-1.5 sm:p-2 font-bold text-indigo-700">
-                          {agreementModal.paymentType === 'installment'
-                            ? `Downpayment Paid • ${agreementModal.installmentPlan?.numberOfInstallments || 24} Installments Scheduled`
-                            : 'Full Payment Paid'}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-slate-500">
-                          {agreementModal.paperRef ? `Ref: ${agreementModal.paperRef}` : 'Standard Schedule'}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Signatures */}
-                <div className="pt-5 sm:pt-6 border-t border-slate-300 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 text-center text-xs">
-                  <div>
-                    <div className="h-9 sm:h-11 border-b border-dashed border-slate-400 mb-1.5 sm:mb-2" />
-                    <div className="font-bold text-slate-800 text-[11px] sm:text-xs">Applicant Signature</div>
-                    <div className="text-[10px] text-slate-400">Allottee Member</div>
-                  </div>
-
-                  <div>
-                    <div className="h-9 sm:h-11 border-b border-dashed border-slate-400 mb-1.5 sm:mb-2" />
-                    <div className="font-bold text-slate-800 text-[11px] sm:text-xs">Authorized Officer</div>
-                    <div className="text-[10px] text-slate-400">Prime View Operations</div>
-                  </div>
-
-                  <div>
-                    <div className="h-9 sm:h-11 border-b border-dashed border-slate-400 mb-1.5 sm:mb-2" />
-                    <div className="font-bold text-slate-800 text-[11px] sm:text-xs">Society Secretary</div>
-                    <div className="text-[10px] text-slate-400">Executive Committee Seal</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <BookingAgreementModal
+        open={Boolean(agreementModal?.open)}
+        onClose={() => {
+          setAgreementModal((prev) => (prev ? { ...prev, open: false } : null));
+          if (completeTargetCustomer) {
+            router.push('/admin/customers-directory');
+          }
+        }}
+        data={agreementModal ? {
+          customer: agreementModal.customer as any,
+          plot: agreementModal.plot,
+          paymentType: agreementModal.paymentType,
+          paperRef: agreementModal.paperRef,
+          bookingDate: agreementModal.bookingDate,
+          installmentPlan: agreementModal.installmentPlan,
+        } : null}
+      />
     </div>
   );
 }

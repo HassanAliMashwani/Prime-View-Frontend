@@ -21,6 +21,13 @@ import {
 } from 'lucide-react';
 import { formatCnic } from '@/lib/utils/cnic';
 
+export function stripRoleFromOfficerName(name?: string | null): string {
+  if (!name) return '';
+  return name
+    .replace(/\s*\((?:super\s*admin(?:istrator)?|sub\s*admin(?:istrator)?)\)\s*$/i, '')
+    .trim();
+}
+
 /**
  * Format CNIC to 5-7-1 (00000-0000000-0) before drawing on receipt:
  * Takes only digits from stored CNIC and places dashes after 5th and 12th digits.
@@ -256,7 +263,7 @@ export function buildSlipDataFromSubmission(
   // Check Installment, check Installments, and set On Account Of to Installment #N when the receipt is an installment.
   // Check Full Payment, leave Installment empty, and set On Account Of to Full Payment when the receipt is a full payment.
   // Check Full settlement only when the saved fee type is plot_one_time, or the payment type is one_time and there is no installment number.
-  // Also check Membership Fee for admission_fee, Share Fee for share_subscription_fee, and Down Payment for plot_downpayment.
+  // Check Down Payment for plot_downpayment.
   // Leave Booking and Transfer Fee empty.
   // A balloon payment stays the installment or full payment it already is.
 
@@ -340,7 +347,7 @@ export function buildSlipDataFromSubmission(
     verifiedDate: sub.verifiedAt
       ? String(sub.verifiedAt).split('T')[0]
       : (sub.paymentDate ? String(sub.paymentDate).split('T')[0] : new Date().toISOString().split('T')[0]),
-    verifiedBy: sub.verifiedByAdminName || (sub as any).verifiedBy || 'Society Secretariat / Treasurer',
+    verifiedBy: stripRoleFromOfficerName(sub.verifiedByAdminName || (sub as any).verifiedBy || (sub as any).issuedByNameSnapshot || 'Society Secretariat / Treasurer'),
     amount,
     amountInWords: formatAmountInWords(amount),
   };
@@ -748,7 +755,7 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
             icon={<FileText className="w-2.5 h-2.5" />}
           />
           <div className="grid grid-cols-12 gap-3 px-1">
-            {/* Left: Payment Category Boxes (Order: Installment, Full settlement, Booking, Transfer Fee, Membership Fee, Down Payment, Share Fee)
+            {/* Left: Payment Category Boxes (Order: Installment, Full settlement, Booking, Transfer Fee, Down Payment)
                 The words Cash Plot must not appear. The box in that place says Full settlement. */}
             <div className="col-span-6 pr-2">
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-800 mb-1.5">
@@ -922,24 +929,11 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
 
         {/* ═════════════════════════════════════════════════════════════════ */}
         {/* 8. FOOTER SECTION                                                 */}
-        {/* Mountain graphic is screen-only (print:hidden).                   */}
         {/* Footer on screen and paper: green band and lines:                 */}
         {/* Prime View Cooperative Housing Society Limited                    */}
         {/* Hazara Division, Abbottabad                                       */}
         {/* ═════════════════════════════════════════════════════════════════ */}
         <div className="relative shrink-0 mt-1 overflow-hidden rounded-b-md">
-          {/* Screen-only mountain graphic watermark (Do not draw on printed page) */}
-          <div className="print:hidden pointer-events-none absolute right-4 bottom-2 opacity-25 flex items-end justify-end">
-            <img
-              src="/invoice/mountain-watermark.png"
-              alt=""
-              className="h-14 w-auto object-contain"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          </div>
-
           {/* Footer content: Green band with text */}
           <div className="relative z-10 pt-1 pb-1">
             {/* Elegant multi-tone green vector wave band */}

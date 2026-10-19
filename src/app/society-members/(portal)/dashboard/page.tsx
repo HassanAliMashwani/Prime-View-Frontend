@@ -62,17 +62,19 @@ export default function MemberDashboardPage() {
 
   const declinedReceipts = receipts.filter((r) => r.status === 'rejected');
 
-  // Aggregate stats strictly for display cards (excluding held plots with 0 bills)
-  const payablePlots = plots.filter((p) => p.hasPaymentPlan !== false && (p.billsCount ?? 1) > 0);
-  const totalProperties = payablePlots.length;
+  // Aggregate stats strictly for display cards: Total Value, Total Paid, and Remaining ignore held plots
+  const isHeldPlot = (p: any) => p.hasPaymentPlan === false || p.billsCount === 0;
+  const payablePlots = plots.filter((p) => !isHeldPlot(p));
+  const totalProperties = plots.length;
   const totalInvestment = payablePlots.reduce(
-    (sum, p) => sum + p.paymentSummary.totalAmount,
+    (sum, p) => sum + (p.paymentSummary?.totalAmount || 0),
     0
   );
   const totalPaid = payablePlots.reduce(
-    (sum, p) => sum + p.paymentSummary.paidAmount,
+    (sum, p) => sum + (p.paymentSummary?.paidAmount || 0),
     0
   );
+  const totalRemaining = Math.max(0, totalInvestment - totalPaid);
 
   // Compute upcoming/overdue payments count and nearest due date
   let upcomingCount = 0;

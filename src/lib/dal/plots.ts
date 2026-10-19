@@ -51,10 +51,17 @@ export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; d
         ? apiBooking.payments
         : [];
 
-      const billsCount = bookingPayments.filter((p: any) =>
+      const computedBillsCount = bookingPayments.filter((p: any) =>
         ['plot_installment', 'plot_one_time', 'plot_downpayment', 'plot_biannual', 'plot_possession'].includes(p.feeType),
       ).length;
-      const hasPaymentPlan = Boolean(plot.hasPaymentPlan ?? (billsCount > 0));
+
+      const billsCount = typeof plot.billsCount === 'number'
+        ? plot.billsCount
+        : (typeof apiBooking?.billsCount === 'number' ? apiBooking.billsCount : computedBillsCount);
+
+      const hasPaymentPlan = typeof plot.hasPaymentPlan === 'boolean'
+        ? plot.hasPaymentPlan
+        : (typeof apiBooking?.hasPaymentPlan === 'boolean' ? apiBooking.hasPaymentPlan : billsCount > 0);
 
       const effectivePrice = apiBooking?.installmentPlan?.totalPayment
         ? Number(apiBooking.installmentPlan.totalPayment)
@@ -62,7 +69,7 @@ export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; d
       const ledger = computePlotLedger(effectivePrice, bookingPayments);
 
       let installmentProgress = undefined;
-      if (booking.paymentType === 'installment') {
+      if (booking.paymentType === 'installment' && hasPaymentPlan && billsCount > 0) {
         const installments = bookingPayments.filter((p: any) => p.feeType === 'plot_installment');
         const paidCount = installments.filter((p: any) => p.status === 'paid').length;
         const totalCount = installments.length;
@@ -82,13 +89,17 @@ export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; d
         hasPaymentPlan,
         billsCount,
         price: ledger.totalPlotPrice,
-        booking,
+        booking: {
+          ...booking,
+          hasPaymentPlan,
+          billsCount,
+        },
         paymentSummary: {
           paymentType: booking.paymentType,
-          totalAmount: ledger.totalPlotPrice,
-          paidAmount: ledger.totalPaidToDate,
-          remainingAmount: ledger.remainingBalance,
-          percentSettled: ledger.percentSettled,
+          totalAmount: hasPaymentPlan && billsCount > 0 ? ledger.totalPlotPrice : 0,
+          paidAmount: hasPaymentPlan && billsCount > 0 ? ledger.totalPaidToDate : 0,
+          remainingAmount: hasPaymentPlan && billsCount > 0 ? ledger.remainingBalance : 0,
+          percentSettled: hasPaymentPlan && billsCount > 0 ? ledger.percentSettled : 0,
           installmentProgress,
         },
       };
