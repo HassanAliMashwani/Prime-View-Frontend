@@ -77,14 +77,14 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({
             <Menu className="w-5 h-5 text-slate-700" />
           </button>
         )}
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700">
-            <span>Prime View Management</span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs font-semibold text-emerald-700 flex-wrap">
+            <span className="whitespace-nowrap">Prime View Management</span>
             <span className="text-slate-300">/</span>
-            <span className="text-slate-800">{title}</span>
+            <span className="text-slate-800 font-bold whitespace-nowrap">{title}</span>
           </div>
-          <h1 className="text-xl font-bold font-serif text-[#10251E] mt-0.5 tracking-tight flex items-center gap-2">
-            {title}
+          <h1 className="text-lg sm:text-xl font-bold font-serif text-[#10251E] mt-0.5 tracking-tight flex items-center gap-2">
+            <span>{title}</span>
             {subtitle && (
               <span className="text-xs font-sans font-normal text-slate-500 ml-2 hidden sm:inline">
                 — {subtitle}

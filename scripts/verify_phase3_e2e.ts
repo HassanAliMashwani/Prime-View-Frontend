@@ -81,12 +81,12 @@ async function runE2E() {
       throw new Error(`Failed to load customers page: ${custTitle}`);
     }
 
-    // Verify Statutory Fee notice is visible
+    // Verify Statutory Fee notice is removed permanently
     const noticeText = await page.$eval('body', (el) => el.innerText);
-    if (!noticeText.includes('Admission Fee of PKR 2,000') || !noticeText.includes('Share Subscription Fee of PKR 10,000')) {
-      throw new Error('Statutory fees notice missing on customer booking page');
+    if (noticeText.includes('Admission Fee of PKR 2,000') || noticeText.includes('Share Subscription Fee of PKR 10,000')) {
+      throw new Error('Statutory fees notice unexpectedly present on customer booking page');
     }
-    console.log('PASS: Statutory fees notice verified.');
+    console.log('PASS: Statutory fees notice verified permanently absent.');
 
     // 4. Test Path B (Existing Customer) Confirmation Step
     console.log('\n[Step 4] Testing Path B Search and Mandatory Confirmation Step...');

@@ -64,6 +64,14 @@ import { runLane1 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 
+function toPlainNumber(val: any): number {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val);
+  const clean = String(val).replace(/[^0-9.]/g, '');
+  const parsed = Number(clean);
+  return isNaN(parsed) ? 0 : Math.round(parsed);
+}
+
 function PlotSelector({
   value,
   onChange,
@@ -325,15 +333,18 @@ function CustomersPageContent() {
     setSession(cur);
 
     const applyPlot = (p: Plot, customTotal?: number) => {
-      setSelectedPlotA(p);
-      setSelectedPlotB(p);
-      setLockedPlot(p);
+      const cleanPrice = toPlainNumber(p.price);
+      const cleanCustom = customTotal !== undefined ? toPlainNumber(customTotal) : undefined;
+      const normalizedPlot = { ...p, price: cleanPrice };
+      setSelectedPlotA(normalizedPlot);
+      setSelectedPlotB(normalizedPlot);
+      setLockedPlot(normalizedPlot);
       setIsLockedFromMap(true);
-      setRegisteredPlotsCache([p]);
-      const tot = customTotal ?? p.price;
+      setRegisteredPlotsCache([normalizedPlot]);
+      const tot = cleanCustom ?? cleanPrice;
       setTotalPaymentA(tot);
-      setTotalPaymentB(p.price);
-      setSubAdminForm((prev) => ({ ...prev, price: p.price > 0 ? String(p.price) : '' }));
+      setTotalPaymentB(cleanPrice);
+      setSubAdminForm((prev) => ({ ...prev, price: cleanPrice > 0 ? String(cleanPrice) : '' }));
       setPathAPlotError(null);
       setPathBPlotError(null);
     };
@@ -465,12 +476,15 @@ function CustomersPageContent() {
           }
 
           if (targetPlot) {
-            setSetPlanPlot(targetPlot);
-            setSetPlanPrice(customTotal || targetPlot.price || 0);
-            setSelectedPlotA(targetPlot);
-            setSelectedPlotB(targetPlot);
-            setTotalPaymentA(customTotal || targetPlot.price || 0);
-            setTotalPaymentB(customTotal || targetPlot.price || 0);
+            const cleanPrice = toPlainNumber(targetPlot.price);
+            const cleanTotal = customTotal !== undefined ? toPlainNumber(customTotal) : cleanPrice;
+            const normalizedTarget = { ...targetPlot, price: cleanPrice };
+            setSetPlanPlot(normalizedTarget);
+            setSetPlanPrice(cleanTotal);
+            setSelectedPlotA(normalizedTarget);
+            setSelectedPlotB(normalizedTarget);
+            setTotalPaymentA(cleanTotal);
+            setTotalPaymentB(cleanTotal);
           }
 
           if (targetBooking?.installmentPlan?.planYears) {
@@ -821,8 +835,10 @@ function CustomersPageContent() {
       return;
     }
 
-    setSelectedPlotA(plot);
-    setTotalPaymentA(plot.price);
+    const cleanPrice = toPlainNumber(plot.price);
+    const normalizedPlot = { ...plot, price: cleanPrice };
+    setSelectedPlotA(normalizedPlot);
+    setTotalPaymentA(cleanPrice);
   };
 
   const handleVerifyPlotB = (plotId: string) => {
@@ -863,8 +879,10 @@ function CustomersPageContent() {
       return;
     }
 
-    setSelectedPlotB(plot);
-    setTotalPaymentB(plot.price);
+    const cleanPrice = toPlainNumber(plot.price);
+    const normalizedPlot = { ...plot, price: cleanPrice };
+    setSelectedPlotB(normalizedPlot);
+    setTotalPaymentB(cleanPrice);
   };
 
   // ----------------------------------------------------
@@ -928,7 +946,7 @@ function CustomersPageContent() {
         session.assignedBlocks.includes(plot.blockId))
     );
 
-    const finalPriceA = (canEditPriceA && totalPaymentA > 0) ? totalPaymentA : Number(plot.price);
+    const finalPriceA = (canEditPriceA && totalPaymentA > 0) ? toPlainNumber(totalPaymentA) : toPlainNumber(plot.price);
 
     if (!finalPriceA || isNaN(finalPriceA) || finalPriceA <= 0) {
       setFeedback({
@@ -1403,7 +1421,7 @@ function CustomersPageContent() {
         session.assignedBlocks.includes(plot.blockId))
     );
 
-    const finalPriceB = (canEditPriceB && totalPaymentB > 0) ? totalPaymentB : Number(plot.price);
+    const finalPriceB = (canEditPriceB && totalPaymentB > 0) ? toPlainNumber(totalPaymentB) : toPlainNumber(plot.price);
 
     if (!finalPriceB || isNaN(finalPriceB) || finalPriceB <= 0) {
       setPathBPlotError('Total Payment (Plot Price) must be a valid positive amount greater than zero.');
@@ -1551,7 +1569,7 @@ function CustomersPageContent() {
       return;
     }
 
-    const parsedSubAdminPrice = Number(subAdminForm.price);
+    const parsedSubAdminPrice = toPlainNumber(subAdminForm.price);
     if (!parsedSubAdminPrice || parsedSubAdminPrice <= 0) {
       setSubAdminPlotError('Plot price must be greater than 0.');
       return;
@@ -1978,9 +1996,12 @@ function CustomersPageContent() {
                   type="number"
                   required
                   min={1}
-                  step={1000}
+                  step="any"
                   value={subAdminForm.price}
-                  onChange={(e) => setSubAdminForm({ ...subAdminForm, price: e.target.value })}
+                  onChange={(e) => {
+                    const cleanVal = e.target.value.replace(/[^0-9]/g, '');
+                    setSubAdminForm({ ...subAdminForm, price: cleanVal });
+                  }}
                   placeholder="Enter plot price"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 font-mono font-bold"
                 />
@@ -2592,9 +2613,9 @@ function CustomersPageContent() {
                         type="number"
                         required
                         min={1}
-                        step={1000}
+                        step="any"
                         value={totalPaymentA || ''}
-                        onChange={(e) => setTotalPaymentA(Number(e.target.value))}
+                        onChange={(e) => setTotalPaymentA(toPlainNumber(e.target.value))}
                         placeholder="Enter plot price"
                         className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                       />
@@ -2643,9 +2664,9 @@ function CustomersPageContent() {
                           type="number"
                           required
                           min={1}
-                          step={1000}
+                          step="any"
                           value={totalPaymentA || ''}
-                          onChange={(e) => setTotalPaymentA(Number(e.target.value))}
+                          onChange={(e) => setTotalPaymentA(toPlainNumber(e.target.value))}
                           placeholder="Enter plot price"
                           className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                         />
@@ -3476,9 +3497,9 @@ function CustomersPageContent() {
                           type="number"
                           required
                           min={1}
-                          step={1000}
+                          step="any"
                           value={totalPaymentB || ''}
-                          onChange={(e) => setTotalPaymentB(Number(e.target.value))}
+                          onChange={(e) => setTotalPaymentB(toPlainNumber(e.target.value))}
                           placeholder="Enter plot price"
                           className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                         />
@@ -3527,9 +3548,9 @@ function CustomersPageContent() {
                             type="number"
                             required
                             min={1}
-                            step={1000}
+                            step="any"
                             value={totalPaymentB || ''}
-                            onChange={(e) => setTotalPaymentB(Number(e.target.value))}
+                            onChange={(e) => setTotalPaymentB(toPlainNumber(e.target.value))}
                             placeholder="Enter plot price"
                             className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
                           />

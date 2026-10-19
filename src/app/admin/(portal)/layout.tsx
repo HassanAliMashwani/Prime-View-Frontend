@@ -19,6 +19,10 @@ export default function AdminPortalLayout({
   const [mobileOpen, setMobileOpen] = useState<boolean>(false);
 
   useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
     const active = getActiveAdminSession();
     if (!active) {
       router.push('/admin/login');

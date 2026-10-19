@@ -824,20 +824,12 @@ function BlockPlotsContent() {
               <ArrowLeft className="w-3 h-3" />
               <span>Master Plan</span>
             </Link>
-            {block ? (
-              <>
-                <span className="text-slate-300">/</span>
-                <span className="text-slate-800 font-bold">{block.name}</span>
-              </>
-            ) : null}
+            <span className="text-slate-300">/</span>
+            <span className="text-slate-800 font-bold">{block?.name || (blockId ? `${blockId.charAt(0).toUpperCase() + blockId.slice(1)} Block` : 'Block')}</span>
           </div>
           <h2 className="text-2xl font-bold font-serif text-slate-900 flex items-center gap-3">
             <span>
-              {block ? (
-                block.name
-              ) : (
-                <span className="inline-block w-40 h-7 bg-slate-200 animate-pulse rounded align-middle" />
-              )}
+              {block?.name || (blockId?.toLowerCase() === 'abbott' ? 'Abbott Block' : (blockId ? `${blockId.charAt(0).toUpperCase() + blockId.slice(1)} Block` : 'Block'))}
             </span>
             <span className="text-xs font-sans font-mono bg-emerald-100 text-emerald-800 border border-emerald-300 px-3 py-0.5 rounded-full font-bold">
               {loading && plots.length === 0 ? (
@@ -847,11 +839,9 @@ function BlockPlotsContent() {
               )}
             </span>
           </h2>
-          {block ? (
-            <p className="text-xs text-slate-500 mt-1">{block.description}</p>
-          ) : (
-            <div className="w-64 h-3 bg-slate-100 animate-pulse rounded mt-1.5" />
-          )}
+          <p className="text-xs text-slate-500 mt-1">
+            {block?.description || (blockId?.toLowerCase() === 'abbott' ? 'Premier residential enclave featuring luxury 1 Kanal & 2 Kanal executive plots.' : '')}
+          </p>
         </div>
 
       </div>

@@ -152,7 +152,9 @@ export default function AdminDashboardPage() {
     if (s) {
       setSession(s);
       loadData(s, false);
-      loadChartData(s, chartRange, false);
+      if (s.role === 'super_admin') {
+        loadChartData(s, chartRange, false);
+      }
     }
   }, [loadData, loadChartData]);
 
@@ -162,7 +164,9 @@ export default function AdminDashboardPage() {
       const s = getActiveAdminSession();
       if (s) {
         loadData(s, true);
-        loadChartData(s, chartRange, true);
+        if (s.role === 'super_admin') {
+          loadChartData(s, chartRange, true);
+        }
       }
     }, 30000);
 
@@ -312,30 +316,32 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Inventory Overview Trend Chart */}
-      <InventoryOverviewChart
-        currentAvailable={availablePlots}
-        currentReserved={reservedPlots}
-        currentBooked={bookedPlots}
-        monthlyData={monthlyPoints}
-        timeRange={chartRange}
-        onRangeChange={(range) => {
-          setChartRange(range);
-          if (session) {
-            const adminId = session.adminId || 'admin';
-            const cached = getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, range), true);
-            if (cached) {
-              setMonthlyPoints(cached);
-              setChartLoading(false);
-            } else {
-              setMonthlyPoints([]);
-              setChartLoading(true);
+      {/* Inventory Overview Trend Chart - Only shown for Super Admin */}
+      {isSuper && (
+        <InventoryOverviewChart
+          currentAvailable={availablePlots}
+          currentReserved={reservedPlots}
+          currentBooked={bookedPlots}
+          monthlyData={monthlyPoints}
+          timeRange={chartRange}
+          onRangeChange={(range) => {
+            setChartRange(range);
+            if (session) {
+              const adminId = session.adminId || 'admin';
+              const cached = getCache<MonthlyHistoryPoint[]>(getChartCacheKey(adminId, range), true);
+              if (cached) {
+                setMonthlyPoints(cached);
+                setChartLoading(false);
+              } else {
+                setMonthlyPoints([]);
+                setChartLoading(true);
+              }
+              loadChartData(session, range);
             }
-            loadChartData(session, range);
-          }
-        }}
-        isLoading={chartLoading}
-      />
+          }}
+          isLoading={chartLoading}
+        />
+      )}
 
       {/* Accessible Blocks Overview - Distinct Colored Sectors */}
       <div className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-7 shadow-xs">

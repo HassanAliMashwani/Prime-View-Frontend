@@ -205,6 +205,11 @@ export const Footer: React.FC = () => {
                       Cookies Policy
                     </Link>
                   </li>
+                  <li>
+                    <Link href="/refund" className="font-sans text-sm font-bold transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: '#151914' }}>
+                      Refund Policy
+                    </Link>
+                  </li>
                 </ul>
               </div>
 

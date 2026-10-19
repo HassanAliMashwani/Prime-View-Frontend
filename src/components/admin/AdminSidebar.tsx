@@ -183,7 +183,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       )}
 
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-64 bg-white text-slate-800 flex flex-col border-r border-slate-200/90 select-none h-screen shadow-lg lg:shadow-xs transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+        className={`fixed top-0 bottom-0 left-0 z-50 w-64 lg:w-64 shrink-0 bg-white text-slate-800 flex flex-col border-r border-slate-200/90 select-none h-screen shadow-lg lg:shadow-xs transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -310,7 +310,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
                 )}
               </div>
             </div>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-700 transition-transform group-hover:translate-x-0.5 shrink-0 mt-0.5" />
           </div>
 
           <div className="mb-2">
@@ -356,7 +355,6 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
           <div className="border-t border-slate-100 pt-2 mt-2">
             <span className="text-[11px] text-emerald-700 font-semibold group-hover:underline inline-flex items-center gap-1">
               <span>Profile</span>
-              <span className="group-hover:translate-x-0.5 transition-transform">→</span>
             </span>
           </div>
         </Link>

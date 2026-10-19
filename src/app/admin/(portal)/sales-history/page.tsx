@@ -27,6 +27,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
+import { getSubAdmins } from '@/lib/dal/users';
 import { 
   getSalesHistory, 
   SalesHistoryItem, 
@@ -73,6 +74,8 @@ function SalesHistoryContent() {
   const [datePreset, setDatePreset] = useState<SalesHistoryFilters['datePreset']>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
+  const [adminFilter, setAdminFilter] = useState<string>('all');
+  const [adminOfficers, setAdminOfficers] = useState<Array<{ id: string; name: string; username: string }>>([]);
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
@@ -87,13 +90,20 @@ function SalesHistoryContent() {
   const [totalRecords, setTotalRecords] = useState<number>(0);
   const reqIdRef = React.useRef(0);
 
-  const loadData = useCallback(async (currentSession: AdminSession, pageParam = 1, background = false) => {
+  const loadData = useCallback(async (
+    currentSession: AdminSession, 
+    pageParam = 1, 
+    background = false,
+    overrideAdminId?: string
+  ) => {
     const currentReq = ++reqIdRef.current;
     try {
+      const activeAdmin = overrideAdminId !== undefined ? overrideAdminId : adminFilter;
       const filters = {
         datePreset,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
+        adminId: activeAdmin !== 'all' ? activeAdmin : undefined,
         blockId: blockFilter !== 'all' ? blockFilter : undefined,
         category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
         search: search.trim() || undefined,
@@ -182,7 +192,7 @@ function SalesHistoryContent() {
         if (!background) setLoading(false);
       }
     }
-  }, [datePreset, dateFrom, dateTo, blockFilter, categoryFilter, search]);
+  }, [datePreset, dateFrom, dateTo, adminFilter, blockFilter, categoryFilter, search]);
 
   useEffect(() => {
     setMounted(true);
@@ -192,6 +202,30 @@ function SalesHistoryContent() {
       return;
     }
     setSession(cur);
+
+    if (cur.role === 'super_admin') {
+      getSubAdmins(cur, { pageSize: 100 })
+        .then((res) => {
+          if (res?.ok && res.subAdmins) {
+            const list = [
+              {
+                id: cur.adminId || cur.username || 'superadmin',
+                name: `${cur.fullName || 'Super Administrator'} (Super Admin)`,
+                username: cur.username,
+              },
+              ...res.subAdmins.map((sub: any) => ({
+                id: sub.id,
+                name: `${sub.fullName || sub.username} (@${sub.username})`,
+                username: sub.username,
+              })),
+            ];
+            const unique = Array.from(new Map(list.map((item) => [item.id, item])).values());
+            setAdminOfficers(unique);
+          }
+        })
+        .catch((err) => console.error('Failed to load sub-admins for officer filter', err));
+    }
+
     loadData(cur, page, false);
 
     // 30-second refresh in background Lane 2
@@ -300,11 +334,42 @@ function SalesHistoryContent() {
     }
   };
 
+  const handleAdminFilterChange = (val: string) => {
+    setAdminFilter(val);
+    setPage(1);
+    const adminId = session?.adminId || session?.username || 'admin';
+    const activeAdmin = val !== 'all' ? val : undefined;
+    const filters = {
+      datePreset,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      adminId: activeAdmin,
+      blockId: blockFilter !== 'all' ? blockFilter : undefined,
+      category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
+      search: search.trim() || undefined,
+      page: 1,
+      pageSize: PAGE_SIZE,
+    };
+    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
+    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
+    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
+    if (cached) {
+      setItems(cached.items);
+      setKpis(cached.kpis);
+      setTotalRecords(cached.total);
+      setLoading(false);
+    } else {
+      setItems([]);
+      setLoading(true);
+    }
+  };
+
   // Clear all filters
   const handleClearFilters = () => {
     setDatePreset('all');
     setDateFrom('');
     setDateTo('');
+    setAdminFilter('all');
     setBlockFilter('all');
     setCategoryFilter('all');
     setSearch('');
@@ -513,7 +578,25 @@ function SalesHistoryContent() {
         </div>
 
         {/* Detailed Filters Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 ${session?.role === 'super_admin' ? 'md:grid-cols-3 lg:grid-cols-6' : 'md:grid-cols-5'} gap-3 text-xs`}>
+          {session?.role === 'super_admin' && (
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 mb-1">Sales Officer</label>
+              <select
+                value={adminFilter}
+                onChange={(e) => handleAdminFilterChange(e.target.value)}
+                className="w-full p-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600 bg-white"
+              >
+                <option value="all">All Admins / Officers</option>
+                {adminOfficers.map((adm) => (
+                  <option key={adm.id} value={adm.id}>
+                    {adm.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Date From */}
           <div>
             <label className="block text-[11px] font-bold text-slate-600 mb-1">From Date</label>

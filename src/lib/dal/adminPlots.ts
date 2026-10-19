@@ -2,7 +2,7 @@ import { AdminSession, Block, Plot, Booking, Customer, Reservation } from '../mo
 import { canAccessBlock } from './adminAuth';
 import { apiGet, apiPost, apiPatch, apiDelete, API_BASE_URL } from '../api';
 import { setRegisteredPlotsCache } from './customers';
-import { getCache, setCache } from './apiCache';
+import { getCache, setCache, clearCachePrefix } from './apiCache';
 import { eliteSeedPlots } from '../map/eliteSeedPlots';
 
 export interface BlockSummary extends Block {
@@ -131,7 +131,7 @@ export async function getAdminBlockPlots(
   const blocksRes = await getAdminMasterPlanBlocks(session, signal);
   let block: Block | undefined = undefined;
   if (blocksRes.ok && Array.isArray(blocksRes.blocks)) {
-    const rawBlock = blocksRes.blocks.find((b: any) => b.id === blockId);
+    const rawBlock = blocksRes.blocks.find((b: any) => b.id.toLowerCase() === blockId.toLowerCase());
     if (rawBlock) {
       block = {
         id: rawBlock.id,
@@ -139,6 +139,51 @@ export async function getAdminBlockPlots(
         description: rawBlock.description || '',
         totalPlots: rawBlock.totalPlots || 0,
         amenities: rawBlock.amenities || ['Central Park', 'Community Mosque'],
+      };
+    }
+  }
+
+  if (!block) {
+    const KNOWN_BLOCKS: Record<string, { name: string; description: string; totalPlots: number }> = {
+      abbott: {
+        name: 'Abbott Block',
+        description: 'Premier residential enclave featuring luxury 1 Kanal & 2 Kanal executive plots.',
+        totalPlots: 474,
+      },
+      royal: {
+        name: 'Royal Block',
+        description: 'High-elevation valley view plots with scenic mountain backdrop.',
+        totalPlots: 299,
+      },
+      overseas: {
+        name: 'Overseas Block',
+        description: 'Dedicated expatriate standard zone with underground cabling and fiber optics.',
+        totalPlots: 297,
+      },
+      commercial: {
+        name: 'Commercial Block',
+        description: 'Main boulevard commercial hub for corporate offices, retail and food boulevards.',
+        totalPlots: 108,
+      },
+      'npf-phase-1': {
+        name: 'NPF Phase 1',
+        description: 'Established co-operative division with rapid construction activity.',
+        totalPlots: 254,
+      },
+      elite: {
+        name: 'Elite Block',
+        description: 'Exclusive sector designed for serenity and privacy.',
+        totalPlots: 256,
+      },
+    };
+    const fallback = KNOWN_BLOCKS[blockId.toLowerCase()];
+    if (fallback) {
+      block = {
+        id: blockId.toLowerCase() as any,
+        name: fallback.name,
+        description: fallback.description,
+        totalPlots: fallback.totalPlots,
+        amenities: ['Central Park', 'Community Mosque'],
       };
     }
   }
@@ -433,6 +478,19 @@ export async function reservePlot(
       reason: res.error,
       message: res.error || 'Failed to reserve plot.',
     };
+  }
+
+  clearCachePrefix('/reservations');
+  clearCachePrefix('/master-plan');
+
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({ type: 'PLOT_RESERVED', plotId, reservation: res.data.reservation });
+      channel.close();
+    } catch {
+      // ignore
+    }
   }
 
   return {

@@ -14,7 +14,8 @@ import {
   History,
   Calendar,
   Search,
-  X
+  X,
+  Printer
 } from 'lucide-react';
 import { 
   getLiveInventoryStats, 
@@ -307,6 +308,23 @@ export default function InventoryOverviewPage() {
     setHistoryHasQueried(false);
   };
 
+  const [printMode, setPrintMode] = useState<'all' | 'history'>('all');
+
+  const handlePrintHistory = () => {
+    setPrintMode('history');
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
+
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      setPrintMode('all');
+    };
+    window.addEventListener('afterprint', handleAfterPrint);
+    return () => window.removeEventListener('afterprint', handleAfterPrint);
+  }, []);
+
   const handlePageChange = (newPage: number) => {
     setLivePage(newPage);
   };
@@ -341,11 +359,11 @@ export default function InventoryOverviewPage() {
   const totalSellable = liveTotals?.total ?? (totalAvailable + totalReserved + totalBooked + totalAllotted);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 print:space-y-4 print:p-2">
       {/* ============================================================ */}
       {/* 1. TOP HEADER & IMMEDIATE REFRESH BAR                         */}
       {/* ============================================================ */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${printMode === 'history' ? 'print:hidden' : ''}`}>
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 font-serif">
@@ -360,14 +378,17 @@ export default function InventoryOverviewPage() {
           
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end print:hidden">
           {lastUpdated && (
             <span className="text-[11px] text-slate-400 font-mono hidden md:inline">
               Updated: {lastUpdated.toLocaleTimeString()}
             </span>
           )}
           <button
-            onClick={() => window.print()}
+            onClick={() => {
+              setPrintMode('all');
+              setTimeout(() => window.print(), 50);
+            }}
             className="p-2.5 sm:px-3 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer min-h-[42px]"
             title="Print Inventory"
           >
@@ -386,7 +407,7 @@ export default function InventoryOverviewPage() {
       </div>
 
       {liveError && (
-        <div className="bg-red-50 border border-red-200 text-red-800 p-4 rounded-2xl flex items-center gap-3 shadow-xs">
+        <div className={`bg-red-50 border border-red-200 text-red-800 p-4 rounded-2xl flex items-center gap-3 shadow-xs ${printMode === 'history' ? 'print:hidden' : ''}`}>
           <AlertTriangle className="w-5 h-5 text-red-600 shrink-0" />
           <p className="text-xs font-medium">{liveError}</p>
         </div>
@@ -395,7 +416,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 2. LIVE SECTION: MAIN AGGREGATE CARDS                         */}
       {/* ============================================================ */}
-      <section className="space-y-4">
+      <section className={`space-y-4 ${printMode === 'history' ? 'print:hidden' : ''}`}>
         <div className="flex items-center justify-between">
           
           {mounted && session?.role === 'sub_admin' && (
@@ -467,7 +488,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 3. LIVE SECTION: LIVE BLOCK TABLE                             */}
       {/* ============================================================ */}
-      <section className="space-y-3">
+      <section className={`space-y-3 ${printMode === 'history' ? 'print:hidden' : ''}`}>
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
           Current Block Inventory Breakdown
         </h2>
@@ -614,8 +635,28 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 4. HISTORY SECTION: SEPARATE FROM & TO STATUS TRANSITIONS    */}
       {/* ============================================================ */}
-      <section className="border-t border-slate-200 pt-8 space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <section className="border-t border-slate-200 pt-8 space-y-6 print:border-none print:pt-0">
+        {/* Print Letterhead for History Report */}
+        {historyHasQueried && (
+          <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-xl font-bold font-serif text-slate-900 tracking-tight">PRIME VIEW HOUSING SCHEME</h1>
+                <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider">Inventory Status Transition Report</p>
+              </div>
+              <div className="text-right">
+                <div className="text-xs font-mono font-bold text-slate-900">
+                  Date Range: <span className="text-indigo-900 font-bold">{appliedFrom}</span> to <span className="text-indigo-900 font-bold">{appliedTo}</span>
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  Printed: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
           <div>
             <div className="flex items-center gap-2">
               <History className="w-5 h-5 text-indigo-700" />
@@ -663,6 +704,17 @@ export default function InventoryOverviewPage() {
                 <span>Query History</span>
               </button>
 
+              <button
+                type="button"
+                onClick={handlePrintHistory}
+                disabled={loadingHistory || !historyHasQueried}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white rounded-xl transition-colors font-bold text-xs shadow-xs cursor-pointer flex items-center justify-center gap-1.5 min-h-[38px] print:hidden"
+                title="Print History Report"
+              >
+                <Printer className="w-3.5 h-3.5" />
+                <span>Print</span>
+              </button>
+
               {historyHasQueried && (
                 <button
                   type="button"
@@ -678,7 +730,7 @@ export default function InventoryOverviewPage() {
         </div>
 
         {historyError && (
-          <div className="bg-red-50 border border-red-200 text-red-800 p-3.5 rounded-xl flex items-center gap-2 text-xs font-medium">
+          <div className="bg-red-50 border border-red-200 text-red-800 p-3.5 rounded-xl flex items-center gap-2 text-xs font-medium print:hidden">
             <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
             <span>{historyError}</span>
           </div>
@@ -686,8 +738,8 @@ export default function InventoryOverviewPage() {
 
         {/* History Results View */}
         {historyHasQueried ? (
-          <div className="space-y-4 animate-in fade-in duration-200">
-            <div className="flex items-center justify-between text-xs text-slate-600">
+          <div className="space-y-4 animate-in fade-in duration-200 print:space-y-4">
+            <div className="flex items-center justify-between text-xs text-slate-600 print:hidden">
               <span className="font-medium">
                 Showing status changes from <strong className="text-slate-900">{appliedFrom}</strong> to <strong className="text-slate-900">{appliedTo}</strong>
               </span>
@@ -699,8 +751,8 @@ export default function InventoryOverviewPage() {
             </div>
 
             {/* History Transition Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 shadow-2xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 print:grid-cols-3">
+              <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 shadow-2xs print:bg-white print:border-slate-300">
                 <div className="flex items-center gap-2 mb-1.5">
                   <ShieldCheck className="w-4 h-4 text-blue-700" />
                   <span className="text-xs font-bold text-blue-900 uppercase tracking-wider font-mono">Booked Transitions</span>
@@ -711,7 +763,7 @@ export default function InventoryOverviewPage() {
                 <p className="text-[11px] text-blue-800/80 mt-1">Plots booked during period</p>
               </div>
 
-              <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 shadow-2xs">
+              <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 shadow-2xs print:bg-white print:border-slate-300">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Map className="w-4 h-4 text-purple-700" />
                   <span className="text-xs font-bold text-purple-900 uppercase tracking-wider font-mono">Allotted Transitions</span>
@@ -722,7 +774,7 @@ export default function InventoryOverviewPage() {
                 <p className="text-[11px] text-purple-800/80 mt-1">Plots allotted / fully paid</p>
               </div>
 
-              <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 shadow-2xs">
+              <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 shadow-2xs print:bg-white print:border-slate-300">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Clock className="w-4 h-4 text-amber-700" />
                   <span className="text-xs font-bold text-amber-900 uppercase tracking-wider font-mono">Reserved Transitions</span>
@@ -735,7 +787,7 @@ export default function InventoryOverviewPage() {
             </div>
 
             {/* History Table */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
+            <div className="bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden print:border print:border-slate-300 print:shadow-none print:rounded-none">
               <div className="px-5 py-3 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-700 uppercase tracking-wider font-mono">
                   Block History Breakdown ({appliedFrom} → {appliedTo})

@@ -82,11 +82,11 @@ export default function ReservationsPage() {
     tab = activeTab,
     isBackground = false
   ) => {
-    const adminId = s.adminId || 'admin';
+    const adminId = s.adminId || s.username || 'admin';
     const cacheKey = `/reservations:${adminId}:page=${p}:size=${PAGE_SIZE}:search=${srch || ''}:block=${block}:status=${tab}`;
 
     const cached = getCache<{ reservations: ReservationWithConflict[], total: number }>(cacheKey, true);
-    if (cached) {
+    if (cached && cached.reservations && cached.reservations.length > 0) {
       setReservations(cached.reservations);
       setTotalRecords(cached.total);
       setLoading(false);
@@ -188,10 +188,10 @@ export default function ReservationsPage() {
     setPage(1);
     const s = session || getActiveAdminSession();
     if (s) {
-      const adminId = s.adminId || 'admin';
+      const adminId = s.adminId || s.username || 'admin';
       const cacheKey = `/reservations:${adminId}:page=1:size=${PAGE_SIZE}:search=${search || ''}:block=${blockFilter}:status=${newTab}`;
       const cached = getCache<{ reservations: ReservationWithConflict[], total: number }>(cacheKey, true);
-      if (cached) {
+      if (cached && cached.reservations && cached.reservations.length > 0) {
         setReservations(cached.reservations);
         setTotalRecords(cached.total);
         setLoading(false);
@@ -210,10 +210,10 @@ export default function ReservationsPage() {
     setPage(1);
     const s = session || getActiveAdminSession();
     if (s) {
-      const adminId = s.adminId || 'admin';
+      const adminId = s.adminId || s.username || 'admin';
       const cacheKey = `/reservations:${adminId}:page=1:size=${PAGE_SIZE}:search=${search || ''}:block=${newBlock}:status=${activeTab}`;
       const cached = getCache<{ reservations: ReservationWithConflict[], total: number }>(cacheKey, true);
-      if (cached) {
+      if (cached && cached.reservations && cached.reservations.length > 0) {
         setReservations(cached.reservations);
         setTotalRecords(cached.total);
         setLoading(false);
@@ -240,6 +240,57 @@ export default function ReservationsPage() {
       loadData(session, newPage, search, blockFilter, activeTab, false);
     }
   };
+
+  // Cross-tab real-time sync via BroadcastChannel and window focus
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('prime-view-sync');
+        channel.onmessage = (event) => {
+          const type = event?.data?.type;
+          if (
+            type === 'PLOT_RESERVED' || 
+            type === 'PLOT_BOOKED' || 
+            type === 'RESERVATION_CANCELLED' || 
+            type === 'RESERVATION_UPDATED' ||
+            type === 'SYNC'
+          ) {
+            clearCachePrefix('/reservations');
+            const s = session || getActiveAdminSession();
+            if (s) {
+              loadData(s, pageRef.current, searchRef.current, blockRef.current, tabRef.current, true);
+            }
+          }
+        };
+      } catch {
+        // BroadcastChannel unavailable
+      }
+    }
+
+    const handleFocus = () => {
+      const s = session || getActiveAdminSession();
+      if (s) {
+        loadData(s, pageRef.current, searchRef.current, blockRef.current, tabRef.current, true);
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        handleFocus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (channel) channel.close();
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [session, loadData]);
 
   // Auto-refresh via polling using Lane 2
   useEffect(() => {
