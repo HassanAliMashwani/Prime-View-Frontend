@@ -343,7 +343,7 @@ function CustomersPageContent() {
       setRegisteredPlotsCache([normalizedPlot]);
       const tot = cleanCustom ?? cleanPrice;
       setTotalPaymentA(tot);
-      setTotalPaymentB(cleanPrice);
+      setTotalPaymentB(tot);
       setSubAdminForm((prev) => ({ ...prev, price: cleanPrice > 0 ? String(cleanPrice) : '' }));
       setPathAPlotError(null);
       setPathBPlotError(null);
@@ -1892,7 +1892,9 @@ function CustomersPageContent() {
                   value={subAdminPlotId}
                   onChange={setSubAdminPlotId}
                   onSelectPlot={(p) => {
-                    setSubAdminForm((prev) => ({ ...prev, price: p.price > 0 ? String(p.price) : '' }));
+                    setRegisteredPlotsCache([p]);
+                    const clean = toPlainNumber(p.price);
+                    setSubAdminForm((prev) => ({ ...prev, price: clean > 0 ? String(clean) : '' }));
                   }}
                   onErrorClear={() => setSubAdminPlotError(null)}
                   session={session}
@@ -2481,6 +2483,13 @@ function CustomersPageContent() {
                   <PlotSelector
                     value={pathAForm.plotId}
                     onChange={handleVerifyPlotA}
+                    onSelectPlot={(p) => {
+                      setRegisteredPlotsCache([p]);
+                      const cleanPrice = toPlainNumber(p.price);
+                      const normalizedPlot = { ...p, price: cleanPrice };
+                      setSelectedPlotA(normalizedPlot);
+                      setTotalPaymentA(cleanPrice);
+                    }}
                     session={session}
                   />
                 )}
@@ -3409,6 +3418,13 @@ function CustomersPageContent() {
                     <PlotSelector
                       value={pathBPlotId}
                       onChange={handleVerifyPlotB}
+                      onSelectPlot={(p) => {
+                        setRegisteredPlotsCache([p]);
+                        const cleanPrice = toPlainNumber(p.price);
+                        const normalizedPlot = { ...p, price: cleanPrice };
+                        setSelectedPlotB(normalizedPlot);
+                        setTotalPaymentB(cleanPrice);
+                      }}
                       session={session}
                     />
                   )}
