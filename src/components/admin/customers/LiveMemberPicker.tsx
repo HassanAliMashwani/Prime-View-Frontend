@@ -82,12 +82,12 @@ export default function LiveMemberPicker({
         const session = getActiveAdminSession();
         const res = await searchMembersForPicker(session, value, controller.signal);
         if (!controller.signal.aborted) {
-          if (res.ok && res.members) {
+          if (res.ok && res.members && res.members.length > 0) {
             setResults(res.members.slice(0, 8));
             setIsOpen(true);
           } else {
             setResults([]);
-            setIsOpen(true);
+            setIsOpen(false);
           }
           setIsLoading(false);
         }
@@ -95,6 +95,7 @@ export default function LiveMemberPicker({
         if (err.name !== 'AbortError') {
           setIsLoading(false);
           setResults([]);
+          setIsOpen(false);
         }
       }
     }, 250);
@@ -112,12 +113,6 @@ export default function LiveMemberPicker({
     setResults([]);
   };
 
-  const handleUseAsNew = () => {
-    onSelectMember(null);
-    setIsOpen(false);
-    setResults([]);
-  };
-
   const handleClear = () => {
     onSelectMember(null);
     onChange('');
@@ -130,14 +125,14 @@ export default function LiveMemberPicker({
 
   // Keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen) {
-      if (e.key === 'ArrowDown' && value.trim()) {
+    if (!isOpen || results.length === 0) {
+      if (e.key === 'ArrowDown' && value.trim() && results.length > 0) {
         setIsOpen(true);
       }
       return;
     }
 
-    const totalItems = results.length + 1; // +1 for "Use this as a new customer"
+    const totalItems = results.length;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -146,13 +141,9 @@ export default function LiveMemberPicker({
       e.preventDefault();
       setHighlightedIndex((prev) => (prev - 1 + totalItems) % totalItems);
     } else if (e.key === 'Enter') {
-      if (highlightedIndex >= 0) {
+      if (highlightedIndex >= 0 && highlightedIndex < results.length) {
         e.preventDefault();
-        if (highlightedIndex < results.length) {
-          handleSelect(results[highlightedIndex]);
-        } else {
-          handleUseAsNew();
-        }
+        handleSelect(results[highlightedIndex]);
       }
     } else if (e.key === 'Escape') {
       setIsOpen(false);
@@ -199,7 +190,7 @@ export default function LiveMemberPicker({
               }
             }}
             onFocus={() => {
-              if (value.trim()) {
+              if (value.trim() && results.length > 0) {
                 setIsOpen(true);
               }
             }}
@@ -231,85 +222,53 @@ export default function LiveMemberPicker({
         </div>
       )}
 
-      {/* Dropdown Results List */}
-      {isOpen && !selectedMember && value.trim() && (
+      {/* Dropdown Results List: only shown when matching members exist */}
+      {isOpen && !selectedMember && value.trim() && results.length > 0 && (
         <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 animate-in fade-in slide-in-from-top-1 duration-150 max-h-72 overflow-y-auto">
-          {isLoading && results.length === 0 ? (
-            <div className="p-3 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-              <span>Searching society members...</span>
-            </div>
-          ) : results.length > 0 ? (
-            <>
-              <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-                <span>Matching Saved Members</span>
-                <span>{results.length} of max 8</span>
-              </div>
-              {results.map((m, idx) => {
-                const isHighlighted = idx === highlightedIndex;
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => handleSelect(m)}
-                    onMouseEnter={() => setHighlightedIndex(idx)}
-                    className={`p-2.5 cursor-pointer transition-colors flex items-center justify-between gap-3 text-left ${
-                      isHighlighted ? 'bg-emerald-50/90 text-emerald-950' : 'hover:bg-slate-50 text-slate-800'
-                    }`}
-                  >
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <strong className="text-xs font-serif font-bold text-slate-900">
-                          {m.fullName}
-                        </strong>
-                        {m.membershipNo && (
-                          <span className="font-mono text-[9px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.2 rounded border border-slate-200">
-                            {m.membershipNo}
-                          </span>
-                        )}
-                        <span className="font-mono text-[10px] text-slate-500">
-                          {m.cnic}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
-                        {m.phone && <span>Ph: {m.phone}</span>}
-                        {m.city && <span>• {m.city}</span>}
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 flex items-center gap-1.5">
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                        <Building2 className="w-3 h-3 text-slate-400" />
-                        <span>{m.plotCount} {m.plotCount === 1 ? 'Plot' : 'Plots'}</span>
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          ) : !isLoading ? (
-            <div className="p-2.5 text-center text-xs text-slate-400">
-              No existing member found matching &ldquo;{value}&rdquo;
-            </div>
-          ) : null}
-
-          {/* Last Row: Use this as a new customer */}
-          <div
-            onClick={handleUseAsNew}
-            onMouseEnter={() => setHighlightedIndex(results.length)}
-            className={`p-2.5 cursor-pointer transition-colors flex items-center gap-2 text-xs font-semibold ${
-              highlightedIndex === results.length
-                ? 'bg-blue-50 text-blue-900'
-                : 'bg-slate-50/60 hover:bg-slate-100/80 text-slate-600'
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <div className="min-w-0 truncate">
-              <span>Use &ldquo;<strong>{value}</strong>&rdquo; as a new customer</span>
-              <span className="text-[10px] text-slate-400 block font-normal">
-                Register a new person who is not on file yet
-              </span>
-            </div>
+          <div className="px-3 py-1.5 bg-slate-50 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span>Matching Saved Members</span>
+            <span>{results.length} of max 8</span>
           </div>
+          {results.map((m, idx) => {
+            const isHighlighted = idx === highlightedIndex;
+            return (
+              <div
+                key={m.id}
+                onClick={() => handleSelect(m)}
+                onMouseEnter={() => setHighlightedIndex(idx)}
+                className={`p-2.5 cursor-pointer transition-colors flex items-center justify-between gap-3 text-left ${
+                  isHighlighted ? 'bg-emerald-50/90 text-emerald-950' : 'hover:bg-slate-50 text-slate-800'
+                }`}
+              >
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <strong className="text-xs font-serif font-bold text-slate-900">
+                      {m.fullName}
+                    </strong>
+                    {m.membershipNo && (
+                      <span className="font-mono text-[9px] bg-slate-100 text-slate-700 font-bold px-1.5 py-0.2 rounded border border-slate-200">
+                        {m.membershipNo}
+                      </span>
+                    )}
+                    <span className="font-mono text-[10px] text-slate-500">
+                      {m.cnic}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono flex items-center gap-2 flex-wrap">
+                    {m.phone && <span>Ph: {m.phone}</span>}
+                    {m.city && <span>• {m.city}</span>}
+                  </div>
+                </div>
+
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                    <Building2 className="w-3 h-3 text-slate-400" />
+                    <span>{m.plotCount} {m.plotCount === 1 ? 'Plot' : 'Plots'}</span>
+                  </span>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

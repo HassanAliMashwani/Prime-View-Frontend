@@ -345,14 +345,38 @@ export async function acquireLock(
     };
   }
 
+  const lockedByName = res.data.plot?.lockedByName || res.data.lockedByName || session.fullName || session.username;
+  const lockedBy = res.data.plot?.lockedBy || res.data.lockedBy || session.adminId;
+  const lockedAt = res.data.plot?.lockedAt || res.data.lockedAt || new Date().toISOString();
+
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'PLOT_LOCKED',
+        plotId,
+        lockedBy,
+        lockedByName,
+        lockedAt,
+      });
+      channel.close();
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     ok: true,
     plot: {
       ...res.data.plot,
       price: Number(res.data.plot?.price) || 0,
+      lockedByName,
+      lockedBy,
+      lockedAt,
     },
     lockToken: res.data.lockToken,
-    lockedBy: res.data.plot?.lockedBy,
+    lockedBy,
+    lockedByName,
   };
 }
 
@@ -377,12 +401,53 @@ export async function releaseLock(
     };
   }
 
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'PLOT_UNLOCKED',
+        plotId,
+      });
+      channel.close();
+    } catch {
+      // ignore
+    }
+  }
+
   return {
     ok: true,
     plot: res.data?.plot
       ? { ...res.data.plot, price: Number(res.data.plot.price) || 0 }
       : undefined,
   };
+}
+
+export interface BlockPlotLockSync {
+  id: string;
+  status: string;
+  isAdjustment: boolean;
+  lockedBy: string | null;
+  lockedByName: string | null;
+  lockedAt: string | null;
+}
+
+/**
+ * Lightweight sync for locks and status in the open block (5s fallback)
+ */
+export async function getBlockLocks(
+  session: AdminSession,
+  blockId: string,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; locks: BlockPlotLockSync[]; error?: string }> {
+  const res = await apiGet<BlockPlotLockSync[]>(
+    `/plots/sync/locks?blockId=${blockId}`,
+    session?.token,
+    signal
+  );
+  if (!res.ok || !res.data) {
+    return { ok: false, locks: [], error: res.error };
+  }
+  return { ok: true, locks: res.data };
 }
 
 /**
@@ -412,6 +477,9 @@ export async function startReservingPlot(
   plot?: Plot;
   lockToken?: string;
   error?: string;
+  reason?: string;
+  lockedBy?: string;
+  lockedByName?: string;
   message?: string;
 }> {
   return acquireLock(session, plotId);

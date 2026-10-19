@@ -80,7 +80,7 @@ export function warmAdminCache(session: AdminSession) {
   if (!getCache(resKey, false) && (isSuper || perms.can_reserve)) {
     enqueueLane2(async (sig) => {
       try {
-        const res = await getReservations(session, { page: 1, pageSize: 10, status: 'active', blockId: 'all' }, sig);
+        const res = await getReservations(session, { page: 1, pageSize: 10, status: 'active', blockId: undefined }, sig);
         if (res.ok) {
           setCache(resKey, { reservations: res.reservations || [], total: res.total || 0 });
         }

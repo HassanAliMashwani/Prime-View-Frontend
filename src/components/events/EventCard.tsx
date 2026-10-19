@@ -5,6 +5,7 @@ import { Play, Calendar, MapPin, ArrowRight } from "lucide-react";
 import { EventData } from "@/data/events";
 import { getEventImageUrls } from "@/lib/images";
 import { useFadeInImage } from "@/lib/hooks/useFadeInImage";
+import { isRealVideo } from "@/lib/video";
 
 interface EventCardProps {
   event: EventData;
@@ -100,8 +101,8 @@ export const EventCard: React.FC<EventCardProps> = ({ event, layout = "vertical"
         {/* Subtle Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-30 transition-opacity duration-300" />
 
-        {/* Play button overlay if the event has a video */}
-        {event.videoPreview && (
+        {/* Play button overlay if the event has a real video */}
+        {isRealVideo(event.videoPreview) && (
           <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none opacity-90 group-hover:opacity-100 transition-opacity">
             <div className="w-12 h-12 rounded-full bg-[#43612B]/90 backdrop-blur-md flex items-center justify-center transition-transform duration-300 group-hover:scale-110 shadow-lg border border-white/40 relative overflow-hidden">
               <Play className="w-5 h-5 text-white ml-0.5 fill-white relative z-10" />

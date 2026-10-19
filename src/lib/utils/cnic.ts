@@ -14,7 +14,17 @@ export function formatCnic(raw: string): string {
   return `${digits.slice(0, 5)}-${digits.slice(5, 12)}-${digits.slice(12, 13)}`;
 }
 
+export function cleanCnicDigits(raw?: string | null): string {
+  if (!raw) return '';
+  return raw.replace(/\D/g, '').slice(0, 13);
+}
+
 export function isValidCnic(val?: string | null): boolean {
   if (!val) return false;
   return /^\d{5}-\d{7}-\d{1}$/.test(val.trim());
+}
+
+export function exceeds13Digits(val?: string | null): boolean {
+  if (!val) return false;
+  return val.replace(/\D/g, '').length > 13;
 }

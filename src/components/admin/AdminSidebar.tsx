@@ -10,7 +10,6 @@ import {
   Map,
   BookmarkCheck,
   LogOut,
-  ShieldCheck,
   Layers,
   Users,
   UserPlus,
@@ -18,7 +17,6 @@ import {
   ScrollText,
   FileCheck,
   X,
-  User,
   ArrowRight,
 } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
@@ -29,16 +27,6 @@ interface AdminSidebarProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
-
-const BLOCK_COLORS: Record<string, string> = {
-  abbott: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-  royal: 'bg-amber-50 text-amber-800 border-amber-200',
-  overseas: 'bg-sky-50 text-sky-800 border-sky-200',
-  elite: 'bg-purple-50 text-purple-800 border-purple-200',
-  commercial: 'bg-indigo-50 text-indigo-800 border-indigo-200',
-  'npf-phase-1': 'bg-teal-50 text-teal-800 border-teal-200',
-  'npf-phase-2': 'bg-cyan-50 text-cyan-800 border-cyan-200',
-};
 
 export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onClose }) => {
   const pathname = usePathname();
@@ -276,87 +264,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
         <Link
           href="/admin/profile"
           onClick={onClose}
-          className="block bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-xs hover:border-emerald-500 hover:shadow-md transition-all group cursor-pointer"
+          className="flex items-center justify-between px-3.5 py-2.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs hover:border-emerald-500 hover:shadow-md transition-all group cursor-pointer"
           title="Open Admin Profile"
         >
-          <div className="flex items-start justify-between gap-1.5 mb-2">
-            <div className="flex items-start gap-2 min-w-0">
-              {(() => {
-                const rawAvatar =
-                  session?.avatarUrl ||
-                  (session?.permissions as any)?.avatarUrl ||
-                  null;
-                const sidebarAvatar =
-                  rawAvatar && typeof rawAvatar === 'string' && rawAvatar.startsWith('https://')
-                    ? rawAvatar
-                    : null;
-                if (sidebarAvatar) {
-                  return (
-                    <div className="w-5 h-5 rounded-md overflow-hidden border border-slate-200/90 shrink-0 mt-0.5">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={sidebarAvatar} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  );
-                }
-                return (
-                  <ShieldCheck className={`w-4 h-4 shrink-0 mt-0.5 ${isSuper ? 'text-[#D4AF37]' : 'text-blue-600'}`} />
-                );
-              })()}
-              <div className="text-[12px] font-bold text-slate-900 leading-snug group-hover:text-emerald-800 transition-colors">
-                {session ? (
-                  session.fullName || 'Administrator'
-                ) : (
-                  <span className="inline-block w-24 h-3.5 bg-slate-200 animate-pulse rounded" />
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="mb-2">
-            {session ? (
-              <span
-                className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md ${
-                  isSuper
-                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                    : 'bg-blue-100 text-blue-900 border border-blue-300'
-                }`}
-              >
-                {isSuper ? 'Super Administrator' : 'Administrator'}
-              </span>
-            ) : (
-              <span className="inline-block w-20 h-3 bg-slate-200 animate-pulse rounded" />
-            )}
-          </div>
-
-          {session && !isSuper && (
-            <div className="mb-2 pt-2 border-t border-slate-100">
-              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                Assigned Blocks
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {session.assignedBlocks && session.assignedBlocks.length > 0 ? (
-                  session.assignedBlocks.map((b) => (
-                    <span
-                      key={b}
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded border capitalize ${
-                        BLOCK_COLORS[b.toLowerCase()] || 'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}
-                    >
-                      {b.replace('-', ' ')}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-[10px] text-slate-400 italic">No blocks assigned</span>
-                )}
-              </div>
-            </div>
-          )}
-
-          <div className="border-t border-slate-100 pt-2 mt-2">
-            <span className="text-[11px] text-emerald-700 font-semibold group-hover:underline inline-flex items-center gap-1">
-              <span>Profile</span>
-            </span>
-          </div>
+          <span className="text-xs font-bold text-slate-800 group-hover:text-emerald-800 transition-colors">
+            Profile
+          </span>
+          <ArrowRight className="w-4 h-4 text-emerald-700 group-hover:translate-x-0.5 transition-transform" />
         </Link>
 
         {/* Sign Out Button */}

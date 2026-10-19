@@ -65,6 +65,7 @@ interface QueuedLane2Task {
 
 class RequestLanesCoordinator {
   private lane1ActiveCount = 0;
+  private activeSaves = new Set<string>();
   private screenInFlight = new Map<string, InFlightScreen>();
   private screenSequences = new Map<string, number>();
   private lane2InFlight = new Map<string, InFlightLane2>();
@@ -85,8 +86,12 @@ class RequestLanesCoordinator {
    * Check if a specific screen has an active Lane 1 request in flight.
    */
   public isScreenLane1Busy(screen: string): boolean {
-    const active = this.screenInFlight.get(screen);
-    return Boolean(active && !active.isDiscarded);
+    for (const [key, active] of this.screenInFlight.entries()) {
+      if ((key === screen || key.startsWith(`${screen}:`)) && !active.isDiscarded) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -140,36 +145,53 @@ class RequestLanesCoordinator {
   /**
    * Lane 1: User is waiting to see or save.
    * - Starts immediately.
-   * - If a Lane 2 request is already in flight for the exact key, keep it and return its answer.
-   * - Cancels only an older read request for that same screen whose answer would be discarded.
-   * - Never cancels a save.
+   * - Reads that belong to the same page run together (concurrently).
+   * - Cancels only an older read request for that exact same stream/key whose answer would be discarded.
+   * - A save still runs alone so a double click cannot book or pay twice.
    */
   public async runLane1<T>(options: Lane1Options<T>): Promise<T> {
     const { screen, key, isSave = false, fn } = options;
 
-    // 1. Cancel only an older read request for the same screen whose answer would be discarded
-    let currentSeq = 0;
-    if (screen) {
-      currentSeq = this.nextScreenSequence(screen);
-      const existing = this.screenInFlight.get(screen);
-      if (existing && !existing.isSave) {
-        existing.isDiscarded = true;
-        try {
-          existing.abortController.abort();
-        } catch { /* ignore */ }
+    const saveKey = screen || 'global_save';
+    if (isSave) {
+      if (this.activeSaves.has(saveKey)) {
+        throw new Error('SAVE_IN_PROGRESS');
       }
-      // Also abort any running Lane 2 background refresh for this same screen so it doesn't paint over Lane 1
-      const bgRefresh = this.lane2InFlightByScreen.get(screen);
-      if (bgRefresh) {
-        try {
-          bgRefresh.abort();
-        } catch { /* ignore */ }
-        this.lane2InFlightByScreen.delete(screen);
+      this.activeSaves.add(saveKey);
+    }
+
+    // Determine the stream key for tracking replacement.
+    // If a key is provided, only abort older queries for that exact stream on this screen.
+    // If no key is provided, generate a unique stream key so independent reads on the same screen run together in parallel without aborting each other!
+    let streamKey: string | undefined;
+    let currentSeq = 0;
+    const abortController = new AbortController();
+
+    if (screen) {
+      if (key) {
+        streamKey = `${screen}:${key}`;
+        currentSeq = this.nextScreenSequence(streamKey);
+        const existing = this.screenInFlight.get(streamKey);
+        if (existing && !existing.isSave) {
+          existing.isDiscarded = true;
+          try {
+            existing.abortController.abort();
+          } catch { /* ignore */ }
+        }
+        // Also abort any running Lane 2 background refresh for this same stream
+        const bgRefresh = this.lane2InFlightByScreen.get(streamKey);
+        if (bgRefresh) {
+          try {
+            bgRefresh.abort();
+          } catch { /* ignore */ }
+          this.lane2InFlightByScreen.delete(streamKey);
+        }
+      } else {
+        currentSeq = this.nextScreenSequence(screen);
+        streamKey = `${screen}:__req_${currentSeq}`;
       }
     }
 
-    // 2. Setup new request tracking
-    const abortController = new AbortController();
     const tracker: InFlightScreen = {
       abortController,
       isSave,
@@ -177,8 +199,8 @@ class RequestLanesCoordinator {
       isDiscarded: false,
     };
 
-    if (screen) {
-      this.screenInFlight.set(screen, tracker);
+    if (streamKey) {
+      this.screenInFlight.set(streamKey, tracker);
     }
 
     this.lane1ActiveCount++;
@@ -187,7 +209,7 @@ class RequestLanesCoordinator {
     try {
       let result: T;
 
-      // 3. Check if a Lane 2 request in flight is the EXACT resource/page/block user just opened
+      // Check if a Lane 2 request in flight is the EXACT resource/page/block user just opened
       if (key && this.lane2InFlight.has(key)) {
         const inFlight = this.lane2InFlight.get(key)!;
         inFlight.isPromoted = true;
@@ -199,8 +221,6 @@ class RequestLanesCoordinator {
           reusedData = undefined;
         }
 
-        // If the promoted Lane 2 request returned valid data, reuse it;
-        // otherwise, fall back to executing fn directly so caller receives answer and draws it.
         if (reusedData !== undefined && reusedData !== null) {
           result = reusedData as T;
         } else {
@@ -224,15 +244,18 @@ class RequestLanesCoordinator {
         result = await fn(abortController.signal);
       }
 
-      // If an older read request was discarded by a newer request on the same screen, throw
+      // If an older read request for this exact stream was discarded by a newer query, throw
       if (tracker.isDiscarded && !isSave) {
         throw new Error('REQUEST_SUPERSEDED');
       }
 
       return result;
     } finally {
-      if (screen && this.screenInFlight.get(screen) === tracker) {
-        this.screenInFlight.delete(screen);
+      if (isSave) {
+        this.activeSaves.delete(saveKey);
+      }
+      if (streamKey && this.screenInFlight.get(streamKey) === tracker) {
+        this.screenInFlight.delete(streamKey);
       }
 
       this.lane1ActiveCount--;
@@ -284,8 +307,8 @@ class RequestLanesCoordinator {
   }
 
   /**
-   * Process Lane 2 queue items one-by-one only while Lane 1 is idle.
-   * Continues from where it stopped.
+   * Process Lane 2 queue items concurrently in batches of up to 4 parallel tasks
+   * while Lane 1 is idle, eliminating single-file queue bottlenecks.
    */
   private async processLane2Queue() {
     if (this.isProcessingLane2) return;
@@ -293,67 +316,70 @@ class RequestLanesCoordinator {
 
     try {
       while (this.lane2Queue.length > 0 && this.isLane1Idle()) {
-        const task = this.lane2Queue.shift();
-        if (!task) break;
+        const batchSize = Math.min(this.lane2Queue.length, 4);
+        const tasks = this.lane2Queue.splice(0, batchSize);
 
-        const { key, screen, isRefresh, fn, resolve, reject } = task;
+        await Promise.all(
+          tasks.map(async (task) => {
+            const { key, screen, isRefresh, fn, resolve, reject } = task;
 
-        // Check if key is already in flight in Lane 2
-        if (key && this.lane2InFlight.has(key)) {
-          try {
-            const res = await this.lane2InFlight.get(key)!.promise;
-            resolve(res);
-          } catch (err) {
-            reject(err);
-          }
-          continue;
-        }
-
-        // For 30s refresh, capture screen sequence at start to ensure it does not discard user's pending view
-        const startSeq = screen ? this.getScreenSequence(screen) : 0;
-        const abortController = new AbortController();
-
-        if (screen && isRefresh) {
-          this.lane2InFlightByScreen.set(screen, abortController);
-        }
-
-        const promise = (async () => {
-          return await fn(abortController.signal);
-        })();
-
-        if (key) {
-          this.lane2InFlight.set(key, {
-            key,
-            promise,
-            isPromoted: false,
-          });
-        }
-
-        try {
-          const result = await promise;
-
-          // For 30s refresh: if screen sequence advanced while refresh ran (user searched/filtered/paged),
-          // OR if Lane 1 is currently busy on this screen, OR if aborted: discard refresh!
-          if (isRefresh && screen) {
-            const currentSeq = this.getScreenSequence(screen);
-            if (currentSeq > startSeq || this.isScreenLane1Busy(screen) || abortController.signal.aborted) {
-              // Discard answer: user is waiting on or has newer data
-              resolve(undefined);
-              continue;
+            // Check if key is already in flight in Lane 2
+            if (key && this.lane2InFlight.has(key)) {
+              try {
+                const res = await this.lane2InFlight.get(key)!.promise;
+                resolve(res);
+              } catch (err) {
+                reject(err);
+              }
+              return;
             }
-          }
 
-          resolve(result);
-        } catch (err) {
-          reject(err);
-        } finally {
-          if (screen && isRefresh && this.lane2InFlightByScreen.get(screen) === abortController) {
-            this.lane2InFlightByScreen.delete(screen);
-          }
-          if (key) {
-            this.lane2InFlight.delete(key);
-          }
-        }
+            const streamKey = screen ? (key ? `${screen}:${key}` : screen) : undefined;
+            const startSeq = streamKey ? this.getScreenSequence(streamKey) : 0;
+            const abortController = new AbortController();
+
+            if (streamKey && isRefresh) {
+              this.lane2InFlightByScreen.set(streamKey, abortController);
+            }
+
+            const promise = (async () => {
+              return await fn(abortController.signal);
+            })();
+
+            if (key) {
+              this.lane2InFlight.set(key, {
+                key,
+                promise,
+                isPromoted: false,
+              });
+            }
+
+            try {
+              const result = await promise;
+
+              // For 30s refresh: if screen sequence advanced while refresh ran,
+              // OR if Lane 1 is currently busy on this stream, OR if aborted: discard refresh!
+              if (isRefresh && streamKey) {
+                const currentSeq = this.getScreenSequence(streamKey);
+                if (currentSeq > startSeq || this.isScreenLane1Busy(streamKey) || abortController.signal.aborted) {
+                  resolve(undefined);
+                  return;
+                }
+              }
+
+              resolve(result);
+            } catch (err) {
+              reject(err);
+            } finally {
+              if (streamKey && isRefresh && this.lane2InFlightByScreen.get(streamKey) === abortController) {
+                this.lane2InFlightByScreen.delete(streamKey);
+              }
+              if (key) {
+                this.lane2InFlight.delete(key);
+              }
+            }
+          })
+        );
       }
     } finally {
       this.isProcessingLane2 = false;

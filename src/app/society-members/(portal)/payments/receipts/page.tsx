@@ -933,6 +933,7 @@ function SubmittedReceiptsContent() {
                       type="number"
                       required
                       min={1}
+                      step="any"
                       readOnly={formPaymentType === 'one_time' || formPaymentKind === 'regular'}
                       value={formAmount}
                       onChange={(e) => {

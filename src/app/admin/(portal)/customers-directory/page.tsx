@@ -178,7 +178,11 @@ function CustomersDirectoryContent() {
   const openSetPaymentPlan = (cust: CustomerDirectoryEntry, plotId: string) => {
     const matched = cust.plots?.find((p) => p.plotId === plotId || (p as any).id === plotId || p.plotNumber === plotId);
     const resolvedPlotId = matched?.plotId || (matched as any)?.id || plotId;
-    router.push(`/admin/customers?setPlanCustomer=${cust.id}&plotId=${resolvedPlotId}`);
+    const plotNum = matched?.plotNumber || '';
+    const price = matched?.price !== undefined ? String(matched.price) : '';
+    const name = cust.fullName || '';
+    const cnic = cust.cnic || '';
+    router.push(`/admin/customers?setPlanCustomer=${cust.id}&plotId=${resolvedPlotId}&plotNumber=${encodeURIComponent(plotNum)}&price=${encodeURIComponent(price)}&name=${encodeURIComponent(name)}&cnic=${encodeURIComponent(cnic)}`);
   };
 
   // Detailed plot bills & installment ledger for dossier modal

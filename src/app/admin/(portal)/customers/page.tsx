@@ -63,6 +63,7 @@ import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '
 import { runLane1 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
+import { formatPhone, isValidPhone } from '@/lib/utils/phone';
 
 function toPlainNumber(val: any): number {
   if (val === null || val === undefined || val === '') return 0;
@@ -170,12 +171,28 @@ function CustomersPageContent() {
   const queryTab = searchParams.get('tab') || '';
   const queryCompleteCustomer = searchParams.get('completeCustomer') || searchParams.get('completeCustomerId') || '';
   const querySetPlanCustomer = searchParams.get('setPlanCustomer') || '';
+  const queryPlotNumber = searchParams.get('plotNumber') || '';
+  const queryPrice = searchParams.get('price') || '';
+  const queryCustomerCnic = searchParams.get('cnic') || '';
   const isSetPlanMode = Boolean(querySetPlanCustomer && queryPlotId);
+
+  const initPriceNum = queryPrice ? Number(queryPrice) : 0;
+  const initialPlot = (queryPlotId && (queryPlotNumber || queryPrice))
+    ? ({
+        id: queryPlotId,
+        plotNumber: queryPlotNumber || queryPlotId,
+        price: initPriceNum,
+        blockId: '',
+        size: '',
+        category: 'residential' as any,
+        status: 'available' as any,
+      } as Plot)
+    : null;
 
   // Set Payment Plan Mode State (Super Admin Exclusivity)
   const [setPlanCustomer, setSetPlanCustomer] = useState<Customer | null>(null);
-  const [setPlanPlot, setSetPlanPlot] = useState<Plot | null>(null);
-  const [setPlanPrice, setSetPlanPrice] = useState<number>(0);
+  const [setPlanPlot, setSetPlanPlot] = useState<Plot | null>(initialPlot);
+  const [setPlanPrice, setSetPlanPrice] = useState<number>(initPriceNum);
   const [setPlanPaymentType, setSetPlanPaymentType] = useState<PaymentType>('installment');
   const [setPlanYears, setSetPlanYears] = useState<number>(1);
   const [setPlanPaperRef, setSetPlanPaperRef] = useState<string>('');
@@ -199,9 +216,9 @@ function CustomersPageContent() {
   const [availablePlots, setAvailablePlots] = useState<Plot[]>([]);
 
   // Master Plan Redirect State
-  const [lockedPlot, setLockedPlot] = useState<Plot | null>(null);
+  const [lockedPlot, setLockedPlot] = useState<Plot | null>(initialPlot);
   const [isLockedFromMap, setIsLockedFromMap] = useState<boolean>(false);
-  const [plotLoading, setPlotLoading] = useState<boolean>(Boolean(queryPlotId));
+  const [plotLoading, setPlotLoading] = useState<boolean>(Boolean(queryPlotId && !querySetPlanCustomer && !initialPlot));
   const isCommittedRef = useRef(false);
   const releaseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -210,11 +227,11 @@ function CustomersPageContent() {
   // ----------------------------------------------------
   // Path A Installment State
   const [yearsA, setYearsA] = useState<number>(1);
-  const [totalPaymentA, setTotalPaymentA] = useState<number>(0);
+  const [totalPaymentA, setTotalPaymentA] = useState<number>(initPriceNum);
 
   // Path B Installment State
   const [yearsB, setYearsB] = useState<number>(1);
-  const [totalPaymentB, setTotalPaymentB] = useState<number>(0);
+  const [totalPaymentB, setTotalPaymentB] = useState<number>(initPriceNum);
 
   // ----------------------------------------------------
   // PATH A: NEW CUSTOMER FORM STATE
@@ -226,7 +243,7 @@ function CustomersPageContent() {
     membershipNo: `PV-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
     fullName: queryCustomerName,
     fatherOrHusbandName: '',
-    cnic: '',
+    cnic: queryCustomerCnic ? formatCnic(queryCustomerCnic) : '',
     phone: queryCustomerPhone,
     email: queryCustomerEmail,
     mailingAddress: '',
@@ -241,7 +258,7 @@ function CustomersPageContent() {
   const [pathASubmitting, setPathASubmitting] = useState(false);
   const [pathASuccess, setPathASuccess] = useState(false);
   const [pathAPlotError, setPathAPlotError] = useState<string | null>(null);
-  const [selectedPlotA, setSelectedPlotA] = useState<Plot | null>(null);
+  const [selectedPlotA, setSelectedPlotA] = useState<Plot | null>(initialPlot);
 
   // ----------------------------------------------------
   // PATH B: EXISTING CUSTOMER STATE
@@ -323,6 +340,29 @@ function CustomersPageContent() {
   const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
   const [selectingCustomerId, setSelectingCustomerId] = useState<string | null>(null);
 
+  // Drop sensitive parameters from address bar on first paint so member CNIC is not retained in browser history
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const url = new URL(window.location.href);
+      const hasFlashed =
+        url.searchParams.has('cnic') ||
+        url.searchParams.has('name') ||
+        url.searchParams.has('price') ||
+        url.searchParams.has('plotNumber');
+
+      if (hasFlashed) {
+        url.searchParams.delete('cnic');
+        url.searchParams.delete('name');
+        url.searchParams.delete('price');
+        url.searchParams.delete('plotNumber');
+        window.history.replaceState(null, '', url.pathname + url.search);
+      }
+    } catch {
+      // guard
+    }
+  }, []);
+
   // Load active session and plots
   const loadInitialData = useCallback(() => {
     const cur = getActiveAdminSession();
@@ -378,7 +418,7 @@ function CustomersPageContent() {
     };
 
     // Handle plot locking from Master Plan redirect or Confirm Booking
-    if (queryPlotId && cur) {
+    if (queryPlotId && !querySetPlanCustomer && !queryCompleteCustomer && cur) {
       setPathAForm((prev) => ({
         ...prev,
         plotId: queryPlotId,
@@ -431,10 +471,17 @@ function CustomersPageContent() {
 
       runLane1({
         screen: 'customer-booking',
-        fn: async (signal) => getAdminCustomerById(cur, querySetPlanCustomer, signal),
-      }).then(async (res) => {
-        if (res.ok && res.data) {
-          const cust = res.data;
+        key: `set-plan:${querySetPlanCustomer}:${queryPlotId}`,
+        fn: async (signal) => {
+          const [custRes, plotRes] = await Promise.all([
+            getAdminCustomerById(cur, querySetPlanCustomer, signal),
+            getAdminPlotDetails(cur, queryPlotId, signal),
+          ]);
+          return { custRes, plotRes };
+        },
+      }).then(async ({ custRes, plotRes }) => {
+        if (custRes.ok && custRes.data) {
+          const cust = custRes.data;
           if (cust.registrationStatus === 'minimal') {
             router.replace(`/admin/customers?completeCustomer=${cust.id}&plotId=${queryPlotId}`);
             return;
@@ -456,35 +503,43 @@ function CustomersPageContent() {
             ) || cust.bookings[0];
           }
 
-          let targetPlot = targetBooking?.plot;
+          let targetPlot = (plotRes.ok && plotRes.plot) ? plotRes.plot : targetBooking?.plot;
           const targetPlotId = targetBooking?.plotId || targetPlot?.id || queryPlotId;
           if (!targetPlot && targetPlotId) {
-            const plotRes = await getAdminPlotDetails(cur, targetPlotId);
-            if (plotRes.ok && plotRes.plot) {
-              targetPlot = plotRes.plot;
+            const extraPlotRes = await getAdminPlotDetails(cur, targetPlotId);
+            if (extraPlotRes.ok && extraPlotRes.plot) {
+              targetPlot = extraPlotRes.plot;
             }
           }
 
-          const customTotal = targetBooking?.installmentPlan?.totalPayment
-            ? Number(targetBooking.installmentPlan.totalPayment)
-            : (targetPlot?.price ? Number(targetPlot.price) : undefined);
+          // Authoritative price comes strictly from the server/database
+          const serverPrice = (targetPlot?.price !== undefined && targetPlot?.price !== null)
+            ? toPlainNumber(targetPlot.price)
+            : undefined;
 
-          if (targetPlot && targetPlot.price && targetPlot.plotNumber && targetPlot.blockId) {
-            applyPlot(targetPlot, customTotal);
+          const customTotal = (targetBooking?.installmentPlan?.totalPayment && Number(targetBooking.installmentPlan.totalPayment) > 0)
+            ? toPlainNumber(targetBooking.installmentPlan.totalPayment)
+            : serverPrice;
+
+          const effectivePlot = targetPlot || initialPlot;
+
+          if (effectivePlot) {
+            applyPlot(effectivePlot, customTotal);
           } else if (targetPlotId) {
             await loadPlotById(targetPlotId, customTotal);
           }
 
-          if (targetPlot) {
-            const cleanPrice = toPlainNumber(targetPlot.price);
-            const cleanTotal = customTotal !== undefined ? toPlainNumber(customTotal) : cleanPrice;
-            const normalizedTarget = { ...targetPlot, price: cleanPrice };
+          if (effectivePlot) {
+            const cleanPrice = serverPrice !== undefined ? serverPrice : toPlainNumber(effectivePlot.price);
+            const cleanTotal = customTotal !== undefined ? customTotal : cleanPrice;
+            const normalizedTarget = { ...(targetPlot || effectivePlot), price: cleanPrice };
             setSetPlanPlot(normalizedTarget);
             setSetPlanPrice(cleanTotal);
             setSelectedPlotA(normalizedTarget);
             setSelectedPlotB(normalizedTarget);
             setTotalPaymentA(cleanTotal);
             setTotalPaymentB(cleanTotal);
+            setPlotLoading(false);
           }
 
           if (targetBooking?.installmentPlan?.planYears) {
@@ -627,7 +682,7 @@ function CustomersPageContent() {
     }
 
     setLoading(false);
-  }, [router, queryPlotId, queryLockToken, queryCustomerId, queryCompleteCustomer, querySetPlanCustomer, queryCustomerName, queryCustomerPhone, queryCustomerEmail]);
+  }, [router, queryPlotId, queryLockToken, queryCustomerId, queryCompleteCustomer, querySetPlanCustomer, queryCustomerName, queryCustomerPhone, queryCustomerEmail, queryPlotNumber, queryPrice, queryCustomerCnic]);
 
   useEffect(() => {
     loadInitialData();
@@ -918,6 +973,15 @@ function CustomersPageContent() {
       setFeedback({ type: 'error', message: 'Applicant CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
       return;
     }
+    const cleanPhoneDigits = pathAForm.phone.replace(/\D/g, '');
+    if (cleanPhoneDigits.length > 11) {
+      setFeedback({ type: 'error', message: 'Phone number cannot be greater than 11 digits.' });
+      return;
+    }
+    if (cleanPhoneDigits.length < 10) {
+      setFeedback({ type: 'error', message: 'Please enter a valid 11-digit phone number (e.g. 0300-1234567).' });
+      return;
+    }
     const isNokCnicUnchanged = Boolean(
       (completeTargetCustomer &&
         pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
@@ -946,7 +1010,10 @@ function CustomersPageContent() {
         session.assignedBlocks.includes(plot.blockId))
     );
 
-    const finalPriceA = (canEditPriceA && totalPaymentA > 0) ? toPlainNumber(totalPaymentA) : toPlainNumber(plot.price);
+    const serverAuthoritativePrice = toPlainNumber(plot.price);
+    const finalPriceA = (setPlanCustomer && serverAuthoritativePrice > 0)
+      ? serverAuthoritativePrice
+      : ((canEditPriceA && totalPaymentA > 0) ? toPlainNumber(totalPaymentA) : serverAuthoritativePrice);
 
     if (!finalPriceA || isNaN(finalPriceA) || finalPriceA <= 0) {
       setFeedback({
@@ -959,14 +1026,17 @@ function CustomersPageContent() {
     // Build installment plan config if installment type
     let installmentPlan: any = undefined;
     if (pathAForm.paymentType === 'installment') {
+      const totalRows = yearsA * 12;
+      const biannualCount = yearsA * 2;
+      const monthlyCount = totalRows - 1 - biannualCount - 1;
       installmentPlan = {
         totalPayment: finalPriceA,
         planYears: yearsA,
         years: yearsA,
         downpayment: Math.floor(finalPriceA * 0.25),
-        monthlyInstallmentCount: yearsA * 12,
-        biannualInstallmentCount: yearsA * 2,
-        numberOfInstallments: (yearsA * 12) + (yearsA * 2),
+        monthlyInstallmentCount: monthlyCount,
+        biannualInstallmentCount: biannualCount,
+        numberOfInstallments: monthlyCount + biannualCount,
       };
     }
 
@@ -1431,14 +1501,17 @@ function CustomersPageContent() {
     // Build installment plan config if installment type
     let installmentPlan: any = undefined;
     if (pathBPaymentType === 'installment') {
+      const totalRows = yearsB * 12;
+      const biannualCount = yearsB * 2;
+      const monthlyCount = totalRows - 1 - biannualCount - 1;
       installmentPlan = {
         totalPayment: finalPriceB,
         planYears: yearsB,
         years: yearsB,
         downpayment: Math.floor(finalPriceB * 0.25),
-        monthlyInstallmentCount: yearsB * 12,
-        biannualInstallmentCount: yearsB * 2,
-        numberOfInstallments: (yearsB * 12) + (yearsB * 2),
+        monthlyInstallmentCount: monthlyCount,
+        biannualInstallmentCount: biannualCount,
+        numberOfInstallments: monthlyCount + biannualCount,
       };
     }
 
@@ -1700,21 +1773,28 @@ function CustomersPageContent() {
       return;
     }
 
-    if (setPlanPrice <= 0 || isNaN(setPlanPrice)) {
+    const authoritativePrice = (setPlanPlot?.price && toPlainNumber(setPlanPlot.price) > 0)
+      ? toPlainNumber(setPlanPlot.price)
+      : setPlanPrice;
+
+    if (authoritativePrice <= 0 || isNaN(authoritativePrice)) {
       setFeedback({ type: 'error', message: 'Please enter a valid plot price (PKR).' });
       return;
     }
 
     let installmentPlan: any = undefined;
     if (setPlanPaymentType === 'installment') {
+      const totalRows = setPlanYears * 12;
+      const biannualCount = setPlanYears * 2;
+      const monthlyCount = totalRows - 1 - biannualCount - 1;
       installmentPlan = {
-        totalPayment: setPlanPrice,
+        totalPayment: authoritativePrice,
         planYears: setPlanYears,
         years: setPlanYears,
-        downpayment: Math.floor(setPlanPrice * 0.25),
-        monthlyInstallmentCount: setPlanYears * 12,
-        biannualInstallmentCount: setPlanYears * 2,
-        numberOfInstallments: (setPlanYears * 12) + (setPlanYears * 2),
+        downpayment: Math.floor(authoritativePrice * 0.25),
+        monthlyInstallmentCount: monthlyCount,
+        biannualInstallmentCount: biannualCount,
+        numberOfInstallments: monthlyCount + biannualCount,
       };
     }
 
@@ -1737,7 +1817,7 @@ function CustomersPageContent() {
           paymentType: setPlanPaymentType,
           installmentPlan,
           paperInstallmentRef: setPlanPaperRef.trim() || undefined,
-          plotPrice: setPlanPrice,
+          plotPrice: authoritativePrice,
         }),
       });
 
@@ -2262,11 +2342,13 @@ function CustomersPageContent() {
                 <input
                   type="text"
                   required
+                  maxLength={12}
                   placeholder="0300-1234567"
                   value={pathAForm.phone}
-                  onChange={(e) => setPathAForm({ ...pathAForm, phone: e.target.value })}
+                  onChange={(e) => setPathAForm({ ...pathAForm, phone: formatPhone(e.target.value) })}
                   className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
                 />
+                <span className="text-[10px] text-slate-400">Cannot exceed 11 digits (e.g. 0300-1234567)</span>
               </div>
 
               <div>
@@ -2712,7 +2794,7 @@ function CustomersPageContent() {
                       ))}
                     </div>
                     <span className="text-[10px] text-slate-500 mt-1 block">
-                      {yearsA * 12} Monthly bills + {yearsA * 2} Bi-annual bills + Downpayment + Possession
+                      {(yearsA * 12) - 2 - (yearsA * 2)} Monthly bills + {yearsA * 2} Bi-annual bills + Down payment + Possession
                     </span>
                   </div>
                 </div>
@@ -2733,7 +2815,7 @@ function CustomersPageContent() {
                         <span className="text-sm font-mono font-bold text-blue-950 mt-0.5 block">
                           PKR {(Math.floor((Math.round(effectivePriceA * 100) * 382) / 1000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
-                        <span className="text-[10px] text-blue-700">{yearsA * 12} monthly bills</span>
+                        <span className="text-[10px] text-blue-700">{(yearsA * 12) - 2 - (yearsA * 2)} monthly bills</span>
                       </div>
                       <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
                         <span className="text-[10px] uppercase font-bold text-sky-800 block">Bi-annual Pool (28.8%)</span>
@@ -3040,7 +3122,8 @@ function CustomersPageContent() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onKeyDown={(e) => {
-                      const totalItems = searchResults.length + 1;
+                      const totalItems = searchResults.length;
+                      if (totalItems === 0) return;
                       if (e.key === 'ArrowDown') {
                         e.preventDefault();
                         setPathBHighlightedIndex((prev) => (prev + 1) % totalItems);
@@ -3051,10 +3134,6 @@ function CustomersPageContent() {
                         if (pathBHighlightedIndex >= 0 && pathBHighlightedIndex < searchResults.length) {
                           e.preventDefault();
                           handleSelectCustomer(searchResults[pathBHighlightedIndex]);
-                        } else if (pathBHighlightedIndex === searchResults.length) {
-                          e.preventDefault();
-                          setActiveTab('path_a');
-                          setPathAForm((prev) => ({ ...prev, fullName: searchQuery }));
                         }
                       } else if (e.key === 'Escape') {
                         setSearchResults([]);
@@ -3089,7 +3168,7 @@ function CustomersPageContent() {
             )}
 
             {/* Live Results Table (updates while typing, max 8 rows) */}
-            {searchQuery.trim() && !selectedCustomer && (
+            {searchQuery.trim() && !selectedCustomer && (isSearching || searchResults.length > 0) && (
               <div className="space-y-2 pt-2 animate-in fade-in duration-150">
                 <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <span>
@@ -3158,35 +3237,6 @@ function CustomersPageContent() {
                       </div>
                     );
                   })}
-
-                  {/* Empty state while query typed */}
-                  {!isSearching && searchResults.length === 0 && (
-                    <div className="p-4 text-center text-xs text-slate-500 bg-slate-50">
-                      No saved members found matching &ldquo;{searchQuery}&rdquo;. You can register them as a new customer below.
-                    </div>
-                  )}
-
-                  {/* Last row: Use this as a new customer */}
-                  <div
-                    onClick={() => {
-                      setActiveTab('path_a');
-                      setPathAForm((prev) => ({ ...prev, fullName: searchQuery }));
-                    }}
-                    onMouseEnter={() => setPathBHighlightedIndex(searchResults.length)}
-                    className={`p-3 transition cursor-pointer flex items-center gap-2.5 text-xs font-semibold ${
-                      pathBHighlightedIndex === searchResults.length
-                        ? 'bg-blue-100/70 text-blue-900'
-                        : 'bg-slate-50 hover:bg-blue-50/60 text-slate-700'
-                    }`}
-                  >
-                    <UserPlus className="w-4 h-4 text-blue-600 shrink-0" />
-                    <div className="min-w-0">
-                      <span>Use &ldquo;<strong>{searchQuery}</strong>&rdquo; as a new customer</span>
-                      <span className="text-[10px] text-slate-500 block font-normal">
-                        Switch to Path A to register a new member who is not on file
-                      </span>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -3603,7 +3653,7 @@ function CustomersPageContent() {
                         ))}
                       </div>
                       <span className="text-[10px] text-slate-500 mt-1 block">
-                        {yearsB * 12} Monthly bills + {yearsB * 2} Bi-annual bills + Downpayment + Possession
+                        {(yearsB * 12) - 2 - (yearsB * 2)} Monthly bills + {yearsB * 2} Bi-annual bills + Down payment + Possession
                       </span>
                     </div>
                   </div>
@@ -3624,7 +3674,7 @@ function CustomersPageContent() {
                           <span className="text-sm font-mono font-bold text-blue-950 mt-0.5 block">
                             PKR {(Math.floor((Math.round(effectivePriceB * 100) * 382) / 1000) / 100).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                           </span>
-                          <span className="text-[10px] text-blue-700">{yearsB * 12} monthly bills</span>
+                          <span className="text-[10px] text-blue-700">{(yearsB * 12) - 2 - (yearsB * 2)} monthly bills</span>
                         </div>
                         <div className="p-2.5 rounded-xl bg-sky-50 border border-sky-200">
                           <span className="text-[10px] uppercase font-bold text-sky-800 block">Bi-annual Pool (28.8%)</span>

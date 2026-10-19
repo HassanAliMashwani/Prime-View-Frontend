@@ -23,8 +23,6 @@ import {
   Plus,
   Trash2,
   Image as ImageIcon,
-  Phone,
-  Globe,
   CreditCard,
 } from 'lucide-react';
 import { AdminSession, ContentBlock, ContentSection } from '@/lib/mock/types';
@@ -80,8 +78,6 @@ export default function ContentCMSPage() {
     possession?: string;
     date?: string;
     location?: string;
-    contact?: string;
-    website?: string;
     imageUrl?: string;
     galleryImages: string[];
     videoUrl?: string;
@@ -337,8 +333,6 @@ export default function ContentCMSPage() {
       possession: (locked.metadata.possession as string) || '',
       date: locked.metadata.date,
       location: locked.metadata.location,
-      contact: (locked.metadata.contact as string) || '',
-      website: (locked.metadata.website as string) || '',
       imageUrl: normalizeImagePath(locked.metadata.imageUrl || '') || (locked.id === 'plan-02-kanal' ? '/new assests/our plan assests/card 6.webp' : (locked.id.includes('pre-launch') ? '/new assests/Events and media/event1/QAS07033.JPG_2K_202609031135.webp' : '')),
       galleryImages: Array.isArray(locked.metadata.galleryImages) && locked.metadata.galleryImages.length > 0 && !locked.metadata.galleryImages[0].includes('sample')
         ? (locked.metadata.galleryImages as string[]).map((img) => normalizeImagePath(img)).slice(0, 9)
@@ -382,8 +376,6 @@ export default function ContentCMSPage() {
       possession: '',
       date: '',
       location: '',
-      contact: '',
-      website: '',
       imageUrl: '',
       galleryImages: [],
       videoUrl: '',
@@ -459,8 +451,6 @@ export default function ContentCMSPage() {
     } else {
       metadata.date = editForm.date?.trim() || null;
       metadata.location = editForm.location?.trim() || null;
-      metadata.contact = editForm.contact?.trim() || null;
-      metadata.website = editForm.website?.trim() || null;
       metadata.videoUrl = editForm.videoUrl?.trim()
         ? formatYouTubeEmbedUrl(editForm.videoUrl) || editForm.videoUrl.trim()
         : null;
@@ -851,18 +841,6 @@ export default function ContentCMSPage() {
                         {String(block.metadata.location)}
                       </span>
                     )}
-                    {Boolean(block.metadata.contact) && (
-                      <span className="flex items-center gap-1 bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md border border-emerald-200 font-medium text-[10px]">
-                        <Phone className="w-3 h-3 text-emerald-600" />
-                        {String(block.metadata.contact)}
-                      </span>
-                    )}
-                    {Boolean(block.metadata.website) && (
-                      <span className="flex items-center gap-1 bg-slate-50 text-slate-700 px-2 py-0.5 rounded-md border border-slate-200 font-medium text-[10px]">
-                        <Globe className="w-3 h-3 text-slate-500" />
-                        {String(block.metadata.website)}
-                      </span>
-                    )}
                   </div>
 
                   {/* Tags */}
@@ -1056,6 +1034,8 @@ export default function ContentCMSPage() {
                       </label>
                       <input
                         type="number"
+                        min={1}
+                        step="any"
                         placeholder="e.g. 4900000"
                         value={editForm.price || ''}
                         onChange={(e) =>
@@ -1150,42 +1130,6 @@ export default function ContentCMSPage() {
                         placeholder="e.g. Rosecliff Marquee, Main Margalla Road, E-11/1, Islamabad"
                         className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
                       />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Contact Number
-                      </label>
-                      <input
-                        type="text"
-                        value={editForm.contact || ''}
-                        onChange={(e) => setEditForm({ ...editForm, contact: e.target.value })}
-                        placeholder="e.g. 0333 0111112"
-                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Website Link
-                      </label>
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          value={editForm.website || ''}
-                          onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
-                          placeholder="e.g. www.primeview.org"
-                          className="w-full px-3 py-2 pr-8 text-xs rounded-xl border border-slate-300"
-                        />
-                        {editForm.website && (
-                          <button
-                            type="button"
-                            onClick={() => setEditForm({ ...editForm, website: '' })}
-                            className="absolute right-2 p-1 text-slate-400 hover:text-rose-600 rounded-md transition cursor-pointer"
-                            title="Remove website link"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
                     </div>
                   </>
                 )}

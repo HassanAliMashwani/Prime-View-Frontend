@@ -39,7 +39,9 @@ import {
   cancelReservingPlot,
   reservePlot, 
   togglePlotAdjustment,
-  updatePlotPrice
+  updatePlotPrice,
+  getBlockLocks,
+  BlockPlotLockSync
 } from '@/lib/dal/adminPlots';
 import { releaseReservation } from '@/lib/dal/reservations';
 import { createMinimalBooking, PickerMember } from '@/lib/dal/customers';
@@ -47,6 +49,7 @@ import LiveMemberPicker from '@/components/admin/customers/LiveMemberPicker';
 import LiveCnicMemberPicker from '@/components/admin/customers/LiveCnicMemberPicker';
 import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
+import { formatPhone } from '@/lib/utils/phone';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
@@ -266,35 +269,146 @@ function BlockPlotsContent() {
     }
   }, [loadPlots]);
 
-  // Real-time sync via Lane 2 30-second interval
+  // Immediate real-time sync via BroadcastChannel for PLOT_LOCKED & PLOT_UNLOCKED
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      const s = getActiveAdminSession();
-      if (s) {
-        loadPlots(s, true);
-        // Refresh selected plot in Lane 2 only if it is still active and open
-        if (selectedPlot && activeSelectedPlotIdRef.current === selectedPlot.id) {
-          const targetPlotId = selectedPlot.id;
-          runLane2({
-            screen: `block-plot-${targetPlotId}`,
-            isRefresh: true,
-            fn: async (signal) => {
-              const res = await getAdminPlotDetails(s, targetPlotId, signal);
-              if (activeSelectedPlotIdRef.current !== targetPlotId) return;
-              if (res.ok && res.plot) {
-                setSelectedPlot(res.plot);
-                if (res.reservations) setPlotReservations(res.reservations);
-                if (res.owner) setSelectedPlotOwner(res.owner);
-                if (res.booking) setSelectedPlotBooking(res.booking);
-              }
-            },
-          }).catch(() => {});
-        }
-      }
-    }, 30000);
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    let channel: BroadcastChannel | null = null;
+    try {
+      channel = new BroadcastChannel('prime-view-sync');
+      channel.onmessage = (event) => {
+        const data = event.data;
+        if (!data || !data.type) return;
 
+        if (data.type === 'PLOT_LOCKED') {
+          const { plotId, lockedBy, lockedByName, lockedAt } = data;
+          setPlots((prev) =>
+            prev.map((p) => {
+              if (p.id === plotId) {
+                return {
+                  ...p,
+                  lockedBy: lockedBy || p.lockedBy,
+                  lockedByName: lockedByName || p.lockedByName || 'Admin',
+                  lockedAt: lockedAt ? (typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime()) : Date.now(),
+                };
+              }
+              return p;
+            })
+          );
+          setSelectedPlot((prev) => {
+            if (prev && prev.id === plotId) {
+              return {
+                ...prev,
+                lockedBy: lockedBy || prev.lockedBy,
+                lockedByName: lockedByName || prev.lockedByName || 'Admin',
+                lockedAt: lockedAt ? (typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime()) : Date.now(),
+              };
+            }
+            return prev;
+          });
+        } else if (data.type === 'PLOT_UNLOCKED') {
+          const { plotId } = data;
+          setPlots((prev) =>
+            prev.map((p) => {
+              if (p.id === plotId) {
+                return {
+                  ...p,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                };
+              }
+              return p;
+            })
+          );
+          setSelectedPlot((prev) => {
+            if (prev && prev.id === plotId) {
+              return {
+                ...prev,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+              };
+            }
+            return prev;
+          });
+        }
+      };
+    } catch {
+      // BroadcastChannel unavailable
+    }
+
+    return () => {
+      if (channel) {
+        channel.close();
+      }
+    };
+  }, []);
+
+  // 5-second lightweight lock and status sync for the open block only (fallback)
+  useEffect(() => {
+    const syncBlockLocks = async () => {
+      const s = getActiveAdminSession();
+      if (!s) return;
+      try {
+        const res = await getBlockLocks(s, blockId);
+        if (res.ok && Array.isArray(res.locks)) {
+          const lockMap = new Map<string, BlockPlotLockSync>();
+          res.locks.forEach((l) => lockMap.set(l.id, l));
+
+          setPlots((prev) => {
+            let changed = false;
+            const updated = prev.map((p) => {
+              const syncItem = lockMap.get(p.id);
+              if (!syncItem) return p;
+
+              const statusChanged = p.status !== syncItem.status;
+              const lockChanged =
+                p.lockedBy !== (syncItem.lockedBy || undefined) ||
+                p.lockedByName !== (syncItem.lockedByName || undefined);
+
+              if (statusChanged || lockChanged) {
+                changed = true;
+                return {
+                  ...p,
+                  status: syncItem.status as any,
+                  lockedBy: syncItem.lockedBy || undefined,
+                  lockedByName: syncItem.lockedByName || undefined,
+                  lockedAt: syncItem.lockedAt ? new Date(syncItem.lockedAt).getTime() : undefined,
+                };
+              }
+              return p;
+            });
+            return changed ? updated : prev;
+          });
+
+          setSelectedPlot((prev) => {
+            if (!prev) return null;
+            const syncItem = lockMap.get(prev.id);
+            if (!syncItem) return prev;
+            if (
+              prev.status !== syncItem.status ||
+              prev.lockedBy !== (syncItem.lockedBy || undefined) ||
+              prev.lockedByName !== (syncItem.lockedByName || undefined)
+            ) {
+              return {
+                ...prev,
+                status: syncItem.status as any,
+                lockedBy: syncItem.lockedBy || undefined,
+                lockedByName: syncItem.lockedByName || undefined,
+                lockedAt: syncItem.lockedAt ? new Date(syncItem.lockedAt).getTime() : undefined,
+              };
+            }
+            return prev;
+          });
+        }
+      } catch {
+        // non-blocking fallback
+      }
+    };
+
+    const intervalId = setInterval(syncBlockLocks, 5000);
     return () => clearInterval(intervalId);
-  }, [loadPlots, selectedPlot]);
+  }, [blockId]);
 
   // Close Plot Action Drawer and clean up deep-link query param if present
   const handleCloseDrawer = useCallback(() => {
@@ -434,8 +548,20 @@ function BlockPlotsContent() {
       customerId: '',
     });
     setActionError(null);
+    setActionLoading(true);
+    const lockRes = await startReservingPlot(session, selectedPlot.id);
+    setActionLoading(false);
+    if (!lockRes.ok) {
+      if (lockRes.error === 'LOCKED_BY_ANOTHER' || lockRes.reason === 'LOCKED_BY_ANOTHER') {
+        const holder = lockRes.lockedByName || 'Another Administrator';
+        setActionError(`Plot is currently locked by ${holder}. Please wait for lock expiration.`);
+        setSelectedPlot((prev) => prev ? { ...prev, lockedBy: lockRes.lockedBy || 'locked', lockedByName: holder } : null);
+      } else {
+        setActionError(lockRes.message || 'Failed to acquire reservation lock.');
+      }
+      return;
+    }
     setIsReserveModalOpen(true);
-    await startReservingPlot(session, selectedPlot.id);
   };
 
   // Cancel / Close Reserve Modal: close window first immediately, then cancel reserve in background
@@ -533,6 +659,15 @@ function BlockPlotsContent() {
   const handleReserveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!session || !selectedPlot) return;
+    const cleanPhone = reserveForm.customerPhone.replace(/\D/g, '');
+    if (cleanPhone.length > 11) {
+      setActionError('Phone number cannot be greater than 11 digits.');
+      return;
+    }
+    if (cleanPhone.length < 10) {
+      setActionError('Please enter a valid 11-digit phone number (e.g. 0300-1234567).');
+      return;
+    }
     setActionLoading(true);
     setActionError(null);
 
@@ -716,6 +851,16 @@ function BlockPlotsContent() {
   const openBook = async (prefillReservation?: Reservation, forceQuick: boolean = false) => {
     if (!session || !selectedPlot) return;
 
+    const isPlotReserved = selectedPlot.status === 'reserved' ||
+      Boolean(selectedPlot.reservations?.some((r) => r.status === 'active')) ||
+      (Number(selectedPlot.activeReservationCount || 0) > 0);
+
+    // If plot is reserved, do not open the quick-booking popup
+    if (forceQuick && isPlotReserved) {
+      setActionError('Quick booking is not available while a plot is reserved.');
+      return;
+    }
+
     setActionLoading(true);
     setActionError(null);
 
@@ -743,6 +888,11 @@ function BlockPlotsContent() {
 
     // Simplified Admin Booking Flow (Change Request 07 §5)
     if (session.role === 'sub_admin' || forceQuick) {
+      if (isPlotReserved && !prefillReservation) {
+        setActionError('Quick booking is not available while a plot is reserved.');
+        setActionLoading(false);
+        return;
+      }
       setMinimalForm({
         customerName: prefillReservation?.customerName || '',
         cnic: '',
@@ -1127,7 +1277,7 @@ function BlockPlotsContent() {
                   </span>
                   <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-md border ${statusBadge}`}>
                     {isLocked
-                      ? `Being booked by ${plot.lockedByName?.split(' ')[0] || 'Admin'}`
+                      ? `Held by: ${plot.lockedByName || 'Admin'}`
                       : isDisputed
                       ? (plot.activeReservationCount && plot.activeReservationCount > 1 ? `Disputed (${plot.activeReservationCount})` : 'Disputed')
                       : isAdjustment
@@ -1190,7 +1340,7 @@ function BlockPlotsContent() {
                 {isLocked ? (
                   <span className="text-rose-700 font-mono text-[9px] font-bold flex items-center gap-0.5">
                     <Lock className="w-2.5 h-2.5" />
-                    <span>{plot.lockedByName?.split(' ')[0]}</span>
+                    <span>{plot.lockedByName || 'Admin'}</span>
                   </span>
                 ) : isAdjustment ? (
                   <span className="text-blue-600 font-mono text-[9px] font-bold lowercase">
@@ -1350,7 +1500,7 @@ function BlockPlotsContent() {
               ) : null}
 
               {/* Dispute Warning Banner in Drawer */}
-              {((selectedPlot.displayStatus || selectedPlot.status) === 'disputed' || selectedPlot.isDisputed || (selectedPlot.activeReservationCount && selectedPlot.activeReservationCount > 1)) && (
+              {Boolean((selectedPlot.displayStatus || selectedPlot.status) === 'disputed' || selectedPlot.isDisputed || ((selectedPlot.activeReservationCount ?? 0) > 1)) && (
                 <div className="p-3 bg-rose-50 border border-rose-300 rounded-xl text-rose-950 space-y-1 shadow-2xs">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5 font-bold text-xs text-rose-900">
@@ -1387,7 +1537,7 @@ function BlockPlotsContent() {
                         <input
                           type="number"
                           min={1}
-                          step={1000}
+                          step="any"
                           value={newPriceInput}
                           onChange={(e) => setNewPriceInput(e.target.value)}
                           placeholder="Enter price"
@@ -1724,63 +1874,70 @@ function BlockPlotsContent() {
                     </button>
                   )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {/* Reserve Button: Available plots only */}
-                  {selectedPlot.category !== 'amenity' && selectedPlot.status === 'available' && !selectedPlot.isAdjustment && (
-                    <button
-                      type="button"
-                      onClick={openReserve}
-                      disabled={actionLoading}
-                      className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-amber-50 hover:bg-amber-100/90 active:bg-amber-200/80 border border-amber-300 hover:border-amber-400 text-amber-950 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-xs disabled:opacity-50"
-                    >
-                      <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                      <span>Reserve Plot (Token)</span>
-                    </button>
-                  )}
+              ) : (() => {
+                const isPlotReserved = selectedPlot.status === 'reserved' ||
+                  Boolean(selectedPlot.reservations?.some((r) => r.status === 'active')) ||
+                  (Number(selectedPlot.activeReservationCount || 0) > 0);
+                return (
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Reserve Button: Available or Reserved plots - The Reserve action stays */}
+                    {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
+                      <button
+                        type="button"
+                        onClick={openReserve}
+                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
+                        className={`inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-amber-50 hover:bg-amber-100/90 active:bg-amber-200/80 border border-amber-300 hover:border-amber-400 text-amber-950 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-xs disabled:opacity-50 ${
+                          isPlotReserved && session?.role !== 'super_admin' ? 'col-span-2' : ''
+                        }`}
+                      >
+                        <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Reserve Plot (Token)</span>
+                      </button>
+                    )}
 
-                  {/* Lock & Book Button: Available or Reserved plots only */}
-                  {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
-                    <button
-                      type="button"
-                      onClick={() => openBook(undefined, true)}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
-                      className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
-                    >
-                      <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
-                      <span>Quick Booking</span>
-                    </button>
-                  )}
+                    {/* Lock & Book Button: Available only - HIDDEN when plot is reserved or has active reservation */}
+                    {selectedPlot.category !== 'amenity' && selectedPlot.status === 'available' && !isPlotReserved && !selectedPlot.isAdjustment && (
+                      <button
+                        type="button"
+                        onClick={() => openBook(undefined, true)}
+                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
+                        className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
+                      >
+                        <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
+                        <span>Quick Booking</span>
+                      </button>
+                    )}
 
-                  {/* Full Registration Button: Super Admin only */}
-                  {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && session?.role === 'super_admin' && (
-                    <button
-                      type="button"
-                      onClick={() => openBook(undefined, false)}
-                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
-                      className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-200/80 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 hover:border-slate-400 shadow-2xs transition-all cursor-pointer text-center disabled:opacity-50"
-                    >
-                      <User className="w-4 h-4 text-slate-600 shrink-0" />
-                      <span>Full Registration</span>
-                    </button>
-                  )}
+                    {/* Full Registration Button: Super Admin only - Available or Reserved */}
+                    {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && session?.role === 'super_admin' && (
+                      <button
+                        type="button"
+                        onClick={() => openBook(undefined, false)}
+                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
+                        className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-200/80 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 hover:border-slate-400 shadow-2xs transition-all cursor-pointer text-center disabled:opacity-50"
+                      >
+                        <User className="w-4 h-4 text-slate-600 shrink-0" />
+                        <span>Full Registration</span>
+                      </button>
+                    )}
 
-                  {/* Super Admin Master Plan Adjustment Button: HIDDEN for booked and allotted */}
-                  {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && selectedPlot.status !== 'booked' && !selectedPlot.isAdjustment && (
-                    <button
-                      type="button"
-                      onClick={() => handleOpenAdjustPlot(selectedPlot)}
-                      disabled={actionLoading}
-                      className={`inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-white hover:bg-blue-50/80 active:bg-blue-100 border border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-2xs ${
-                        selectedPlot.status !== 'available' ? 'col-span-2' : ''
-                      }`}
-                    >
-                      <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span>Adjust Plot</span>
-                    </button>
-                  )}
-                </div>
-              )}
+                    {/* Super Admin Master Plan Adjustment Button: HIDDEN for booked and allotted */}
+                    {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && selectedPlot.status !== 'booked' && !selectedPlot.isAdjustment && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAdjustPlot(selectedPlot)}
+                        disabled={actionLoading}
+                        className={`inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-white hover:bg-blue-50/80 active:bg-blue-100 border border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-2xs ${
+                          selectedPlot.status !== 'available' ? 'col-span-2' : ''
+                        }`}
+                      >
+                        <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span>Adjust Plot</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -1789,21 +1946,21 @@ function BlockPlotsContent() {
       {/* Reserve Plot Modal */}
       {isReserveModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) closeReserveModal(); }}>
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 max-h-[100dvh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden max-h-[100dvh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <BookmarkCheck className="w-4 h-4 text-amber-600" />
                 <span>Reserve Plot {selectedPlot.plotNumber}</span>
               </h3>
               <button
                 onClick={closeReserveModal}
-                className="text-slate-400 hover:text-slate-700"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleReserveSubmit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleReserveSubmit} className="p-6 space-y-3.5 text-xs overflow-y-auto">
               <div>
                 <label className="block text-slate-700 mb-1 font-semibold">
                   Customer Full Name <span className="text-rose-500">*</span>
@@ -1837,11 +1994,13 @@ function BlockPlotsContent() {
                   <input
                     type="text"
                     required
+                    maxLength={12}
                     value={reserveForm.customerPhone}
-                    onChange={(e) => setReserveForm({ ...reserveForm, customerPhone: e.target.value })}
+                    onChange={(e) => setReserveForm({ ...reserveForm, customerPhone: formatPhone(e.target.value) })}
                     placeholder="0300-1234567"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:bg-white text-xs font-mono"
                   />
+                  <span className="text-[10px] text-slate-400 block mt-0.5">Cannot exceed 11 digits</span>
                 </div>
                 <div>
                   <label className="block text-slate-700 mb-1 font-semibold">Email Address</label>
@@ -1864,8 +2023,8 @@ function BlockPlotsContent() {
                   </label>
                   <input
                     type="number"
-                    min="10000"
-                    step="5000"
+                    min={1}
+                    step="any"
                     required
                     value={reserveForm.tokenFee}
                     onChange={(e) => setReserveForm({ ...reserveForm, tokenFee: Number(e.target.value) })}
@@ -1935,19 +2094,21 @@ function BlockPlotsContent() {
       {/* Town Planning / Boundary Re-survey Freeze Modal (Super Admin Only) */}
       {isAdjustmentModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) setIsAdjustmentModalOpen(false); }}>
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 max-h-[100dvh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden max-h-[100dvh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-blue-600" />
                 <span>Town Planning Adjustment Freeze</span>
               </h3>
               <button
                 onClick={() => setIsAdjustmentModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            <div className="p-6 overflow-y-auto space-y-4">
 
             <p className="text-xs text-slate-600 mb-4 leading-relaxed">
               Flagging Plot <strong className="text-slate-900 font-mono">{selectedPlot.plotNumber}</strong> will immediately lock this plot under a Town Planning / Boundary Re-survey Freeze. All reservations, bookings, and customer allocations will be frozen until released by Super Administration.
@@ -2002,6 +2163,7 @@ function BlockPlotsContent() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
@@ -2009,19 +2171,21 @@ function BlockPlotsContent() {
       {/* Admin Minimal Booking Modal (Change Request 07 §5) */}
       {isMinimalBookModalOpen && selectedPlot && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) closeMinimalBookModal(); }}>
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150 max-h-[100dvh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[100dvh] flex flex-col">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <Lock className="w-4 h-4 text-emerald-600" />
                 <span>Quick Booking: Plot {selectedPlot.plotNumber}</span>
               </h3>
               <button
                 onClick={closeMinimalBookModal}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            <div className="p-6 overflow-y-auto">
 
             {actionError && (
               <div className="mb-3 p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
@@ -2141,7 +2305,7 @@ function BlockPlotsContent() {
                   type="number"
                   required
                   min={1}
-                  step={1000}
+                  step="any"
                   value={minimalForm.price}
                   onChange={(e) => setMinimalForm({ ...minimalForm, price: e.target.value })}
                   placeholder="Enter plot price"
@@ -2176,6 +2340,7 @@ function BlockPlotsContent() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

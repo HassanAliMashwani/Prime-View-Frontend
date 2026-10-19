@@ -253,3 +253,21 @@ export async function deleteSubAdmin(
   };
 }
 
+/**
+ * Retrieve list of all blocks that exist in the Block table (Super Admin exclusive).
+ */
+export async function getAvailableBlocks(
+  session: AdminSession,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; blocks: { id: BlockId | string; name: string }[] }> {
+  if (session.role !== 'super_admin') {
+    return { ok: false, blocks: [] };
+  }
+
+  const res = await apiGet<any>('/admin/blocks', session?.token, signal);
+  if (res.ok && res.data?.blocks) {
+    return { ok: true, blocks: res.data.blocks };
+  }
+  return { ok: false, blocks: [] };
+}
+

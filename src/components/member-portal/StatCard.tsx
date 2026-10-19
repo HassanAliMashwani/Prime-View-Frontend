@@ -12,6 +12,8 @@ interface StatCardProps {
     text: string;
     variant?: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
   };
+  className?: string;
+  valueClassName?: string;
 }
 
 const badgeVariants = {
@@ -28,9 +30,11 @@ export const StatCard: React.FC<StatCardProps> = ({
   subtitle,
   icon: Icon,
   badge,
+  className,
+  valueClassName,
 }) => {
   return (
-    <div className="bg-white rounded-2xl border border-black/[0.08] p-3.5 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between overflow-hidden min-w-0">
+    <div className={`rounded-2xl border p-3.5 sm:p-5 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all flex flex-col justify-between overflow-hidden min-w-0 ${className || 'bg-white border-black/[0.08]'}`}>
       <div>
         {/* Top Row: Title + Icon (Always perfectly aligned) */}
         <div className="flex items-center justify-between gap-1.5 sm:gap-2">
@@ -44,7 +48,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
         {/* Primary Value (Full width, never pushes the icon) */}
         <div className="mt-1 sm:mt-2 mb-0.5 sm:mb-1">
-          <div className="text-base sm:text-2xl xl:text-[25px] font-bold font-display text-[#151914] tracking-tight truncate leading-tight tabular-nums">
+          <div className={`text-base sm:text-2xl xl:text-[25px] font-bold font-display tracking-tight truncate leading-tight tabular-nums ${valueClassName || 'text-[#151914]'}`}>
             {value}
           </div>
         </div>

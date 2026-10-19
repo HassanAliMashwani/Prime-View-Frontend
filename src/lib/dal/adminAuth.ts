@@ -70,7 +70,9 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       assignedBlocks: payload.assignedBlocks || [],
       permissions: payload.permissions || {},
       token: access_token,
-      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      expiresAt: typeof payload.exp === 'number' && payload.exp > 0
+        ? payload.exp * 1000
+        : Date.now() + 24 * 60 * 60 * 1000,
     };
 
     if (typeof window !== 'undefined') {
@@ -97,11 +99,14 @@ export async function adminLogin(username: string, password: string): Promise<Ad
 export function updateActiveAdminSession(updates: Partial<AdminSession>): void {
   if (typeof window === 'undefined') return;
   try {
-    const current = getActiveAdminSession();
+    const sessionData = sessionStorage.getItem(SESSION_STORAGE_KEY) || localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!sessionData) return;
+    const current = JSON.parse(sessionData) as AdminSession;
     if (current) {
       const merged: AdminSession = {
         ...current,
         ...updates,
+        // Keep the token and the expiry time. Do not shorten the session.
         token: current.token,
         expiresAt: current.expiresAt,
       };
@@ -145,9 +150,14 @@ export function getActiveAdminSession(): AdminSession | null {
   if (typeof window !== 'undefined') {
     try {
       sessionData = sessionStorage.getItem(SESSION_STORAGE_KEY) || localStorage.getItem(SESSION_STORAGE_KEY);
-      // Ensure session is synchronized to sessionStorage if found in localStorage
-      if (sessionData && !sessionStorage.getItem(SESSION_STORAGE_KEY)) {
-        sessionStorage.setItem(SESSION_STORAGE_KEY, sessionData);
+      // Ensure session is synchronized across storage
+      if (sessionData) {
+        if (!sessionStorage.getItem(SESSION_STORAGE_KEY)) {
+          sessionStorage.setItem(SESSION_STORAGE_KEY, sessionData);
+        }
+        if (!localStorage.getItem(SESSION_STORAGE_KEY)) {
+          localStorage.setItem(SESSION_STORAGE_KEY, sessionData);
+        }
       }
     } catch {
       sessionData = null;
@@ -158,7 +168,7 @@ export function getActiveAdminSession(): AdminSession | null {
 
   try {
     const session = JSON.parse(sessionData) as AdminSession;
-    if (session.expiresAt && session.expiresAt < Date.now()) {
+    if (session.expiresAt && typeof session.expiresAt === 'number' && session.expiresAt <= Date.now()) {
       adminLogout();
       return null;
     }

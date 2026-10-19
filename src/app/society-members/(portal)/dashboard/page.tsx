@@ -375,6 +375,8 @@ export default function MemberDashboardPage() {
               text: hasOverdue ? 'Overdue' : upcomingCount > 0 ? 'Pending' : 'Clear',
               variant: hasOverdue ? 'danger' : upcomingCount > 0 ? 'warning' : 'success',
             }}
+            className="bg-amber-50 border-amber-300"
+            valueClassName="text-amber-800"
           />
         </div>
 

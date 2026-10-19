@@ -37,14 +37,13 @@ export default function AdminPortalLayout({
     const refreshSessionFromProfile = async () => {
       const current = getActiveAdminSession();
       if (!current || !current.token) {
-        if (isMounted) {
-          router.push('/admin/login');
-        }
         return;
       }
 
-      // Send him to login only when the login has truly expired
-      const isExpired = Boolean(current.expiresAt && current.expiresAt <= Date.now());
+      // Log out only when the real session expiry time has passed
+      const isExpired = Boolean(
+        current.expiresAt && typeof current.expiresAt === 'number' && current.expiresAt <= Date.now()
+      );
       if (isExpired) {
         if (isMounted) {
           await adminLogout();
@@ -53,37 +52,40 @@ export default function AdminPortalLayout({
         return;
       }
 
-      const res = await getAdminProfile(current);
-      if (!isMounted) return;
+      try {
+        const res = await getAdminProfile(current);
+        if (!isMounted) return;
 
-      // A failed or slow profile check must not clear the login and must not send the admin to the login page
-      if (!res.ok || !res.admin) {
-        return;
+        // A failed or slow profile check must not log them out
+        if (!res.ok || !res.admin) {
+          return;
+        }
+
+        const { status, permissions, assignedBlocks, fullName } = res.admin;
+
+        // Log out only when the account is inactive or suspended
+        if (status === 'inactive' || status === 'suspended') {
+          await adminLogout();
+          router.push('/admin/login');
+          return;
+        }
+
+        // Update only permissions, assigned blocks, name, and status. Keep the token and the expiry time.
+        const updated: AdminSession = {
+          ...current,
+          fullName: fullName || current.fullName,
+          status: status || current.status,
+          permissions: (permissions as any) || current.permissions,
+          assignedBlocks: assignedBlocks || current.assignedBlocks,
+          token: current.token,
+          expiresAt: current.expiresAt,
+        };
+
+        updateActiveAdminSession(updated);
+        setSession(updated);
+      } catch {
+        // Failed or slow profile check must not log them out
       }
-
-      const { status, permissions, assignedBlocks, fullName } = res.admin;
-
-      // Send him to login only when the account is actually inactive
-      if (status === 'inactive' || status === 'suspended') {
-        await adminLogout();
-        router.push('/admin/login');
-        return;
-      }
-
-      // The permission refresh must update only the permissions, assigned blocks, name, and status.
-      // It must leave the login token and the expiry time in place.
-      const updated: AdminSession = {
-        ...current,
-        fullName: fullName || current.fullName,
-        status: status || current.status,
-        permissions: (permissions as any) || current.permissions,
-        assignedBlocks: assignedBlocks || current.assignedBlocks,
-        token: current.token,
-        expiresAt: current.expiresAt,
-      };
-
-      updateActiveAdminSession(updated);
-      setSession(updated);
     };
 
     // Initial check on mount to ensure fresh state

@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Send, CheckCircle2, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { apiPost } from "@/lib/api";
+import { formatPhone } from "@/lib/utils/phone";
 
 export const ContactForm: React.FC = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -47,7 +48,12 @@ export const ContactForm: React.FC = () => {
       return;
     }
     const cleanNumber = formData.number.replace(/[^0-9+]/g, "");
-    if (cleanNumber.length < 8) {
+    const phoneDigits = formData.number.replace(/\D/g, "");
+    if (phoneDigits.length > 11) {
+      setErrorMsg("Phone number cannot be greater than 11 digits.");
+      return;
+    }
+    if (phoneDigits.length < 8) {
       setErrorMsg("Please provide a valid phone or WhatsApp number.");
       return;
     }
@@ -172,13 +178,15 @@ export const ContactForm: React.FC = () => {
               name="number"
               tabIndex={0}
               required
+              maxLength={12}
               value={formData.number}
               onChange={(e) =>
-                setFormData({ ...formData, number: e.target.value })
+                setFormData({ ...formData, number: formatPhone(e.target.value) })
               }
-              placeholder="+92 3XX XXXXXXX"
-              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#5A6352] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B]"
+              placeholder="0300-1234567"
+              className="w-full px-4 py-3 text-sm bg-white border border-black/[0.1] rounded-xl text-[#151914] placeholder-[#5A6352] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#43612B] focus:border-[#43612B] font-mono"
             />
+            <span className="text-[10px] text-slate-500 block mt-1">Cannot exceed 11 digits</span>
           </div>
 
           <div>

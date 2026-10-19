@@ -98,7 +98,7 @@ export default function ReservationsPage() {
     const fetcher = async (signal?: AbortSignal) => {
       return await getReservations(s, {
         search: srch,
-        blockId: block,
+        blockId: block === 'all' ? undefined : block,
         status: tab === 'active' ? 'active' : 'history',
         page: p,
         pageSize: PAGE_SIZE,
@@ -143,7 +143,7 @@ export default function ReservationsPage() {
               async (signal) => {
                 const nextRes = await getReservations(s, {
                   search: srch,
-                  blockId: block,
+                  blockId: block === 'all' ? undefined : block,
                   status: tab === 'active' ? 'active' : 'history',
                   page: nextP,
                   pageSize: PAGE_SIZE,
@@ -711,21 +711,21 @@ export default function ReservationsPage() {
       {/* Edit Note Modal - Crisp Light Styling */}
       {editingRes && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl p-6">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
                 <Edit3 className="w-4 h-4 text-emerald-700" />
                 <span>Update Dispute / Resolution Note</span>
               </h3>
               <button
                 onClick={() => setEditingRes(null)}
-                className="text-slate-400 hover:text-slate-700"
+                className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveNote} className="space-y-4 text-xs">
+            <form onSubmit={handleSaveNote} className="p-6 space-y-4 text-xs overflow-y-auto">
               <div>
                 <span className="text-slate-500 font-medium">Target Plot:</span>{' '}
                 <strong className="text-slate-900 font-bold">

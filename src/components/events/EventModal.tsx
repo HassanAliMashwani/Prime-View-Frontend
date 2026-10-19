@@ -6,6 +6,7 @@ import { X, Calendar, MapPin, Maximize2, Play } from "lucide-react";
 import { EventData } from "@/data/events";
 import { formatYouTubeEmbedUrl } from "@/lib/dal/youtube";
 import { getEventImageUrls } from "@/lib/images";
+import { isRealVideo } from "@/lib/video";
 
 interface EventModalProps {
   event: EventData;
@@ -16,7 +17,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [mounted, setMounted] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  const videoEmbedUrl = event.videoPreview
+  const hasRealVideo = isRealVideo(event.videoPreview);
+  const videoEmbedUrl = hasRealVideo && event.videoPreview
     ? formatYouTubeEmbedUrl(event.videoPreview) ||
       (event.videoPreview.includes("youtube.com/embed") ? event.videoPreview : null)
     : null;
@@ -99,8 +101,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
               </p>
             </div>
 
-            {/* Video Section — Shown FIRST if video is added */}
-            {event.videoPreview && (
+            {/* Video Section — Shown ONLY if real video is present */}
+            {hasRealVideo && (
               <div className="pt-4 border-t border-black/[0.08] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">

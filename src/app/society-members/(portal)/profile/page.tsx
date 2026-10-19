@@ -8,7 +8,8 @@ import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { updateProfile, changeCustomerPassword } from '@/lib/dal/customers';
 import { runLane1 } from '@/lib/requestLanes';
-import { formatCnic } from '@/lib/utils/cnic';
+import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
+import { formatPhone, isValidPhone } from '@/lib/utils/phone';
 import { uploadProfilePhoto } from '@/lib/utils/profilePhotoUpload';
 import {
   User,
@@ -34,9 +35,16 @@ import {
 
 const profileSchema = z.object({
   fullName: z.string().min(3, 'Full name must be at least 3 characters'),
-  cnic: z.string().min(10, 'Please enter a valid CNIC format (e.g. 37405-1234567-1)'),
+  cnic: z.string().refine((val) => isValidCnic(val), {
+    message: 'CNIC must be exactly 13 digits in 00000-0000000-0 format.',
+  }),
   email: z.string().email('Please enter a valid email address'),
-  phone: z.string().min(10, 'Please enter a valid Pakistani phone number (e.g. 0300-1234567)'),
+  phone: z.string().refine((val) => {
+    const digits = val.replace(/\D/g, '');
+    return digits.length === 11;
+  }, {
+    message: 'Phone number cannot be greater than 11 digits and must be 11 digits (e.g. 0300-1234567).',
+  }),
   mailingAddress: z.string().min(5, 'Mailing address must be at least 5 characters'),
 });
 
@@ -589,10 +597,16 @@ export default function ProfilePage() {
                 <input
                   id="phone"
                   type="text"
-                  {...register('phone')}
-                  placeholder="0300-XXXXXXX"
-                  className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
+                  maxLength={12}
+                  value={watch('phone') || ''}
+                  onChange={(e) => {
+                    const formatted = formatPhone(e.target.value);
+                    setValue('phone', formatted, { shouldValidate: true, shouldDirty: true });
+                  }}
+                  placeholder="0300-1234567"
+                  className="w-full min-h-[44px] px-3.5 sm:px-4 py-2.5 text-xs sm:text-sm border border-black/[0.1] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] font-mono"
                 />
+                <span className="text-[10px] text-slate-500 block">Cannot exceed 11 digits</span>
                 {errors.phone && (
                   <p className="text-[11px] text-red-600 font-medium">{errors.phone.message}</p>
                 )}

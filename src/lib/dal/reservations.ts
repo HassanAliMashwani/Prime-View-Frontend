@@ -33,7 +33,7 @@ export async function getReservations(
 }> {
   const query = new URLSearchParams();
   if (filters?.status) query.set('status', filters.status);
-  if (filters?.blockId) query.set('blockId', filters.blockId);
+  if (filters?.blockId && filters.blockId !== 'all') query.set('blockId', filters.blockId);
   if (filters?.search) query.set('search', filters.search);
   if (filters?.page) query.set('page', String(filters.page));
   if (filters?.pageSize) query.set('pageSize', String(filters.pageSize));

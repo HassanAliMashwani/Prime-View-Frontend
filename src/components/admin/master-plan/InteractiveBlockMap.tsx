@@ -829,7 +829,7 @@ export default function InteractiveBlockMap({
                   {isLocked && (
                     <div className="mb-2 p-1.5 rounded-lg bg-rose-900/50 border border-rose-700/50 text-[10px] text-rose-200 flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                      <span>Being booked by {plot.lockedByName?.split(' ')[0] || 'Admin'}</span>
+                      <span>Held by: {plot.lockedByName || 'Admin'}</span>
                     </div>
                   )}
 

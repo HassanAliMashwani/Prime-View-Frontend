@@ -38,6 +38,7 @@ import {
   AdminSession,
   AdminProfileDetails,
 } from '@/lib/dal/adminAuth';
+import { formatPhone } from '@/lib/utils/phone';
 import { toast } from '@/lib/toast';
 import { getCache, setCache } from '@/lib/dal/apiCache';
 import { runLane1 } from '@/lib/requestLanes';
@@ -257,6 +258,14 @@ export default function AdminProfilePage() {
     if (!trimmedEmail || !/^\S+@\S+\.\S+$/.test(trimmedEmail)) {
       toast.error('Please provide a valid email address.');
       return;
+    }
+
+    if (trimmedPhone) {
+      const phoneDigits = trimmedPhone.replace(/\D/g, '');
+      if (phoneDigits.length > 11) {
+        toast.error('Phone number cannot be greater than 11 digits.');
+        return;
+      }
     }
 
     if (!session) return;
@@ -685,13 +694,14 @@ export default function AdminProfilePage() {
                   <div className="relative">
                     <input
                       type="tel"
+                      maxLength={12}
                       value={editPhone}
-                      onChange={(e) => setEditPhone(e.target.value)}
-                      placeholder="e.g. 0300-1234567 or +92 300 1234567"
+                      onChange={(e) => setEditPhone(formatPhone(e.target.value))}
+                      placeholder="0300-1234567"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium focus:outline-none focus:bg-white focus:border-slate-800 transition-colors"
                     />
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Official mobile phone number for verification.</p>
+                  <p className="text-[10px] text-slate-500 mt-1">Official mobile phone number (cannot exceed 11 digits).</p>
                 </div>
               </div>
 

@@ -35,9 +35,9 @@ import {
 } from 'lucide-react';
 import { AdminSession, AdminUser, BlockId } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, resetAdminPassword, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
+import { getSubAdmins, createSubAdmin, updateSubAdmin, deleteSubAdmin, resetAdminPassword, getAvailableBlocks, CreateSubAdminInput, UpdateSubAdminInput } from '@/lib/dal/users';
 import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegistry';
-import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { getCache, setCache, clearCachePrefix } from '@/lib/dal/apiCache';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 
@@ -68,14 +68,13 @@ const formatSinceDate = (dateStr?: string) => {
 };
 
 const PAGE_SIZE = 10;
-const ALL_BLOCKS: { id: BlockId; name: string }[] = [
+const DEFAULT_BLOCKS: { id: BlockId | string; name: string }[] = [
   { id: 'abbott', name: 'Abbott Block' },
   { id: 'royal', name: 'Royal Block' },
   { id: 'overseas', name: 'Overseas Block' },
   { id: 'elite', name: 'Elite Block' },
   { id: 'commercial', name: 'Commercial Block' },
   { id: 'npf-phase-1', name: 'NPF Phase 1' },
-  { id: 'npf-phase-2', name: 'NPF Phase 2' },
 ];
 
 const BLOCK_BADGES: Record<string, string> = {
@@ -157,6 +156,12 @@ export default function TeamsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [page, setPage] = useState<number>(1);
   const [totalRecords, setTotalRecords] = useState<number>(init?.total || 0);
+  const [availableBlocks, setAvailableBlocks] = useState<{ id: BlockId | string; name: string }[]>(() => {
+    if (typeof window === 'undefined') return DEFAULT_BLOCKS;
+    const cached = getCache<{ blocks: { id: BlockId | string; name: string }[] }>('/admin/blocks', true);
+    return cached?.blocks && cached.blocks.length > 0 ? cached.blocks : DEFAULT_BLOCKS;
+  });
+
   // Modal states
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState<AdminUser | null>(null);
@@ -206,7 +211,7 @@ export default function TeamsPage() {
   }, [statusFilter]);
   const [searchInput, setSearchInput] = useState('');
 
-  const loadData = useCallback(async (currentSession: AdminSession, p = page, st = statusFilter, search = searchTerm, isBackground = false) => {
+  const loadData = useCallback(async (currentSession: AdminSession, p = 1, st = statusFilterRef.current, search = '', isBackground = false) => {
     if (currentSession.role !== 'super_admin') {
       setLoading(false);
       return;
@@ -216,10 +221,10 @@ export default function TeamsPage() {
     const cacheKey = `/sub-admins:${adminId}:page=${p}:size=${PAGE_SIZE}:status=${st}:search=${search || ''}`;
 
     if (!isBackground) {
-      const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, true);
+      const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, false);
       if (cached) {
-        setSubAdmins(cached.subAdmins);
-        setTotalRecords(cached.total);
+        setSubAdmins(cached.subAdmins || []);
+        setTotalRecords(cached.total || 0);
         setLoading(false);
       } else {
         setSubAdmins([]);
@@ -258,13 +263,10 @@ export default function TeamsPage() {
       if (!res || currentReq !== reqIdRef.current || st !== statusFilterRef.current) return;
 
       if (res.ok) {
-        if (!res.subAdmins || res.subAdmins.length === 0) {
-          setSubAdmins([]);
-        } else {
-          setSubAdmins((prev) => reconcileItems(prev, res.subAdmins, (a) => a.id));
-        }
-        setTotalRecords(res.total);
-        setCache(cacheKey, { subAdmins: res.subAdmins || [], total: res.total || 0 });
+        const items = res.subAdmins || [];
+        setSubAdmins(items);
+        setTotalRecords(res.total || 0);
+        setCache(cacheKey, { subAdmins: items, total: res.total || 0 });
 
         // Prefetch next page into cache if next page exists and allowed using Lane 2
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
@@ -303,16 +305,16 @@ export default function TeamsPage() {
         setLoading(false);
       }
     }
-  }, [searchTerm, statusFilter, page]);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => {
       setSearchTerm(searchInput);
       setPage(1);
-      if (session) loadData(session, 1, statusFilter, searchInput, false);
+      if (session) loadData(session, 1, statusFilterRef.current, searchInput, false);
     }, 300);
     return () => clearTimeout(t);
-  }, [searchInput]);
+  }, [searchInput, session, loadData]);
 
   const handleStatusFilterChange = (newStatus: 'all' | 'active' | 'suspended') => {
     statusFilterRef.current = newStatus;
@@ -321,10 +323,10 @@ export default function TeamsPage() {
     if (!session) return;
     const adminId = session.adminId || session.username || 'admin';
     const cacheKey = `/sub-admins:${adminId}:page=1:size=${PAGE_SIZE}:status=${newStatus}:search=${searchInput || ''}`;
-    const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, true);
+    const cached = getCache<{ subAdmins: AdminUser[], total: number }>(cacheKey, false);
     if (cached) {
-      setSubAdmins(cached.subAdmins);
-      setTotalRecords(cached.total);
+      setSubAdmins(cached.subAdmins || []);
+      setTotalRecords(cached.total || 0);
       setLoading(false);
     } else {
       setSubAdmins([]);
@@ -340,13 +342,20 @@ export default function TeamsPage() {
       return;
     }
     setSession(cur);
-    loadData(cur, 1, 'all', '', false);
-  }, [loadData, router]);
+    loadData(cur, 1, statusFilterRef.current, '', false);
+    // Load available blocks directly from the Block table
+    getAvailableBlocks(cur).then((res) => {
+      if (res.ok && res.blocks && res.blocks.length > 0) {
+        setAvailableBlocks(res.blocks);
+        setCache('/admin/blocks', { blocks: res.blocks });
+      }
+    });
+  }, [router, loadData]);
 
   const handlePageChange = (newPage: number) => {
     setPage(newPage);
     if (session) {
-      loadData(session, newPage, statusFilter, searchTerm, false);
+      loadData(session, newPage, statusFilterRef.current, searchTerm, false);
     }
   };
 
@@ -354,13 +363,13 @@ export default function TeamsPage() {
   useEffect(() => {
     const intervalId = setInterval(() => {
       const s = getActiveAdminSession();
-      if (s && searchTerm === '' && statusFilter === 'all') {
+      if (s && searchTerm === '' && statusFilterRef.current === 'all') {
         loadData(s, 1, 'all', '', true);
       }
     }, 30000);
 
     return () => clearInterval(intervalId);
-  }, [loadData, router, searchTerm, statusFilter]);
+  }, [loadData, searchTerm]);
 
   // Flash feedback timer
   useEffect(() => {
@@ -377,6 +386,15 @@ export default function TeamsPage() {
     setFormError(null);
     setCreateSubmitting(true);
 
+    const invalidBlocks = (createForm.assignedBlocks || []).filter(
+      (bId) => !availableBlocks.some((b) => b.id === bId)
+    );
+    if (invalidBlocks.length > 0) {
+      setFormError(`The selected sector (${invalidBlocks.join(', ')}) does not exist in the database.`);
+      setCreateSubmitting(false);
+      return;
+    }
+
     const res = await runLane1({
       screen: 'sub-admins',
       isSave: true,
@@ -390,7 +408,7 @@ export default function TeamsPage() {
       } else if (res.error === 'EMAIL_ALREADY_IN_USE') {
         setFormError('This email address is already assigned to an admin.');
       } else {
-        setFormError(res.error || res.message || 'Failed to create sub-admin.');
+        setFormError(res.message || res.error || 'Failed to create sub-admin.');
       }
       return;
     }
@@ -413,10 +431,11 @@ export default function TeamsPage() {
       email: '',
       username: '',
       password: '',
-      assignedBlocks: ['abbott', 'royal'],
+      assignedBlocks: availableBlocks.slice(0, 2).map((b) => b.id),
       permissions: getDefaultCreatePermissions(),
     });
-    loadData(session, 1, statusFilter, searchTerm, false);
+    clearCachePrefix(`/sub-admins:${session.adminId || session.username || 'admin'}`);
+    loadData(session, 1, statusFilterRef.current, searchTerm, false);
   };
 
   // Open Edit Modal
@@ -439,6 +458,16 @@ export default function TeamsPage() {
     if (!session || !editingAdmin) return;
     setEditError(null);
     setEditSubmitting(true);
+
+    // Validate that all assigned blocks exist in availableBlocks before saving
+    const invalidBlocks = (editForm.assignedBlocks || []).filter(
+      (bId) => !availableBlocks.some((b) => b.id === bId)
+    );
+    if (invalidBlocks.length > 0) {
+      setEditError(`The selected sector (${invalidBlocks.join(', ')}) does not exist in the database.`);
+      setEditSubmitting(false);
+      return;
+    }
 
     // Filter out empty password so we don't accidentally blank it
     const payload: UpdateSubAdminInput = {
@@ -463,7 +492,7 @@ export default function TeamsPage() {
       if (res.error === 'USERNAME_TAKEN') {
         setEditError('This username is already taken by another administrator.');
       } else {
-        setEditError(res.error || res.message || 'Failed to update sub-admin.');
+        setEditError(res.message || res.error || 'Failed to update sub-admin.');
       }
       return;
     }
@@ -471,9 +500,10 @@ export default function TeamsPage() {
     setEditingAdmin(null);
     setFeedback({
       type: 'success',
-      message: `Team member "${res.subAdmin?.fullName}" updated successfully.`,
+      message: `Team member "${res.subAdmin?.fullName || editingAdmin.fullName}" updated successfully.`,
     });
-    loadData(session, page, statusFilter, searchTerm, false);
+    clearCachePrefix(`/sub-admins:${session.adminId || session.username || 'admin'}`);
+    loadData(session, page, statusFilterRef.current, searchTerm, false);
   };
 
   // Confirm Status Toggle (Suspend / Activate)
@@ -494,7 +524,8 @@ export default function TeamsPage() {
         type: 'success',
         message: `Account for "${confirmAdmin.fullName}" has been ${newStatus === 'active' ? 'activated' : 'suspended'}.`,
       });
-      loadData(session, page, statusFilter, searchTerm, false);
+      clearCachePrefix(`/sub-admins:${session.adminId || session.username || 'admin'}`);
+      loadData(session, page, statusFilterRef.current, searchTerm, false);
     } else {
       setFeedback({
         type: 'error',
@@ -521,7 +552,8 @@ export default function TeamsPage() {
         type: 'success',
         message: res.message || `Sub-administrator "${target.fullName}" (@${target.username}) has been permanently deleted.`,
       });
-      loadData(session, page, statusFilter, searchTerm, false);
+      clearCachePrefix(`/sub-admins:${session.adminId || session.username || 'admin'}`);
+      loadData(session, page, statusFilterRef.current, searchTerm, false);
     } else {
       setFeedback({
         type: 'error',
@@ -1137,7 +1169,7 @@ export default function TeamsPage() {
                   Select which blocks this administrator is authorized to view and manage:
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {ALL_BLOCKS.map((b) => {
+                  {availableBlocks.map((b) => {
                     const checked = createForm.assignedBlocks.includes(b.id);
                     return (
                       <button
@@ -1444,7 +1476,7 @@ export default function TeamsPage() {
                   Assigned Block Sectors
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {ALL_BLOCKS.map((b) => {
+                  {availableBlocks.map((b) => {
                     const checked = editForm.assignedBlocks?.includes(b.id) || false;
                     return (
                       <button
@@ -1758,11 +1790,11 @@ export default function TeamsPage() {
           onClick={() => setSelectedAdminDetail(null)}
         >
           <div 
-            className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl p-6 text-xs space-y-5 animate-in fade-in zoom-in-95 duration-150 my-auto cursor-default"
+            className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden text-xs animate-in fade-in zoom-in-95 duration-150 my-auto cursor-default flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            {/* Header: Full-bleed top fill */}
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-800">
                   <Shield className="w-5 h-5" />
@@ -1778,11 +1810,14 @@ export default function TeamsPage() {
               </div>
               <button
                 onClick={() => setSelectedAdminDetail(null)}
-                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Scrollable Modal Content */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
 
             {/* Admin Overview Details */}
             <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
@@ -1843,7 +1878,7 @@ export default function TeamsPage() {
                         BLOCK_BADGES[b] || 'bg-slate-100 text-slate-800 border-slate-300'
                       }`}
                     >
-                      {ALL_BLOCKS.find((blk) => blk.id === b)?.name || b}
+                      {availableBlocks.find((blk) => blk.id === b)?.name || DEFAULT_BLOCKS.find((blk) => blk.id === b)?.name || b}
                     </span>
                   ))
                 )}
@@ -1905,12 +1940,14 @@ export default function TeamsPage() {
               </div>
             </div>
 
+            </div>
+
             {/* Footer */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
+            <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-end shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedAdminDetail(null)}
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs transition cursor-pointer shadow-xs"
               >
                 Close Dossier
               </button>
@@ -1922,21 +1959,22 @@ export default function TeamsPage() {
       {/* ── MODAL: CREATED SUB-ADMIN CREDENTIALS (Item 5) ── */}
       {createdCredentials && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full border border-slate-200 shadow-2xl p-6 text-xs space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div className="bg-white rounded-3xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden text-xs animate-in fade-in zoom-in-95 duration-150 flex flex-col">
+            <div className="px-6 py-4 bg-emerald-50/90 border-b border-emerald-100 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2 font-bold text-slate-900 text-sm font-serif">
                 <Sparkles className="w-4 h-4 text-emerald-600" />
                 <span>Sub-Administrator Created</span>
               </div>
               <button
                 onClick={() => setCreatedCredentials(null)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-emerald-100/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-slate-600 leading-relaxed">
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <p className="text-slate-600 leading-relaxed">
               New sub-administrator account created for{' '}
               <strong className="text-slate-900">{createdCredentials.fullName}</strong>. Provide these credentials to the officer:
             </p>
@@ -2038,6 +2076,7 @@ export default function TeamsPage() {
             <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
               This password is shown once. Please copy and store it securely. It will not be displayed again.
             </p>
+            </div>
           </div>
         </div>
       )}
@@ -2045,21 +2084,22 @@ export default function TeamsPage() {
       {/* ── MODAL: RESET SUB-ADMIN CREDENTIALS ── */}
       {resetModalData && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl p-6 text-xs space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden text-xs flex flex-col">
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 font-bold text-slate-900 text-sm font-serif">
                 <KeyRound className="w-4 h-4 text-emerald-600" />
                 <span>Sub-Administrator Credentials</span>
               </div>
               <button
                 onClick={() => setResetModalData(null)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-slate-600">
+            <div className="p-6 space-y-4 overflow-y-auto">
+              <p className="text-slate-600">
               Administrative credentials generated for Sub-Administrator{' '}
               <strong className="text-slate-900">{resetModalData.admin.fullName}</strong>:
             </p>
@@ -2115,6 +2155,7 @@ export default function TeamsPage() {
             <p className="text-[11px] text-slate-500 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
               This new password is shown once. Provide it securely to the sub-administrator. The previous password has been invalidated immediately.
             </p>
+            </div>
           </div>
         </div>
       )}

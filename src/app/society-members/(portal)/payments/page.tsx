@@ -1583,6 +1583,8 @@ function PaymentsContent() {
                         )}
                         <input
                           type="number"
+                          min={1}
+                          step="any"
                           value={formAmount}
                           onChange={(e) => {
                             if (!isAmountLocked) {

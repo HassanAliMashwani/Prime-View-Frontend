@@ -1023,8 +1023,8 @@ export default function AdminReceiptsPage() {
       {/* ══════════════════════════════════════════════════════════════ */}
       {rejectModalReceipt && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-white rounded-3xl border border-black/10 shadow-2xl p-5 sm:p-6 space-y-4 my-auto animate-scale-in">
-            <div className="flex items-start justify-between pb-3 border-b border-black/[0.06]">
+          <div className="max-w-md w-full bg-white rounded-3xl border border-slate-200 shadow-2xl overflow-hidden my-auto animate-scale-in flex flex-col">
+            <div className="px-6 py-4 bg-rose-50/80 border-b border-rose-100 flex items-start justify-between shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
                   <XCircle className="w-5 h-5" />
@@ -1051,11 +1051,13 @@ export default function AdminReceiptsPage() {
                   setRejectModalError(null);
                 }}
                 disabled={decliningReceiptId === rejectModalReceipt.id}
-                className="p-1.5 rounded-lg hover:bg-black/5 text-[#6B7462] hover:text-[#151914] cursor-pointer disabled:opacity-40"
+                className="p-1.5 rounded-lg hover:bg-rose-100/60 text-[#6B7462] hover:text-[#151914] cursor-pointer disabled:opacity-40 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto">
 
             {rejectModalError && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-2 font-medium">
@@ -1153,6 +1155,7 @@ export default function AdminReceiptsPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}

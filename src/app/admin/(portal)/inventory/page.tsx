@@ -326,9 +326,17 @@ export default function InventoryOverviewPage() {
     setHistoryHasQueried(false);
   };
 
-  const [printMode, setPrintMode] = useState<'all' | 'history'>('all');
+  const [printMode, setPrintMode] = useState<'status' | 'history'>('status');
+
+  const handlePrintStatus = () => {
+    setPrintMode('status');
+    setTimeout(() => {
+      window.print();
+    }, 50);
+  };
 
   const handlePrintHistory = () => {
+    if (!historyHasQueried) return;
     setPrintMode('history');
     setTimeout(() => {
       window.print();
@@ -337,7 +345,7 @@ export default function InventoryOverviewPage() {
 
   useEffect(() => {
     const handleAfterPrint = () => {
-      setPrintMode('all');
+      setPrintMode('status');
     };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
@@ -382,7 +390,33 @@ export default function InventoryOverviewPage() {
   const totalSellable = liveTotals?.total ?? (totalAvailable + totalReserved + totalBooked + totalAllotted);
 
   return (
-    <div className="space-y-8 print:space-y-4 print:p-2">
+    <div className="space-y-8 print:space-y-4 print:p-0">
+      {/* Real 12mm print margins to ensure no table cells or headings are cut off at page edges */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page {
+            margin: 12mm !important;
+            size: auto;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            overflow: visible !important;
+            height: auto !important;
+          }
+          aside, nav, header, [role="navigation"], .print\\:hidden {
+            display: none !important;
+          }
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+          }
+        }
+      `}} />
+
       {/* ============================================================ */}
       {/* 1. TOP HEADER & IMMEDIATE REFRESH BAR                         */}
       {/* ============================================================ */}
@@ -401,23 +435,34 @@ export default function InventoryOverviewPage() {
           
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end print:hidden">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-end print:hidden flex-wrap">
           {lastUpdated && (
             <span className="text-[11px] text-slate-400 font-mono hidden md:inline">
               Updated: {lastUpdated.toLocaleTimeString()}
             </span>
           )}
           <button
-            onClick={() => {
-              setPrintMode('all');
-              setTimeout(() => window.print(), 50);
-            }}
-            className="p-2.5 sm:px-3 sm:py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer min-h-[42px]"
-            title="Print Inventory"
+            type="button"
+            onClick={handlePrintStatus}
+            disabled={loadingLive}
+            className="px-3.5 py-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer min-h-[42px] font-bold text-xs"
+            title="Print Inventory Status"
           >
-            <span className="text-xs font-bold">Print</span>
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print Inventory Status</span>
           </button>
           <button
+            type="button"
+            onClick={handlePrintHistory}
+            disabled={loadingHistory || !historyHasQueried}
+            className="px-3.5 py-2 bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer min-h-[42px] font-bold text-xs"
+            title="Print History"
+          >
+            <Printer className="w-3.5 h-3.5" />
+            <span>Print History</span>
+          </button>
+          <button
+            type="button"
             onClick={handleRefreshClick}
             disabled={loadingLive || loadingHistory}
             className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-200 shadow-xs cursor-pointer min-h-[42px] flex items-center gap-1.5 font-bold text-xs"
@@ -658,7 +703,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 4. HISTORY SECTION: SEPARATE FROM & TO STATUS TRANSITIONS    */}
       {/* ============================================================ */}
-      <section className="border-t border-slate-200 pt-8 space-y-6 print:border-none print:pt-0">
+      <section className={`border-t border-slate-200 pt-8 space-y-6 print:border-none print:pt-0 ${printMode !== 'history' ? 'print:hidden' : ''}`}>
         {/* Print Letterhead for History Report */}
         {historyHasQueried && (
           <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-4">
