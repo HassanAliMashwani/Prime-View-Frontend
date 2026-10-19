@@ -8,7 +8,16 @@ interface CacheEntry {
 const cache = new Map<string, CacheEntry>();
 
 export function getCache<T>(key: string, allowStale = false): T | null {
-  const entry = cache.get(key);
+  let entry = cache.get(key);
+  if (!entry && typeof window !== 'undefined') {
+    try {
+      const item = sessionStorage.getItem(`pv_cache:${key}`);
+      if (item) {
+        entry = JSON.parse(item);
+        if (entry) cache.set(key, entry);
+      }
+    } catch {}
+  }
   if (!entry) return null;
   // Fresh for 60 seconds unless stale is permitted
   if (allowStale || Date.now() - entry.timestamp < 60000) {
@@ -23,10 +32,16 @@ export function peekCache<T>(key: string): T | null {
 }
 
 export function setCache(key: string, data: any) {
-  cache.set(key, {
+  const entry: CacheEntry = {
     data,
     timestamp: Date.now(),
-  });
+  };
+  cache.set(key, entry);
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(`pv_cache:${key}`, JSON.stringify(entry));
+    } catch {}
+  }
 }
 
 export function clearCachePrefix(prefix: string) {
@@ -34,6 +49,18 @@ export function clearCachePrefix(prefix: string) {
     if (key.startsWith(prefix)) {
       cache.delete(key);
     }
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const toRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const k = sessionStorage.key(i);
+        if (k && k.startsWith(`pv_cache:${prefix}`)) {
+          toRemove.push(k);
+        }
+      }
+      toRemove.forEach((k) => sessionStorage.removeItem(k));
+    } catch {}
   }
 }
 

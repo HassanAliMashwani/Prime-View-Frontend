@@ -79,7 +79,8 @@ function BlockPlotsContent() {
     if (typeof window === 'undefined') return null;
     const s = getActiveAdminSession();
     if (!s) return null;
-    return getCache<{block: Block, plots: Plot[]}>(`/master-plan/${blockId}:${s.adminId}`, true);
+    const adminId = s.adminId || s.username || 'admin';
+    return getCache<{block: Block, plots: Plot[]}>(`/master-plan/${blockId}:${adminId}`, true);
   };
   const init = getInit();
 
@@ -193,9 +194,11 @@ function BlockPlotsContent() {
   };
 
   const loadPlots = useCallback(async (s: AdminSession, isBackground = false) => {
+    const adminId = s.adminId || s.username || 'admin';
+    const cacheKey = `/master-plan/${blockId}:${adminId}`;
     const runner = isBackground
       ? (fn: (signal?: AbortSignal) => Promise<any>) => runLane2({ screen: `block-${blockId}`, isRefresh: true, fn })
-      : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: `block-${blockId}`, key: `/master-plan/${blockId}:${s.adminId}`, fn });
+      : (fn: (signal?: AbortSignal) => Promise<any>) => runLane1({ screen: `block-${blockId}`, key: cacheKey, fn });
 
     try {
       const res = await runner(async (signal) => {
@@ -212,7 +215,7 @@ function BlockPlotsContent() {
         setBlock(res.block || null);
         setPlots((prev) => reconcileItems(prev, res.plots || [], (p) => p.id));
         if (res.block && res.plots) {
-          setCache(`/master-plan/${blockId}:${s.adminId}`, { block: res.block, plots: res.plots });
+          setCache(cacheKey, { block: res.block, plots: res.plots });
         }
       }
     } catch {

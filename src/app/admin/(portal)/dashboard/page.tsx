@@ -28,6 +28,7 @@ import { getInventoryMonthlyHistory, MonthlyHistoryPoint } from '@/lib/dal/inven
 import type { TimeRange } from '@/components/admin/dashboard/InventoryOverviewChart';
 
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
+import { warmAdminCache } from '@/lib/dal/cacheWarmer';
 
 const InventoryOverviewChart = dynamic(
   () => import('@/components/admin/dashboard/InventoryOverviewChart'),
@@ -152,6 +153,7 @@ export default function AdminDashboardPage() {
     if (s) {
       setSession(s);
       loadData(s, false);
+      warmAdminCache(s);
       if (s.role === 'super_admin') {
         loadChartData(s, chartRange, false);
       }

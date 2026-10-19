@@ -233,7 +233,6 @@ function CustomersDirectoryContent() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setCustomers([]);
         setLoading(true);
       }
       loadData(s, 1, search, newStatus, false);
@@ -252,7 +251,6 @@ function CustomersDirectoryContent() {
         setTotalRecords(cached.total);
         setLoading(false);
       } else {
-        setCustomers([]);
         setLoading(true);
       }
     }

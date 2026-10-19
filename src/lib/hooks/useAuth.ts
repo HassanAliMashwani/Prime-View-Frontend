@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MemberSession } from '../mock/types';
 import { login as dalLogin, logout as dalLogout, getActiveSession, LoginResult } from '../dal/auth';
 import { useMemberStore } from '../store/useMemberStore';
+import { warmMemberCache } from '../dal/cacheWarmer';
 
 export function useAuth() {
   const [session, setSession] = useState<MemberSession | null>(() => (typeof window === 'undefined' ? null : getActiveSession()));
@@ -37,6 +38,7 @@ export function useAuth() {
     const result = await dalLogin(identifier, pass);
     if (result.ok && result.session) {
       setSession(result.session);
+      warmMemberCache(result.session.customerId);
     }
     return result;
   };

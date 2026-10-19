@@ -144,7 +144,6 @@ export default function AdminReceiptsPage() {
           setTotalCount(cached.totalCount);
           setLoading(false);
         } else {
-          setReceipts([]);
           setLoading(true);
         }
       }

@@ -99,14 +99,32 @@ export default function InventoryOverviewPage() {
   const [session, setSession] = useState<AdminSession | null>(null);
 
   // Live Inventory State
-  const [loadingLive, setLoadingLive] = useState<boolean>(true);
-  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(false);
-  const [liveStats, setLiveStats] = useState<InventoryStats[]>([]);
-  const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(null);
-  const [livePage, setLivePage] = useState<number>(1);
-  const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [livePage, setLivePage] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1;
+    const s = getActiveAdminSession();
+    const adminId = s?.adminId || s?.username || 'admin';
+    const saved = sessionStorage.getItem(`pv_inv_page_${adminId}`);
+    const p = Number(saved);
+    return !isNaN(p) && p > 0 ? p : 1;
+  });
+
+  const getCachedInventory = (p: number) => {
+    if (typeof window === 'undefined') return null;
+    const s = getActiveAdminSession();
+    const adminId = s?.adminId || s?.username || 'admin';
+    const cacheKey = `/inventory:${adminId}:page=${p}:size=${PAGE_SIZE}`;
+    return getCache<{ stats: InventoryStats[], totals: InventoryTotals | null, total: number }>(cacheKey, true);
+  };
+
+  const initialCached = getCachedInventory(livePage);
+
+  const [loadingLive, setLoadingLive] = useState<boolean>(!initialCached);
+  const [hasLoadedLiveOnce, setHasLoadedLiveOnce] = useState<boolean>(Boolean(initialCached));
+  const [liveStats, setLiveStats] = useState<InventoryStats[]>(initialCached?.stats || []);
+  const [liveTotals, setLiveTotals] = useState<InventoryTotals | null>(initialCached?.totals || null);
+  const [totalRecords, setTotalRecords] = useState<number>(initialCached?.total || 0);
   const [liveError, setLiveError] = useState<string>('');
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(initialCached ? new Date() : null);
 
   // History View State (separate section)
   const [fromDate, setFromDate] = useState<string>('');
@@ -144,7 +162,7 @@ export default function InventoryOverviewPage() {
       setTotalRecords(cached.total);
       setLoadingLive(false);
     } else if (!isBackground) {
-      setLiveStats([]);
+      // Do not wipe current liveStats to empty while loading
       setLoadingLive(true);
     }
 
@@ -327,6 +345,11 @@ export default function InventoryOverviewPage() {
 
   const handlePageChange = (newPage: number) => {
     setLivePage(newPage);
+    const adminId = session?.adminId || session?.username || 'admin';
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`pv_inv_page_${adminId}`, String(newPage));
+    }
+    loadLive(newPage, false);
   };
 
   if (session && !canAccess) {

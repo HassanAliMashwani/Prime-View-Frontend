@@ -3,14 +3,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { 
-  BookmarkCheck, 
-  AlertTriangle, 
-  Search, 
-  CheckCircle2, 
-  History, 
-  Edit3, 
-  ArrowRight, 
+import {
+  BookmarkCheck,
+  AlertTriangle,
+  Search,
+  CheckCircle2,
+  History,
+  Edit3,
+  ArrowRight,
   X,
   Building2,
   RotateCcw,
@@ -75,10 +75,10 @@ export default function ReservationsPage() {
   useEffect(() => { tabRef.current = activeTab; }, [activeTab]);
 
   const loadData = useCallback(async (
-    s: AdminSession, 
-    p = page, 
-    srch = search, 
-    block = blockFilter, 
+    s: AdminSession,
+    p = page,
+    srch = search,
+    block = blockFilter,
     tab = activeTab,
     isBackground = false
   ) => {
@@ -91,7 +91,6 @@ export default function ReservationsPage() {
       setTotalRecords(cached.total);
       setLoading(false);
     } else if (!isBackground) {
-      setReservations([]);
       setLoading(true);
     }
 
@@ -252,9 +251,9 @@ export default function ReservationsPage() {
         channel.onmessage = (event) => {
           const type = event?.data?.type;
           if (
-            type === 'PLOT_RESERVED' || 
-            type === 'PLOT_BOOKED' || 
-            type === 'RESERVATION_CANCELLED' || 
+            type === 'PLOT_RESERVED' ||
+            type === 'PLOT_BOOKED' ||
+            type === 'RESERVATION_CANCELLED' ||
             type === 'RESERVATION_UPDATED' ||
             type === 'SYNC'
           ) {
@@ -402,12 +401,12 @@ export default function ReservationsPage() {
       <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-white border-2 border-amber-200/90 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 text-slate-900">
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            
+
           </div>
           <h2 className="text-2xl sm:text-3xl font-bold font-serif tracking-tight text-slate-900">
-            Token Allocations & Dispute Management
+            Token Allocation
           </h2>
-          
+
         </div>
 
         {/* Tab Controls */}
@@ -416,11 +415,10 @@ export default function ReservationsPage() {
             id="tab-reservations-active"
             type="button"
             onClick={() => handleTabChange('active')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'active'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'active'
                 ? 'bg-amber-500 text-amber-950 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <span>Active Reservations</span>
           </button>
@@ -429,11 +427,10 @@ export default function ReservationsPage() {
             id="tab-reservations-history"
             type="button"
             onClick={() => handleTabChange('history')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === 'history'
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${activeTab === 'history'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
-            }`}
+              }`}
           >
             <History className="w-3.5 h-3.5" />
             <span>Resolved History</span>
@@ -533,11 +530,10 @@ export default function ReservationsPage() {
               return (
                 <div
                   key={r.id}
-                  className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
-                    isConflict
+                  className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${isConflict
                       ? 'bg-amber-50/50 hover:bg-amber-50/80 border-l-4 border-l-amber-500'
                       : 'hover:bg-slate-50/80'
-                  }`}
+                    }`}
                 >
                   {/* Left Specs */}
                   <div className="space-y-1.5 flex-1">
@@ -568,19 +564,18 @@ export default function ReservationsPage() {
                         </span>
                       )}
                       <span
-                        className={`text-[9px] uppercase font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                          r.status === 'active'
+                        className={`text-[9px] uppercase font-mono font-bold px-2.5 py-0.5 rounded-full border ${r.status === 'active'
                             ? 'bg-amber-100 text-amber-900 border-amber-300'
                             : r.status === 'confirmed'
-                            ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
-                            : r.status === 'cancelled'
-                            ? 'bg-rose-100 text-rose-800 border-rose-300'
-                            : r.status === 'superseded'
-                            ? 'bg-orange-100 text-orange-900 border-orange-300'
-                            : r.status === 'expired'
-                            ? 'bg-slate-100 text-slate-700 border-slate-300'
-                            : 'bg-slate-100 text-slate-700 border-slate-300'
-                        }`}
+                              ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                              : r.status === 'cancelled'
+                                ? 'bg-rose-100 text-rose-800 border-rose-300'
+                                : r.status === 'superseded'
+                                  ? 'bg-orange-100 text-orange-900 border-orange-300'
+                                  : r.status === 'expired'
+                                    ? 'bg-slate-100 text-slate-700 border-slate-300'
+                                    : 'bg-slate-100 text-slate-700 border-slate-300'
+                          }`}
                       >
                         {r.status === 'cancelled' ? 'Released' : r.status}
                       </span>
@@ -611,13 +606,12 @@ export default function ReservationsPage() {
                         return (
                           <>
                             <span>•</span>
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
-                              hold.isExpired
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${hold.isExpired
                                 ? 'bg-rose-100 text-rose-800 border-rose-300'
                                 : hold.isUrgent
-                                ? 'bg-amber-100 text-amber-900 border-amber-300'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}>
+                                  ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              }`}>
                               <Clock className="w-3 h-3" />
                               <span>{hold.text}</span>
                             </span>
@@ -668,19 +662,18 @@ export default function ReservationsPage() {
                       <button
                         onClick={() => handleReleaseReservation(r)}
                         disabled={actingResId === r.id}
-                        className={`px-3 py-2 font-bold text-xs rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${
-                          actingResId === r.id
+                        className={`px-3 py-2 font-bold text-xs rounded-xl border transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${actingResId === r.id
                             ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
                             : r.reservedByAdminId === session.adminId || session.role === 'super_admin'
-                            ? 'bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
-                            : 'bg-slate-50 text-slate-400 border-slate-200'
-                        }`}
+                              ? 'bg-white hover:bg-rose-50 active:bg-rose-100 text-slate-700 hover:text-rose-700 border-slate-200 hover:border-rose-300'
+                              : 'bg-slate-50 text-slate-400 border-slate-200'
+                          }`}
                         title={
                           r.reservedByAdminId === session.adminId
                             ? 'Release your reservation back to society inventory'
                             : session.role === 'super_admin'
-                            ? `Super Admin Override: Release ${r.reservedByAdminName}'s reservation`
-                            : `Only reserving admin (${r.reservedByAdminName}) can release`
+                              ? `Super Admin Override: Release ${r.reservedByAdminName}'s reservation`
+                              : `Only reserving admin (${r.reservedByAdminName}) can release`
                         }
                       >
                         {actingResId === r.id ? (
@@ -697,11 +690,10 @@ export default function ReservationsPage() {
                     {r.status === 'active' && (
                       <Link
                         href={`/admin/master-plan/${r.blockId}?focusPlot=${r.plotId}`}
-                        className={`px-3.5 py-2 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${
-                          isConflict
+                        className={`px-3.5 py-2 font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer ${isConflict
                             ? 'bg-rose-600 hover:bg-rose-700 text-white'
                             : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                        }`}
+                          }`}
                         title="View and focus plot on Master Plan map"
                       >
                         <MapPin className="w-3.5 h-3.5 text-white" />

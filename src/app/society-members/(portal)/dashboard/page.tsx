@@ -25,6 +25,7 @@ import { MemberDashboardSkeleton } from '@/components/ui/skeleton';
 import { ReceiptSubmission } from '@/lib/mock/types';
 import { getCustomerReceipts } from '@/lib/dal/receipts';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
+import { warmMemberCache } from '@/lib/dal/cacheWarmer';
 
 export default function MemberDashboardPage() {
   const { profile, plots, schedules, fetchDashboardData, isLoading, openTermsModal } = useMemberStore();
@@ -49,7 +50,10 @@ export default function MemberDashboardPage() {
   useEffect(() => {
     fetchDashboardData();
     loadReceipts();
-  }, [fetchDashboardData, loadReceipts]);
+    if (profile?.id) {
+      warmMemberCache(profile.id);
+    }
+  }, [fetchDashboardData, loadReceipts, profile?.id]);
 
   // Real-time 30-second background refresh via Lane 2
   useEffect(() => {

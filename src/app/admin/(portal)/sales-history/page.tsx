@@ -124,7 +124,6 @@ function SalesHistoryContent() {
           setTotalRecords(cached.total);
           setLoading(false);
         } else {
-          setItems([]);
           setLoading(true);
         }
       }
@@ -409,11 +408,13 @@ function SalesHistoryContent() {
 
   const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
-  const pageRows = items;
+  const pageRows = (items || []).filter(
+    (sale) => sale && sale.plotId && typeof sale.price === 'number' && !isNaN(sale.price) && isFinite(sale.price) && sale.price > 0
+  );
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
-  const totalContractSum = kpis.totalRevenuePkr;
+  const totalContractSum = typeof kpis?.totalRevenuePkr === 'number' && !isNaN(kpis.totalRevenuePkr) ? kpis.totalRevenuePkr : 0;
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">

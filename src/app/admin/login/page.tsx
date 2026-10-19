@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { siteConfig } from '@/data/site';
 import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from '@/lib/dal/adminAuth';
+import { warmAdminCache } from '@/lib/dal/cacheWarmer';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -28,7 +29,8 @@ export default function AdminLoginPage() {
 
     try {
       const res = await adminLogin(username, password);
-      if (res.ok) {
+      if (res.ok && res.session) {
+        warmAdminCache(res.session);
         router.push('/admin/dashboard');
       } else {
         const msg = res.error || 'Invalid admin credentials.';
