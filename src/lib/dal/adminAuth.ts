@@ -99,7 +99,12 @@ export function updateActiveAdminSession(updates: Partial<AdminSession>): void {
   try {
     const current = getActiveAdminSession();
     if (current) {
-      const merged: AdminSession = { ...current, ...updates };
+      const merged: AdminSession = {
+        ...current,
+        ...updates,
+        token: current.token,
+        expiresAt: current.expiresAt,
+      };
       sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(merged));
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(merged));
     }
@@ -201,11 +206,16 @@ export async function getAdminProfile(session: AdminSession): Promise<{
   error?: string;
 }> {
   try {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 10000) : null;
+
     const res = await fetch(`${API_BASE_URL}/admin/profile`, {
       headers: {
         Authorization: `Bearer ${session.token}`,
       },
+      signal: controller ? controller.signal : undefined,
     });
+    if (timeoutId) clearTimeout(timeoutId);
 
     if (!res.ok) {
       return { ok: false, status: res.status, error: 'Failed to fetch admin profile.' };
