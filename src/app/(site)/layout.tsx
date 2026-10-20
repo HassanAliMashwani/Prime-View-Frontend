@@ -7,6 +7,7 @@ import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 const serifFont = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-serif",
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
