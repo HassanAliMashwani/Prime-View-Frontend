@@ -329,9 +329,20 @@ export default function InventoryOverviewPage() {
   };
 
   const [printMode, setPrintMode] = useState<'status' | 'history'>('status');
+  const [allBlocksForPrint, setAllBlocksForPrint] = useState<InventoryStats[] | null>(null);
 
-  const handlePrintStatus = () => {
+  const handlePrintStatus = async () => {
     setPrintMode('status');
+    if (totalRecords > liveStats.length) {
+      try {
+        const fullData = await getLiveInventoryStats(undefined, session?.token, 1, 100);
+        if (fullData && fullData.stats && fullData.stats.length > 0) {
+          setAllBlocksForPrint(fullData.stats);
+        }
+      } catch (e) {
+        console.error('Failed to prefetch full blocks for print', e);
+      }
+    }
     setTimeout(() => {
       window.print();
     }, 50);
@@ -390,6 +401,7 @@ export default function InventoryOverviewPage() {
   const totalAllotted = liveTotals?.allotted ?? liveStats.reduce((sum, s) => sum + s.allotted, 0);
   const totalDisputed = liveTotals?.disputedTotal ?? liveStats.reduce((sum, s) => sum + s.disputedTotal, 0);
   const totalSellable = liveTotals?.total ?? (totalAvailable + totalReserved + totalBooked + totalAllotted);
+  const blocksToPrint = allBlocksForPrint || liveStats;
 
   return (
     <div className="space-y-8 print:space-y-4 print:p-0">
@@ -398,15 +410,18 @@ export default function InventoryOverviewPage() {
         __html: `
         @media print {
           @page {
+            size: A4 portrait !important;
             margin: 12mm !important;
-            size: auto;
           }
           html, body {
             margin: 0 !important;
             padding: 0 !important;
             background: #ffffff !important;
+            color: #000000 !important;
             overflow: visible !important;
             height: auto !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           aside, nav, header, [role="navigation"], .print\\:hidden {
             display: none !important;
@@ -417,37 +432,128 @@ export default function InventoryOverviewPage() {
             overflow: visible !important;
             background: #ffffff !important;
           }
+          table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+          }
+          thead {
+            display: table-header-group !important;
+          }
+          tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
         }
       `}} />
 
       {/* ============================================================ */}
-      {/* 1. TOP HEADER & IMMEDIATE REFRESH BAR                         */}
+      {/* PRINT-ONLY SECTION: LIVE INVENTORY REPORT                     */}
       {/* ============================================================ */}
-      {/* Print Letterhead for Live Inventory Status Report */}
-      <div className={`hidden ${printMode === 'status' ? 'print:block' : ''} border-b-2 border-slate-900 pb-4 mb-4`}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold font-serif text-slate-900 tracking-tight">PRIME VIEW HOUSING SCHEME</h1>
-            <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider">Inventory Status Report</p>
-          </div>
+      <div className={`hidden ${printMode === 'status' ? 'print:block' : ''} print:w-full print:text-black print:px-0.5 print:mb-6`}>
+        {/* Printed header, top of page 1 */}
+        <div className="flex items-center justify-between border-b-2 border-black pb-4 mb-6">
           <div className="flex items-center gap-4">
-            <div className="text-right">
-              <div className="text-xs font-mono font-bold text-slate-900">
-                Status: <span className="text-emerald-900 font-bold">Live Inventory</span>
-              </div>
-              <div className="text-[10px] text-slate-500 font-mono">
-                Printed: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </div>
-            </div>
-            <Image
+            <img
               src={siteConfig.logoPath}
-              alt="Prime View"
-              width={48}
-              height={48}
-              className="object-contain"
-              unoptimized
+              alt="Prime View Logo"
+              className="h-[56px] w-auto object-contain shrink-0"
             />
+            <div>
+              <h1 className="text-xl font-bold font-serif text-black tracking-tight leading-tight">
+                PRIME VIEW HOUSING SCHEME
+              </h1>
+              <p className="text-xs font-bold text-black uppercase tracking-wider mt-0.5">
+                INVENTORY STATUS REPORT
+              </p>
+            </div>
           </div>
+          <div className="text-right">
+            <div className="text-xs font-mono font-bold text-black">
+              Status: <span className="font-bold">Live Inventory</span>
+            </div>
+            <div className="text-[11px] text-black font-mono mt-0.5">
+              Printed: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </div>
+          </div>
+        </div>
+
+        {/* Table 1 — Society inventory */}
+        <div className="mb-6">
+          <table className="w-full border-collapse border border-black text-xs text-black">
+            <thead>
+              <tr className="bg-slate-100 border-b border-black text-left font-bold">
+                <th className="border border-black py-2 px-3 text-left">Status</th>
+                <th className="border border-black py-2 px-3 text-right">Plots</th>
+                <th className="border border-black py-2 px-3 text-left">Note</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border border-black py-2 px-3 font-semibold">Available</td>
+                <td className="border border-black py-2 px-3 text-right font-mono font-semibold">{totalAvailable.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3">Ready to book</td>
+              </tr>
+              <tr>
+                <td className="border border-black py-2 px-3 font-semibold">Reserved</td>
+                <td className="border border-black py-2 px-3 text-right font-mono font-semibold">{totalReserved.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3">Held for 24 hours</td>
+              </tr>
+              <tr>
+                <td className="border border-black py-2 px-3 font-semibold">Booked</td>
+                <td className="border border-black py-2 px-3 text-right font-mono font-semibold">{totalBooked.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3">Installment plan active</td>
+              </tr>
+              <tr>
+                <td className="border border-black py-2 px-3 font-semibold">Allotted</td>
+                <td className="border border-black py-2 px-3 text-right font-mono font-semibold">{totalAllotted.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3">Paid in full (one-time)</td>
+              </tr>
+              <tr className="font-bold bg-slate-100">
+                <td className="border border-black py-2 px-3">Total</td>
+                <td className="border border-black py-2 px-3 text-right font-mono">{(totalAvailable + totalReserved + totalBooked + totalAllotted).toLocaleString()}</td>
+                <td className="border border-black py-2 px-3"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        {/* Table 2 — Block inventory */}
+        <div>
+          <table className="w-full border-collapse border border-black text-xs text-black">
+            <thead className="print:table-header-group">
+              <tr className="bg-slate-100 border-b border-black font-bold">
+                <th className="border border-black py-2 px-3 text-left">Block</th>
+                <th className="border border-black py-2 px-3 text-right">Available</th>
+                <th className="border border-black py-2 px-3 text-right">Reserved</th>
+                <th className="border border-black py-2 px-3 text-right">Booked</th>
+                <th className="border border-black py-2 px-3 text-right">Allotted</th>
+                <th className="border border-black py-2 px-3 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {blocksToPrint.map((s) => (
+                <tr key={s.blockId} className="print:break-inside-avoid">
+                  <td className="border border-black py-2 px-3 font-semibold">{s.blockName}</td>
+                  <td className="border border-black py-2 px-3 text-right font-mono">{s.available.toLocaleString()}</td>
+                  <td className="border border-black py-2 px-3 text-right font-mono">{s.reserved.toLocaleString()}</td>
+                  <td className="border border-black py-2 px-3 text-right font-mono">{s.booked.toLocaleString()}</td>
+                  <td className="border border-black py-2 px-3 text-right font-mono">{s.allotted.toLocaleString()}</td>
+                  <td className="border border-black py-2 px-3 text-right font-mono font-bold">
+                    {(s.available + s.reserved + s.booked + s.allotted).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+              {/* Grand Total row - inside tbody so it prints once at the bottom of the last page */}
+              <tr className="font-bold bg-slate-100 print:break-inside-avoid">
+                <td className="border border-black py-2 px-3">Total</td>
+                <td className="border border-black py-2 px-3 text-right font-mono">{totalAvailable.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3 text-right font-mono">{totalReserved.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3 text-right font-mono">{totalBooked.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3 text-right font-mono">{totalAllotted.toLocaleString()}</td>
+                <td className="border border-black py-2 px-3 text-right font-mono">{totalSellable.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -495,7 +601,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 2. LIVE SECTION: MAIN AGGREGATE CARDS                         */}
       {/* ============================================================ */}
-      <section className={`space-y-4 ${printMode === 'history' ? 'print:hidden' : ''}`}>
+      <section className="space-y-4 print:hidden">
         <div className="flex items-center justify-between">
 
           {mounted && session?.role === 'sub_admin' && (
@@ -567,7 +673,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 3. LIVE SECTION: LIVE BLOCK TABLE                             */}
       {/* ============================================================ */}
-      <section className={`space-y-3 ${printMode === 'history' ? 'print:hidden' : ''}`}>
+      <section className="space-y-3 print:hidden">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 font-mono">
           Current Block Inventory Breakdown
         </h2>
