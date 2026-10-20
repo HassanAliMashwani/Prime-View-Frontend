@@ -37,7 +37,7 @@ import {
 import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
 import { AdminSession, PlotCategory } from '@/lib/mock/types';
-import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
+import { getCache, setCache, generateCacheKey, clearCachePrefix } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 const PAGE_SIZE = 10;
@@ -151,12 +151,17 @@ function SalesHistoryContent() {
       if (!res || currentReq !== reqIdRef.current) return;
 
       if (!res.ok) {
-        setFeedback({ type: 'error', message: res.message || res.error || 'Failed to load sales history report.' });
+        setFeedback({
+          type: 'error',
+          message: res.error === 'FORBIDDEN_SALES_HISTORY_ACCESS'
+            ? (res.message || 'You do not have permission to view sales history.')
+            : 'Sales history failed to load.'
+        });
       } else {
-        setItems((prev) => reconcileItems(prev, res.items, (item) => item.id));
+        setItems(res.items || []);
         setKpis(res.kpis);
         setTotalRecords(res.total || 0);
-        setCache(key, { items: res.items, kpis: res.kpis, total: res.total || 0 });
+        setCache(key, { items: res.items || [], kpis: res.kpis, total: res.total || 0 });
 
         // Prefetch next page into cache if next page exists using Lane 2
         const totalPages = Math.ceil((res.total || 0) / PAGE_SIZE);
@@ -170,7 +175,7 @@ function SalesHistoryContent() {
               async (signal) => {
                 const nextRes = await getSalesHistory(currentSession, nextFilters, signal);
                 if (nextRes.ok) {
-                  setCache(nextKey, { items: nextRes.items, kpis: nextRes.kpis, total: nextRes.total || 0 });
+                  setCache(nextKey, { items: nextRes.items || [], kpis: nextRes.kpis, total: nextRes.total || 0 });
                 }
                 return nextRes;
               },
@@ -183,8 +188,8 @@ function SalesHistoryContent() {
     } catch (err: any) {
       if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (currentReq !== reqIdRef.current) return;
-      console.error('request failed');
-      setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
+      console.error('request failed', err);
+      setFeedback({ type: 'error', message: 'Sales history failed to load.' });
     } finally {
       if (currentReq === reqIdRef.current) {
         setHasLoadedOnce(true);
