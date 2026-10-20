@@ -522,16 +522,22 @@ export default function InteractiveBlockMap({
                 const isLocked = Boolean(plot.lockedBy);
                 const lockReason = plot.lockReason;
 
-                // Requirement 4:
-                // - lockReason book, or status booked or allotted: red
+                // - status allotted: black
+                // - lockReason book, or status booked: red
                 // - lockReason reserve, while the plot is not yet reserved: yellow, blinking
                 // - status reserved: yellow, steady
                 // - lockReason adjust, or the plot is adjusted: blue
                 // - available and not held: the normal available colour
-                if (visualStatus === 'booked' || visualStatus === 'allotted' || (isLocked && lockReason === 'book')) {
+                if (visualStatus === 'allotted') {
+                  fillColor = '#000000'; // black
+                  strokeColor = '#000000';
+                  fillOpacity = isHovered ? 1.0 : 0.95;
+                  strokeWidth = 2.5;
+                  isPulsing = false; // steady black
+                } else if (visualStatus === 'booked' || (isLocked && lockReason === 'book')) {
                   fillColor = PLOT_STATUS_STYLES.booked.fill; // #ef4444 (red)
                   strokeColor = PLOT_STATUS_STYLES.booked.stroke;
-                  fillOpacity = isHovered ? 0.88 : (visualStatus === 'allotted' ? 0.85 : 0.65);
+                  fillOpacity = isHovered ? 0.88 : 0.65;
                   strokeWidth = 2.5;
                   isPulsing = false; // steady red
                 } else if (isLocked && lockReason === 'reserve') {
@@ -767,7 +773,9 @@ export default function InteractiveBlockMap({
                       className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
                         (isLocked && lockReason === 'adjust') || (!isLocked && plot.isAdjustment)
                           ? 'bg-blue-950 text-blue-300 border-blue-500 font-bold lowercase'
-                          : (isLocked && lockReason === 'book') || visualStatus === 'booked' || visualStatus === 'allotted'
+                          : visualStatus === 'allotted'
+                          ? 'bg-black text-white border-slate-700 font-bold'
+                          : (isLocked && lockReason === 'book') || visualStatus === 'booked'
                           ? 'bg-rose-950 text-rose-300 border-rose-700'
                           : (isLocked && lockReason === 'reserve') || visualStatus === 'reserved'
                           ? 'bg-amber-950 text-amber-300 border-amber-700'

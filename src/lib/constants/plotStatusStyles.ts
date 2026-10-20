@@ -39,13 +39,13 @@ export const PLOT_STATUS_STYLES: Record<PlotStatus, PlotStyleConfig> = {
   allotted: {
     key: 'allotted',
     label: 'Allotted',
-    fill: '#0f172a',
-    stroke: '#020617',
+    fill: '#000000',
+    stroke: '#000000',
     strokeWidth: 1.5,
     textColor: '#ffffff',
-    badgeBg: 'bg-slate-900',
+    badgeBg: 'bg-black',
     badgeText: 'text-white',
-    badgeBorder: 'border-slate-700',
+    badgeBorder: 'border-slate-800',
   },
   available: {
     key: 'available',

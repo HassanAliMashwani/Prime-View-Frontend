@@ -1816,7 +1816,10 @@ function BlockPlotsContent() {
           let cardStyle = 'bg-white border-2 border-slate-200 text-slate-800';
           let statusBadge = 'bg-slate-100 text-slate-700 border-slate-200';
 
-          if (lockReason === 'book' || visualStatus === 'booked' || visualStatus === 'allotted') {
+          if (visualStatus === 'allotted') {
+            cardStyle = 'bg-black border-2 border-slate-900 text-white shadow-xs hover:border-black';
+            statusBadge = 'bg-zinc-900 text-white border-zinc-700 font-bold';
+          } else if (lockReason === 'book' || visualStatus === 'booked') {
             cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs';
             statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
           } else if (lockReason === 'reserve' && visualStatus !== 'reserved') {
@@ -1886,7 +1889,7 @@ function BlockPlotsContent() {
                   </span>
                 </div>
 
-                <div className="text-[11px] font-semibold truncate mt-0.5">
+                <div className={`text-[11px] font-semibold truncate mt-0.5 ${visualStatus === 'allotted' ? 'text-slate-200' : ''}`}>
                   {isAmenity ? plot.amenityName : plot.size}
                 </div>
 
@@ -1974,6 +1977,11 @@ function BlockPlotsContent() {
                   {selectedPlot.isAdjustment && (
                     <span className="text-[10px] bg-blue-600 text-white font-mono font-bold px-1.5 py-0.5 rounded uppercase">
                       Adjustment
+                    </span>
+                  )}
+                  {(selectedPlot.displayStatus || selectedPlot.status) === 'allotted' && (
+                    <span className="text-[10px] bg-black text-white font-mono font-bold px-1.5 py-0.5 rounded uppercase border border-slate-700">
+                      Allotted
                     </span>
                   )}
                 </div>
@@ -2189,9 +2197,17 @@ function BlockPlotsContent() {
                   )}
                 </div>
 
-                <div className="bg-white/90 p-2.5 rounded-lg border border-slate-100 flex flex-col justify-center shadow-2xs">
-                  <span className="text-[10px] uppercase font-mono text-slate-400 font-bold tracking-wider">Status</span>
-                  <div className="text-sm font-bold capitalize text-slate-900 truncate mt-0.5">
+                <div className={`p-2.5 rounded-lg border flex flex-col justify-center shadow-2xs ${
+                  (selectedPlot.displayStatus || selectedPlot.status) === 'allotted'
+                    ? 'bg-black border-slate-900 text-white'
+                    : 'bg-white/90 border-slate-100 text-slate-900'
+                }`}>
+                  <span className={`text-[10px] uppercase font-mono font-bold tracking-wider ${
+                    (selectedPlot.displayStatus || selectedPlot.status) === 'allotted' ? 'text-slate-400' : 'text-slate-400'
+                  }`}>Status</span>
+                  <div className={`text-sm font-bold capitalize truncate mt-0.5 ${
+                    (selectedPlot.displayStatus || selectedPlot.status) === 'allotted' ? 'text-white' : 'text-slate-900'
+                  }`}>
                     {selectedPlot.displayStatus || selectedPlot.status}
                   </div>
                 </div>
