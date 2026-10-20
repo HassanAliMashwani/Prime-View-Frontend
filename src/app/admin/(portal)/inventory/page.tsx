@@ -194,6 +194,7 @@ export default function InventoryOverviewPage() {
       }
 
       if (!data || currentReq !== reqIdRef.current) return;
+      if ((data as any)?.error === 'REQUEST_ABORTED') return;
 
       setLiveStats(data.stats);
       setLiveTotals(data.totals || null);

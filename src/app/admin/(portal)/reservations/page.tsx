@@ -123,6 +123,7 @@ export default function ReservationsPage() {
       }
 
       if (!res || currentReq !== reqIdRef.current || tab !== tabRef.current) return;
+      if (res.error === 'REQUEST_ABORTED') return;
 
       if (res.ok) {
         if (!res.reservations || res.reservations.length === 0) {

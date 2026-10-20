@@ -180,6 +180,7 @@ export default function AuditLogPage() {
       }
 
       if (!res || currentReq !== reqIdRef.current) return;
+      if (res.error === 'REQUEST_ABORTED') return;
 
       if (res.ok) {
         // Put that page's rows in the table directly

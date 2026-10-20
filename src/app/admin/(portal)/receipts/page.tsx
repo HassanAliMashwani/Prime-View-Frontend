@@ -172,6 +172,7 @@ export default function AdminReceiptsPage() {
         }
 
         if (!res || currentReq !== reqIdRef.current || st !== statusRef.current) return;
+        if (res.error === 'REQUEST_ABORTED') return;
 
         if (res.ok) {
           setReceipts(res.receipts || []);

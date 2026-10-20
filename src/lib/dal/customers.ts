@@ -280,6 +280,10 @@ export async function searchMembersForPicker(
     return { ok: true, members: res.data.members };
   }
 
+  if (res.error === 'REQUEST_ABORTED' || signal?.aborted) {
+    return { ok: false, members: [], error: 'REQUEST_ABORTED' };
+  }
+
   // 2. Resilient fallback: /customers?search=
   try {
     const fallbackRes = await apiGet<any>(

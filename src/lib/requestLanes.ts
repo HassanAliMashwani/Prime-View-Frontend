@@ -67,6 +67,7 @@ class RequestLanesCoordinator {
   private lane1ActiveCount = 0;
   private activeSaves = new Set<string>();
   private screenInFlight = new Map<string, InFlightScreen>();
+  private screenInFlightByScreen = new Map<string, InFlightScreen>();
   private screenSequences = new Map<string, number>();
   private lane2InFlight = new Map<string, InFlightLane2>();
   private lane2InFlightByScreen = new Map<string, AbortController>();
@@ -168,6 +169,27 @@ class RequestLanesCoordinator {
     const abortController = new AbortController();
 
     if (screen) {
+      if (!isSave) {
+        // Automatically cancel any older in-flight interactive read request for this same screen
+        const priorScreenReq = this.screenInFlightByScreen.get(screen);
+        if (priorScreenReq && !priorScreenReq.isSave) {
+          priorScreenReq.isDiscarded = true;
+          try {
+            priorScreenReq.abortController.abort();
+          } catch { /* ignore */ }
+        }
+
+        // Also abort any running Lane 2 background refresh for this screen
+        for (const [bgKey, bgAbort] of Array.from(this.lane2InFlightByScreen.entries())) {
+          if (bgKey === screen || bgKey.startsWith(`${screen}:`)) {
+            try {
+              bgAbort.abort();
+            } catch { /* ignore */ }
+            this.lane2InFlightByScreen.delete(bgKey);
+          }
+        }
+      }
+
       if (key) {
         streamKey = `${screen}:${key}`;
         currentSeq = this.nextScreenSequence(streamKey);
@@ -177,14 +199,6 @@ class RequestLanesCoordinator {
           try {
             existing.abortController.abort();
           } catch { /* ignore */ }
-        }
-        // Also abort any running Lane 2 background refresh for this same stream
-        const bgRefresh = this.lane2InFlightByScreen.get(streamKey);
-        if (bgRefresh) {
-          try {
-            bgRefresh.abort();
-          } catch { /* ignore */ }
-          this.lane2InFlightByScreen.delete(streamKey);
         }
       } else {
         currentSeq = this.nextScreenSequence(screen);
@@ -201,6 +215,9 @@ class RequestLanesCoordinator {
 
     if (streamKey) {
       this.screenInFlight.set(streamKey, tracker);
+    }
+    if (screen && !isSave) {
+      this.screenInFlightByScreen.set(screen, tracker);
     }
 
     this.lane1ActiveCount++;
@@ -256,6 +273,9 @@ class RequestLanesCoordinator {
       }
       if (streamKey && this.screenInFlight.get(streamKey) === tracker) {
         this.screenInFlight.delete(streamKey);
+      }
+      if (screen && !isSave && this.screenInFlightByScreen.get(screen) === tracker) {
+        this.screenInFlightByScreen.delete(screen);
       }
 
       this.lane1ActiveCount--;

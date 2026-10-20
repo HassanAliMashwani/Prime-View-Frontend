@@ -5,19 +5,19 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { siteConfig } from '@/data/site';
-import { 
-  ScrollText, 
-  TrendingUp, 
-  Calendar, 
-  Search, 
-  User, 
-  Building2, 
-  CreditCard, 
-  Filter, 
-  Printer, 
-  ShieldCheck, 
-  Layers, 
-  ExternalLink, 
+import {
+  ScrollText,
+  TrendingUp,
+  Calendar,
+  Search,
+  User,
+  Building2,
+  CreditCard,
+  Filter,
+  Printer,
+  ShieldCheck,
+  Layers,
+  ExternalLink,
   RefreshCw,
   X,
   Award,
@@ -28,11 +28,11 @@ import {
 } from 'lucide-react';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getSubAdmins } from '@/lib/dal/users';
-import { 
-  getSalesHistory, 
-  SalesHistoryItem, 
-  SalesHistoryKpis, 
-  SalesHistoryFilters 
+import {
+  getSalesHistory,
+  SalesHistoryItem,
+  SalesHistoryKpis,
+  SalesHistoryFilters
 } from '@/lib/dal/salesHistory';
 import { AdminSalesHistorySkeleton } from '@/components/ui/skeleton';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
@@ -79,19 +79,20 @@ function SalesHistoryContent() {
   const [blockFilter, setBlockFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [search, setSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
   const [page, setPage] = useState<number>(parseInt(searchParams?.get('page') || '1', 10));
-
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-    const url = new URL(window.location.href);
-    url.searchParams.set('page', newPage.toString());
-    router.push(url.pathname + url.search);
-  };
 
   const [totalRecords, setTotalRecords] = useState<number>(0);
   const [isPrinting, setIsPrinting] = useState<boolean>(false);
   const [printItems, setPrintItems] = useState<SalesHistoryItem[] | null>(null);
   const reqIdRef = React.useRef(0);
+  const sessionRef = React.useRef<AdminSession | null>(null);
+  useEffect(() => { sessionRef.current = session; }, [session]);
+
+  const filtersRef = React.useRef({ datePreset, dateFrom, dateTo, adminFilter, blockFilter, categoryFilter, search, page });
+  useEffect(() => {
+    filtersRef.current = { datePreset, dateFrom, dateTo, adminFilter, blockFilter, categoryFilter, search, page };
+  });
 
   const handlePrint = async () => {
     if (!session) return;
@@ -130,24 +131,31 @@ function SalesHistoryContent() {
   };
 
   const loadData = useCallback(async (
-    currentSession: AdminSession, 
-    pageParam = 1, 
+    currentSession: AdminSession,
+    pageParam = 1,
     background = false,
-    overrideAdminId?: string
+    overrides?: Partial<SalesHistoryFilters>
   ) => {
     const currentReq = ++reqIdRef.current;
     try {
-      const activeAdmin = overrideAdminId !== undefined ? overrideAdminId : adminFilter;
-      const filters = {
-        datePreset,
-        dateFrom: dateFrom || undefined,
-        dateTo: dateTo || undefined,
+      const activePreset = overrides?.datePreset !== undefined ? overrides.datePreset : filtersRef.current.datePreset;
+      const activeFrom = overrides?.dateFrom !== undefined ? overrides.dateFrom : filtersRef.current.dateFrom;
+      const activeTo = overrides?.dateTo !== undefined ? overrides.dateTo : filtersRef.current.dateTo;
+      const activeAdmin = overrides?.adminId !== undefined ? overrides.adminId : filtersRef.current.adminFilter;
+      const activeBlock = overrides?.blockId !== undefined ? overrides.blockId : filtersRef.current.blockFilter;
+      const activeCategory = overrides?.category !== undefined ? overrides.category : filtersRef.current.categoryFilter;
+      const activeSearch = overrides?.search !== undefined ? overrides.search : filtersRef.current.search;
+
+      const filters: SalesHistoryFilters = {
+        datePreset: activePreset,
+        dateFrom: activeFrom || undefined,
+        dateTo: activeTo || undefined,
         adminId: activeAdmin !== 'all' ? activeAdmin : undefined,
-        blockId: blockFilter !== 'all' ? blockFilter : undefined,
-        category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
-        search: search.trim() || undefined,
+        blockId: activeBlock !== 'all' ? activeBlock : undefined,
+        category: activeCategory !== 'all' ? (activeCategory as PlotCategory) : undefined,
+        search: (activeSearch || '').trim() || undefined,
         page: pageParam,
-        pageSize: PAGE_SIZE
+        pageSize: PAGE_SIZE,
       };
 
       const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
@@ -188,6 +196,7 @@ function SalesHistoryContent() {
       }
 
       if (!res || currentReq !== reqIdRef.current) return;
+      if (res.error === 'REQUEST_ABORTED') return;
 
       if (!res.ok) {
         setFeedback({
@@ -197,6 +206,7 @@ function SalesHistoryContent() {
             : 'Sales history failed to load.'
         });
       } else {
+        // Guarantee table rows and all KPI totals come from the exact same latest result
         setItems(res.items || []);
         setKpis(res.kpis);
         setTotalRecords(res.total || 0);
@@ -235,8 +245,24 @@ function SalesHistoryContent() {
         if (!background) setLoading(false);
       }
     }
-  }, [datePreset, dateFrom, dateTo, adminFilter, blockFilter, categoryFilter, search]);
+  }, []);
 
+  // Search input debouncer (250ms)
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (search !== searchInput) {
+        setSearch(searchInput);
+        setPage(1);
+        const cur = sessionRef.current || getActiveAdminSession();
+        if (cur) {
+          loadData(cur, 1, false, { search: searchInput });
+        }
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchInput, search, loadData]);
+
+  // Initial mount: load session and dropdowns ONCE in parallel. Never reload on filter changes or keystrokes.
   useEffect(() => {
     setMounted(true);
     const cur = getActiveAdminSession();
@@ -273,7 +299,10 @@ function SalesHistoryContent() {
 
     // 30-second refresh in background Lane 2
     const interval = setInterval(() => {
-      loadData(cur, page, true);
+      const s = sessionRef.current || getActiveAdminSession();
+      if (s) {
+        loadData(s, filtersRef.current.page, true);
+      }
     }, 30000);
 
     return () => clearInterval(interval);
@@ -298,112 +327,68 @@ function SalesHistoryContent() {
       from = '';
       to = '';
     }
-    const adminId = session?.adminId || session?.username || 'admin';
-    const filters = {
-      datePreset: preset,
-      dateFrom: from || undefined,
-      dateTo: to || undefined,
-      blockId: blockFilter !== 'all' ? blockFilter : undefined,
-      category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
-      search: search.trim() || undefined,
-      page: 1,
-      pageSize: PAGE_SIZE,
-    };
-    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
-    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
-    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
-    if (cached) {
-      setItems(cached.items);
-      setKpis(cached.kpis);
-      setTotalRecords(cached.total);
-      setLoading(false);
-    } else {
-      setItems([]);
-      setLoading(true);
+    setPage(1);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, { datePreset: preset, dateFrom: from, dateTo: to });
     }
   };
 
   const handleBlockFilterChange = (val: string) => {
     setBlockFilter(val);
-    const adminId = session?.adminId || session?.username || 'admin';
-    const filters = {
-      datePreset,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      blockId: val !== 'all' ? val : undefined,
-      category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
-      search: search.trim() || undefined,
-      page: 1,
-      pageSize: PAGE_SIZE,
-    };
-    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
-    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
-    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
-    if (cached) {
-      setItems(cached.items);
-      setKpis(cached.kpis);
-      setTotalRecords(cached.total);
-      setLoading(false);
-    } else {
-      setItems([]);
-      setLoading(true);
+    setPage(1);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, { blockId: val });
     }
   };
 
   const handleCategoryFilterChange = (val: string) => {
     setCategoryFilter(val);
-    const adminId = session?.adminId || session?.username || 'admin';
-    const filters = {
-      datePreset,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      blockId: blockFilter !== 'all' ? blockFilter : undefined,
-      category: val !== 'all' ? (val as PlotCategory) : undefined,
-      search: search.trim() || undefined,
-      page: 1,
-      pageSize: PAGE_SIZE,
-    };
-    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
-    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
-    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
-    if (cached) {
-      setItems(cached.items);
-      setKpis(cached.kpis);
-      setTotalRecords(cached.total);
-      setLoading(false);
-    } else {
-      setItems([]);
-      setLoading(true);
+    setPage(1);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, { category: val as any });
     }
   };
 
   const handleAdminFilterChange = (val: string) => {
     setAdminFilter(val);
     setPage(1);
-    const adminId = session?.adminId || session?.username || 'admin';
-    const activeAdmin = val !== 'all' ? val : undefined;
-    const filters = {
-      datePreset,
-      dateFrom: dateFrom || undefined,
-      dateTo: dateTo || undefined,
-      adminId: activeAdmin,
-      blockId: blockFilter !== 'all' ? blockFilter : undefined,
-      category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
-      search: search.trim() || undefined,
-      page: 1,
-      pageSize: PAGE_SIZE,
-    };
-    const pathParams = new URLSearchParams(Object.entries(filters).filter(([_, v]) => v !== undefined) as string[][]);
-    const key = generateCacheKey('GET', `/sales/history?${pathParams.toString()}`, adminId);
-    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
-    if (cached) {
-      setItems(cached.items);
-      setKpis(cached.kpis);
-      setTotalRecords(cached.total);
-      setLoading(false);
-    } else {
-      setItems([]);
-      setLoading(true);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, { adminId: val });
+    }
+  };
+
+  const handleDateFromChange = (val: string) => {
+    setDateFrom(val);
+    setDatePreset('all');
+    setPage(1);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, { dateFrom: val, datePreset: 'all' });
+    }
+  };
+
+  const handleDateToChange = (val: string) => {
+    setDateTo(val);
+    setDatePreset('all');
+    setPage(1);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, { dateTo: val, datePreset: 'all' });
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    const url = new URL(window.location.href);
+    url.searchParams.set('page', newPage.toString());
+    router.push(url.pathname + url.search);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, newPage, false);
     }
   };
 
@@ -416,31 +401,29 @@ function SalesHistoryContent() {
     setBlockFilter('all');
     setCategoryFilter('all');
     setSearch('');
+    setSearchInput('');
     setPage(1);
-    const adminId = session?.adminId || session?.username || 'admin';
-    const key = generateCacheKey('GET', `/sales/history?datePreset=all&page=1&pageSize=${PAGE_SIZE}`, adminId);
-    const cached = getCache<{ items: SalesHistoryItem[], kpis: SalesHistoryKpis, total: number }>(key, true);
-    if (cached) {
-      setItems(cached.items);
-      setKpis(cached.kpis);
-      setTotalRecords(cached.total);
-      setLoading(false);
-    } else {
-      setItems([]);
-      setLoading(true);
+    const s = session || sessionRef.current || getActiveAdminSession();
+    if (s) {
+      loadData(s, 1, false, {
+        datePreset: 'all',
+        dateFrom: '',
+        dateTo: '',
+        adminId: 'all',
+        blockId: 'all',
+        category: 'all',
+        search: '',
+      });
     }
   };
 
   // Build block options:
-  // Super Admin: unique { blockId, blockName } from items plus the 8 society blocks
+  // Super Admin: all 7 society blocks
   // Non-super-admin: only session.assignedBlocks
   const blockOptions = React.useMemo(() => {
     if (session?.role === 'super_admin') {
       const map = new Map<string, string>();
       for (const b of SOCIETY_BLOCKS) map.set(b.id, b.name);
-      for (const item of items) {
-        if (item.blockId) map.set(item.blockId, item.blockName || item.blockId);
-      }
       return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
     }
     const assigned = session?.assignedBlocks || [];
@@ -448,7 +431,7 @@ function SalesHistoryContent() {
       const found = SOCIETY_BLOCKS.find((b) => b.id === id);
       return { id, name: found ? found.name : id.toUpperCase() };
     });
-  }, [session, items]);
+  }, [session]);
 
   const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -646,11 +629,10 @@ function SalesHistoryContent() {
                 <button
                   key={preset}
                   onClick={() => handlePresetSelect(preset)}
-                  className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
-                    active
+                  className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${active
                       ? 'bg-slate-900 text-white border-slate-900'
                       : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {labels[preset]}
                 </button>
@@ -692,10 +674,7 @@ function SalesHistoryContent() {
             <input
               type="date"
               value={dateFrom}
-              onChange={(e) => {
-                setDateFrom(e.target.value);
-                setDatePreset('all');
-              }}
+              onChange={(e) => handleDateFromChange(e.target.value)}
               className="w-full p-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600"
             />
           </div>
@@ -706,10 +685,7 @@ function SalesHistoryContent() {
             <input
               type="date"
               value={dateTo}
-              onChange={(e) => {
-                setDateTo(e.target.value);
-                setDatePreset('all');
-              }}
+              onChange={(e) => handleDateToChange(e.target.value)}
               className="w-full p-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600"
             />
           </div>
@@ -753,8 +729,8 @@ function SalesHistoryContent() {
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
               <input
                 type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Plot, Customer, Member #..."
                 className="w-full pl-8 pr-3 py-2 rounded-xl border border-slate-300 text-xs focus:outline-hidden focus:ring-1 focus:ring-emerald-600"
               />
@@ -766,8 +742,8 @@ function SalesHistoryContent() {
       {/* ==================================================================== */}
       {/* PRINTABLE LEDGER CONTAINER (#pv-sales-ledger-printable)              */}
       {/* ==================================================================== */}
-      <div 
-        id="pv-sales-ledger-printable" 
+      <div
+        id="pv-sales-ledger-printable"
         className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs print:border-none print:shadow-none print:rounded-none print:p-0 print:m-0 print:overflow-visible"
       >
         {/* Print-Only Official Society Letterhead */}
@@ -819,16 +795,16 @@ function SalesHistoryContent() {
             <div>
               <span className="text-slate-400 font-medium">Period Filter: </span>
               <strong className="text-slate-900 uppercase">
-                {datePreset === 'all' 
-                  ? (dateFrom || dateTo ? `${dateFrom || 'Start'} to ${dateTo || 'End'}` : 'All Time') 
+                {datePreset === 'all'
+                  ? (dateFrom || dateTo ? `${dateFrom || 'Start'} to ${dateTo || 'End'}` : 'All Time')
                   : (datePreset ? datePreset.replace(/_/g, ' ') : 'All Time')}
               </strong>
             </div>
             <div>
               <span className="text-slate-400 font-medium">Sector Scope: </span>
               <strong className="text-slate-900 uppercase">
-                {blockFilter === 'all' 
-                  ? (!mounted || !session ? 'All Blocks' : session.role === 'super_admin' ? 'All Blocks' : session.assignedBlocks?.join(', ') || 'Assigned') 
+                {blockFilter === 'all'
+                  ? (!mounted || !session ? 'All Blocks' : session.role === 'super_admin' ? 'All Blocks' : session.assignedBlocks?.join(', ') || 'Assigned')
                   : blockFilter}
               </strong>
             </div>
@@ -914,11 +890,10 @@ function SalesHistoryContent() {
                       <div className="font-bold text-slate-900">{sale.customerName}</div>
                       <div className="flex items-center gap-2">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            isPortalIssued
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${isPortalIssued
                               ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                               : 'bg-amber-50 text-amber-800 border-amber-200'
-                          }`}
+                            }`}
                         >
                           {regLabel}
                         </span>
@@ -1013,11 +988,10 @@ function SalesHistoryContent() {
                             <div className="font-bold text-slate-900 text-sm">{sale.customerName}</div>
                             <div className="flex items-center gap-2">
                               <span
-                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                  isPortalIssued
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${isPortalIssued
                                     ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                     : 'bg-amber-50 text-amber-800 border-amber-200'
-                                }`}
+                                  }`}
                               >
                                 {regLabel}
                               </span>

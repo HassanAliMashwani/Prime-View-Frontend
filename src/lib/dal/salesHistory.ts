@@ -123,6 +123,15 @@ export async function getSalesHistory(
     const data = await res.json();
     return data;
   } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      return {
+        ok: false,
+        items: [],
+        kpis: emptyKpis,
+        error: 'REQUEST_ABORTED',
+        message: 'Request was cancelled',
+      };
+    }
     return {
       ok: false,
       items: [],

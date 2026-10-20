@@ -300,6 +300,7 @@ export default function TeamsPage() {
       }
 
       if (!res || currentReq !== reqIdRef.current || st !== statusFilterRef.current) return;
+      if (res.error === 'REQUEST_ABORTED') return;
 
       if (res.ok) {
         const items = res.subAdmins || [];
@@ -898,16 +899,14 @@ export default function TeamsPage() {
                           </div>
 
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 flex items-center gap-1 ${
-                              admin.status === 'active'
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shrink-0 flex items-center gap-1 ${admin.status === 'active'
                                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                                 : 'bg-rose-50 text-rose-800 border-rose-200'
-                            }`}
+                              }`}
                           >
                             <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                admin.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
-                              }`}
+                              className={`w-1.5 h-1.5 rounded-full ${admin.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
+                                }`}
                             />
                             {admin.status}
                           </span>
@@ -949,9 +948,8 @@ export default function TeamsPage() {
                             admin.assignedBlocks.slice(0, 3).map((b) => (
                               <span
                                 key={b}
-                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono font-bold border uppercase tracking-wider ${
-                                  BLOCK_BADGES[b] || 'bg-slate-100 text-slate-800 border-slate-300'
-                                }`}
+                                className={`text-[9px] px-1.5 py-0.5 rounded-md font-mono font-bold border uppercase tracking-wider ${BLOCK_BADGES[b] || 'bg-slate-100 text-slate-800 border-slate-300'
+                                  }`}
                               >
                                 {b}
                               </span>
@@ -986,7 +984,7 @@ export default function TeamsPage() {
                   </div>
 
                   {/* Card Action Buttons */}
-                  <div 
+                  <div
                     onClick={(e) => e.stopPropagation()}
                     className="p-3 bg-slate-50/80 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2"
                   >
@@ -1023,13 +1021,12 @@ export default function TeamsPage() {
                         setConfirmAdmin(admin);
                       }}
                       disabled={isSelf}
-                      className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition cursor-pointer ${
-                        isSelf
+                      className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition cursor-pointer ${isSelf
                           ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
                           : admin.status === 'active'
-                          ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
-                          : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
-                      }`}
+                            ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200'
+                            : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                        }`}
                       title={isSelf ? 'Cannot suspend your own active account' : undefined}
                     >
                       {admin.status === 'active' ? 'Suspend' : 'Activate'}
@@ -1041,11 +1038,10 @@ export default function TeamsPage() {
                         setDeleteAdmin(admin);
                       }}
                       disabled={isSelf}
-                      className={`p-1.5 text-xs font-bold rounded-xl border transition cursor-pointer ${
-                        isSelf
+                      className={`p-1.5 text-xs font-bold rounded-xl border transition cursor-pointer ${isSelf
                           ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400 border-slate-200'
                           : 'bg-white hover:bg-rose-50 text-rose-600 border-slate-200 hover:border-rose-200 shadow-2xs'
-                      }`}
+                        }`}
                       title={isSelf ? 'Cannot delete your own active account' : 'Permanently Delete Sub-Admin'}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -1218,11 +1214,10 @@ export default function TeamsPage() {
                             : [...createForm.assignedBlocks, b.id];
                           setCreateForm({ ...createForm, assignedBlocks: updated });
                         }}
-                        className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
-                          checked
+                        className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition flex items-center justify-between cursor-pointer ${checked
                             ? 'bg-emerald-50 text-emerald-950 border-emerald-300 shadow-xs'
                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <span className="truncate">{b.name}</span>
                         {checked ? (
@@ -1287,11 +1282,10 @@ export default function TeamsPage() {
                             permissions: nextPerms,
                           });
                         }}
-                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${
-                          isGranted
+                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${isGranted
                             ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <div className="mt-0.5 shrink-0">
                           {isGranted ? (
@@ -1333,11 +1327,10 @@ export default function TeamsPage() {
                             },
                           });
                         }}
-                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${
-                          isGranted
+                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${isGranted
                             ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <div className="mt-0.5 shrink-0">
                           {isGranted ? (
@@ -1526,11 +1519,10 @@ export default function TeamsPage() {
                             : [...current, b.id];
                           setEditForm({ ...editForm, assignedBlocks: updated });
                         }}
-                        className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition flex items-center justify-between cursor-pointer ${
-                          checked
+                        className={`p-2.5 rounded-xl border text-left text-xs font-semibold transition flex items-center justify-between cursor-pointer ${checked
                             ? 'bg-emerald-50 text-emerald-950 border-emerald-300 shadow-xs'
                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <span className="truncate">{b.name}</span>
                         {checked ? (
@@ -1595,11 +1587,10 @@ export default function TeamsPage() {
                             permissions: nextPerms,
                           });
                         }}
-                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${
-                          isGranted
+                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${isGranted
                             ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <div className="mt-0.5 shrink-0">
                           {isGranted ? (
@@ -1641,11 +1632,10 @@ export default function TeamsPage() {
                             },
                           });
                         }}
-                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${
-                          isGranted
+                        className={`p-3 rounded-xl border text-left transition flex items-start gap-2.5 cursor-pointer ${isGranted
                             ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950'
                             : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
-                        }`}
+                          }`}
                       >
                         <div className="mt-0.5 shrink-0">
                           {isGranted ? (
@@ -1706,11 +1696,10 @@ export default function TeamsPage() {
           <div className="bg-white rounded-3xl border border-slate-200 w-full max-w-md shadow-2xl p-6 sm:p-7 space-y-5 max-h-[100dvh] overflow-y-auto">
             <div className="flex items-start gap-4">
               <div
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                  confirmAdmin.status === 'active'
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${confirmAdmin.status === 'active'
                     ? 'bg-rose-100 text-rose-700'
                     : 'bg-emerald-100 text-emerald-700'
-                }`}
+                  }`}
               >
                 {confirmAdmin.status === 'active' ? (
                   <ShieldAlert className="w-6 h-6" />
@@ -1744,17 +1733,16 @@ export default function TeamsPage() {
                 type="button"
                 onClick={handleConfirmStatusToggle}
                 disabled={confirmProcessing}
-                className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl transition shadow-md cursor-pointer ${
-                  confirmAdmin.status === 'active'
+                className={`px-5 py-2.5 text-xs font-bold text-white rounded-xl transition shadow-md cursor-pointer ${confirmAdmin.status === 'active'
                     ? 'bg-rose-600 hover:bg-rose-700'
                     : 'bg-emerald-600 hover:bg-emerald-700'
-                }`}
+                  }`}
               >
                 {confirmProcessing
                   ? 'Processing...'
                   : confirmAdmin.status === 'active'
-                  ? 'Confirm Suspension'
-                  : 'Confirm Activation'}
+                    ? 'Confirm Suspension'
+                    : 'Confirm Activation'}
               </button>
             </div>
           </div>
@@ -1822,11 +1810,11 @@ export default function TeamsPage() {
 
       {/* ── MODAL: ADMIN DETAILS & PERMISSIONS DOSSIER (Item 4) ── */}
       {selectedAdminDetail && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
           onClick={() => setSelectedAdminDetail(null)}
         >
-          <div 
+          <div
             className="bg-white rounded-3xl max-w-lg w-full border border-slate-200 shadow-2xl overflow-hidden text-xs animate-in fade-in zoom-in-95 duration-150 my-auto cursor-default flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
@@ -1856,126 +1844,121 @@ export default function TeamsPage() {
             {/* Scrollable Modal Content */}
             <div className="p-6 space-y-5 overflow-y-auto flex-1 min-h-0">
 
-            {/* Admin Overview Details */}
-            <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-sm font-bold text-slate-900">
-                    {selectedAdminDetail.fullName}
+              {/* Admin Overview Details */}
+              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-bold text-slate-900">
+                      {selectedAdminDetail.fullName}
+                    </div>
+                    <div className="text-xs font-mono text-slate-500 font-semibold">
+                      @{selectedAdminDetail.username}
+                    </div>
                   </div>
-                  <div className="text-xs font-mono text-slate-500 font-semibold">
-                    @{selectedAdminDetail.username}
-                  </div>
-                </div>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${
-                    selectedAdminDetail.status === 'active'
-                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                      : 'bg-rose-50 text-rose-800 border-rose-200'
-                  }`}
-                >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      selectedAdminDetail.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
-                    }`}
-                  />
-                  {selectedAdminDetail.status}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[11px]">
-                <div>
-                  <span className="text-slate-400 block font-medium">Email:</span>
-                  <span className="text-slate-700 font-semibold truncate block">
-                    {selectedAdminDetail.email || '—'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block font-medium">Role:</span>
-                  <span className="text-slate-700 font-semibold capitalize block">
-                    {selectedAdminDetail.role.replace('_', ' ')}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Assigned Blocks */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Assigned Society Blocks
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {!selectedAdminDetail.assignedBlocks || selectedAdminDetail.assignedBlocks.length === 0 ? (
-                  <span className="text-slate-400 text-xs italic">All society blocks (unrestricted)</span>
-                ) : (
-                  selectedAdminDetail.assignedBlocks.map((b) => (
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border flex items-center gap-1 ${selectedAdminDetail.status === 'active'
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                        : 'bg-rose-50 text-rose-800 border-rose-200'
+                      }`}
+                  >
                     <span
-                      key={b}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-mono font-bold border uppercase tracking-wider ${
-                        BLOCK_BADGES[b] || 'bg-slate-100 text-slate-800 border-slate-300'
-                      }`}
-                    >
-                      {availableBlocks.find((blk) => blk.id === b)?.name || DEFAULT_BLOCKS.find((blk) => blk.id === b)?.name || b}
+                      className={`w-1.5 h-1.5 rounded-full ${selectedAdminDetail.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'
+                        }`}
+                    />
+                    {selectedAdminDetail.status}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200/60 text-[11px]">
+                  <div>
+                    <span className="text-slate-400 block font-medium">Email:</span>
+                    <span className="text-slate-700 font-semibold truncate block">
+                      {selectedAdminDetail.email || '—'}
                     </span>
-                  ))
-                )}
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block font-medium">Role:</span>
+                    <span className="text-slate-700 font-semibold capitalize block">
+                      {selectedAdminDetail.role.replace('_', ' ')}
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            {/* Permissions List */}
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
+              {/* Assigned Blocks */}
+              <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Granted Module Permissions
+                  Assigned Society Blocks
                 </label>
-                <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                  {countStaffModules(selectedAdminDetail.permissions)} / 6 Active
-                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {!selectedAdminDetail.assignedBlocks || selectedAdminDetail.assignedBlocks.length === 0 ? (
+                    <span className="text-slate-400 text-xs italic">All society blocks (unrestricted)</span>
+                  ) : (
+                    selectedAdminDetail.assignedBlocks.map((b) => (
+                      <span
+                        key={b}
+                        className={`text-xs px-2.5 py-1 rounded-lg font-mono font-bold border uppercase tracking-wider ${BLOCK_BADGES[b] || 'bg-slate-100 text-slate-800 border-slate-300'
+                          }`}
+                      >
+                        {availableBlocks.find((blk) => blk.id === b)?.name || DEFAULT_BLOCKS.find((blk) => blk.id === b)?.name || b}
+                      </span>
+                    ))
+                  )}
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
-                {STAFF_MODULES.map((mod) => {
-                  const isGranted = mod.keys.every((k) =>
-                    Boolean(selectedAdminDetail.permissions?.[k as keyof typeof selectedAdminDetail.permissions])
-                  );
-                  return (
-                    <div
-                      key={mod.id}
-                      className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${
-                        isGranted
-                          ? 'bg-emerald-50/50 border-emerald-200 text-slate-900'
-                          : 'bg-slate-50 border-slate-200 text-slate-400'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        {isGranted ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        ) : (
-                          <X className="w-4 h-4 text-slate-300 shrink-0" />
-                        )}
-                        <div className="min-w-0">
-                          <div className={`text-xs font-bold truncate ${isGranted ? 'text-slate-900' : 'text-slate-400'}`}>
-                            {mod.label}
-                          </div>
-                          <div className="text-[10px] font-mono text-slate-400 truncate">
-                            {mod.keys.join(', ')}
+              {/* Permissions List */}
+              <div className="space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Granted Module Permissions
+                  </label>
+                  <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    {countStaffModules(selectedAdminDetail.permissions)} / 6 Active
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
+                  {STAFF_MODULES.map((mod) => {
+                    const isGranted = mod.keys.every((k) =>
+                      Boolean(selectedAdminDetail.permissions?.[k as keyof typeof selectedAdminDetail.permissions])
+                    );
+                    return (
+                      <div
+                        key={mod.id}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${isGranted
+                            ? 'bg-emerald-50/50 border-emerald-200 text-slate-900'
+                            : 'bg-slate-50 border-slate-200 text-slate-400'
+                          }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          {isGranted ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          ) : (
+                            <X className="w-4 h-4 text-slate-300 shrink-0" />
+                          )}
+                          <div className="min-w-0">
+                            <div className={`text-xs font-bold truncate ${isGranted ? 'text-slate-900' : 'text-slate-400'}`}>
+                              {mod.label}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400 truncate">
+                              {mod.keys.join(', ')}
+                            </div>
                           </div>
                         </div>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${isGranted
+                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                              : 'bg-slate-100 text-slate-400 border-slate-200'
+                            }`}
+                        >
+                          {isGranted ? 'Granted' : 'Revoked'}
+                        </span>
                       </div>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider shrink-0 ${
-                          isGranted
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                            : 'bg-slate-100 text-slate-400 border-slate-200'
-                        }`}
-                      >
-                        {isGranted ? 'Granted' : 'Revoked'}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
             </div>
 
@@ -2012,107 +1995,107 @@ export default function TeamsPage() {
 
             <div className="p-6 space-y-4 overflow-y-auto">
               <p className="text-slate-600 leading-relaxed">
-              New sub-administrator account created for{' '}
-              <strong className="text-slate-900">{createdCredentials.fullName}</strong>. Provide these credentials to the officer:
-            </p>
+                New sub-administrator account created for{' '}
+                <strong className="text-slate-900">{createdCredentials.fullName}</strong>. Provide these credentials to the officer:
+              </p>
 
-            <div className="space-y-2.5">
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Username</span>
-                  <span className="font-mono font-bold text-slate-900 text-sm select-all">
-                    {createdCredentials.username}
-                  </span>
+              <div className="space-y-2.5">
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Username</span>
+                    <span className="font-mono font-bold text-slate-900 text-sm select-all">
+                      {createdCredentials.username}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(createdCredentials.username);
+                      setCreatedCredsCopied('username');
+                      setTimeout(() => setCreatedCredsCopied(null), 2000);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                  >
+                    {createdCredsCopied === 'username' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
                 </div>
+
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Password</span>
+                    <span className="font-mono font-bold text-emerald-700 text-sm select-all">
+                      {createdCredentials.password}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(createdCredentials.password);
+                      setCreatedCredsCopied('password');
+                      setTimeout(() => setCreatedCredsCopied(null), 2000);
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                  >
+                    {createdCredsCopied === 'password' ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
                 <button
                   type="button"
                   onClick={async () => {
-                    await navigator.clipboard.writeText(createdCredentials.username);
-                    setCreatedCredsCopied('username');
+                    const text = `Username: ${createdCredentials.username}\nPassword: ${createdCredentials.password}`;
+                    await navigator.clipboard.writeText(text);
+                    setCreatedCredsCopied('all');
                     setTimeout(() => setCreatedCredsCopied(null), 2000);
                   }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                  className="flex-1 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition cursor-pointer"
                 >
-                  {createdCredsCopied === 'username' ? (
+                  {createdCredsCopied === 'all' ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Copied</span>
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>Copied All Credentials</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Copy</span>
+                      <Copy className="w-4 h-4 text-slate-500" />
+                      <span>Copy Both</span>
                     </>
                   )}
                 </button>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-2">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Password</span>
-                  <span className="font-mono font-bold text-emerald-700 text-sm select-all">
-                    {createdCredentials.password}
-                  </span>
-                </div>
                 <button
                   type="button"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(createdCredentials.password);
-                    setCreatedCredsCopied('password');
-                    setTimeout(() => setCreatedCredsCopied(null), 2000);
-                  }}
-                  className="px-2.5 py-1.5 rounded-lg border border-slate-300 hover:bg-white text-slate-700 font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+                  onClick={() => setCreatedCredentials(null)}
+                  className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition cursor-pointer"
                 >
-                  {createdCredsCopied === 'password' ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-500" />
-                      <span>Copy</span>
-                    </>
-                  )}
+                  Done
                 </button>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  const text = `Username: ${createdCredentials.username}\nPassword: ${createdCredentials.password}`;
-                  await navigator.clipboard.writeText(text);
-                  setCreatedCredsCopied('all');
-                  setTimeout(() => setCreatedCredsCopied(null), 2000);
-                }}
-                className="flex-1 py-2.5 rounded-xl border border-slate-300 font-bold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                {createdCredsCopied === 'all' ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span>Copied All Credentials</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-slate-500" />
-                    <span>Copy Both</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setCreatedCredentials(null)}
-                className="px-6 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-
-            <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
-              This password is shown once. Please copy and store it securely. It will not be displayed again.
-            </p>
+              <p className="text-[11px] text-amber-900 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
+                This password is shown once. Please copy and store it securely. It will not be displayed again.
+              </p>
             </div>
           </div>
         </div>
@@ -2137,61 +2120,61 @@ export default function TeamsPage() {
 
             <div className="p-6 space-y-4 overflow-y-auto">
               <p className="text-slate-600">
-              Administrative credentials generated for Sub-Administrator{' '}
-              <strong className="text-slate-900">{resetModalData.admin.fullName}</strong>:
-            </p>
+                Administrative credentials generated for Sub-Administrator{' '}
+                <strong className="text-slate-900">{resetModalData.admin.fullName}</strong>:
+              </p>
 
-            <div className="space-y-2">
-              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                <span className="text-slate-500 font-medium">Username:</span>
-                <span className="font-mono font-bold text-slate-900 select-all">
-                  {resetModalData.admin.username}
-                </span>
-              </div>
+              <div className="space-y-2">
+                <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                  <span className="text-slate-500 font-medium">Username:</span>
+                  <span className="font-mono font-bold text-slate-900 select-all">
+                    {resetModalData.admin.username}
+                  </span>
+                </div>
 
-              <div>
-                <div className="text-[11px] text-slate-500 font-medium mb-1">New Password:</div>
-                <div className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-center text-sm font-bold tracking-wider select-all break-all">
-                  {resetModalData.newPassword}
+                <div>
+                  <div className="text-[11px] text-slate-500 font-medium mb-1">New Password:</div>
+                  <div className="p-3 rounded-xl bg-slate-900 text-emerald-400 font-mono text-center text-sm font-bold tracking-wider select-all break-all">
+                    {resetModalData.newPassword}
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={async () => {
-                  const text = `Username: ${resetModalData.admin.username}\nPassword: ${resetModalData.newPassword}`;
-                  await navigator.clipboard.writeText(text);
-                  setCopied(true);
-                  setTimeout(() => setCopied(false), 2000);
-                }}
-                className="flex-1 py-2 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-4 h-4 text-emerald-600" />
-                    <span>Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 text-slate-500" />
-                    <span>Copy Credentials</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => setResetModalData(null)}
-                className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const text = `Username: ${resetModalData.admin.username}\nPassword: ${resetModalData.newPassword}`;
+                    await navigator.clipboard.writeText(text);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="flex-1 py-2 rounded-xl border border-slate-300 font-semibold text-slate-700 hover:bg-slate-50 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>Copied</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-slate-500" />
+                      <span>Copy Credentials</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResetModalData(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
 
-            <p className="text-[11px] text-slate-500 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
-              This new password is shown once. Provide it securely to the sub-administrator. The previous password has been invalidated immediately.
-            </p>
+              <p className="text-[11px] text-slate-500 bg-amber-50 border border-amber-200 p-2.5 rounded-xl leading-relaxed">
+                This new password is shown once. Provide it securely to the sub-administrator. The previous password has been invalidated immediately.
+              </p>
             </div>
           </div>
         </div>

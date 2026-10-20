@@ -94,16 +94,6 @@ function CustomersDirectoryContent() {
 
   const reqIdRef = React.useRef(0);
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      if (search !== searchInput) {
-        setSearch(searchInput);
-        setPage(1);
-      }
-    }, 300);
-    return () => clearTimeout(t);
-  }, [searchInput, search]);
-
   // Modals state
   const [dossierCustomer, setDossierCustomer] = useState<CustomerDirectoryEntry | null>(null);
   const [strikeCustomer, setStrikeCustomer] = useState<CustomerDirectoryEntry | null>(null);
@@ -301,6 +291,7 @@ function CustomersDirectoryContent() {
       }
 
       if (!res || reqId !== reqIdRef.current || statusParam !== statusFilterRef.current) return;
+      if (res.error === 'REQUEST_ABORTED') return;
       if (!res.ok) {
         setCustomers((prev) => {
           if (prev.length > 0) {
@@ -361,6 +352,20 @@ function CustomersDirectoryContent() {
   }, []);
 
   useEffect(() => {
+    const t = setTimeout(() => {
+      if (search !== searchInput) {
+        setSearch(searchInput);
+        setPage(1);
+        const s = session || getActiveAdminSession();
+        if (s) {
+          loadData(s, 1, searchInput, statusFilterRef.current, false);
+        }
+      }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [searchInput, search, session, loadData]);
+
+  useEffect(() => {
     setMounted(true);
     const cur = getActiveAdminSession();
     if (!cur) {
@@ -382,7 +387,7 @@ function CustomersDirectoryContent() {
       }, 30000);
       return () => clearInterval(intervalId);
     }
-  }, [router, loadData, page, search, statusFilter]);
+  }, [router, loadData, page]);
 
   // Flash feedback auto-clear (8s)
   useEffect(() => {
