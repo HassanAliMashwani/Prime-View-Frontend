@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { toast } from '@/lib/toast';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 export interface AdminToastFeedback {
   type: 'success' | 'error';
@@ -22,7 +23,7 @@ export function AdminActionToast({
   useEffect(() => {
     if (feedback) {
       if (feedback.type === 'error') {
-        toast.error(feedback.message);
+        toast.error(toSafeErrorMessage(feedback.message));
       } else {
         toast.success(feedback.message);
       }

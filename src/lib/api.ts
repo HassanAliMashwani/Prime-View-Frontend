@@ -4,7 +4,8 @@
  */
 
 import { API_BASE_URL, getApiBaseUrl } from './apiBase';
-export { API_BASE_URL, getApiBaseUrl };
+import { toSafeErrorMessage, GENERAL_SAFE_ERROR } from './safeError';
+export { API_BASE_URL, getApiBaseUrl, toSafeErrorMessage, GENERAL_SAFE_ERROR };
 
 const ADMIN_SESSION_KEY = 'prime_view_admin_session';
 const MEMBER_SESSION_KEY = 'prime_view_member_session';
@@ -57,19 +58,15 @@ export interface ApiResponse<T> {
 }
 
 function sanitizeErrorMessage(rawMessage?: any, rawError?: any): string {
-  if (rawMessage && typeof rawMessage === 'string' && rawMessage.trim() && rawMessage !== 'Something went wrong. Please try again.') {
-    return rawMessage;
+  if (rawMessage !== undefined && rawMessage !== null) {
+    const sanitized = toSafeErrorMessage(rawMessage);
+    if (sanitized !== GENERAL_SAFE_ERROR) return sanitized;
   }
-  if (rawError && typeof rawError === 'string' && rawError.trim()) {
-    return rawError;
+  if (rawError !== undefined && rawError !== null) {
+    const sanitized = toSafeErrorMessage(rawError);
+    if (sanitized !== GENERAL_SAFE_ERROR) return sanitized;
   }
-  if (Array.isArray(rawMessage)) return rawMessage.join(', ');
-  if (typeof rawMessage === 'object' && rawMessage) {
-    if (rawMessage.message) return sanitizeErrorMessage(rawMessage.message, rawMessage.error);
-    if (rawMessage.error) return sanitizeErrorMessage(rawMessage.error);
-  }
-  if (rawMessage) return String(rawMessage);
-  return rawError ? String(rawError) : 'Something went wrong. Please try again.';
+  return GENERAL_SAFE_ERROR;
 }
 
 /**
@@ -96,8 +93,7 @@ export async function apiGet<T>(path: string, token?: string, signal?: AbortSign
     if (err?.name === 'AbortError') {
       return { ok: false, error: 'REQUEST_ABORTED' };
     }
-    const safeMsg = err?.message || 'Something went wrong. Please try again.';
-    return { ok: false, error: safeMsg, message: safeMsg };
+    return { ok: false, error: GENERAL_SAFE_ERROR, message: GENERAL_SAFE_ERROR };
   }
 }
 
@@ -131,9 +127,8 @@ export async function apiPost<T>(
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (err: any) {
-    const safeMsg = err?.message || 'Something went wrong. Please try again.';
-    return { ok: false, error: safeMsg, message: safeMsg };
+  } catch {
+    return { ok: false, error: GENERAL_SAFE_ERROR, message: GENERAL_SAFE_ERROR };
   }
 }
 
@@ -158,9 +153,8 @@ export async function apiPatch<T>(path: string, bodyData: any, token?: string): 
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (err: any) {
-    const safeMsg = err?.message || 'Something went wrong. Please try again.';
-    return { ok: false, error: safeMsg, message: safeMsg };
+  } catch {
+    return { ok: false, error: GENERAL_SAFE_ERROR, message: GENERAL_SAFE_ERROR };
   }
 }
 
@@ -184,9 +178,8 @@ export async function apiDelete<T = any>(path: string, token?: string): Promise<
       };
     }
     return { ok: true, data: (body?.data !== undefined ? body.data : body) as T, status: res.status };
-  } catch (err: any) {
-    const safeMsg = err?.message || 'Something went wrong. Please try again.';
-    return { ok: false, error: safeMsg, message: safeMsg };
+  } catch {
+    return { ok: false, error: GENERAL_SAFE_ERROR, message: GENERAL_SAFE_ERROR };
   }
 }
 

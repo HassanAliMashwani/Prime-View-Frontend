@@ -150,7 +150,7 @@ export default function AdminProfilePage() {
       // 1. Shrink step & upload to public-media bucket via presigned URL
       const uploadRes = await uploadProfilePhoto(file);
       if (!uploadRes.ok || !uploadRes.fileUrl) {
-        toast.error(uploadRes.error || 'Failed to upload profile picture.');
+        toast.error('Something went wrong. Please try again.');
         setAvatarSaving(false);
         return;
       }
@@ -187,10 +187,10 @@ export default function AdminProfilePage() {
 
         toast.success('Profile picture updated successfully.');
       } else {
-        toast.error(res.error || 'Failed to save updated profile picture.');
+        toast.error('Something went wrong. Please try again.');
       }
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to process selected image.');
+    } catch {
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setAvatarSaving(false);
       if (fileInputRef.current) {
@@ -227,10 +227,10 @@ export default function AdminProfilePage() {
 
         toast.success('Emblem restored as default profile picture.');
       } else {
-        toast.error(res.error || 'Failed to reset profile picture.');
+        toast.error('Something went wrong. Please try again.');
       }
     } catch {
-      toast.error('An unexpected network error occurred.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setAvatarSaving(false);
     }
@@ -299,10 +299,10 @@ export default function AdminProfilePage() {
         setCache(`/profile:${session.adminId}`, res.admin);
         toast.success(res.message || 'Profile details updated successfully.');
       } else {
-        toast.error(res.error || 'Failed to update profile details.');
+        toast.error('Something went wrong. Please try again.');
       }
     } catch {
-      toast.error('An unexpected network error occurred.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setProfileSaving(false);
     }
@@ -345,10 +345,10 @@ export default function AdminProfilePage() {
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        toast.error(res.error || 'Failed to update password.');
+        toast.error('Something went wrong. Please try again.');
       }
     } catch {
-      toast.error('An unexpected network error occurred.');
+      toast.error('Something went wrong. Please try again.');
     } finally {
       setPasswordLoading(false);
     }

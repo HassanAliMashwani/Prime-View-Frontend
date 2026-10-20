@@ -34,6 +34,7 @@ import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 const PAGE_SIZE = 10;
 
@@ -290,7 +291,7 @@ export default function AdminReceiptsPage() {
       if (res.ok && res.fileUrl) {
         setPreviewImage(res.fileUrl);
       } else {
-        const errorMsg = res.error || 'Bank slip file is missing or inaccessible from storage.';
+        const errorMsg = toSafeErrorMessage(res.error || 'Bank slip file is missing or inaccessible from storage.');
         setCardSlipErrors((prev) => ({ ...prev, [receiptId]: errorMsg }));
         setBottomNotice({
           id: receiptId,
@@ -365,11 +366,11 @@ export default function AdminReceiptsPage() {
             setDriftNewPreview(res.newPreview);
           }
         } else {
-          const errMessage = res.message || res.error || 'Failed to verify receipt.';
+          const errMessage = toSafeErrorMessage(res.message || res.error || 'Failed to verify receipt.');
           setBottomNotice({
             id: receiptId,
             type: 'error',
-            message: `Error verifying receipt: ${errMessage}`,
+            message: errMessage,
           });
         }
       }
@@ -451,7 +452,7 @@ export default function AdminReceiptsPage() {
         // Refresh receipt list in background
         loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
       } else {
-        const errMsg = res.message || res.error || 'Failed to decline receipt.';
+        const errMsg = toSafeErrorMessage(res.message || res.error || 'Failed to decline receipt.');
         setRejectModalError(errMsg);
         setBottomNotice({
           id: targetId,
@@ -461,7 +462,7 @@ export default function AdminReceiptsPage() {
       }
     } catch (err: any) {
       if (err?.message !== 'REQUEST_SUPERSEDED') {
-        const errMsg = err?.message || 'An unexpected error occurred.';
+        const errMsg = toSafeErrorMessage(err?.message || 'Something went wrong. Please try again.');
         setRejectModalError(errMsg);
         setBottomNotice({
           id: targetId,

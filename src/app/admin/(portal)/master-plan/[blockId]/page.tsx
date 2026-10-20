@@ -51,6 +51,7 @@ import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 import { formatPhone } from '@/lib/utils/phone';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
@@ -191,7 +192,7 @@ function BlockPlotsContent() {
       setSelectedPlot(res.plot);
       await loadPlots(session);
     } else {
-      alert(res.message || res.error || 'Failed to update plot price.');
+      alert(toSafeErrorMessage(res.message || res.error || 'Failed to update plot price.'));
       setIsEditingPrice(false);
     }
   };
@@ -630,7 +631,7 @@ function BlockPlotsContent() {
         setSelectedPlot(null);
         await loadPlots(session);
       } else {
-        setActionError(res.message || res.error || 'Failed to complete quick booking.');
+        setActionError(toSafeErrorMessage(res.message || res.error || 'Failed to complete quick booking.'));
       }
     } catch {
       setActionError('An unexpected error occurred during quick booking.');
@@ -689,7 +690,7 @@ function BlockPlotsContent() {
         setSelectedPlot(null);
         await loadPlots(session);
       } else {
-        setActionError(res.error || 'Failed to place reservation.');
+        setActionError(toSafeErrorMessage(res.error || 'Failed to place reservation.'));
       }
     } catch {
       setActionError('An unexpected error occurred during reservation.');
@@ -802,7 +803,7 @@ function BlockPlotsContent() {
         clearCachePrefix(`/master-plan/${blockId}`);
         enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
-        setActionError(res.error || 'Failed to flag plot for adjustment.');
+        setActionError(toSafeErrorMessage(res.error || 'Failed to flag plot for adjustment.'));
       }
     } catch {
       setActionError('An error occurred while updating plot adjustment status.');
@@ -837,7 +838,7 @@ function BlockPlotsContent() {
         clearCachePrefix(`/master-plan/${blockId}`);
         enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
-        setActionError(res.error || 'Failed to release adjustment freeze.');
+        setActionError(toSafeErrorMessage(res.error || 'Failed to release adjustment freeze.'));
       }
     } catch {
       setActionError('An error occurred while releasing plot adjustment freeze.');
@@ -1774,7 +1775,7 @@ function BlockPlotsContent() {
 
                       {session?.role === 'super_admin' && (
                         <Link
-                          href={`/admin/customers?completeCustomer=${bookedCustomer.id}&plotId=${selectedPlot.id}`}
+                          href={`/admin/customers?completeCustomer=${bookedCustomer.id}&plotId=${selectedPlot.id}&plotNumber=${encodeURIComponent(selectedPlot.plotNumber || '')}&block=${encodeURIComponent(selectedPlot.blockId || '')}&size=${encodeURIComponent(selectedPlot.size || '')}&price=${encodeURIComponent(selectedPlot.price ? String(selectedPlot.price) : '')}&name=${encodeURIComponent(bookedCustomer.fullName || '')}&cnic=${encodeURIComponent(bookedCustomer.cnic || '')}&phone=${encodeURIComponent(bookedCustomer.phone || '')}`}
                           className="w-full inline-flex items-center justify-center gap-1.5 py-2 px-3 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow-xs transition-colors"
                         >
                           <ShieldCheck className="w-3.5 h-3.5" />

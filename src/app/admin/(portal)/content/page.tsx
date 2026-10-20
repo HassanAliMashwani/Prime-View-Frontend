@@ -39,6 +39,7 @@ import { AdminContentCrmSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 const PAGE_SIZE = 10;
 import { formatYouTubeEmbedUrl } from '@/lib/dal/youtube';
@@ -311,7 +312,7 @@ export default function ContentCMSPage() {
       } else {
         setFeedback({
           type: 'error',
-          message: res.error || 'Failed to acquire content edit lock.',
+          message: toSafeErrorMessage(res.error || 'Failed to acquire content edit lock.'),
         });
       }
       loadData(session, activeSection);
@@ -482,7 +483,7 @@ export default function ContentCMSPage() {
 
       if (!res.ok) {
         setSaving(false);
-        setEditError(res.error || 'Failed to create content block.');
+        setEditError(toSafeErrorMessage(res.error || 'Failed to create content block.'));
         return;
       }
 
@@ -527,7 +528,7 @@ export default function ContentCMSPage() {
 
       if (!res.ok) {
         setSaving(false);
-        setEditError(res.error || 'Failed to save content block.');
+        setEditError(toSafeErrorMessage(res.error || 'Failed to save content block.'));
         return;
       }
 
@@ -571,7 +572,7 @@ export default function ContentCMSPage() {
     if (!res.ok) {
       setFeedback({
         type: 'error',
-        message: res.error || 'Failed to delete content block.',
+        message: toSafeErrorMessage(res.error || 'Failed to delete content block.'),
       });
       return;
     }

@@ -2,14 +2,16 @@
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Building2, 
-  Map, 
-  RefreshCw, 
-  CheckCircle2, 
-  Clock, 
-  ShieldCheck, 
-  ShieldAlert, 
+import Image from 'next/image';
+import { siteConfig } from '@/data/site';
+import {
+  Building2,
+  Map,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  ShieldCheck,
+  ShieldAlert,
   AlertTriangle,
   History,
   Calendar,
@@ -17,11 +19,11 @@ import {
   X,
   Printer
 } from 'lucide-react';
-import { 
-  getLiveInventoryStats, 
-  getInventoryHistory, 
-  InventoryStats, 
-  InventoryTotals 
+import {
+  getLiveInventoryStats,
+  getInventoryHistory,
+  InventoryStats,
+  InventoryTotals
 } from '@/lib/dal/inventory';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getCache, setCache } from '@/lib/dal/apiCache';
@@ -392,7 +394,8 @@ export default function InventoryOverviewPage() {
   return (
     <div className="space-y-8 print:space-y-4 print:p-0">
       {/* Real 12mm print margins to ensure no table cells or headings are cut off at page edges */}
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @media print {
           @page {
             margin: 12mm !important;
@@ -420,7 +423,35 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       {/* 1. TOP HEADER & IMMEDIATE REFRESH BAR                         */}
       {/* ============================================================ */}
-      <div className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${printMode === 'history' ? 'print:hidden' : ''}`}>
+      {/* Print Letterhead for Live Inventory Status Report */}
+      <div className={`hidden ${printMode === 'status' ? 'print:block' : ''} border-b-2 border-slate-900 pb-4 mb-4`}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold font-serif text-slate-900 tracking-tight">PRIME VIEW HOUSING SCHEME</h1>
+            <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider">Inventory Status Report</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-xs font-mono font-bold text-slate-900">
+                Status: <span className="text-emerald-900 font-bold">Live Inventory</span>
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono">
+                Printed: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </div>
+            </div>
+            <Image
+              src={siteConfig.logoPath}
+              alt="Prime View"
+              width={48}
+              height={48}
+              className="object-contain"
+              unoptimized
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 font-serif">
@@ -432,7 +463,7 @@ export default function InventoryOverviewPage() {
               Live Plot Status
             </span>
           </div>
-          
+
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-end print:hidden flex-wrap">
@@ -451,16 +482,7 @@ export default function InventoryOverviewPage() {
             <Printer className="w-3.5 h-3.5" />
             <span>Print Inventory Status</span>
           </button>
-          <button
-            type="button"
-            onClick={handlePrintHistory}
-            disabled={loadingHistory || !historyHasQueried}
-            className="px-3.5 py-2 bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white rounded-xl transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer min-h-[42px] font-bold text-xs"
-            title="Print History"
-          >
-            <Printer className="w-3.5 h-3.5" />
-            <span>Print History</span>
-          </button>
+
           <button
             type="button"
             onClick={handleRefreshClick}
@@ -486,7 +508,7 @@ export default function InventoryOverviewPage() {
       {/* ============================================================ */}
       <section className={`space-y-4 ${printMode === 'history' ? 'print:hidden' : ''}`}>
         <div className="flex items-center justify-between">
-          
+
           {mounted && session?.role === 'sub_admin' && (
             <span className="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200 font-medium">
               Scoped to assigned blocks
@@ -621,11 +643,11 @@ export default function InventoryOverviewPage() {
 
         {/* Main Stats Table (Desktop >= 768px) */}
         <div className="hidden md:block">
-          <AdminTableShell 
-            page={livePage} 
-            pageSize={PAGE_SIZE} 
-            total={totalRecords} 
-            onPageChange={handlePageChange} 
+          <AdminTableShell
+            page={livePage}
+            pageSize={PAGE_SIZE}
+            total={totalRecords}
+            onPageChange={handlePageChange}
             isTable={false}
           >
             <table className="w-full text-left bg-white border border-slate-200/90 rounded-2xl shadow-xs overflow-hidden">
@@ -712,13 +734,23 @@ export default function InventoryOverviewPage() {
                 <h1 className="text-xl font-bold font-serif text-slate-900 tracking-tight">PRIME VIEW HOUSING SCHEME</h1>
                 <p className="text-xs text-slate-600 font-semibold uppercase tracking-wider">Inventory Status Transition Report</p>
               </div>
-              <div className="text-right">
-                <div className="text-xs font-mono font-bold text-slate-900">
-                  Date Range: <span className="text-indigo-900 font-bold">{appliedFrom}</span> to <span className="text-indigo-900 font-bold">{appliedTo}</span>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <div className="text-xs font-mono font-bold text-slate-900">
+                    Date Range: <span className="text-indigo-900 font-bold">{appliedFrom}</span> to <span className="text-indigo-900 font-bold">{appliedTo}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-mono">
+                    Printed: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
                 </div>
-                <div className="text-[10px] text-slate-500 font-mono">
-                  Printed: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </div>
+                <Image
+                  src={siteConfig.logoPath}
+                  alt="Prime View"
+                  width={48}
+                  height={48}
+                  className="object-contain"
+                  unoptimized
+                />
               </div>
             </div>
           </div>
@@ -741,8 +773,8 @@ export default function InventoryOverviewPage() {
               <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-slate-400 font-mono font-bold uppercase text-[10px]">From</span>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   required
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
@@ -752,8 +784,8 @@ export default function InventoryOverviewPage() {
               <span className="text-slate-400 font-mono font-bold lowercase text-xs px-1">to</span>
               <div className="flex items-center gap-1.5 text-xs">
                 <span className="text-slate-400 font-mono font-bold uppercase text-[10px]">To</span>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   required
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
@@ -823,7 +855,7 @@ export default function InventoryOverviewPage() {
               <div className="bg-blue-50/70 border border-blue-200 rounded-xl p-4 shadow-2xs print:bg-white print:border-slate-300">
                 <div className="flex items-center gap-2 mb-1.5">
                   <ShieldCheck className="w-4 h-4 text-blue-700" />
-                  <span className="text-xs font-bold text-blue-900 uppercase tracking-wider font-mono">Booked Transitions</span>
+                  <span className="text-xs font-bold text-blue-900 uppercase tracking-wider font-mono">Booked</span>
                 </div>
                 <div className="text-2xl font-bold text-blue-700">
                   {loadingHistory ? '...' : (historyTotals?.booked ?? 0).toLocaleString()}
@@ -834,7 +866,7 @@ export default function InventoryOverviewPage() {
               <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 shadow-2xs print:bg-white print:border-slate-300">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Map className="w-4 h-4 text-purple-700" />
-                  <span className="text-xs font-bold text-purple-900 uppercase tracking-wider font-mono">Allotted Transitions</span>
+                  <span className="text-xs font-bold text-purple-900 uppercase tracking-wider font-mono">Allotted</span>
                 </div>
                 <div className="text-2xl font-bold text-purple-700">
                   {loadingHistory ? '...' : (historyTotals?.allotted ?? 0).toLocaleString()}
@@ -845,7 +877,7 @@ export default function InventoryOverviewPage() {
               <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-4 shadow-2xs print:bg-white print:border-slate-300">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Clock className="w-4 h-4 text-amber-700" />
-                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wider font-mono">Reserved Transitions</span>
+                  <span className="text-xs font-bold text-amber-900 uppercase tracking-wider font-mono">Reserved</span>
                 </div>
                 <div className="text-2xl font-bold text-amber-700">
                   {loadingHistory ? '...' : (historyTotals?.reserved ?? 0).toLocaleString()}

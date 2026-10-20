@@ -11,6 +11,7 @@ import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview, uploadRec
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { ReceiptSubmission } from '@/lib/mock/types';
 import { getActiveSession } from '@/lib/dal/auth';
+import { toSafeErrorMessage } from '@/lib/safeError';
 import {
   OfficialA4PaymentSlip,
   buildSlipDataFromSubmission,
@@ -225,7 +226,7 @@ function PaymentsContent() {
           setBalloonError(null);
         } else {
           setPreviewData(null);
-          setBalloonError(res.message || res.error || 'Failed to calculate balloon preview.');
+          setBalloonError(toSafeErrorMessage(res.message || res.error || 'Failed to calculate balloon preview.'));
         }
       } catch (err: any) {
         if (err?.message !== 'REQUEST_SUPERSEDED') {
@@ -674,7 +675,7 @@ function PaymentsContent() {
               fetchDashboardData(true);
               loadReceipts(true);
             } else {
-              const errMsg = res.message || res.error || 'Failed to submit receipt.';
+              const errMsg = toSafeErrorMessage(res.message || res.error || 'Failed to submit receipt.');
               setUploadError(errMsg);
               setReceipts((prev) =>
                 prev.map((r) =>

@@ -55,22 +55,23 @@ import {
 } from '@/lib/dal/customers';
 import LiveMemberPicker from '@/components/admin/customers/LiveMemberPicker';
 import LiveCnicMemberPicker from '@/components/admin/customers/LiveCnicMemberPicker';
-import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice, getAdminPlotDetails } from '@/lib/dal/adminPlots';
+import { releaseLock, releaseLockSync, getAdminAllPlots, updatePlotPrice, getAdminPlotDetails, acquireLock } from '@/lib/dal/adminPlots';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { AdminCustomerRegistrationSkeleton } from '@/components/ui/skeleton';
 import { BookingAgreementModal } from '@/components/admin/BookingAgreementModal';
 import { nextFifthAfter, calculateInstallmentDueDates, formatDueOnFifth } from '@/lib/utils/installmentDates';
 import { runLane1 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { toSafeErrorMessage } from '@/lib/safeError';
 import { formatCnic, isValidCnic } from '@/lib/utils/cnic';
 import { formatPhone, isValidPhone } from '@/lib/utils/phone';
 
 function toPlainNumber(val: any): number {
   if (val === null || val === undefined || val === '') return 0;
-  if (typeof val === 'number') return isNaN(val) ? 0 : Math.round(val);
+  if (typeof val === 'number') return isNaN(val) ? 0 : Math.floor(val);
   const clean = String(val).replace(/[^0-9.]/g, '');
   const parsed = Number(clean);
-  return isNaN(parsed) ? 0 : Math.round(parsed);
+  return isNaN(parsed) ? 0 : Math.floor(parsed);
 }
 
 function PlotSelector({
@@ -164,30 +165,36 @@ function CustomersPageContent() {
   const queryLockToken = searchParams.get('lockToken') || '';
   const queryReturnBlock = searchParams.get('returnBlock') || '';
   const queryReservationId = searchParams.get('reservationId') || '';
-  const queryCustomerName = searchParams.get('customerName') || '';
-  const queryCustomerPhone = searchParams.get('customerPhone') || '';
-  const queryCustomerEmail = searchParams.get('customerEmail') || '';
-  const queryCustomerId = searchParams.get('customerId') || '';
+  const queryCustomerName = searchParams.get('customerName') || searchParams.get('name') || '';
+  const queryCustomerPhone = searchParams.get('customerPhone') || searchParams.get('phone') || '';
+  const queryCustomerEmail = searchParams.get('customerEmail') || searchParams.get('email') || '';
+  const queryCustomerId = searchParams.get('customerId') || searchParams.get('memberId') || '';
   const queryTab = searchParams.get('tab') || '';
-  const queryCompleteCustomer = searchParams.get('completeCustomer') || searchParams.get('completeCustomerId') || '';
+  const queryCompleteCustomer = searchParams.get('completeCustomer') || searchParams.get('completeCustomerId') || searchParams.get('memberId') || '';
   const querySetPlanCustomer = searchParams.get('setPlanCustomer') || '';
   const queryPlotNumber = searchParams.get('plotNumber') || '';
-  const queryPrice = searchParams.get('price') || '';
-  const queryCustomerCnic = searchParams.get('cnic') || '';
+  const queryBlock = searchParams.get('block') || searchParams.get('blockName') || searchParams.get('blockId') || '';
+  const querySize = searchParams.get('size') || searchParams.get('plotSize') || '';
+  const queryPrice = searchParams.get('price') || searchParams.get('plotPrice') || '';
+  const queryCustomerCnic = searchParams.get('cnic') || searchParams.get('customerCnic') || '';
   const isSetPlanMode = Boolean(querySetPlanCustomer && queryPlotId);
 
   const initPriceNum = queryPrice ? Number(queryPrice) : 0;
-  const initialPlot = (queryPlotId && (queryPlotNumber || queryPrice))
+  const initialPlot = (queryPlotId && (queryPlotNumber || queryPrice || queryBlock || querySize))
     ? ({
         id: queryPlotId,
         plotNumber: queryPlotNumber || queryPlotId,
         price: initPriceNum,
-        blockId: '',
-        size: '',
+        blockId: queryBlock || '',
+        size: querySize || '',
         category: 'residential' as any,
         status: 'available' as any,
       } as Plot)
     : null;
+
+  // Track whether authoritative plot price has arrived from database (save button stays disabled until then)
+  const [dbPriceArrived, setDbPriceArrived] = useState<boolean>(!queryPlotId);
+  const [plotLockHolder, setPlotLockHolder] = useState<string | null>(null);
 
   // Set Payment Plan Mode State (Super Admin Exclusivity)
   const [setPlanCustomer, setSetPlanCustomer] = useState<Customer | null>(null);
@@ -244,7 +251,7 @@ function CustomersPageContent() {
     fullName: queryCustomerName,
     fatherOrHusbandName: '',
     cnic: queryCustomerCnic ? formatCnic(queryCustomerCnic) : '',
-    phone: queryCustomerPhone,
+    phone: queryCustomerPhone ? formatPhone(queryCustomerPhone) : '',
     email: queryCustomerEmail,
     mailingAddress: '',
     nokName: '',
@@ -286,10 +293,10 @@ function CustomersPageContent() {
   const [subAdminPlotId, setSubAdminPlotId] = useState(queryPlotId || '');
   const [subAdminForm, setSubAdminForm] = useState({
     customerName: queryCustomerName || '',
-    cnic: '',
+    cnic: queryCustomerCnic ? formatCnic(queryCustomerCnic) : '',
     city: '',
-    customerId: '',
-    price: '',
+    customerId: queryCustomerId || '',
+    price: queryPrice || '',
   });
   const [subAdminSelectedMember, setSubAdminSelectedMember] = useState<PickerMember | null>(null);
   const [pathASelectedMember, setPathASelectedMember] = useState<PickerMember | null>(null);
@@ -341,21 +348,20 @@ function CustomersPageContent() {
   const [selectingCustomerId, setSelectingCustomerId] = useState<string | null>(null);
 
   // Drop sensitive parameters from address bar on first paint so member CNIC is not retained in browser history
+  // Drop query parameters from address bar on first paint after fields are populated
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
       const url = new URL(window.location.href);
-      const hasFlashed =
-        url.searchParams.has('cnic') ||
-        url.searchParams.has('name') ||
-        url.searchParams.has('price') ||
-        url.searchParams.has('plotNumber');
-
-      if (hasFlashed) {
-        url.searchParams.delete('cnic');
-        url.searchParams.delete('name');
-        url.searchParams.delete('price');
-        url.searchParams.delete('plotNumber');
+      const paramsToRemove = ['cnic', 'name', 'price', 'plotNumber', 'phone', 'block', 'size', 'customerName', 'customerPhone', 'customerCnic', 'plotPrice'];
+      let modified = false;
+      for (const p of paramsToRemove) {
+        if (url.searchParams.has(p)) {
+          url.searchParams.delete(p);
+          modified = true;
+        }
+      }
+      if (modified) {
         window.history.replaceState(null, '', url.pathname + url.search);
       }
     } catch {
@@ -387,6 +393,7 @@ function CustomersPageContent() {
       setSubAdminForm((prev) => ({ ...prev, price: cleanPrice > 0 ? String(cleanPrice) : '' }));
       setPathAPlotError(null);
       setPathBPlotError(null);
+      setDbPriceArrived(true);
     };
 
     const loadPlotById = async (id: string, customTotal?: number) => {
@@ -398,20 +405,37 @@ function CustomersPageContent() {
         setPlotLoading(false);
         if (res.ok && res.plot) {
           applyPlot(res.plot, customTotal);
+          if (res.plot.lockedBy && res.plot.lockedBy !== cur.adminId) {
+            setPlotLockHolder((res.plot as any).lockedByName || 'Another Officer');
+          } else {
+            setPlotLockHolder(null);
+            if (!queryLockToken) {
+              acquireLock(cur, id).then((lRes) => {
+                if (!lRes.ok && lRes.lockedByName) {
+                  setPlotLockHolder(lRes.lockedByName);
+                } else if (lRes.ok && lRes.lockToken) {
+                  setPlotLockHolder(null);
+                  setPathAForm((prev) => ({ ...prev, lockToken: lRes.lockToken }));
+                }
+              }).catch(() => {});
+            }
+          }
         } else {
-          setSelectedPlotA(null);
-          setSelectedPlotB(null);
-          const errMsg = res.error === 'OUT_OF_SCOPE'
-            ? 'Plot is outside your assigned administrative block scope.'
-            : (res.error || 'Failed to load plot details from master plan.');
-          setPathAPlotError(errMsg);
-          setPathBPlotError(errMsg);
+          setDbPriceArrived(true);
+          if ((res as any).lockedByName || res.error === 'PLOT_LOCKED') {
+            setPlotLockHolder((res as any).lockedByName || 'Another Officer');
+          } else {
+            const errMsg = res.error === 'OUT_OF_SCOPE'
+              ? 'Plot is outside your assigned administrative block scope.'
+              : (res.error || 'Failed to load plot details from master plan.');
+            setPathAPlotError(errMsg);
+            setPathBPlotError(errMsg);
+          }
         }
       } catch (err: any) {
         if (err?.name === 'AbortError') return;
         setPlotLoading(false);
-        setSelectedPlotA(null);
-        setSelectedPlotB(null);
+        setDbPriceArrived(true);
         setPathAPlotError('Failed to load plot details from master plan.');
         setPathBPlotError('Failed to load plot details from master plan.');
       }
@@ -483,10 +507,10 @@ function CustomersPageContent() {
         if (custRes.ok && custRes.data) {
           const cust = custRes.data;
           if (cust.registrationStatus === 'minimal') {
-            router.replace(`/admin/customers?completeCustomer=${cust.id}&plotId=${queryPlotId}`);
-            return;
+            setCompleteTargetCustomer(cust);
+          } else {
+            setSetPlanCustomer(cust);
           }
-          setSetPlanCustomer(cust);
           setActiveTab('path_a');
 
           // Match by UUID or plotNumber or find the member's unbilled held booking
@@ -652,6 +676,21 @@ function CustomersPageContent() {
 
           if (targetPlot && targetPlot.price && targetPlot.plotNumber && targetPlot.blockId) {
             applyPlot(targetPlot, customTotal);
+            if (targetPlot.lockedBy && targetPlot.lockedBy !== cur.adminId) {
+              setPlotLockHolder((targetPlot as any).lockedByName || 'Another Officer');
+            } else {
+              setPlotLockHolder(null);
+              if (!queryLockToken && targetPlotId) {
+                acquireLock(cur, targetPlotId).then((lRes) => {
+                  if (!lRes.ok && lRes.lockedByName) {
+                    setPlotLockHolder(lRes.lockedByName);
+                  } else if (lRes.ok && lRes.lockToken) {
+                    setPlotLockHolder(null);
+                    setPathAForm((prev) => ({ ...prev, lockToken: lRes.lockToken }));
+                  }
+                }).catch(() => {});
+              }
+            }
           } else if (targetPlotId) {
             await loadPlotById(targetPlotId, customTotal);
           }
@@ -1011,14 +1050,22 @@ function CustomersPageContent() {
     );
 
     const serverAuthoritativePrice = toPlainNumber(plot.price);
-    const finalPriceA = (setPlanCustomer && serverAuthoritativePrice > 0)
-      ? serverAuthoritativePrice
-      : ((canEditPriceA && totalPaymentA > 0) ? toPlainNumber(totalPaymentA) : serverAuthoritativePrice);
+    const finalPriceA = (canEditPriceA && totalPaymentA > 0)
+      ? toPlainNumber(totalPaymentA)
+      : serverAuthoritativePrice;
 
     if (!finalPriceA || isNaN(finalPriceA) || finalPriceA <= 0) {
       setFeedback({
         type: 'error',
         message: 'Total Payment (Plot Price) must be a valid positive amount greater than zero.',
+      });
+      return;
+    }
+
+    if (finalPriceA % 10 !== 0 || !Number.isInteger(finalPriceA)) {
+      setFeedback({
+        type: 'error',
+        message: 'Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.',
       });
       return;
     }
@@ -1498,6 +1545,11 @@ function CustomersPageContent() {
       return;
     }
 
+    if (finalPriceB % 10 !== 0 || !Number.isInteger(finalPriceB)) {
+      setPathBPlotError('Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.');
+      return;
+    }
+
     // Build installment plan config if installment type
     let installmentPlan: any = undefined;
     if (pathBPaymentType === 'installment') {
@@ -1647,6 +1699,10 @@ function CustomersPageContent() {
       setSubAdminPlotError('Plot price must be greater than 0.');
       return;
     }
+    if (parsedSubAdminPrice % 10 !== 0 || !Number.isInteger(parsedSubAdminPrice)) {
+      setSubAdminPlotError('Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.');
+      return;
+    }
 
     setSubAdminSubmitting(true);
     const res = await runLane1({
@@ -1722,7 +1778,7 @@ function CustomersPageContent() {
           message: `Portal password reset successfully for Member ${customerRef.fullName} (${customerRef.membershipNo}).`,
         });
       } else {
-        setResetPasswordError(res.message || res.error || 'Failed to reset password.');
+        setResetPasswordError(toSafeErrorMessage(res.message || res.error || 'Failed to reset password.'));
       }
     } catch {
       setResetPasswordError('An unexpected error occurred while resetting password.');
@@ -2136,6 +2192,8 @@ function CustomersPageContent() {
                   <h1 className="text-lg font-bold text-slate-900 font-serif">
                     {completeTargetCustomer ? (
                       `${completeTargetCustomer.fullName} (${formatCnic(completeTargetCustomer.cnic)})`
+                    ) : (queryCustomerName || queryCustomerCnic) ? (
+                      `${queryCustomerName}${queryCustomerCnic ? ` (${formatCnic(queryCustomerCnic)})` : ''}`
                     ) : (
                       <span className="inline-block h-5 w-48 bg-amber-300/40 animate-pulse rounded align-middle" />
                     )}
@@ -2172,12 +2230,14 @@ function CustomersPageContent() {
                   <h1 className="text-lg font-bold text-slate-900 font-serif">
                     {setPlanCustomer ? (
                       `${setPlanCustomer.fullName} (${setPlanCustomer.membershipNo || formatCnic(setPlanCustomer.cnic)})`
+                    ) : (queryCustomerName || queryCustomerCnic) ? (
+                      `${queryCustomerName}${queryCustomerCnic ? ` (${formatCnic(queryCustomerCnic)})` : ''}`
                     ) : (
                       <span className="inline-block h-5 w-48 bg-emerald-300/40 animate-pulse rounded align-middle" />
                     )}
                   </h1>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Assign official payment schedule and generate ledger bills for Plot {setPlanPlot?.plotNumber || queryPlotId}. Existing member profile details are prefilled.
+                    Assign official payment schedule and generate ledger bills for Plot {setPlanPlot?.plotNumber || queryPlotNumber || queryPlotId}. Existing member profile details are prefilled.
                   </p>
                 </div>
               </div>
@@ -2235,6 +2295,17 @@ function CustomersPageContent() {
               </div>
             </div>
           )}
+
+      {/* Plot Held by Another Officer Banner */}
+      {plotLockHolder && (
+        <div id="plot-locked-by-other-banner" className="p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl flex items-center gap-3 text-amber-950 font-medium text-xs shadow-xs">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+          <div className="flex-1">
+            <strong className="font-bold text-amber-900 block text-sm">Plot Held by Another Officer</strong>
+            <span>Plot {selectedPlotA?.plotNumber || queryPlotNumber || queryPlotId} is currently held by <strong className="font-bold text-amber-950">{plotLockHolder}</strong>. The plot details are visible, but saving is disabled until the hold is released.</span>
+          </div>
+        </div>
+      )}
 
       {/* ==================================================== */}
       {/* PATH A: FULL PAPER BOOKING FORM (NEW CUSTOMER)       */}
@@ -2543,13 +2614,13 @@ function CustomersPageContent() {
                     <div className="text-xs font-bold text-slate-900 font-mono flex items-center gap-1.5">
                       <Lock className="w-3.5 h-3.5 text-emerald-700" />
                       <span>
-                        {plotLoading ? (
+                        {(selectedPlotA || lockedPlot) ? (
+                          `Plot ${(selectedPlotA || lockedPlot)?.plotNumber} (${((selectedPlotA || lockedPlot)?.blockId || '').toUpperCase()}), ${(selectedPlotA || lockedPlot)?.size}, PKR ${((selectedPlotA || lockedPlot)?.price || 0).toLocaleString()}`
+                        ) : plotLoading ? (
                           <span className="text-slate-500 font-sans font-normal text-xs flex items-center gap-1.5">
                             <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600 inline" />
                             Loading plot...
                           </span>
-                        ) : (selectedPlotA || lockedPlot) ? (
-                          `Plot ${(selectedPlotA || lockedPlot)?.plotNumber} (${((selectedPlotA || lockedPlot)?.blockId || '').toUpperCase()}), ${(selectedPlotA || lockedPlot)?.size}, PKR ${((selectedPlotA || lockedPlot)?.price || 0).toLocaleString()}`
                         ) : (
                           <span className="text-rose-600 font-sans text-xs">Plot could not be loaded</span>
                         )}
@@ -2582,20 +2653,7 @@ function CustomersPageContent() {
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Master Plan Verification Status
                 </label>
-                {plotLoading ? (
-                  <div id="plot-verification-card" className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600 shrink-0" />
-                    <span>Loading plot details from master plan...</span>
-                  </div>
-                ) : pathAPlotError ? (
-                  <div id="plot-verification-card" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-                    <div>
-                      <div className="font-bold">Prerequisite Check Failed</div>
-                      <p className="mt-0.5 text-rose-800">{pathAPlotError}</p>
-                    </div>
-                  </div>
-                ) : selectedPlotA ? (
+                {selectedPlotA ? (
                   <div id="plot-verification-card" className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-emerald-800 flex items-center gap-1.5">
@@ -2619,6 +2677,19 @@ function CustomersPageContent() {
                         <span className="text-emerald-700">Plot Purchase Price:</span>{' '}
                         <strong className="text-emerald-950 font-mono text-sm">PKR {selectedPlotA.price.toLocaleString()}</strong>
                       </div>
+                    </div>
+                  </div>
+                ) : plotLoading ? (
+                  <div id="plot-verification-card" className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600 shrink-0" />
+                    <span>Loading plot details from master plan...</span>
+                  </div>
+                ) : pathAPlotError ? (
+                  <div id="plot-verification-card" className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                      <div className="font-bold">Prerequisite Check Failed</div>
+                      <p className="mt-0.5 text-rose-800">{pathAPlotError}</p>
                     </div>
                   </div>
                 ) : (
@@ -3022,7 +3093,9 @@ function CustomersPageContent() {
                   (completeTargetCustomer && pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
                   (setPlanCustomer && pathAForm.nokCnic === (setPlanCustomer.nokCnic ? formatCnic(setPlanCustomer.nokCnic) : '')) ||
                   isValidCnic(pathAForm.nokCnic)
-                )
+                ) ||
+                (Boolean(queryPlotId) && !dbPriceArrived) ||
+                Boolean(plotLockHolder)
               }
               className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[260px]"
             >
@@ -3035,6 +3108,11 @@ function CustomersPageContent() {
                 <>
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                   <span>Success!</span>
+                </>
+              ) : plotLockHolder ? (
+                <>
+                  <Lock className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span>Held by {plotLockHolder} (Save Disabled)</span>
                 </>
               ) : (
                 <>

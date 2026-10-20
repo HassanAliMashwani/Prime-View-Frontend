@@ -7,6 +7,7 @@ import { siteConfig } from '@/data/site';
 import { ShieldCheck, Lock, User, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { adminLogin } from '@/lib/dal/adminAuth';
 import { warmAdminCache } from '@/lib/dal/cacheWarmer';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -33,11 +34,11 @@ export default function AdminLoginPage() {
         warmAdminCache(res.session);
         router.push('/admin/dashboard');
       } else {
-        const msg = res.error || 'Invalid admin credentials.';
+        const msg = toSafeErrorMessage(res.error || 'Invalid admin credentials.');
         setError(msg);
       }
-    } catch (err: any) {
-      setError(err?.message || 'Unable to connect to administrative portal server.');
+    } catch {
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }

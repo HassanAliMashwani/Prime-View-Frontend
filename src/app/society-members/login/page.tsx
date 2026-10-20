@@ -8,6 +8,7 @@ import { siteConfig } from '@/data/site';
 import { useAuth } from '@/lib/hooks/useAuth';
 
 import { Shield, ArrowRight, AlertCircle, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 export default function MemberLoginPage() {
   const [identifier, setIdentifier] = useState('');
@@ -34,11 +35,11 @@ export default function MemberLoginPage() {
       if (res.ok) {
         router.push('/society-members/dashboard');
       } else {
-        const msg = res.error || 'Invalid credentials. Please try again.';
+        const msg = toSafeErrorMessage(res.error || 'Invalid credentials. Please try again.');
         setErrorMessage(msg);
       }
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Unable to connect to login server. Please try again.');
+    } catch {
+      setErrorMessage('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

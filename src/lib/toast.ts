@@ -1,5 +1,7 @@
 'use client';
 
+import { toSafeErrorMessage } from './safeError';
+
 export type ToastType = 'success' | 'error' | 'info' | 'warning';
 
 export interface ToastItem {
@@ -21,11 +23,12 @@ const listeners: Set<ToastListener> = new Set();
 export const toast = {
   show: (type: ToastType, message: string, title?: string, duration = 4500) => {
     if (!message) return;
+    const finalMessage = type === 'error' ? toSafeErrorMessage(message) : message;
     const item: ToastItem = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       type,
       title: title || (type === 'success' ? 'Success' : type === 'error' ? 'Notice' : 'Information'),
-      message,
+      message: finalMessage,
       duration,
     };
 
@@ -47,7 +50,7 @@ export const toast = {
   },
 
   error: (message: string, title?: string, duration = 5000) => {
-    toast.show('error', message, title || 'Error', duration);
+    toast.show('error', toSafeErrorMessage(message), title || 'Error', duration);
   },
 
   info: (message: string, title?: string, duration = 4500) => {

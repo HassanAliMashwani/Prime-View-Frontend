@@ -40,6 +40,7 @@ import { MODULE_REGISTRY, ModuleRegistryItem } from '@/lib/constants/moduleRegis
 import { getCache, setCache, clearCachePrefix } from '@/lib/dal/apiCache';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { toSafeErrorMessage } from '@/lib/safeError';
 
 const parseAdminTitle = (fullName?: string) => {
   if (!fullName) return { displayName: 'Administrator', roleTitle: null };
@@ -408,7 +409,7 @@ export default function TeamsPage() {
       } else if (res.error === 'EMAIL_ALREADY_IN_USE') {
         setFormError('This email address is already assigned to an admin.');
       } else {
-        setFormError(res.message || res.error || 'Failed to create sub-admin.');
+        setFormError(toSafeErrorMessage(res.message || res.error || 'Failed to create sub-admin.'));
       }
       return;
     }
@@ -492,7 +493,7 @@ export default function TeamsPage() {
       if (res.error === 'USERNAME_TAKEN') {
         setEditError('This username is already taken by another administrator.');
       } else {
-        setEditError(res.message || res.error || 'Failed to update sub-admin.');
+        setEditError(toSafeErrorMessage(res.message || res.error || 'Failed to update sub-admin.'));
       }
       return;
     }
@@ -529,7 +530,7 @@ export default function TeamsPage() {
     } else {
       setFeedback({
         type: 'error',
-        message: res.error || res.message || 'Failed to update status.',
+        message: toSafeErrorMessage(res.error || res.message || 'Failed to update status.'),
       });
     }
   };
@@ -557,7 +558,7 @@ export default function TeamsPage() {
     } else {
       setFeedback({
         type: 'error',
-        message: res.error || res.message || 'Failed to delete sub-administrator.',
+        message: toSafeErrorMessage(res.error || res.message || 'Failed to delete sub-administrator.'),
       });
     }
   };
@@ -598,7 +599,7 @@ export default function TeamsPage() {
     setResetSubmitting(null);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to reset sub-admin password.' });
+      setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to reset sub-admin password.') });
     } else if (!res.newPassword) {
       setFeedback({ type: 'error', message: 'Password reset returned empty credentials.' });
     } else {

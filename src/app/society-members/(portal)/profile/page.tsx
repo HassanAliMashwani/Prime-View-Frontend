@@ -94,7 +94,7 @@ export default function ProfilePage() {
       // 1. Shrink step & upload to public-media bucket via presigned URL
       const uploadRes = await uploadProfilePhoto(file);
       if (!uploadRes.ok || !uploadRes.fileUrl) {
-        setToastMessage({ type: 'error', text: uploadRes.error || 'Failed to upload profile picture to storage.' });
+        setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
         setAvatarSaving(false);
         return;
       }
@@ -118,10 +118,10 @@ export default function ProfilePage() {
         // Show success notice only after the link is saved
         setToastMessage({ type: 'success', text: 'Profile picture updated successfully.' });
       } else {
-        setToastMessage({ type: 'error', text: res.message || res.error || 'Failed to save updated profile picture.' });
+        setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
       }
-    } catch (err: any) {
-      setToastMessage({ type: 'error', text: err?.message || 'Failed to process selected image.' });
+    } catch {
+      setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
       setAvatarSaving(false);
       if (avatarInputRef.current) {
@@ -151,10 +151,10 @@ export default function ProfilePage() {
 
         setToastMessage({ type: 'success', text: 'Profile picture reset to default.' });
       } else {
-        setToastMessage({ type: 'error', text: res.message || res.error || 'Failed to reset profile picture.' });
+        setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
       }
-    } catch (err: any) {
-      setToastMessage({ type: 'error', text: err?.message || 'Failed to reset profile picture.' });
+    } catch {
+      setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
       setAvatarSaving(false);
     }
@@ -227,13 +227,13 @@ export default function ProfilePage() {
       } else {
         setToastMessage({
           type: 'error',
-          text: res.error || 'Failed to update profile. Please try again.',
+          text: 'Something went wrong. Please try again.',
         });
       }
-    } catch (e) {
+    } catch {
       setToastMessage({
         type: 'error',
-        text: 'An unexpected error occurred while saving your profile.',
+        text: 'Something went wrong. Please try again.',
       });
     } finally {
       setIsSubmitting(false);
@@ -278,16 +278,10 @@ export default function ProfilePage() {
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        const errorMsg =
-          res.error === 'CURRENT_PASSWORD_INCORRECT'
-            ? 'The current password you entered is incorrect.'
-            : res.error === 'PASSWORD_TOO_SHORT'
-            ? 'New password must be at least 8 characters long.'
-            : res.error || 'Failed to update password.';
-        setPasswordToast({ type: 'error', text: errorMsg });
+        setPasswordToast({ type: 'error', text: 'Something went wrong. Please try again.' });
       }
-    } catch (err) {
-      setPasswordToast({ type: 'error', text: 'An unexpected error occurred. Please try again.' });
+    } catch {
+      setPasswordToast({ type: 'error', text: 'Something went wrong. Please try again.' });
     } finally {
       setPasswordLoading(false);
       setTimeout(() => {

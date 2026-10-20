@@ -49,6 +49,7 @@ import {
 import { AdminSession } from '@/lib/mock/types';
 import { formatCnic } from '@/lib/utils/cnic';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
+import { toSafeErrorMessage } from '@/lib/safeError';
 import { getCache, setCache, generateCacheKey, clearCachePrefix, reconcileItems } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
@@ -167,11 +168,22 @@ function CustomersDirectoryContent() {
   };
 
   // Helper to redirect to Customer Booking page to complete registration (CR 07 §5)
-  const openCompleteRegistration = (cust: CustomerDirectoryEntry) => {
-    const firstPlot = cust.plots?.[0];
-    const plotId = firstPlot?.plotId || (firstPlot as any)?.id;
-    if (!plotId) return;
-    router.push(`/admin/customers?completeCustomer=${cust.id}&plotId=${plotId}`);
+  const openCompleteRegistration = (cust: CustomerDirectoryEntry, plotId?: string) => {
+    const matched = plotId
+      ? cust.plots?.find((p) => p.plotId === plotId || (p as any).id === plotId || p.plotNumber === plotId)
+      : cust.plots?.[0];
+    const resolvedPlotId = matched?.plotId || (matched as any)?.id || plotId || cust.plots?.[0]?.plotId || (cust.plots?.[0] as any)?.id;
+    if (!resolvedPlotId) return;
+    const plotNum = matched?.plotNumber || '';
+    const block = matched?.blockName || matched?.blockId || '';
+    const size = matched?.size || '';
+    const price = matched?.price !== undefined ? String(matched.price) : '';
+    const name = cust.fullName || '';
+    const cnic = cust.cnic || '';
+    const phone = cust.phone || '';
+    router.push(
+      `/admin/customers?completeCustomer=${cust.id}&plotId=${resolvedPlotId}&plotNumber=${encodeURIComponent(plotNum)}&block=${encodeURIComponent(block)}&size=${encodeURIComponent(size)}&price=${encodeURIComponent(price)}&name=${encodeURIComponent(name)}&cnic=${encodeURIComponent(cnic)}&phone=${encodeURIComponent(phone)}`
+    );
   };
 
   // Helper to redirect to Customer Booking page to set payment plan on held plot (Super Admin exclusivity)
@@ -179,10 +191,15 @@ function CustomersDirectoryContent() {
     const matched = cust.plots?.find((p) => p.plotId === plotId || (p as any).id === plotId || p.plotNumber === plotId);
     const resolvedPlotId = matched?.plotId || (matched as any)?.id || plotId;
     const plotNum = matched?.plotNumber || '';
+    const block = matched?.blockName || matched?.blockId || '';
+    const size = matched?.size || '';
     const price = matched?.price !== undefined ? String(matched.price) : '';
     const name = cust.fullName || '';
     const cnic = cust.cnic || '';
-    router.push(`/admin/customers?setPlanCustomer=${cust.id}&plotId=${resolvedPlotId}&plotNumber=${encodeURIComponent(plotNum)}&price=${encodeURIComponent(price)}&name=${encodeURIComponent(name)}&cnic=${encodeURIComponent(cnic)}`);
+    const phone = cust.phone || '';
+    router.push(
+      `/admin/customers?setPlanCustomer=${cust.id}&plotId=${resolvedPlotId}&plotNumber=${encodeURIComponent(plotNum)}&block=${encodeURIComponent(block)}&size=${encodeURIComponent(size)}&price=${encodeURIComponent(price)}&name=${encodeURIComponent(name)}&cnic=${encodeURIComponent(cnic)}&phone=${encodeURIComponent(phone)}`
+    );
   };
 
   // Detailed plot bills & installment ledger for dossier modal
@@ -284,7 +301,7 @@ function CustomersDirectoryContent() {
       if (!res.ok) {
         setCustomers((prev) => {
           if (prev.length > 0) {
-            setFeedback({ type: 'error', message: res.message || res.error || 'Failed to refresh customer directory.' });
+            setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to refresh customer directory.') });
             return prev;
           }
           setError('Something went wrong. Please try again.');
@@ -389,7 +406,7 @@ function CustomersDirectoryContent() {
     setStrikeSubmitting(false);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to assign strike.' });
+      setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to assign strike.') });
     } else {
       setFeedback({
         type: 'success',
@@ -417,7 +434,7 @@ function CustomersDirectoryContent() {
     setSuspensionSubmitting(false);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to update suspension status.' });
+      setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to update suspension status.') });
     } else {
       setFeedback({
         type: 'success',
@@ -446,7 +463,7 @@ function CustomersDirectoryContent() {
     setResetSubmitting(false);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to reset password.' });
+      setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to reset password.') });
     } else if (!res.newPassword) {
       setFeedback({ type: 'error', message: 'Password reset returned empty credentials.' });
     } else {
@@ -476,7 +493,7 @@ function CustomersDirectoryContent() {
     setResetSubmitting(false);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to issue portal credentials.' });
+      setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to issue portal credentials.') });
     } else if (!res.password) {
       setFeedback({ type: 'error', message: 'Credential issuance returned empty credentials.' });
     } else {
@@ -809,22 +826,11 @@ function CustomersDirectoryContent() {
 
                             {/* Dedicated payment button per plot */}
                             <div className="shrink-0 flex items-center gap-1.5 flex-wrap justify-end">
-                              {p.bookingId && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenAgreement(c, p)}
-                                  title="View Official Booking Agreement"
-                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer whitespace-nowrap"
-                                >
-                                  <FileText className="w-3 h-3 text-amber-700" />
-                                  <span>View Agreement</span>
-                                </button>
-                              )}
                               {isHeld ? (
                                 c.registrationStatus === 'minimal' ? (
                                   <button
                                     type="button"
-                                    onClick={() => openCompleteRegistration(c)}
+                                    onClick={() => openCompleteRegistration(c, p.plotId || (p as any).id)}
                                     title="Complete registration to configure payment plan"
                                     className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
                                   >
@@ -914,7 +920,7 @@ function CustomersDirectoryContent() {
                 <div className="flex items-center justify-end gap-1 border-t border-slate-100 pt-2.5 flex-wrap">
                   {c.registrationStatus === 'minimal' && (session?.role === 'super_admin' || getActiveAdminSession()?.role === 'super_admin') && (
                     <button
-                      onClick={() => openCompleteRegistration(c)}
+                      onClick={() => openCompleteRegistration(c, c.plots?.[0]?.plotId || (c.plots?.[0] as any)?.id)}
                       title="Complete Member Registration (Super Admin)"
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-auto"
                     >
@@ -1144,22 +1150,11 @@ function CustomersDirectoryContent() {
 
                                   {/* Dedicated payment button per plot */}
                                   <div className="shrink-0 flex items-center gap-1.5">
-                                    {p.bookingId && (
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenAgreement(c, p)}
-                                        title="View Official Booking Agreement"
-                                        className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
-                                      >
-                                        <FileText className="w-2.5 h-2.5 text-amber-700" />
-                                        <span>View Agreement</span>
-                                      </button>
-                                    )}
                                     {isHeld ? (
                                       c.registrationStatus === 'minimal' ? (
                                         <button
                                           type="button"
-                                          onClick={() => openCompleteRegistration(c)}
+                                          onClick={() => openCompleteRegistration(c, p.plotId || (p as any).id)}
                                           title="Complete registration to configure payment plan"
                                           className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-bold text-[10px] shadow-xs cursor-pointer transition-colors whitespace-nowrap"
                                         >
@@ -1252,7 +1247,7 @@ function CustomersDirectoryContent() {
                         <div className="inline-flex items-center gap-1">
                           {c.registrationStatus === 'minimal' && (session?.role === 'super_admin' || getActiveAdminSession()?.role === 'super_admin') && (
                             <button
-                              onClick={() => openCompleteRegistration(c)}
+                              onClick={() => openCompleteRegistration(c, c.plots?.[0]?.plotId || (c.plots?.[0] as any)?.id)}
                               title="Complete Member Registration (Super Admin)"
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-1"
                             >
@@ -1460,7 +1455,7 @@ function CustomersDirectoryContent() {
                           <div className="text-right shrink-0 space-y-1">
                             <div className="font-bold font-mono text-slate-900 text-sm">PKR {p.price.toLocaleString()}</div>
                             <div className="text-[10px] text-slate-400">Booked: {p.bookingDate}</div>
-                            {p.bookingId && (
+                            {p.bookingId && (dossierCustomer.registrationStatus !== 'minimal' || !isHeld) && (
                               <div className="pt-0.5">
                                 <button
                                   type="button"
@@ -1508,7 +1503,7 @@ function CustomersDirectoryContent() {
                               type="button"
                               onClick={() => {
                                 setDossierCustomer(null);
-                                openCompleteRegistration(dossierCustomer);
+                                openCompleteRegistration(dossierCustomer, p.plotId || (p as any).id);
                               }}
                               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-amber-700 hover:bg-amber-800 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                             >
@@ -1534,17 +1529,6 @@ function CustomersDirectoryContent() {
                             </div>
 
                             <div className="flex items-center gap-2">
-                              {p.bookingId && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenAgreement({ ...dossierCustomer, ...dossierCustomerDetail }, p, booking)}
-                                  title="View Official Booking Agreement"
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold text-xs border border-amber-300 transition-colors cursor-pointer shadow-xs whitespace-nowrap"
-                                >
-                                  <FileText className="w-3.5 h-3.5 text-amber-700" />
-                                  <span>View Agreement</span>
-                                </button>
-                              )}
                               <button
                                 type="button"
                                 onClick={() => setExpandedPlotId(isExpanded ? null : plotKey)}
@@ -1704,7 +1688,7 @@ function CustomersDirectoryContent() {
                     <button
                       type="button"
                       onClick={() => {
-                        openCompleteRegistration(dossierCustomer);
+                        openCompleteRegistration(dossierCustomer, expandedPlotId || dossierCustomer.plots?.[0]?.plotId || (dossierCustomer.plots?.[0] as any)?.id);
                       }}
                       className="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-xs transition-colors shrink-0 cursor-pointer"
                     >
@@ -2085,7 +2069,7 @@ function CustomersDirectoryContent() {
                           setDeleteSubmitting(false);
                           setDeleteCustomerTarget(null);
                           if (!res.ok) {
-                            setFeedback({ type: 'error', message: res.message || res.error || 'Failed to delete member.' });
+                            setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to delete member.') });
                           } else {
                             setFeedback({ type: 'success', message: `Member ${target.fullName} deleted successfully.` });
                             if (dossierCustomer?.id === target.id) {

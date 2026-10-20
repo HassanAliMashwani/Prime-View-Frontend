@@ -12,6 +12,7 @@ import {
 import { getCustomerReceipts, submitPaymentReceipt } from '@/lib/dal/receipts';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
+import { toSafeErrorMessage } from '@/lib/safeError';
 import {
   OfficialA4PaymentSlip,
   buildSlipDataFromSubmission,
@@ -406,7 +407,7 @@ function SubmittedReceiptsContent() {
         setBottomNotice({
           id: tempId,
           type: 'error',
-          message: res.message || 'Failed to submit receipt. Please try again.',
+          message: toSafeErrorMessage(res.message || 'Failed to submit receipt. Please try again.'),
         });
       }
     } catch (err: any) {
@@ -415,7 +416,7 @@ function SubmittedReceiptsContent() {
         setBottomNotice({
           id: tempId,
           type: 'error',
-          message: err?.message || 'Network error occurred while submitting receipt.',
+          message: toSafeErrorMessage(err?.message || 'Something went wrong. Please try again.'),
         });
       }
     } finally {
