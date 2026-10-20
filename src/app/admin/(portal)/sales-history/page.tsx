@@ -466,6 +466,41 @@ function SalesHistoryContent() {
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+      {/* Real 12mm print margins to ensure report starts on Page 1 and no empty page is added */}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @media print {
+          @page {
+            size: A4 portrait !important;
+            margin: 12mm !important;
+          }
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            color: #000000 !important;
+            display: block !important;
+          }
+          aside, nav, header, [role="navigation"], [role="region"], .print\\:hidden, .no-print {
+            display: none !important;
+          }
+          main {
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            background: #ffffff !important;
+            height: auto !important;
+            min-height: 0 !important;
+            max-height: none !important;
+            display: block !important;
+          }
+        }
+      `}} />
+
       {/* Screen-Only Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
@@ -733,7 +768,7 @@ function SalesHistoryContent() {
       {/* ==================================================================== */}
       <div 
         id="pv-sales-ledger-printable" 
-        className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs print:border-none print:shadow-none print:rounded-none print:p-2 print:overflow-visible"
+        className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs print:border-none print:shadow-none print:rounded-none print:p-0 print:m-0 print:overflow-visible"
       >
         {/* Print-Only Official Society Letterhead */}
         <div className="hidden print:block border-b-2 border-slate-900 pb-4 mb-4">
@@ -1066,7 +1101,7 @@ function SalesHistoryContent() {
         </div>
 
         {/* Print-Only Signatures and Sign-Off Section */}
-        <div className="hidden print:block mt-8 pt-6 border-t-2 border-slate-900 print:break-inside-avoid">
+        <div className="pv-signature-block hidden print:block mt-8 pt-6 print:mt-5 print:pt-4 border-t-2 border-slate-900 print:break-inside-avoid">
           <div className="grid grid-cols-3 gap-8 text-center text-xs">
             <div className="flex flex-col items-center">
               <div className="w-48 border-b border-slate-400 mb-2 h-10 flex items-end justify-center font-script text-slate-700 text-sm">
@@ -1097,7 +1132,7 @@ function SalesHistoryContent() {
             </div>
           </div>
 
-          <div className="mt-8 pt-3 border-t border-slate-200 text-center text-[9px] text-slate-500">
+          <div className="mt-8 pt-3 print:mt-4 print:pt-2 border-t border-slate-200 text-center text-[9px] text-slate-500">
             Confidential & Official Document • Generated automatically from Prime View Society Live Records. Any manual amendment or erasure renders this report invalid.
           </div>
         </div>

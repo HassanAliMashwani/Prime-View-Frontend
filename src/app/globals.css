@@ -394,23 +394,55 @@ body.modal-open #global-whatsapp-fab {
     overflow: visible !important;
   }
 
-  @page sales-ledger {
-    size: A4 portrait;
-    margin: 12mm;
+  /* ==================================================================== */
+  /* SALES LEDGER PRINT RULES (#pv-sales-ledger-printable)                */
+  /* ==================================================================== */
+  /* Remove the admin shell from the print flow with display: none */
+  body:has(#pv-sales-ledger-printable) aside,
+  body:has(#pv-sales-ledger-printable) nav,
+  body:has(#pv-sales-ledger-printable) header,
+  body:has(#pv-sales-ledger-printable) [role="navigation"],
+  body:has(#pv-sales-ledger-printable) [role="region"],
+  body:has(#pv-sales-ledger-printable) .print\:hidden,
+  body:has(#pv-sales-ledger-printable) .no-print {
+    display: none !important;
   }
 
-  body:has(#pv-sales-ledger-printable) * {
-    visibility: hidden;
+  /* Set html and body height to auto and overflow to visible */
+  html:has(#pv-sales-ledger-printable),
+  body:has(#pv-sales-ledger-printable),
+  body:has(#pv-sales-ledger-printable) html {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: block !important;
   }
-  #pv-sales-ledger-printable,
-  #pv-sales-ledger-printable * {
-    visibility: visible !important;
+
+  /* Remove any min-height: 100vh on wrappers part of this print */
+  body:has(#pv-sales-ledger-printable) div:not(#pv-sales-ledger-printable):not(#pv-sales-ledger-printable *),
+  body:has(#pv-sales-ledger-printable) main {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
   }
+
+  /* The ledger is position static at the start of the print, not position absolute */
   #pv-sales-ledger-printable {
-    page: sales-ledger;
-    position: relative !important;
+    position: static !important;
     left: auto !important;
     top: auto !important;
+    display: block !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -421,12 +453,39 @@ body.modal-open #global-whatsapp-fab {
     background: #ffffff !important;
     overflow: visible !important;
     box-sizing: border-box !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 
+  /* The table stays inside the 12mm margin and uses the full printable width */
   #pv-sales-ledger-printable table {
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     table-layout: fixed !important;
     border-collapse: collapse !important;
+    margin: 0 !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  #pv-sales-ledger-printable thead {
+    display: table-header-group !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  #pv-sales-ledger-printable tbody {
+    display: table-row-group !important;
+  }
+
+  #pv-sales-ledger-printable tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   #pv-sales-ledger-printable th,
@@ -437,10 +496,26 @@ body.modal-open #global-whatsapp-fab {
     box-sizing: border-box !important;
   }
 
+  /* Grand total on the last page only; no page-break-after or page-break-before */
   #pv-sales-ledger-printable tfoot {
     display: table-row-group !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
+  }
+
+  /* Signature block: no break-after, no break-before, avoid break-inside */
+  .pv-signature-block,
+  #pv-sales-ledger-printable .pv-signature-block {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    break-before: auto !important;
+    page-break-before: auto !important;
+    break-after: auto !important;
+    page-break-after: auto !important;
   }
 
   .no-print,
