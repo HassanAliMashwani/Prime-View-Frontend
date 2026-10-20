@@ -84,9 +84,12 @@ function CustomersDirectoryContent() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // Filters
-  const [search, setSearch] = useState<string>('');
-  const [searchInput, setSearchInput] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'needs_registration' | 'active' | 'suspended' | 'strikes'>('all');
+  const querySearch = searchParams?.get('search') || searchParams?.get('q') || '';
+  const [search, setSearch] = useState<string>(querySearch);
+  const [searchInput, setSearchInput] = useState<string>(querySearch);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'needs_registration' | 'active' | 'suspended' | 'strikes'>(
+    (searchParams?.get('statusFilter') as any) || 'all'
+  );
   const [totalRecords, setTotalRecords] = useState<number>(0);
 
   const reqIdRef = React.useRef(0);

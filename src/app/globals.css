@@ -394,6 +394,11 @@ body.modal-open #global-whatsapp-fab {
     overflow: visible !important;
   }
 
+  @page sales-ledger {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
   body:has(#pv-sales-ledger-printable) * {
     visibility: hidden;
   }
@@ -402,9 +407,10 @@ body.modal-open #global-whatsapp-fab {
     visibility: visible !important;
   }
   #pv-sales-ledger-printable {
-    position: absolute !important;
-    left: 0 !important;
-    top: 0 !important;
+    page: sales-ledger;
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
     width: 100% !important;
     max-width: 100% !important;
     margin: 0 !important;
@@ -414,6 +420,27 @@ body.modal-open #global-whatsapp-fab {
     border-radius: 0 !important;
     background: #ffffff !important;
     overflow: visible !important;
+    box-sizing: border-box !important;
+  }
+
+  #pv-sales-ledger-printable table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  #pv-sales-ledger-printable th,
+  #pv-sales-ledger-printable td {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    box-sizing: border-box !important;
+  }
+
+  #pv-sales-ledger-printable tfoot {
+    display: table-row-group !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
   }
 
   .no-print,

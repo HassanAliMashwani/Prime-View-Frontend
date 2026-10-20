@@ -113,6 +113,7 @@ export interface Plot {
   lockedBy?: string;     // adminId holding the lock
   lockedByName?: string; // admin name for live badge
   lockedAt?: number;     // timestamp in ms
+  lockReason?: 'book' | 'reserve' | 'adjust' | string | null;
   lockToken?: string;    // lock validation token across redirects
   // Live Reserve Tracking (Non-blocking)
   reservingBy?: string;     // primary/latest adminId reserving

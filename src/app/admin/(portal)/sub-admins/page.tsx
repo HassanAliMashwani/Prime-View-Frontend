@@ -127,6 +127,44 @@ const STANDALONE_PERMISSIONS = [
   },
 ] as const;
 
+const STAFF_MODULES = [
+  {
+    id: 'plots',
+    label: 'Reserve, Book, Sort Reservations, and Master Plan',
+    keys: ['can_reserve', 'can_book', 'can_view_master_plan'],
+  },
+  {
+    id: 'members',
+    label: 'Create Customer Account and View Customer Directory',
+    keys: ['can_create_customer', 'can_view_customers'],
+  },
+  {
+    id: 'sales',
+    label: 'View Sales History',
+    keys: ['can_view_sales_reports', 'can_view_sales_history'],
+  },
+  {
+    id: 'content',
+    label: 'Edit Website Plans',
+    keys: ['can_edit_content'],
+  },
+  {
+    id: 'receipts',
+    label: 'Receipt Verification',
+    keys: ['can_verify_receipts'],
+  },
+  {
+    id: 'inventory',
+    label: 'View Inventory Overview',
+    keys: ['can_view_inventory'],
+  },
+] as const;
+
+const countStaffModules = (permissions?: any): number => {
+  if (!permissions) return 0;
+  return STAFF_MODULES.filter((mod) => mod.keys.every((k) => Boolean(permissions[k]))).length;
+};
+
 // Default initial permissions for creating a new sub-admin
 const getDefaultCreatePermissions = (): Record<string, boolean> => {
   const perms: Record<string, boolean> = {};
@@ -790,9 +828,7 @@ export default function TeamsPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {filteredAdmins.map((admin) => {
-              const grantedCount = MODULE_REGISTRY.filter(
-                (m) => Boolean(admin.permissions?.[m.key as keyof typeof admin.permissions])
-              ).length;
+              const grantedCount = countStaffModules(admin.permissions);
               const isSelf = session?.username === admin.username;
               const { displayName, roleTitle } = parseAdminTitle(admin.fullName);
               const formattedSince = formatSinceDate(admin.createdDate);
@@ -936,13 +972,13 @@ export default function TeamsPage() {
                             Access Rights:
                           </span>
                           <span className="font-mono text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.2 rounded-md border border-emerald-200/80">
-                            {grantedCount} / {MODULE_REGISTRY.length} Modules
+                            {grantedCount} / 6 Modules
                           </span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-1 overflow-hidden">
                           <div
                             className="bg-emerald-600 h-1 rounded-full transition-all"
-                            style={{ width: `${Math.round((grantedCount / MODULE_REGISTRY.length) * 100)}%` }}
+                            style={{ width: `${Math.round((grantedCount / 6) * 100)}%` }}
                           />
                         </div>
                       </div>
@@ -1893,18 +1929,18 @@ export default function TeamsPage() {
                   Granted Module Permissions
                 </label>
                 <span className="text-[11px] font-mono text-emerald-800 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                  {MODULE_REGISTRY.filter((m) => Boolean(selectedAdminDetail.permissions?.[m.key as keyof typeof selectedAdminDetail.permissions])).length} / {MODULE_REGISTRY.length} Active
+                  {countStaffModules(selectedAdminDetail.permissions)} / 6 Active
                 </span>
               </div>
 
               <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto pr-1">
-                {MODULE_REGISTRY.map((mod) => {
-                  const isGranted = Boolean(
-                    selectedAdminDetail.permissions?.[mod.key as keyof typeof selectedAdminDetail.permissions]
+                {STAFF_MODULES.map((mod) => {
+                  const isGranted = mod.keys.every((k) =>
+                    Boolean(selectedAdminDetail.permissions?.[k as keyof typeof selectedAdminDetail.permissions])
                   );
                   return (
                     <div
-                      key={mod.key}
+                      key={mod.id}
                       className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 ${
                         isGranted
                           ? 'bg-emerald-50/50 border-emerald-200 text-slate-900'
@@ -1922,7 +1958,7 @@ export default function TeamsPage() {
                             {mod.label}
                           </div>
                           <div className="text-[10px] font-mono text-slate-400 truncate">
-                            {mod.key}
+                            {mod.keys.join(', ')}
                           </div>
                         </div>
                       </div>

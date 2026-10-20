@@ -56,6 +56,7 @@ import { toSafeErrorMessage } from '@/lib/safeError';
 import InteractiveBlockMap from '@/components/admin/master-plan/InteractiveBlockMap';
 import { hasBlockMap } from '@/lib/map/blockRegistry';
 import { formatRemainingHoldTime } from '@/lib/utils/reservationHold';
+import { getSupabaseBrowserClient } from '@/lib/supabaseClient';
 
 const CATEGORY_COLORS: Record<string, string> = {
   residential: 'bg-blue-100 text-blue-800 border-blue-300', // Residential in Blue per user specification
@@ -97,6 +98,7 @@ function BlockPlotsContent() {
   const [loading, setLoading] = useState<boolean>(!init);
   const [outOfScope, setOutOfScope] = useState<boolean>(false);
   const [highlightedPlotId, setHighlightedPlotId] = useState<string | null>(null);
+  const [isRealtimeConnected, setIsRealtimeConnected] = useState<boolean>(false);
 
   // Filters
   const [search, setSearch] = useState<string>('');
@@ -270,7 +272,271 @@ function BlockPlotsContent() {
     }
   }, [loadPlots]);
 
-  // Immediate real-time sync via BroadcastChannel for PLOT_LOCKED & PLOT_UNLOCKED
+  // Reusable lightweight lock sync for open block
+  const syncBlockLocks = useCallback(async () => {
+    const s = getActiveAdminSession();
+    if (!s) return;
+    try {
+      const res = await getBlockLocks(s, blockId);
+      if (res.ok && Array.isArray(res.locks)) {
+        const lockMap = new Map<string, BlockPlotLockSync>();
+        res.locks.forEach((l) => lockMap.set(l.id, l));
+
+        setPlots((prev) => {
+          let changed = false;
+          const updated = prev.map((p) => {
+            const syncItem = lockMap.get(p.id);
+            if (!syncItem) return p;
+
+            const statusChanged = p.status !== syncItem.status;
+            const lockChanged =
+              p.lockedBy !== (syncItem.lockedBy || undefined) ||
+              p.lockedByName !== (syncItem.lockedByName || undefined) ||
+              p.lockReason !== (syncItem.lockReason || null);
+
+            if (statusChanged || lockChanged) {
+              changed = true;
+              return {
+                ...p,
+                status: syncItem.status as any,
+                lockedBy: syncItem.lockedBy || undefined,
+                lockedByName: syncItem.lockedByName || undefined,
+                lockedAt: syncItem.lockedAt ? new Date(syncItem.lockedAt).getTime() : undefined,
+                lockReason: syncItem.lockReason || null,
+              };
+            }
+            return p;
+          });
+          return changed ? updated : prev;
+        });
+
+        setSelectedPlot((prev) => {
+          if (!prev) return null;
+          const syncItem = lockMap.get(prev.id);
+          if (!syncItem) return prev;
+          if (
+            prev.status !== syncItem.status ||
+            prev.lockedBy !== (syncItem.lockedBy || undefined) ||
+            prev.lockedByName !== (syncItem.lockedByName || undefined) ||
+            prev.lockReason !== (syncItem.lockReason || null)
+          ) {
+            return {
+              ...prev,
+              status: syncItem.status as any,
+              lockedBy: syncItem.lockedBy || undefined,
+              lockedByName: syncItem.lockedByName || undefined,
+              lockedAt: syncItem.lockedAt ? new Date(syncItem.lockedAt).getTime() : undefined,
+              lockReason: syncItem.lockReason || null,
+            };
+          }
+          return prev;
+        });
+      }
+    } catch {
+      // non-blocking fallback
+    }
+  }, [blockId]);
+
+  // Supabase Realtime channel subscription for block:{blockId} (cross-computer live sync)
+  useEffect(() => {
+    const supabase = getSupabaseBrowserClient();
+    if (!supabase) return;
+
+    let isSubscribed = true;
+    const channelName = `block:${blockId}`;
+    const channel = supabase.channel(channelName);
+
+    channel
+      .on('broadcast', { event: 'PLOT_LOCKED' }, ({ payload }) => {
+        if (!payload || !payload.plotId) return;
+        const { plotId, lockReason, lockedBy, lockedByName, lockedAt, status } = payload;
+        setPlots((prev) =>
+          prev.map((p) => {
+            if (p.id === plotId) {
+              return {
+                ...p,
+                lockedBy: lockedBy || p.lockedBy,
+                lockedByName: lockedByName || p.lockedByName || 'Admin',
+                lockedAt: lockedAt ? (typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime()) : Date.now(),
+                lockReason: lockReason || 'book',
+                status: (status || p.status) as any,
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPlot((prev) => {
+          if (prev && prev.id === plotId) {
+            return {
+              ...prev,
+              lockedBy: lockedBy || prev.lockedBy,
+              lockedByName: lockedByName || prev.lockedByName || 'Admin',
+              lockedAt: lockedAt ? (typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime()) : Date.now(),
+              lockReason: lockReason || 'book',
+              status: (status || prev.status) as any,
+            };
+          }
+          return prev;
+        });
+      })
+      .on('broadcast', { event: 'PLOT_UNLOCKED' }, ({ payload }) => {
+        if (!payload || !payload.plotId) return;
+        const { plotId, status } = payload;
+        setPlots((prev) =>
+          prev.map((p) => {
+            if (p.id === plotId) {
+              return {
+                ...p,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: null,
+                status: (status || p.status) as any,
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPlot((prev) => {
+          if (prev && prev.id === plotId) {
+            return {
+              ...prev,
+              lockedBy: undefined,
+              lockedByName: undefined,
+              lockedAt: undefined,
+              lockReason: null,
+              status: (status || prev.status) as any,
+            };
+          }
+          return prev;
+        });
+      })
+      .on('broadcast', { event: 'PLOT_RESERVED' }, ({ payload }) => {
+        if (!payload || !payload.plotId) return;
+        const { plotId } = payload;
+        setPlots((prev) =>
+          prev.map((p) => {
+            if (p.id === plotId) {
+              return {
+                ...p,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: null,
+                status: 'reserved',
+                displayStatus: 'reserved',
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPlot((prev) => {
+          if (prev && prev.id === plotId) {
+            return {
+              ...prev,
+              lockedBy: undefined,
+              lockedByName: undefined,
+              lockedAt: undefined,
+              lockReason: null,
+              status: 'reserved',
+              displayStatus: 'reserved',
+            };
+          }
+          return prev;
+        });
+      })
+      .on('broadcast', { event: 'PLOT_BOOKED' }, ({ payload }) => {
+        if (!payload || !payload.plotId) return;
+        const { plotId } = payload;
+        setPlots((prev) =>
+          prev.map((p) => {
+            if (p.id === plotId) {
+              return {
+                ...p,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: null,
+                status: 'booked',
+                displayStatus: 'booked',
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPlot((prev) => {
+          if (prev && prev.id === plotId) {
+            return {
+              ...prev,
+              lockedBy: undefined,
+              lockedByName: undefined,
+              lockedAt: undefined,
+              lockReason: null,
+              status: 'booked',
+              displayStatus: 'booked',
+            };
+          }
+          return prev;
+        });
+      })
+      .on('broadcast', { event: 'PLOT_ADJUSTMENT_TOGGLED' }, ({ payload }) => {
+        if (!payload || !payload.plotId) return;
+        const { plotId, lockReason, status } = payload;
+        const isAdj = lockReason === 'adjust';
+        setPlots((prev) =>
+          prev.map((p) => {
+            if (p.id === plotId) {
+              return {
+                ...p,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: lockReason || null,
+                isAdjustment: isAdj,
+                status: (status || (isAdj ? p.status : 'available')) as any,
+                displayStatus: (isAdj ? p.displayStatus : 'available') as any,
+              };
+            }
+            return p;
+          })
+        );
+        setSelectedPlot((prev) => {
+          if (prev && prev.id === plotId) {
+            return {
+              ...prev,
+              lockedBy: undefined,
+              lockedByName: undefined,
+              lockedAt: undefined,
+              lockReason: lockReason || null,
+              isAdjustment: isAdj,
+              status: (status || (isAdj ? prev.status : 'available')) as any,
+              displayStatus: (isAdj ? prev.displayStatus : 'available') as any,
+            };
+          }
+          return prev;
+        });
+      })
+      .subscribe((subscribeStatus) => {
+        if (!isSubscribed) return;
+        if (subscribeStatus === 'SUBSCRIBED') {
+          setIsRealtimeConnected(true);
+          // When the channel first becomes SUBSCRIBED, call the existing GET /plots/sync/locks once for the open block
+          // and apply those locks to local state, so a lock that happened during the join is painted.
+          // Do not start a timer while the channel stays subscribed.
+          void syncBlockLocks();
+        } else if (subscribeStatus === 'CLOSED' || subscribeStatus === 'CHANNEL_ERROR' || subscribeStatus === 'TIMED_OUT') {
+          setIsRealtimeConnected(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+      setIsRealtimeConnected(false);
+      supabase.removeChannel(channel);
+    };
+  }, [blockId, syncBlockLocks]);
+
+  // Same-computer BroadcastChannel sync for multiple tabs
   useEffect(() => {
     if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
     let channel: BroadcastChannel | null = null;
@@ -281,7 +547,7 @@ function BlockPlotsContent() {
         if (!data || !data.type) return;
 
         if (data.type === 'PLOT_LOCKED') {
-          const { plotId, lockedBy, lockedByName, lockedAt } = data;
+          const { plotId, lockedBy, lockedByName, lockedAt, lockReason } = data;
           setPlots((prev) =>
             prev.map((p) => {
               if (p.id === plotId) {
@@ -290,6 +556,7 @@ function BlockPlotsContent() {
                   lockedBy: lockedBy || p.lockedBy,
                   lockedByName: lockedByName || p.lockedByName || 'Admin',
                   lockedAt: lockedAt ? (typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime()) : Date.now(),
+                  lockReason: lockReason || p.lockReason || 'book',
                 };
               }
               return p;
@@ -302,6 +569,7 @@ function BlockPlotsContent() {
                 lockedBy: lockedBy || prev.lockedBy,
                 lockedByName: lockedByName || prev.lockedByName || 'Admin',
                 lockedAt: lockedAt ? (typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime()) : Date.now(),
+                lockReason: lockReason || prev.lockReason || 'book',
               };
             }
             return prev;
@@ -316,6 +584,7 @@ function BlockPlotsContent() {
                   lockedBy: undefined,
                   lockedByName: undefined,
                   lockedAt: undefined,
+                  lockReason: null,
                 };
               }
               return p;
@@ -328,6 +597,7 @@ function BlockPlotsContent() {
                 lockedBy: undefined,
                 lockedByName: undefined,
                 lockedAt: undefined,
+                lockReason: null,
               };
             }
             return prev;
@@ -345,71 +615,17 @@ function BlockPlotsContent() {
     };
   }, []);
 
-  // 5-second lightweight lock and status sync for the open block only (fallback)
+  // 5-second lightweight lock and status sync for the open block only (fallback when realtime disconnected)
   useEffect(() => {
-    const syncBlockLocks = async () => {
-      const s = getActiveAdminSession();
-      if (!s) return;
-      try {
-        const res = await getBlockLocks(s, blockId);
-        if (res.ok && Array.isArray(res.locks)) {
-          const lockMap = new Map<string, BlockPlotLockSync>();
-          res.locks.forEach((l) => lockMap.set(l.id, l));
+    // Keep the 5-second poll off while the browser channel status is SUBSCRIBED,
+    // and on only when that status is CHANNEL_ERROR, CLOSED, or TIMED_OUT.
+    // Do not start a timer while the channel stays subscribed.
+    if (isRealtimeConnected) return;
 
-          setPlots((prev) => {
-            let changed = false;
-            const updated = prev.map((p) => {
-              const syncItem = lockMap.get(p.id);
-              if (!syncItem) return p;
-
-              const statusChanged = p.status !== syncItem.status;
-              const lockChanged =
-                p.lockedBy !== (syncItem.lockedBy || undefined) ||
-                p.lockedByName !== (syncItem.lockedByName || undefined);
-
-              if (statusChanged || lockChanged) {
-                changed = true;
-                return {
-                  ...p,
-                  status: syncItem.status as any,
-                  lockedBy: syncItem.lockedBy || undefined,
-                  lockedByName: syncItem.lockedByName || undefined,
-                  lockedAt: syncItem.lockedAt ? new Date(syncItem.lockedAt).getTime() : undefined,
-                };
-              }
-              return p;
-            });
-            return changed ? updated : prev;
-          });
-
-          setSelectedPlot((prev) => {
-            if (!prev) return null;
-            const syncItem = lockMap.get(prev.id);
-            if (!syncItem) return prev;
-            if (
-              prev.status !== syncItem.status ||
-              prev.lockedBy !== (syncItem.lockedBy || undefined) ||
-              prev.lockedByName !== (syncItem.lockedByName || undefined)
-            ) {
-              return {
-                ...prev,
-                status: syncItem.status as any,
-                lockedBy: syncItem.lockedBy || undefined,
-                lockedByName: syncItem.lockedByName || undefined,
-                lockedAt: syncItem.lockedAt ? new Date(syncItem.lockedAt).getTime() : undefined,
-              };
-            }
-            return prev;
-          });
-        }
-      } catch {
-        // non-blocking fallback
-      }
-    };
-
+    void syncBlockLocks();
     const intervalId = setInterval(syncBlockLocks, 5000);
     return () => clearInterval(intervalId);
-  }, [blockId]);
+  }, [isRealtimeConnected, syncBlockLocks]);
 
   // Close Plot Action Drawer and clean up deep-link query param if present
   const handleCloseDrawer = useCallback(() => {
@@ -526,6 +742,8 @@ function BlockPlotsContent() {
           closeReserveModal();
         } else if (isMinimalBookModalOpen) {
           closeMinimalBookModal();
+        } else if (isAdjustmentModalOpen) {
+          closeAdjustmentModal();
         } else if (selectedPlot) {
           handleCloseDrawer();
         }
@@ -533,11 +751,41 @@ function BlockPlotsContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedPlot, isReserveModalOpen, isMinimalBookModalOpen, handleCloseDrawer]);
+  }, [selectedPlot, isReserveModalOpen, isMinimalBookModalOpen, isAdjustmentModalOpen, handleCloseDrawer]);
 
-  // Open Reserve Modal (Broadcast non-blocking PLOT_RESERVING)
+  // Open Reserve Modal (Requirement 1: Colour yellow and blinking immediately on click)
   const openReserve = async () => {
     if (!selectedPlot || !session) return;
+    const targetPlotId = selectedPlot.id;
+    const officerId = session.adminId || session.username || 'admin';
+    const officerName = session.fullName || session.username || 'Admin';
+
+    // 1. Optimistic paint: yellow & blinking immediately on click, holder = this officer
+    setPlots((prev) =>
+      prev.map((p) =>
+        p.id === targetPlotId
+          ? {
+              ...p,
+              lockedBy: officerId,
+              lockedByName: officerName,
+              lockedAt: Date.now(),
+              lockReason: 'reserve',
+            }
+          : p
+      )
+    );
+    setSelectedPlot((prev) =>
+      prev && prev.id === targetPlotId
+        ? {
+            ...prev,
+            lockedBy: officerId,
+            lockedByName: officerName,
+            lockedAt: Date.now(),
+            lockReason: 'reserve',
+          }
+        : prev
+    );
+
     setReserveSelectedMember(null);
     setReserveForm({
       customerName: '',
@@ -549,20 +797,71 @@ function BlockPlotsContent() {
       customerId: '',
     });
     setActionError(null);
+    setIsReserveModalOpen(true);
     setActionLoading(true);
-    const lockRes = await startReservingPlot(session, selectedPlot.id);
+
+    // 2. Send the lock
+    const lockRes = await startReservingPlot(session, targetPlotId);
     setActionLoading(false);
+
     if (!lockRes.ok) {
       if (lockRes.error === 'LOCKED_BY_ANOTHER' || lockRes.reason === 'LOCKED_BY_ANOTHER') {
-        const holder = lockRes.lockedByName || 'Another Administrator';
-        setActionError(`Plot is currently locked by ${holder}. Please wait for lock expiration.`);
-        setSelectedPlot((prev) => prev ? { ...prev, lockedBy: lockRes.lockedBy || 'locked', lockedByName: holder } : null);
+        const holder = lockRes.lockedByName || 'Another Officer';
+        const holderId = lockRes.lockedBy || 'locked';
+        const holderReason = lockRes.lockReason || 'reserve';
+        setActionError(`Plot is currently held by ${holder}.`);
+        // Remove this colour and show that officer's name & lockReason
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === targetPlotId
+              ? {
+                  ...p,
+                  lockedBy: holderId,
+                  lockedByName: holder,
+                  lockReason: holderReason,
+                }
+              : p
+          )
+        );
+        setSelectedPlot((prev) =>
+          prev && prev.id === targetPlotId
+            ? {
+                ...prev,
+                lockedBy: holderId,
+                lockedByName: holder,
+                lockReason: holderReason,
+              }
+            : prev
+        );
       } else {
         setActionError(lockRes.message || 'Failed to acquire reservation lock.');
+        // Revert optimistic paint
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === targetPlotId
+              ? {
+                  ...p,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : p
+          )
+        );
+        setSelectedPlot((prev) =>
+          prev && prev.id === targetPlotId
+            ? {
+                ...prev,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: null,
+              }
+            : prev
+        );
       }
-      return;
     }
-    setIsReserveModalOpen(true);
   };
 
   // Cancel / Close Reserve Modal: close window first immediately, then cancel reserve in background
@@ -571,11 +870,34 @@ function BlockPlotsContent() {
     setReserveSelectedMember(null);
     setIsReserveModalOpen(false);
 
-    if (session && plotToCancel) {
+    if (session && plotToCancel && plotToCancel.lockedBy === (session.adminId || session.username)) {
       cancelReservingPlot(session, plotToCancel.id)
         .catch(() => {})
         .finally(() => {
-          if (session) loadPlots(session);
+          setPlots((prev) =>
+            prev.map((p) =>
+              p.id === plotToCancel.id
+                ? {
+                    ...p,
+                    lockedBy: undefined,
+                    lockedByName: undefined,
+                    lockedAt: undefined,
+                    lockReason: null,
+                  }
+                : p
+            )
+          );
+          setSelectedPlot((prev) =>
+            prev && prev.id === plotToCancel.id
+              ? {
+                  ...prev,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : prev
+          );
         });
     }
   };
@@ -586,11 +908,34 @@ function BlockPlotsContent() {
     setMinimalSelectedMember(null);
     setIsMinimalBookModalOpen(false);
 
-    if (session && plotToRelease) {
+    if (session && plotToRelease && plotToRelease.lockedBy === (session.adminId || session.username)) {
       releaseLock(session, plotToRelease.id)
         .catch(() => {})
         .finally(() => {
-          if (session) loadPlots(session);
+          setPlots((prev) =>
+            prev.map((p) =>
+              p.id === plotToRelease.id
+                ? {
+                    ...p,
+                    lockedBy: undefined,
+                    lockedByName: undefined,
+                    lockedAt: undefined,
+                    lockReason: null,
+                  }
+                : p
+            )
+          );
+          setSelectedPlot((prev) =>
+            prev && prev.id === plotToRelease.id
+              ? {
+                  ...prev,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : prev
+          );
         });
     }
   };
@@ -627,9 +972,25 @@ function BlockPlotsContent() {
 
       if (res.ok) {
         setIsMinimalBookModalOpen(false);
+        // Paint booked: red immediately, clear lock
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === selectedPlot.id
+              ? {
+                  ...p,
+                  status: 'booked',
+                  displayStatus: 'booked',
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : p
+          )
+        );
         activeSelectedPlotIdRef.current = null;
         setSelectedPlot(null);
-        await loadPlots(session);
+        clearCachePrefix(`/master-plan/${blockId}`);
       } else {
         setActionError(toSafeErrorMessage(res.message || res.error || 'Failed to complete quick booking.'));
       }
@@ -649,12 +1010,15 @@ function BlockPlotsContent() {
       if (isMinimalBookModalOpen && session && selectedPlot) {
         releaseLock(session, selectedPlot.id);
       }
+      if (isAdjustmentModalOpen && session && selectedPlot) {
+        releaseLock(session, selectedPlot.id);
+      }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isReserveModalOpen, isMinimalBookModalOpen, session, selectedPlot]);
+  }, [isReserveModalOpen, isMinimalBookModalOpen, isAdjustmentModalOpen, session, selectedPlot]);
 
   // Submit Reservation
   const handleReserveSubmit = async (e: React.FormEvent) => {
@@ -686,9 +1050,25 @@ function BlockPlotsContent() {
 
       if (res.ok) {
         setIsReserveModalOpen(false);
+        // Paint reserved: yellow steady immediately, clear lock
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === selectedPlot.id
+              ? {
+                  ...p,
+                  status: 'reserved',
+                  displayStatus: 'reserved',
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : p
+          )
+        );
         activeSelectedPlotIdRef.current = null;
         setSelectedPlot(null);
-        await loadPlots(session);
+        clearCachePrefix(`/master-plan/${blockId}`);
       } else {
         setActionError(toSafeErrorMessage(res.error || 'Failed to place reservation.'));
       }
@@ -771,14 +1151,136 @@ function BlockPlotsContent() {
     }
   };
 
-  // Open Adjust Plot Dialog with the plot already on screen (No full inventory reload wait)
-  const handleOpenAdjustPlot = (plot: Plot, e?: React.MouseEvent) => {
+  // Open Adjust Plot Dialog with the plot already on screen (Requirement 1: Colour blue immediately on click)
+  const handleOpenAdjustPlot = async (plot: Plot, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    if (!session) return;
+    const targetPlotId = plot.id;
+    const officerId = session.adminId || session.username || 'admin';
+    const officerName = session.fullName || session.username || 'Admin';
+
     activeSelectedPlotIdRef.current = plot.id;
-    setSelectedPlot(plot);
+
+    // 1. Colour on the click: paint blue immediately, holder = this officer
+    setPlots((prev) =>
+      prev.map((p) =>
+        p.id === targetPlotId
+          ? {
+              ...p,
+              lockedBy: officerId,
+              lockedByName: officerName,
+              lockedAt: Date.now(),
+              lockReason: 'adjust',
+            }
+          : p
+      )
+    );
+    setSelectedPlot({
+      ...plot,
+      lockedBy: officerId,
+      lockedByName: officerName,
+      lockedAt: Date.now(),
+      lockReason: 'adjust',
+    });
     setAdjustmentReasonInput('');
     setActionError(null);
     setIsAdjustmentModalOpen(true);
+
+    // 2. Send the lock
+    const lockRes = await acquireLock(session, targetPlotId, 'adjust');
+    if (!lockRes.ok) {
+      if (lockRes.error === 'LOCKED_BY_ANOTHER') {
+        const holder = lockRes.lockedByName || 'Another Officer';
+        const holderId = lockRes.lockedBy || 'locked';
+        const holderReason = lockRes.lockReason || 'adjust';
+        setActionError(`Plot is currently held by ${holder}.`);
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === targetPlotId
+              ? {
+                  ...p,
+                  lockedBy: holderId,
+                  lockedByName: holder,
+                  lockReason: holderReason,
+                }
+              : p
+          )
+        );
+        setSelectedPlot((prev) =>
+          prev && prev.id === targetPlotId
+            ? {
+                ...prev,
+                lockedBy: holderId,
+                lockedByName: holder,
+                lockReason: holderReason,
+              }
+            : prev
+        );
+      } else {
+        setActionError(lockRes.message || 'Failed to acquire adjustment lock.');
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === targetPlotId
+              ? {
+                  ...p,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : p
+          )
+        );
+        setSelectedPlot((prev) =>
+          prev && prev.id === targetPlotId
+            ? {
+                ...prev,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: null,
+              }
+            : prev
+        );
+      }
+    }
+  };
+
+  // Close Adjust Plot Dialog: release lock if held by this officer
+  const closeAdjustmentModal = () => {
+    const plotToRelease = selectedPlot;
+    setIsAdjustmentModalOpen(false);
+
+    if (session && plotToRelease && plotToRelease.lockedBy === (session.adminId || session.username)) {
+      releaseLock(session, plotToRelease.id)
+        .catch(() => {})
+        .finally(() => {
+          setPlots((prev) =>
+            prev.map((p) =>
+              p.id === plotToRelease.id
+                ? {
+                    ...p,
+                    lockedBy: undefined,
+                    lockedByName: undefined,
+                    lockedAt: undefined,
+                    lockReason: null,
+                  }
+                : p
+            )
+          );
+          setSelectedPlot((prev) =>
+            prev && prev.id === plotToRelease.id
+              ? {
+                  ...prev,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : prev
+          );
+        });
+    }
   };
 
   // Toggle Master Plan Adjustment (Town Planning / Boundary Re-survey Freeze - Super Admin Only)
@@ -793,15 +1295,18 @@ function BlockPlotsContent() {
         setAdjustmentReasonInput('');
         const updated = res.plot;
         setSelectedPlot(updated);
-        // Immediately update the plot in local plots array without waiting for full inventory reload
+        // Immediately update the plot in local plots array with adjust color
         setPlots((prev) => prev.map((p) => p.id === updated.id ? {
           ...p,
           ...updated,
           isAdjustment: true,
           adjustmentReason: updated.adjustmentReason || undefined,
+          lockedBy: undefined,
+          lockedByName: undefined,
+          lockedAt: undefined,
+          lockReason: 'adjust',
         } : p));
         clearCachePrefix(`/master-plan/${blockId}`);
-        enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
         setActionError(toSafeErrorMessage(res.error || 'Failed to flag plot for adjustment.'));
       }
@@ -834,9 +1339,12 @@ function BlockPlotsContent() {
           adjustmentBy: undefined,
           displayStatus: 'available',
           status: 'available',
+          lockReason: null,
+          lockedBy: undefined,
+          lockedByName: undefined,
+          lockedAt: undefined,
         } : p));
         clearCachePrefix(`/master-plan/${blockId}`);
-        enqueueLane2(() => loadPlots(session, true), `block-${blockId}`, 'master-plan');
       } else {
         setActionError(toSafeErrorMessage(res.error || 'Failed to release adjustment freeze.'));
       }
@@ -848,9 +1356,12 @@ function BlockPlotsContent() {
     }
   };
 
-  // Open Booking Flow (Acquires Soft Lock Layer 1 and redirects to Customer Booking Form or opens Quick Booking)
+  // Open Booking Flow (Requirement 1: Colour red immediately on click)
   const openBook = async (prefillReservation?: Reservation, forceQuick: boolean = false) => {
     if (!session || !selectedPlot) return;
+    const targetPlotId = selectedPlot.id;
+    const officerId = session.adminId || session.username || 'admin';
+    const officerName = session.fullName || session.username || 'Admin';
 
     const isPlotReserved = selectedPlot.status === 'reserved' ||
       Boolean(selectedPlot.reservations?.some((r) => r.status === 'active')) ||
@@ -862,17 +1373,71 @@ function BlockPlotsContent() {
       return;
     }
 
+    // 1. Optimistic paint: red immediately on click, holder = this officer
+    setPlots((prev) =>
+      prev.map((p) =>
+        p.id === targetPlotId
+          ? {
+              ...p,
+              lockedBy: officerId,
+              lockedByName: officerName,
+              lockedAt: Date.now(),
+              lockReason: 'book',
+            }
+          : p
+      )
+    );
+    setSelectedPlot((prev) =>
+      prev && prev.id === targetPlotId
+        ? {
+            ...prev,
+            lockedBy: officerId,
+            lockedByName: officerName,
+            lockedAt: Date.now(),
+            lockReason: 'book',
+          }
+        : prev
+    );
+
     setActionLoading(true);
     setActionError(null);
 
-    // Layer 1 Soft Lock acquisition
-    const lockRes = await acquireLock(session, selectedPlot.id);
+    // 2. Layer 1 Soft Lock acquisition with reason 'book'
+    const lockRes = await acquireLock(session, targetPlotId, 'book');
+    setActionLoading(false);
+
     if (!lockRes.ok) {
       let lockMsg = 'Failed to acquire booking lock. Please try again.';
       if (lockRes.error === 'PRICE_NOT_SET') {
         lockMsg = 'This plot has an official price of PKR 0 and cannot be locked or booked.';
       } else if (lockRes.error === 'LOCKED_BY_ANOTHER') {
-        lockMsg = `Plot is currently locked by ${lockRes.lockedByName}. Please wait for lock expiration.`;
+        const holder = lockRes.lockedByName || 'Another Officer';
+        const holderId = lockRes.lockedBy || 'locked';
+        const holderReason = lockRes.lockReason || 'book';
+        lockMsg = `Plot is currently held by ${holder}.`;
+        // Remove this colour and show that officer's name & lockReason
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === targetPlotId
+              ? {
+                  ...p,
+                  lockedBy: holderId,
+                  lockedByName: holder,
+                  lockReason: holderReason,
+                }
+              : p
+          )
+        );
+        setSelectedPlot((prev) =>
+          prev && prev.id === targetPlotId
+            ? {
+                ...prev,
+                lockedBy: holderId,
+                lockedByName: holder,
+                lockReason: holderReason,
+              }
+            : prev
+        );
       } else if (lockRes.error === 'PLOT_UNDER_ADJUSTMENT') {
         lockMsg = 'This plot is frozen under Town Planning boundary adjustment and cannot be booked.';
       } else if (lockRes.error === 'PLOT_ALREADY_BOOKED') {
@@ -882,8 +1447,35 @@ function BlockPlotsContent() {
       } else if (lockRes.error === 'OUT_OF_SCOPE') {
         lockMsg = 'You do not have administrative authority to book plots in this sector.';
       }
+
+      if (lockRes.error !== 'LOCKED_BY_ANOTHER') {
+        // Revert optimistic paint
+        setPlots((prev) =>
+          prev.map((p) =>
+            p.id === targetPlotId
+              ? {
+                  ...p,
+                  lockedBy: undefined,
+                  lockedByName: undefined,
+                  lockedAt: undefined,
+                  lockReason: null,
+                }
+              : p
+          )
+        );
+        setSelectedPlot((prev) =>
+          prev && prev.id === targetPlotId
+            ? {
+                ...prev,
+                lockedBy: undefined,
+                lockedByName: undefined,
+                lockedAt: undefined,
+                lockReason: null,
+              }
+            : prev
+        );
+      }
       setActionError(lockMsg);
-      setActionLoading(false);
       return;
     }
 
@@ -891,7 +1483,6 @@ function BlockPlotsContent() {
     if (session.role === 'sub_admin' || forceQuick) {
       if (isPlotReserved && !prefillReservation) {
         setActionError('Quick booking is not available while a plot is reserved.');
-        setActionLoading(false);
         return;
       }
       setMinimalForm({
@@ -904,7 +1495,6 @@ function BlockPlotsContent() {
       });
       setMinimalSelectedMember(null);
       setIsMinimalBookModalOpen(true);
-      setActionLoading(false);
       return;
     }
 
@@ -1221,35 +1811,32 @@ function BlockPlotsContent() {
             : plot.reservingByName
             ? [plot.reservingByName.split(' ')[0]]
             : [];
-          const isReserving = !isLocked && !isReserved && !isBooked && !isAllotted && reservingNames.length > 0;
+          const lockReason = plot.lockReason;
 
           let cardStyle = 'bg-white border-2 border-slate-200 text-slate-800';
           let statusBadge = 'bg-slate-100 text-slate-700 border-slate-200';
 
-          if (isLocked) {
-            cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs animate-pulse';
+          if (lockReason === 'book' || visualStatus === 'booked' || visualStatus === 'allotted') {
+            cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs';
             statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
+          } else if (lockReason === 'reserve' && visualStatus !== 'reserved') {
+            cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 shadow-xs animate-pulse hover:bg-amber-100/90 hover:border-amber-500';
+            statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';
+          } else if (visualStatus === 'reserved') {
+            cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 hover:bg-amber-100/90 hover:border-amber-500';
+            statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';
+          } else if (lockReason === 'adjust' || isAdjustment) {
+            cardStyle = 'bg-blue-50/90 border-2 border-blue-500 text-blue-950 shadow-xs hover:bg-blue-100/90 hover:border-blue-600';
+            statusBadge = 'bg-blue-600 text-white border-blue-700 font-bold';
           } else if (isDisputed) {
             cardStyle = 'bg-red-50/90 border-2 border-red-500 text-red-950 shadow-xs animate-pulse hover:border-red-600';
             statusBadge = 'bg-red-600 text-white border-red-700 font-bold';
-          } else if (isAdjustment) {
-            cardStyle = 'bg-blue-50/90 border-2 border-blue-500 text-blue-950 shadow-xs hover:bg-blue-100/90 hover:border-blue-600';
-            statusBadge = 'bg-blue-600 text-white border-blue-700 font-bold';
-          } else if (isReserving) {
-            cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 shadow-xs animate-pulse hover:bg-amber-100/90 hover:border-amber-500';
-            statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';
+          } else if (isLocked) {
+            cardStyle = 'bg-rose-50/95 border-2 border-rose-500 text-rose-950 shadow-xs';
+            statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
           } else if (isAmenity) {
             cardStyle = 'bg-slate-100/90 border-2 border-slate-300 text-slate-800 hover:bg-slate-200/90 hover:border-slate-400';
             statusBadge = 'bg-slate-700 text-white border-slate-800 font-bold';
-          } else if (isAllotted) {
-            cardStyle = 'bg-slate-950 border-2 border-slate-800 text-white hover:bg-slate-900';
-            statusBadge = 'bg-slate-900 text-white border-slate-700 font-bold';
-          } else if (isReserved) {
-            cardStyle = 'bg-amber-50/90 border-2 border-amber-400 text-amber-950 hover:bg-amber-100/90 hover:border-amber-500';
-            statusBadge = 'bg-amber-500 text-amber-950 border-amber-600 font-bold';
-          } else if (isBooked) {
-            cardStyle = 'bg-rose-50/90 border-2 border-rose-400 text-rose-950 hover:bg-rose-100/80';
-            statusBadge = 'bg-rose-600 text-white border-rose-700 font-bold';
           } else if (isAvailable) {
             cardStyle = 'bg-emerald-50/90 border-2 border-emerald-400 text-emerald-950 hover:bg-emerald-100/90 hover:border-emerald-500';
             statusBadge = 'bg-emerald-600 text-white border-emerald-700 font-bold';
@@ -1277,14 +1864,16 @@ function BlockPlotsContent() {
                     {plot.plotNumber}
                   </span>
                   <span className={`text-[9px] uppercase font-mono px-1.5 py-0.5 rounded-md border ${statusBadge}`}>
-                    {isLocked
+                    {lockReason === 'adjust' || isAdjustment
+                      ? 'adjustment'
+                      : lockReason === 'book'
+                      ? 'Book'
+                      : lockReason === 'reserve'
+                      ? (visualStatus === 'reserved' ? 'Reserved' : 'Reserve')
+                      : isLocked
                       ? `Held by: ${plot.lockedByName || 'Admin'}`
                       : isDisputed
                       ? (plot.activeReservationCount && plot.activeReservationCount > 1 ? `Disputed (${plot.activeReservationCount})` : 'Disputed')
-                      : isAdjustment
-                      ? 'adjustment'
-                      : isReserving
-                      ? `Being reserved by ${reservingNames.join(', ')}`
                       : isAmenity
                       ? 'Amenity'
                       : visualStatus === 'allotted'
@@ -2072,7 +2661,7 @@ function BlockPlotsContent() {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading}
+                  disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== (session?.adminId || session?.username))}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer min-w-[145px] flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {actionLoading ? (
@@ -2094,7 +2683,7 @@ function BlockPlotsContent() {
 
       {/* Town Planning / Boundary Re-survey Freeze Modal (Super Admin Only) */}
       {isAdjustmentModalOpen && selectedPlot && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) setIsAdjustmentModalOpen(false); }}>
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 cursor-pointer" onClick={(e) => { if (e.target === e.currentTarget) closeAdjustmentModal(); }}>
           <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden max-h-[100dvh] flex flex-col">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between shrink-0">
               <h3 className="font-serif font-bold text-base text-slate-900 flex items-center gap-2">
@@ -2102,7 +2691,7 @@ function BlockPlotsContent() {
                 <span>Town Planning Adjustment Freeze</span>
               </h3>
               <button
-                onClick={() => setIsAdjustmentModalOpen(false)}
+                onClick={closeAdjustmentModal}
                 className="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-200/60 transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -2143,14 +2732,14 @@ function BlockPlotsContent() {
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsAdjustmentModalOpen(false)}
+                  onClick={closeAdjustmentModal}
                   className="px-4 py-2 text-xs font-semibold text-slate-500 hover:text-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading || !adjustmentReasonInput.trim()}
+                  disabled={actionLoading || !adjustmentReasonInput.trim() || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== (session?.adminId || session?.username))}
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 min-w-[140px] flex items-center justify-center gap-1.5"
                 >
                   {actionLoading ? (
@@ -2324,7 +2913,7 @@ function BlockPlotsContent() {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim() || !minimalForm.price || Number(minimalForm.price) <= 0}
+                  disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== (session?.adminId || session?.username)) || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim() || !minimalForm.price || Number(minimalForm.price) <= 0}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 min-w-[165px]"
                 >
                   {actionLoading ? (

@@ -482,17 +482,6 @@ export default function InventoryOverviewPage() {
             <Printer className="w-3.5 h-3.5" />
             <span>Print Inventory Status</span>
           </button>
-
-          <button
-            type="button"
-            onClick={handleRefreshClick}
-            disabled={loadingLive || loadingHistory}
-            className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors border border-slate-200 shadow-xs cursor-pointer min-h-[42px] flex items-center gap-1.5 font-bold text-xs"
-            title="Refresh Live Data Immediately"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loadingLive ? 'animate-spin text-emerald-600' : ''}`} />
-            <span>Refresh</span>
-          </button>
         </div>
       </div>
 

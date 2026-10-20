@@ -34,6 +34,7 @@ export interface SalesHistoryItem {
   sellerAdminId: string;
   sellerAdminName: string;
   sellerAdminRole: 'super_admin' | 'sub_admin';
+  registrationStatusLabel?: 'Needs registration' | 'Portal issued';
 }
 
 export interface SalesHistoryKpis {

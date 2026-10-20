@@ -87,8 +87,47 @@ function SalesHistoryContent() {
     url.searchParams.set('page', newPage.toString());
     router.push(url.pathname + url.search);
   };
+
   const [totalRecords, setTotalRecords] = useState<number>(0);
+  const [isPrinting, setIsPrinting] = useState<boolean>(false);
+  const [printItems, setPrintItems] = useState<SalesHistoryItem[] | null>(null);
   const reqIdRef = React.useRef(0);
+
+  const handlePrint = async () => {
+    if (!session) return;
+    setIsPrinting(true);
+    try {
+      const activeAdmin = adminFilter !== 'all' ? adminFilter : undefined;
+      const filters = {
+        datePreset,
+        dateFrom: dateFrom || undefined,
+        dateTo: dateTo || undefined,
+        adminId: activeAdmin,
+        blockId: blockFilter !== 'all' ? blockFilter : undefined,
+        category: categoryFilter !== 'all' ? (categoryFilter as PlotCategory) : undefined,
+        search: search.trim() || undefined,
+        page: 1,
+        pageSize: 10000,
+      };
+      const res = await getSalesHistory(session, filters);
+      if (res && res.ok && res.items) {
+        setPrintItems(res.items);
+      } else {
+        setPrintItems(items);
+      }
+      setTimeout(() => {
+        window.print();
+        setIsPrinting(false);
+      }, 200);
+    } catch (err) {
+      console.error('Failed to prepare print ledger', err);
+      setPrintItems(items);
+      setTimeout(() => {
+        window.print();
+        setIsPrinting(false);
+      }, 100);
+    }
+  };
 
   const loadData = useCallback(async (
     currentSession: AdminSession, 
@@ -421,6 +460,10 @@ function SalesHistoryContent() {
 
   const totalContractSum = typeof kpis?.totalRevenuePkr === 'number' && !isNaN(kpis.totalRevenuePkr) ? kpis.totalRevenuePkr : 0;
 
+  const rowsToPrint = printItems !== null ? printItems : items;
+  const printPlotCount = rowsToPrint.length;
+  const printTotalSum = rowsToPrint.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
       {/* Screen-Only Header */}
@@ -435,7 +478,7 @@ function SalesHistoryContent() {
                 Society Sales History Report
               </h1>
               <p className="text-xs text-slate-500">
-                Immutable chronological sales ledger built directly on audit log booking entries with closing officer attribution.
+                Plots currently booked in the customer directory.
               </p>
             </div>
           </div>
@@ -444,11 +487,16 @@ function SalesHistoryContent() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs transition-all cursor-pointer"
+            onClick={handlePrint}
+            disabled={isPrinting}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-70"
           >
-            <Printer className="w-4 h-4 text-white" />
-            <span>Print Ledger</span>
+            {isPrinting ? (
+              <Loader2 className="w-4 h-4 text-white animate-spin" />
+            ) : (
+              <Printer className="w-4 h-4 text-white" />
+            )}
+            <span>{isPrinting ? 'Preparing Print...' : 'Print Ledger'}</span>
           </button>
 
           {!mounted || !session || session.role === 'super_admin' ? null : (
@@ -719,7 +767,7 @@ function SalesHistoryContent() {
                 OFFICIAL SALES & ALLOTMENT LEDGER
               </div>
               <div className="text-[10px] text-slate-500 mt-0.5">
-                Audit Trail Reference: <strong className="font-mono text-slate-800">PV-SL-AUDIT</strong>
+                Directory Status: <strong className="font-mono text-slate-800">Live Customer Directory</strong>
               </div>
               <div className="text-[10px] text-slate-500">
                 Printed: <strong>{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>
@@ -727,10 +775,10 @@ function SalesHistoryContent() {
             </div>
           </div>
 
-          {/* Audit Scope and Filters Bar */}
+          {/* Scope and Filters Bar */}
           <div className="mt-3 pt-2.5 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] text-slate-700">
             <div>
-              <span className="text-slate-400 font-medium">Auditor / Operator: </span>
+              <span className="text-slate-400 font-medium">Operator: </span>
               <strong className="text-slate-900">{session?.fullName || 'Chief Administrator'}</strong>
             </div>
             <div>
@@ -760,11 +808,11 @@ function SalesHistoryContent() {
         <div className="hidden print:grid grid-cols-4 gap-3 mb-4 p-3 bg-slate-50 border border-slate-300 rounded-xl text-xs">
           <div className="border-r border-slate-200 pr-2">
             <div className="text-[10px] uppercase font-bold text-slate-500">Units Allotted</div>
-            <div className="text-base font-bold font-serif text-slate-900 mt-0.5">{kpis.totalPlotsSold} Units</div>
+            <div className="text-base font-bold font-serif text-slate-900 mt-0.5">{printPlotCount} Units</div>
           </div>
           <div className="border-r border-slate-200 pr-2">
             <div className="text-[10px] uppercase font-bold text-indigo-900">Total Volume</div>
-            <div className="text-base font-bold font-mono text-indigo-950 mt-0.5">PKR {kpis.totalRevenuePkr.toLocaleString()}</div>
+            <div className="text-base font-bold font-mono text-indigo-950 mt-0.5">PKR {printTotalSum.toLocaleString()}</div>
           </div>
           <div className="border-r border-slate-200 pr-2">
             <div className="text-[10px] uppercase font-bold text-emerald-800">Sold Today</div>
@@ -795,9 +843,11 @@ function SalesHistoryContent() {
           ) : (
             pageRows.map((sale, idx) => {
               const globalIdx = (safePage - 1) * PAGE_SIZE + idx + 1;
+              const regLabel = sale.registrationStatusLabel || (sale.membershipNo && sale.membershipNo !== '—' ? 'Portal issued' : 'Needs registration');
+              const isPortalIssued = regLabel === 'Portal issued';
               return (
                 <div key={sale.id} className="bg-slate-50/50 rounded-xl border border-slate-200 p-4 space-y-3 text-xs">
-                  {/* Row Index & Date */}
+                  {/* 1. Row Index & Date */}
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <span className="font-mono text-slate-400 text-xs font-bold">#{globalIdx}</span>
                     <div className="text-right font-mono">
@@ -806,7 +856,7 @@ function SalesHistoryContent() {
                     </div>
                   </div>
 
-                  {/* Property Allotted */}
+                  {/* 2. Property Allotted */}
                   <div className="space-y-1">
                     <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Property Allotted</div>
                     <div className="font-bold text-slate-900 text-sm">
@@ -817,61 +867,40 @@ function SalesHistoryContent() {
                         {sale.blockName}
                       </span>
                       <span className="text-slate-500 text-[10px]">
-                        {sale.size} • {sale.category.toUpperCase()}
+                        {sale.size}
                       </span>
                     </div>
                   </div>
 
-                  {/* Customer Member */}
-                  <div className="space-y-0.5 border-t border-slate-100 pt-2">
-                    <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Customer Member</div>
-                    <div className="font-bold text-slate-900">{sale.customerName}</div>
-                    <div className="font-mono text-[11px] text-emerald-800 font-semibold">
-                      {sale.membershipNo}
-                    </div>
-                  </div>
-
-                  {/* Contract Price & Payment Scheme */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-2">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Contract Price</div>
-                      <div className="font-mono font-bold text-slate-900 text-sm">
-                        PKR {sale.price.toLocaleString()}
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Scheme</div>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border mt-0.5 ${
-                          sale.paymentType === 'one_time'
-                            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            : 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                        }`}
-                      >
-                        {sale.paymentType === 'one_time' ? 'Full Payment' : '24-Mo Installments'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Sold By (Admin) & Action */}
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-2">
-                    <div>
-                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Sold By</div>
-                      <div className="font-bold text-slate-900 flex items-center gap-1.5 mt-0.5">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        <span>{sale.sellerAdminName}</span>
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-mono">
-                        {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
+                  {/* 3. Customer Member and Action */}
+                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
+                    <div className="space-y-1">
+                      <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Customer Member</div>
+                      <div className="font-bold text-slate-900">{sale.customerName}</div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                            isPortalIssued
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-amber-50 text-amber-800 border-amber-200'
+                          }`}
+                        >
+                          {regLabel}
+                        </span>
+                        {sale.membershipNo && sale.membershipNo !== '—' && (
+                          <span className="font-mono text-[11px] text-slate-500 font-medium">
+                            {sale.membershipNo}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div>
                       <Link
-                        href={`/admin/master-plan/${sale.blockId}?focusPlot=${sale.plotId}`}
-                        className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors min-h-[44px]"
+                        href={`/admin/customers-directory?search=${encodeURIComponent(sale.customerName || sale.membershipNo || '')}`}
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-950 border border-cyan-200 text-xs font-semibold transition-colors min-h-[44px]"
                       >
-                        <span>Locate Plot</span>
-                        <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+                        <span>Open in Directory</span>
+                        <ExternalLink className="w-3.5 h-3.5 text-cyan-700" />
                       </Link>
                     </div>
                   </div>
@@ -886,14 +915,10 @@ function SalesHistoryContent() {
           <AdminTableShell page={page} pageSize={PAGE_SIZE} total={totalRecords} onPageChange={handlePageChange} loading={loading}>
             <thead className="sticky top-0 z-10 print:static">
               <tr className="border-b border-slate-200 bg-slate-50 print:bg-slate-100 text-[11px] print:text-[10px] font-bold text-slate-700 uppercase tracking-wider">
-                <th className="py-3 px-3 w-10 text-center print:border print:border-slate-300 bg-slate-50">#</th>
-                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Booking Date & Time</th>
-                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Property Allotted</th>
-                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Customer Member</th>
-                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Contract Price</th>
-                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Payment Scheme</th>
-                <th className="py-3 px-4 print:border print:border-slate-300 bg-slate-50">Sold By (Admin)</th>
-                <th className="py-3 px-4 text-right print:hidden bg-slate-50">Action</th>
+                <th className="py-3 px-3 w-12 text-center print:border print:border-slate-400 bg-slate-50 print:w-10">#</th>
+                <th className="py-3 px-4 print:border print:border-slate-400 bg-slate-50 print:w-40">Booking Date & Time</th>
+                <th className="py-3 px-4 print:border print:border-slate-400 bg-slate-50 print:w-48">Property Allotted</th>
+                <th className="py-3 px-4 print:border print:border-slate-400 bg-slate-50">Customer Member and Action</th>
               </tr>
             </thead>
             {/* Screen-Only Paginated Table Rows */}
@@ -904,37 +929,35 @@ function SalesHistoryContent() {
                     <td className="py-3 px-3 text-center"><div className="h-4 w-4 bg-slate-200 rounded mx-auto" /></td>
                     <td className="py-3 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
                     <td className="py-3 px-4"><div className="h-4 w-28 bg-slate-200 rounded" /></td>
-                    <td className="py-3 px-4"><div className="h-4 w-32 bg-slate-200 rounded" /></td>
-                    <td className="py-3 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                    <td className="py-3 px-4"><div className="h-4 w-20 bg-slate-200 rounded" /></td>
-                    <td className="py-3 px-4"><div className="h-4 w-24 bg-slate-200 rounded" /></td>
-                    <td className="py-3 px-4 text-right"><div className="h-4 w-12 bg-slate-200 rounded ml-auto" /></td>
+                    <td className="py-3 px-4"><div className="h-4 w-48 bg-slate-200 rounded" /></td>
                   </tr>
                 ))
               ) : items.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
+                  <td colSpan={4} className="py-12 text-center text-slate-400">
                     No plot bookings found for the selected date range or filter criteria.
                   </td>
                 </tr>
               ) : (
                 pageRows.map((sale, idx) => {
                   const globalIdx = (safePage - 1) * PAGE_SIZE + idx + 1;
+                  const regLabel = sale.registrationStatusLabel || (sale.membershipNo && sale.membershipNo !== '—' ? 'Portal issued' : 'Needs registration');
+                  const isPortalIssued = regLabel === 'Portal issued';
                   return (
                     <tr key={sale.id} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Row Index */}
-                      <td className="py-3 px-3 text-center font-mono text-slate-400">
+                      {/* 1. # */}
+                      <td className="py-3.5 px-3 text-center font-mono text-slate-400">
                         {globalIdx}
                       </td>
 
-                      {/* Date & Time */}
-                      <td className="py-3 px-4 font-mono">
+                      {/* 2. Booking Date & Time */}
+                      <td className="py-3.5 px-4 font-mono">
                         <div className="font-bold text-slate-900">{sale.dateStr}</div>
                         <div className="text-[11px] text-slate-400">{sale.timeStr}</div>
                       </td>
 
-                      {/* Property Allotted */}
-                      <td className="py-3 px-4">
+                      {/* 3. Property Allotted */}
+                      <td className="py-3.5 px-4">
                         <div className="font-bold text-slate-900 text-sm">
                           Plot {sale.plotNumber}
                         </div>
@@ -943,60 +966,43 @@ function SalesHistoryContent() {
                             {sale.blockName}
                           </span>
                           <span className="text-slate-500 text-[10px]">
-                            {sale.size} • {sale.category.toUpperCase()}
+                            {sale.size}
                           </span>
                         </div>
                       </td>
 
-                      {/* Customer Member */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900">{sale.customerName}</div>
-                        <div className="font-mono text-[11px] text-emerald-800 font-semibold">
-                          {sale.membershipNo}
+                      {/* 4. Customer Member and Action */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="font-bold text-slate-900 text-sm">{sale.customerName}</div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                  isPortalIssued
+                                    ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                    : 'bg-amber-50 text-amber-800 border-amber-200'
+                                }`}
+                              >
+                                {regLabel}
+                              </span>
+                              {sale.membershipNo && sale.membershipNo !== '—' && (
+                                <span className="font-mono text-[11px] text-slate-500 font-medium">
+                                  {sale.membershipNo}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <Link
+                              href={`/admin/customers-directory?search=${encodeURIComponent(sale.customerName || sale.membershipNo || '')}`}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-950 border border-cyan-200 text-xs font-semibold transition-colors shadow-2xs whitespace-nowrap cursor-pointer min-h-[36px]"
+                            >
+                              <span>Open in Directory</span>
+                              <ExternalLink className="w-3.5 h-3.5 text-cyan-700" />
+                            </Link>
+                          </div>
                         </div>
-                      </td>
-
-                      {/* Contract Price */}
-                      <td className="py-3 px-4">
-                        <div className="font-mono font-bold text-slate-900 text-sm">
-                          PKR {sale.price.toLocaleString()}
-                        </div>
-                        <div className="text-[10px] text-slate-400">Official Society Rate</div>
-                      </td>
-
-                      {/* Payment Scheme */}
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                            sale.paymentType === 'one_time'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : 'bg-indigo-50 text-indigo-800 border-indigo-200'
-                          }`}
-                        >
-                          {sale.paymentType === 'one_time' ? 'Full Payment' : '24-Mo Installments'}
-                        </span>
-                      </td>
-
-                      {/* Sold By (Admin) */}
-                      <td className="py-3 px-4">
-                        <div className="font-bold text-slate-900 flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{sale.sellerAdminName}</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">
-                          {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
-                        </div>
-                      </td>
-
-                      {/* Screen-Only Action */}
-                      <td className="py-3 px-4 text-right">
-                        <Link
-                          href={`/admin/master-plan/${sale.blockId}?focusPlot=${sale.plotId}`}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-semibold transition-colors"
-                        >
-                          <span>Locate Plot</span>
-                          <ExternalLink className="w-3 h-3 text-slate-400" />
-                        </Link>
                       </td>
                     </tr>
                   );
@@ -1006,84 +1012,52 @@ function SalesHistoryContent() {
 
             {/* Print-Only Unpaginated Table Rows */}
             <tbody className="hidden print:table-row-group divide-y divide-slate-300 text-[10px]">
-              {items.length === 0 ? (
+              {rowsToPrint.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400 print:border print:border-slate-300">
+                  <td colSpan={4} className="py-12 text-center text-slate-400 print:border print:border-slate-400">
                     No plot bookings found for the selected date range or filter criteria.
                   </td>
                 </tr>
               ) : (
-                items.map((sale, idx) => {
+                rowsToPrint.map((sale, idx) => {
+                  const regLabel = sale.registrationStatusLabel || (sale.membershipNo && sale.membershipNo !== '—' ? 'Portal issued' : 'Needs registration');
                   return (
                     <tr key={sale.id} className="hover:bg-transparent print:break-inside-avoid">
-                      <td className="py-3 px-3 text-center font-mono text-slate-400 print:border print:border-slate-300">
+                      <td className="py-2.5 px-3 text-center font-mono text-slate-600 print:border print:border-slate-400">
                         {idx + 1}
                       </td>
-                      <td className="py-3 px-4 font-mono print:border print:border-slate-300">
+                      <td className="py-2.5 px-4 font-mono print:border print:border-slate-400">
                         <div className="font-bold text-slate-900">{sale.dateStr}</div>
-                        <div className="print:text-[9px] text-slate-400">{sale.timeStr}</div>
+                        <div className="print:text-[9px] text-slate-500">{sale.timeStr}</div>
                       </td>
-                      <td className="py-3 px-4 print:border print:border-slate-300">
+                      <td className="py-2.5 px-4 print:border print:border-slate-400">
                         <div className="font-bold text-slate-900 print:text-xs">
                           Plot {sale.plotNumber}
                         </div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="px-1.5 py-0.5 rounded-sm print:bg-slate-100 print:border print:border-slate-300 print:text-slate-800 font-semibold print:text-[9px]">
-                            {sale.blockName}
-                          </span>
-                          <span className="text-slate-500 print:text-[9px]">
-                            {sale.size} • {sale.category.toUpperCase()}
-                          </span>
+                        <div className="text-[9px] text-slate-600 mt-0.5">
+                          {sale.blockName} • {sale.size}
                         </div>
                       </td>
-                      <td className="py-3 px-4 print:border print:border-slate-300">
+                      <td className="py-2.5 px-4 print:border print:border-slate-400">
                         <div className="font-bold text-slate-900">{sale.customerName}</div>
-                        <div className="font-mono print:text-[9px] print:text-slate-700 font-semibold">
-                          {sale.membershipNo}
+                        <div className="font-semibold text-[9px] text-slate-700 mt-0.5">
+                          {regLabel}
                         </div>
-                      </td>
-                      <td className="py-3 px-4 print:border print:border-slate-300">
-                        <div className="font-mono font-bold text-slate-900 print:text-xs">
-                          PKR {sale.price.toLocaleString()}
-                        </div>
-                        <div className="print:text-[9px] text-slate-400">Official Society Rate</div>
-                      </td>
-                      <td className="py-3 px-4 print:border print:border-slate-300">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full print:text-[9px] font-bold border print:bg-slate-100 print:text-slate-800 print:border-slate-300">
-                          {sale.paymentType === 'one_time' ? 'Full Payment' : '24-Mo Installments'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 print:border print:border-slate-300">
-                        <div className="font-bold text-slate-900">
-                          {sale.sellerAdminName}
-                        </div>
-                        <div className="print:text-[9px] text-slate-400 font-mono">
-                          {sale.sellerAdminRole === 'super_admin' ? 'Super Admin' : 'Admin'}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right print:hidden">
-                        —
                       </td>
                     </tr>
                   );
                 })
               )}
             </tbody>
-            {/* Table Footer with Aggregate Totals */}
-            {items.length > 0 && (
+            {/* Table Footer with Single Grand Total */}
+            {rowsToPrint.length > 0 && (
               <tfoot>
-                <tr className="border-t-2 border-slate-300 bg-slate-50 print:bg-slate-100 font-bold text-slate-900 print:border print:border-slate-300">
-                  <td colSpan={3} className="py-3 px-4 text-left font-sans text-xs print:text-[10px] print:border print:border-slate-300">
-                    Grand Total ({items.length} Plots Allotted)
+                <tr className="border-t-2 border-slate-900 bg-slate-50 print:bg-slate-100 font-bold text-slate-900 print:border print:border-slate-400 print:break-inside-avoid">
+                  <td colSpan={3} className="py-3 px-4 text-left font-sans text-xs print:text-[10px] print:border print:border-slate-400">
+                    Grand Total ({printPlotCount} {printPlotCount === 1 ? 'Plot' : 'Plots'})
                   </td>
-                  <td className="py-3 px-4 text-left font-sans text-xs print:text-[10px] print:border print:border-slate-300 text-slate-500">
-                    —
-                  </td>
-                  <td className="py-3 px-4 font-mono text-sm print:text-xs text-indigo-950 font-bold print:border print:border-slate-300">
-                    PKR {totalContractSum.toLocaleString()}
-                  </td>
-                  <td colSpan={3} className="py-3 px-4 text-slate-500 text-right print:text-left text-[11px] print:text-[9px] print:border print:border-slate-300">
-                    Certified Extraction from Audit Trail
+                  <td className="py-3 px-4 font-mono text-sm print:text-xs text-indigo-950 font-bold print:border print:border-slate-400 text-right">
+                    PKR {printTotalSum.toLocaleString()}
                   </td>
                 </tr>
               </tfoot>
@@ -1091,7 +1065,7 @@ function SalesHistoryContent() {
           </AdminTableShell>
         </div>
 
-        {/* Print-Only Signatures and Audit Sign-Off Section */}
+        {/* Print-Only Signatures and Sign-Off Section */}
         <div className="hidden print:block mt-8 pt-6 border-t-2 border-slate-900 print:break-inside-avoid">
           <div className="grid grid-cols-3 gap-8 text-center text-xs">
             <div className="flex flex-col items-center">
@@ -1124,7 +1098,7 @@ function SalesHistoryContent() {
           </div>
 
           <div className="mt-8 pt-3 border-t border-slate-200 text-center text-[9px] text-slate-500">
-            Confidential & Official Document • Generated automatically from the Prime View Society Realtime Audit Trail. Any manual amendment or erasure renders this report invalid.
+            Confidential & Official Document • Generated automatically from Prime View Society Live Records. Any manual amendment or erasure renders this report invalid.
           </div>
         </div>
       </div>

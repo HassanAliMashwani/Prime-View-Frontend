@@ -322,15 +322,15 @@ export default function InteractiveBlockMap({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.reserved.fill }} />
-              <span>Reserved</span>
+              <span>Reserve</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.booked.fill }} />
-              <span>Booked</span>
+              <span>Book</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full border border-slate-400 shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.allotted.fill }} />
-              <span>Allotted</span>
+              <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.adjustment.fill }} />
+              <span className="font-bold text-blue-600">Adjust</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span
@@ -345,10 +345,6 @@ export default function InteractiveBlockMap({
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.amenity.fill }} />
               <span>Amenity</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full shadow-xs animate-pulse" style={{ backgroundColor: SPECIAL_PLOT_STYLES.adjustment.fill }} />
-              <span className="font-bold text-blue-600">Adjustment</span>
             </div>
           </div>
 
@@ -524,37 +520,56 @@ export default function InteractiveBlockMap({
                   visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
                 );
                 const isLocked = Boolean(plot.lockedBy);
-                const isReserving = Boolean(
-                  (plot.reservingUsers && plot.reservingUsers.length > 0) || plot.reservingByName
-                );
+                const lockReason = plot.lockReason;
 
-                if (plot.isAdjustment) {
-                  const style = SPECIAL_PLOT_STYLES.adjustment;
-                  fillColor = style.fill;
+                // Requirement 4:
+                // - lockReason book, or status booked or allotted: red
+                // - lockReason reserve, while the plot is not yet reserved: yellow, blinking
+                // - status reserved: yellow, steady
+                // - lockReason adjust, or the plot is adjusted: blue
+                // - available and not held: the normal available colour
+                if (visualStatus === 'booked' || visualStatus === 'allotted' || (isLocked && lockReason === 'book')) {
+                  fillColor = PLOT_STATUS_STYLES.booked.fill; // #ef4444 (red)
+                  strokeColor = PLOT_STATUS_STYLES.booked.stroke;
+                  fillOpacity = isHovered ? 0.88 : (visualStatus === 'allotted' ? 0.85 : 0.65);
+                  strokeWidth = 2.5;
+                  isPulsing = false; // steady red
+                } else if (isLocked && lockReason === 'reserve') {
+                  fillColor = PLOT_STATUS_STYLES.reserved.fill; // #f59e0b (yellow)
+                  strokeColor = PLOT_STATUS_STYLES.reserved.stroke;
+                  fillOpacity = isHovered ? 0.85 : 0.65;
+                  strokeWidth = 2.5;
+                  isPulsing = true; // blinking yellow while reserving
+                } else if (isLocked && lockReason === 'adjust') {
+                  fillColor = SPECIAL_PLOT_STYLES.adjustment.fill; // #2563eb (blue)
+                  strokeColor = SPECIAL_PLOT_STYLES.adjustment.stroke;
                   fillOpacity = isHovered ? 0.88 : 0.65;
-                  strokeColor = style.stroke;
-                  strokeWidth = 3;
-                  isPulsing = true;
+                  strokeWidth = 2.5;
+                  isPulsing = false; // steady blue
                 } else if (isLocked) {
-                  const style = PLOT_STATUS_STYLES.booked;
-                  fillColor = style.fill;
+                  fillColor = PLOT_STATUS_STYLES.booked.fill;
+                  strokeColor = PLOT_STATUS_STYLES.booked.stroke;
                   fillOpacity = 0.65;
-                  strokeColor = style.stroke;
-                  strokeWidth = 3;
-                  isPulsing = true;
+                  strokeWidth = 2.5;
+                  isPulsing = false;
+                } else if (visualStatus === 'reserved') {
+                  fillColor = PLOT_STATUS_STYLES.reserved.fill; // #f59e0b (yellow)
+                  strokeColor = PLOT_STATUS_STYLES.reserved.stroke;
+                  fillOpacity = isHovered ? 0.75 : 0.55;
+                  strokeWidth = 2;
+                  isPulsing = false; // steady yellow
+                } else if (plot.isAdjustment) {
+                  fillColor = SPECIAL_PLOT_STYLES.adjustment.fill; // #2563eb (blue)
+                  strokeColor = SPECIAL_PLOT_STYLES.adjustment.stroke;
+                  fillOpacity = isHovered ? 0.88 : 0.65;
+                  strokeWidth = 2.5;
+                  isPulsing = false; // steady blue
                 } else if (isDisputed) {
                   const style = PLOT_STATUS_STYLES.disputed;
                   fillColor = style.fill;
                   fillOpacity = isHovered ? 1.0 : 0.9;
                   strokeColor = style.stroke;
                   strokeWidth = 3.5;
-                  isPulsing = true;
-                } else if (isReserving && visualStatus !== 'reserved' && visualStatus !== 'booked' && visualStatus !== 'allotted') {
-                  const style = PLOT_STATUS_STYLES.reserved;
-                  fillColor = style.fill;
-                  fillOpacity = 0.65;
-                  strokeColor = style.stroke;
-                  strokeWidth = 3;
                   isPulsing = true;
                 } else if (plot.category === 'amenity') {
                   const style = SPECIAL_PLOT_STYLES.amenity;
@@ -566,23 +581,8 @@ export default function InteractiveBlockMap({
                   const style = getPlotStyle(plot);
                   fillColor = style.fill;
                   strokeColor = style.stroke;
-                  if (visualStatus === 'allotted') {
-                    fillOpacity = isHovered ? 0.95 : 0.88;
-                    strokeWidth = 2.2;
-                  } else if (visualStatus === 'booked') {
-                    fillOpacity = isHovered ? 0.78 : 0.55;
-                    strokeWidth = 2.2;
-                  } else if (visualStatus === 'reserved') {
-                    fillOpacity = isHovered ? 0.75 : 0.55;
-                    strokeWidth = 2;
-                  } else if (visualStatus === 'disputed') {
-                    fillOpacity = isHovered ? 1.0 : 0.9;
-                    strokeWidth = 3.5;
-                    isPulsing = true;
-                  } else {
-                    fillOpacity = isHovered ? 0.75 : 0.42;
-                    strokeWidth = 2;
-                  }
+                  fillOpacity = isHovered ? 0.75 : 0.42;
+                  strokeWidth = 2;
                 }
               } else if (area.category === 'amenity') {
                 const style = SPECIAL_PLOT_STYLES.amenity;
@@ -753,9 +753,8 @@ export default function InteractiveBlockMap({
                 visualStatus === 'disputed' || plot.isDisputed || (plot.activeReservationCount && plot.activeReservationCount > 1)
               );
               const isLocked = Boolean(plot.lockedBy);
-              const isReserving = Boolean(
-                (plot.reservingUsers && plot.reservingUsers.length > 0) || plot.reservingByName
-              );
+              const lockReason = plot.lockReason;
+              const isReserving = Boolean((plot.reservingUsers && plot.reservingUsers.length > 0) || plot.reservingByName);
               const isAmenity = plot.category === 'amenity';
 
               return (
@@ -766,40 +765,40 @@ export default function InteractiveBlockMap({
                     </span>
                     <span
                       className={`text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
-                        plot.isAdjustment
+                        (isLocked && lockReason === 'adjust') || (!isLocked && plot.isAdjustment)
                           ? 'bg-blue-950 text-blue-300 border-blue-500 font-bold lowercase'
+                          : (isLocked && lockReason === 'book') || visualStatus === 'booked' || visualStatus === 'allotted'
+                          ? 'bg-rose-950 text-rose-300 border-rose-700'
+                          : (isLocked && lockReason === 'reserve') || visualStatus === 'reserved'
+                          ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : isLocked
                           ? 'bg-rose-950 text-rose-300 border-rose-700'
                           : isDisputed
                           ? 'bg-rose-950 text-rose-200 border-rose-600 animate-pulse font-bold'
-                          : isReserving
-                          ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : isAmenity
                           ? 'bg-purple-950 text-purple-300 border-purple-700'
-                          : visualStatus === 'allotted'
-                          ? 'bg-slate-950 text-white border-slate-700'
-                          : visualStatus === 'booked'
-                          ? 'bg-rose-950 text-rose-300 border-rose-700'
-                          : visualStatus === 'reserved'
-                          ? 'bg-amber-950 text-amber-300 border-amber-700'
                           : 'bg-emerald-950 text-emerald-300 border-emerald-700'
                       }`}
                     >
-                      {plot.isAdjustment
+                      {(isLocked && lockReason === 'adjust') || (!isLocked && plot.isAdjustment)
                         ? 'adjustment'
+                        : (isLocked && lockReason === 'book')
+                        ? 'Book'
+                        : (isLocked && lockReason === 'reserve')
+                        ? (visualStatus === 'reserved' ? 'Reserved' : 'Reserve')
                         : isLocked
                         ? 'Locked'
                         : isDisputed
                         ? (plot.activeReservationCount && plot.activeReservationCount > 1 ? `Disputed (${plot.activeReservationCount})` : 'Disputed')
-                        : isReserving
-                        ? 'Reserving'
                         : isAmenity
                         ? 'Amenity'
                         : visualStatus === 'allotted'
                         ? 'Allotted'
                         : visualStatus === 'booked'
                         ? 'Booked'
-                        : String(visualStatus).replace(/_/g, ' ')}
+                        : visualStatus === 'reserved'
+                        ? 'Reserved'
+                        : 'Available'}
                     </span>
                   </div>
 
@@ -827,8 +826,24 @@ export default function InteractiveBlockMap({
                   )}
 
                   {isLocked && (
-                    <div className="mb-2 p-1.5 rounded-lg bg-rose-900/50 border border-rose-700/50 text-[10px] text-rose-200 flex items-center gap-1.5">
-                      <Lock className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                    <div
+                      className={`mb-2 p-1.5 rounded-lg text-[10px] flex items-center gap-1.5 border ${
+                        lockReason === 'reserve'
+                          ? 'bg-amber-900/50 border-amber-700/50 text-amber-200'
+                          : lockReason === 'adjust'
+                          ? 'bg-blue-900/50 border-blue-700/50 text-blue-200'
+                          : 'bg-rose-900/50 border-rose-700/50 text-rose-200'
+                      }`}
+                    >
+                      <Lock
+                        className={`w-3.5 h-3.5 shrink-0 ${
+                          lockReason === 'reserve'
+                            ? 'text-amber-400'
+                            : lockReason === 'adjust'
+                            ? 'text-blue-400'
+                            : 'text-rose-400'
+                        }`}
+                      />
                       <span>Held by: {plot.lockedByName || 'Admin'}</span>
                     </div>
                   )}

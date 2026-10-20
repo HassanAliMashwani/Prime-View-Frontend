@@ -322,7 +322,8 @@ export function getActiveOrLatestBooking(bookings?: any[], plotId?: string): Boo
  */
 export async function acquireLock(
   session: AdminSession,
-  plotId: string
+  plotId: string,
+  reason: 'book' | 'reserve' | 'adjust' = 'book'
 ): Promise<{
   ok: boolean;
   plot?: Plot;
@@ -331,9 +332,10 @@ export async function acquireLock(
   reason?: string;
   lockedBy?: string;
   lockedByName?: string;
+  lockReason?: string;
   message?: string;
 }> {
-  const res = await apiPost<any>(`/plots/${plotId}/lock`, {}, session?.token);
+  const res = await apiPost<any>(`/plots/${plotId}/lock`, { reason }, session?.token);
   if (!res.ok || !res.data) {
     return {
       ok: false,
@@ -341,6 +343,7 @@ export async function acquireLock(
       reason: res.error,
       lockedBy: res.data?.lockedBy,
       lockedByName: res.data?.lockedByName,
+      lockReason: res.data?.lockReason,
       message: res.error || 'Failed to acquire plot lock.',
     };
   }
@@ -348,6 +351,7 @@ export async function acquireLock(
   const lockedByName = res.data.plot?.lockedByName || res.data.lockedByName || session.fullName || session.username;
   const lockedBy = res.data.plot?.lockedBy || res.data.lockedBy || session.adminId;
   const lockedAt = res.data.plot?.lockedAt || res.data.lockedAt || new Date().toISOString();
+  const lockReason = res.data.plot?.lockReason || res.data.lockReason || reason;
 
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
     try {
@@ -358,6 +362,7 @@ export async function acquireLock(
         lockedBy,
         lockedByName,
         lockedAt,
+        lockReason,
       });
       channel.close();
     } catch {
@@ -372,11 +377,13 @@ export async function acquireLock(
       price: Number(res.data.plot?.price) || 0,
       lockedByName,
       lockedBy,
-      lockedAt,
+      lockedAt: typeof lockedAt === 'number' ? lockedAt : new Date(lockedAt).getTime(),
+      lockReason,
     },
     lockToken: res.data.lockToken,
     lockedBy,
     lockedByName,
+    lockReason,
   };
 }
 
@@ -429,6 +436,7 @@ export interface BlockPlotLockSync {
   lockedBy: string | null;
   lockedByName: string | null;
   lockedAt: string | null;
+  lockReason: string | null;
 }
 
 /**
@@ -467,7 +475,7 @@ export function releaseLockSync(plotId: string, adminId: string): void {
 }
 
 /**
- * Helper: Start reserving a plot by acquiring lock first.
+ * Helper: Start reserving a plot by acquiring lock first with 'reserve' reason.
  */
 export async function startReservingPlot(
   session: AdminSession,
@@ -480,9 +488,10 @@ export async function startReservingPlot(
   reason?: string;
   lockedBy?: string;
   lockedByName?: string;
+  lockReason?: string;
   message?: string;
 }> {
-  return acquireLock(session, plotId);
+  return acquireLock(session, plotId, 'reserve');
 }
 
 /**

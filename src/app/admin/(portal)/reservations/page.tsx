@@ -530,13 +530,13 @@ export default function ReservationsPage() {
               return (
                 <div
                   key={r.id}
-                  className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${isConflict
+                  className={`p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors w-full max-w-full overflow-hidden ${isConflict
                       ? 'bg-amber-50/50 hover:bg-amber-50/80 border-l-4 border-l-amber-500'
                       : 'hover:bg-slate-50/80'
                     }`}
                 >
                   {/* Left Specs */}
-                  <div className="space-y-1.5 flex-1">
+                  <div className="space-y-1.5 flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/admin/master-plan/${r.blockId}?focusPlot=${r.plotId}`}
@@ -624,7 +624,7 @@ export default function ReservationsPage() {
 
                     {/* Note / Dispute Context */}
                     {r.resolutionNote && (
-                      <div className="text-[11px] text-amber-900 bg-amber-50/80 border border-amber-200 p-2 rounded-xl inline-block mt-1">
+                      <div className="text-[11px] text-amber-900 bg-amber-50/80 border border-amber-200 p-2 rounded-xl block w-full max-w-full break-words whitespace-pre-wrap mt-1">
                         <strong className="text-amber-800">Dispute/Status Note:</strong>{' '}
                         {r.resolutionNote}
                       </div>
