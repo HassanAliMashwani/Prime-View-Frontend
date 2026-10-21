@@ -670,7 +670,7 @@ export default function ReservationsPage() {
                       <span>Note</span>
                     </button>
 
-                    {r.status === 'active' && session.permissions.can_book && (
+                    {r.status === 'active' && (session.role === 'super_admin' || Boolean(session.permissions?.can_book)) && (
                       <button
                         onClick={() => handleConfirmBooking(r)}
                         disabled={actingResId === r.id}
@@ -686,7 +686,7 @@ export default function ReservationsPage() {
                       </button>
                     )}
 
-                    {r.status === 'active' && session.permissions.can_reserve && (
+                    {r.status === 'active' && (session.role === 'super_admin' || Boolean(session.permissions?.can_reserve)) && (
                       <button
                         onClick={() => handleReleaseReservation(r)}
                         disabled={actingResId === r.id}

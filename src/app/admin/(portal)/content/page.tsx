@@ -597,7 +597,7 @@ export default function ContentCMSPage() {
   }
 
   // Permission Guard
-  const canAccess = session?.role === 'super_admin' || session?.permissions.can_edit_content;
+  const canAccess = session?.role === 'super_admin' || Boolean(session?.permissions?.can_edit_content);
   if (!canAccess) {
     return (
       <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">

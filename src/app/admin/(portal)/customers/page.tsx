@@ -524,9 +524,10 @@ function CustomersPageContent() {
       });
     }
 
-    // Handle Set Payment Plan for held plot on registered member (Super Admin Exclusivity)
+    // Handle Set Payment Plan for held plot on registered member
     if (querySetPlanCustomer && queryPlotId && cur) {
-      if (cur.role !== 'super_admin') {
+      const hasCustomerPerm = cur.role === 'super_admin' || Boolean(cur.permissions?.can_create_customer && cur.permissions?.can_view_customers);
+      if (!hasCustomerPerm) {
         router.replace('/admin/customers-directory');
         return;
       }
@@ -688,6 +689,9 @@ function CustomersPageContent() {
 
     // Handle Complete Registration for quick-booked member (CR 07 §5)
     if (queryCompleteCustomer && cur) {
+      if (initialPlot) {
+        applyPlot(initialPlot, initPriceNum > 0 ? initPriceNum : undefined);
+      }
       runLane1({
         screen: 'customer-booking',
         fn: async (signal) => getAdminCustomerById(cur, queryCompleteCustomer, signal),
@@ -710,7 +714,7 @@ function CustomersPageContent() {
           const targetPlotId = queryPlotId || targetBooking?.plotId || targetPlot?.id;
           const customTotal = targetBooking?.installmentPlan?.totalPayment
             ? Number(targetBooking.installmentPlan.totalPayment)
-            : undefined;
+            : (initPriceNum > 0 ? initPriceNum : undefined);
 
           if (targetPlot && targetPlot.price && targetPlot.plotNumber && targetPlot.blockId) {
             applyPlot(targetPlot, customTotal);
@@ -731,6 +735,16 @@ function CustomersPageContent() {
             }
           } else if (targetPlotId) {
             await loadPlotById(targetPlotId, customTotal);
+          } else if (initialPlot) {
+            applyPlot(initialPlot, customTotal);
+          }
+
+          if (targetBooking?.installmentPlan?.planYears) {
+            const py = Number(targetBooking.installmentPlan.planYears);
+            if (!isNaN(py) && py > 0) {
+              setYearsA(py);
+              setYearsB(py);
+            }
           }
 
           const currentCity = cust.city || cust.mailingAddress || '';
@@ -739,9 +753,9 @@ function CustomersPageContent() {
           setPathAForm((prev) => ({
             ...prev,
             plotId: queryPlotId || targetPlotId || prev.plotId,
-            fullName: cust.fullName || '',
-            cnic: cust.cnic ? formatCnic(cust.cnic) : '',
-            phone: cust.phone || '',
+            fullName: cust.fullName || queryCustomerName || '',
+            cnic: cust.cnic ? formatCnic(cust.cnic) : (queryCustomerCnic ? formatCnic(queryCustomerCnic) : ''),
+            phone: cust.phone || queryCustomerPhone || '',
             email: cust.email || '',
             mailingAddress: cust.mailingAddress || currentCity,
             membershipNo: cust.membershipNo || '',
@@ -750,10 +764,16 @@ function CustomersPageContent() {
             nokCnic: cust.nokCnic ? formatCnic(cust.nokCnic) : '',
             portalPassword: '',
             paymentType: (targetBooking?.paymentType as PaymentType) || 'installment',
-            applicantPhotoUrl: undefined,
-            cnicCopyUrl: undefined,
-            nokCnicCopyUrl: undefined,
+            applicantPhotoUrl: cust.applicantPhotoUrl || prev.applicantPhotoUrl,
+            cnicCopyUrl: cust.cnicCopyUrl || prev.cnicCopyUrl,
+            nokCnicCopyUrl: cust.nokCnicCopyUrl || prev.nokCnicCopyUrl,
           }));
+
+          setDocFiles({
+            photo: cust.applicantPhotoUrl ? { name: 'applicant-photo.jpg', sizeKb: 100, dataUrl: cust.applicantPhotoUrl } : undefined,
+            cnic: cust.cnicCopyUrl ? { name: 'cnic-copy.jpg', sizeKb: 100, dataUrl: cust.cnicCopyUrl } : undefined,
+            nokCnic: cust.nokCnicCopyUrl ? { name: 'nok-cnic-copy.jpg', sizeKb: 100, dataUrl: cust.nokCnicCopyUrl } : undefined,
+          });
         }
       }).catch(() => {});
     }
@@ -2077,8 +2097,8 @@ function CustomersPageContent() {
     if (setPlanSubmitting) return;
 
     const cur = session || getActiveAdminSession();
-    if (!cur || cur.role !== 'super_admin') {
-      setFeedback({ type: 'error', message: 'Only the Super Admin can set payment plans.' });
+    if (!cur || (!hasCustomerAccess && cur.role !== 'super_admin')) {
+      setFeedback({ type: 'error', message: 'You do not have permission to set payment plans.' });
       return;
     }
 
@@ -2241,290 +2261,7 @@ function CustomersPageContent() {
         </div>
       )}
 
-      {/* Admin 3-Field Quick Booking Flow (CR 07 §5) */}
-      {session?.role === 'sub_admin' ? (
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-6">
-          <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-            <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700 shadow-xs">
-              <UserPlus className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-slate-900 font-serif tracking-tight">
-                Quick Plot Booking (Admin)
-              </h1>
-              <p className="text-xs text-slate-500">
-                Streamlined 3-field quick booking flow. Payment schedule and member credentials will be finalized upon formal member registration.
-              </p>
-            </div>
-          </div>
 
-          <form onSubmit={handleSubmitSubAdmin} noValidate className="space-y-5">
-            {/* Target Plot Display / Selector */}
-            <div id="subAdmin_plot">
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Target Plot *
-              </label>
-              {lockedPlot ? (
-                <div className="p-4 bg-emerald-50 border-2 border-emerald-300 rounded-2xl flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Building className="w-5 h-5 text-emerald-700" />
-                    <div>
-                      <div className="font-bold text-sm text-emerald-950 font-mono">
-                        Sector {lockedPlot.blockId.toUpperCase()} • Plot {lockedPlot.plotNumber}
-                      </div>
-                      <div className="text-xs text-emerald-800 font-mono mt-0.5">
-                        Size: {lockedPlot.size} • Price: PKR {lockedPlot.price.toLocaleString()} • Category: {lockedPlot.category.replace('_', ' ')}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-[10px] bg-emerald-200 text-emerald-950 font-bold px-3 py-1 rounded-full border border-emerald-400 font-mono">
-                    Locked For Booking
-                  </span>
-                </div>
-              ) : (
-                <PlotSelector
-                  value={subAdminPlotId}
-                  onChange={(val) => {
-                    setSubAdminPlotId(val);
-                    setSubAdminFieldErrors((prev) => ({ ...prev, plot: undefined }));
-                  }}
-                  onSelectPlot={(p) => {
-                    setRegisteredPlotsCache([p]);
-                    const clean = toPlainNumber(p.price);
-                    setSubAdminForm((prev) => ({ ...prev, price: clean > 0 ? String(clean) : '' }));
-                    setSubAdminFieldErrors((prev) => ({ ...prev, plot: undefined, price: undefined }));
-                  }}
-                  onErrorClear={() => {
-                    setSubAdminPlotError(null);
-                    setSubAdminFieldErrors((prev) => ({ ...prev, plot: undefined }));
-                  }}
-                  session={session}
-                />
-              )}
-              {(subAdminFieldErrors.plot || subAdminPlotError) && (
-                <p className="text-[11px] text-rose-600 mt-1 font-semibold flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                  {subAdminFieldErrors.plot || subAdminPlotError}
-                </p>
-              )}
-            </div>
-
-            {/* 5 Quick Booking Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div id="subAdmin_customerName">
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Customer Full Name <span className="text-rose-500">*</span>
-                </label>
-                <LiveMemberPicker
-                  value={subAdminForm.customerName}
-                  onChange={(val) => {
-                    setSubAdminForm((prev) => ({ ...prev, customerName: val }));
-                    setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined }));
-                  }}
-                  selectedMember={subAdminSelectedMember}
-                  onSelectMember={(member) => {
-                    setSubAdminSelectedMember(member);
-                    if (member) {
-                      setSubAdminForm((prev) => ({
-                        ...prev,
-                        customerName: member.fullName,
-                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
-                        city: member.city || prev.city,
-                        nokCnic: member.nokCnic ? formatCnic(member.nokCnic) : prev.nokCnic,
-                        customerId: member.id,
-                      }));
-                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined, nokCnic: undefined }));
-                    } else {
-                      setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
-                    }
-                  }}
-                  placeholder="e.g. Hamza Tariq (type to search)"
-                  required
-                />
-                {subAdminFieldErrors.customerName && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    {subAdminFieldErrors.customerName}
-                  </p>
-                )}
-              </div>
-
-              <div id="subAdmin_cnic">
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>Customer CNIC <span className="text-rose-500">*</span></span>
-                  {subAdminSelectedMember && (
-                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Locked
-                    </span>
-                  )}
-                </label>
-                <LiveCnicMemberPicker
-                  value={subAdminForm.cnic}
-                  onChange={(val) => {
-                    setSubAdminForm((prev) => ({ ...prev, cnic: val }));
-                    setSubAdminFieldErrors((prev) => ({ ...prev, cnic: undefined }));
-                  }}
-                  selectedMember={subAdminSelectedMember}
-                  onSelectMember={(member) => {
-                    setSubAdminSelectedMember(member);
-                    if (member) {
-                      setSubAdminForm((prev) => ({
-                        ...prev,
-                        customerName: member.fullName,
-                        cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
-                        city: member.city || prev.city,
-                        nokCnic: member.nokCnic ? formatCnic(member.nokCnic) : prev.nokCnic,
-                        customerId: member.id,
-                      }));
-                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined, nokCnic: undefined }));
-                    } else {
-                      setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
-                    }
-                  }}
-                  placeholder="00000-0000000-0"
-                  required
-                />
-                {subAdminFieldErrors.cnic && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    {subAdminFieldErrors.cnic}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>City <span className="text-rose-500">*</span></span>
-                  {subAdminSelectedMember && (
-                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Locked
-                    </span>
-                  )}
-                </label>
-                <input
-                  id="subAdmin_city"
-                  type="text"
-                  required
-                  value={subAdminForm.city}
-                  disabled={Boolean(subAdminSelectedMember)}
-                  onChange={(e) => {
-                    setSubAdminForm({ ...subAdminForm, city: e.target.value });
-                    setSubAdminFieldErrors((prev) => ({ ...prev, city: undefined }));
-                  }}
-                  placeholder="e.g. Abbottabad, Lahore"
-                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
-                    subAdminSelectedMember
-                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
-                      : subAdminFieldErrors.city
-                        ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
-                        : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
-                  }`}
-                />
-                {subAdminFieldErrors.city && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    {subAdminFieldErrors.city}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
-                  <span>Next of Kin CNIC <span className="text-rose-500">*</span></span>
-                  {subAdminSelectedMember && (
-                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Locked
-                    </span>
-                  )}
-                </label>
-                <input
-                  id="subAdmin_nokCnic"
-                  type="text"
-                  required
-                  maxLength={15}
-                  value={subAdminForm.nokCnic}
-                  disabled={Boolean(subAdminSelectedMember)}
-                  onChange={(e) => {
-                    setSubAdminForm({ ...subAdminForm, nokCnic: formatCnic(e.target.value) });
-                    setSubAdminFieldErrors((prev) => ({ ...prev, nokCnic: undefined }));
-                  }}
-                  placeholder="00000-0000000-0"
-                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
-                    subAdminSelectedMember
-                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
-                      : subAdminFieldErrors.nokCnic
-                        ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
-                        : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
-                  }`}
-                />
-                {subAdminFieldErrors.nokCnic && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    {subAdminFieldErrors.nokCnic}
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Plot Price (PKR) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  id="subAdmin_price"
-                  type="number"
-                  required
-                  min={1}
-                  step="any"
-                  value={subAdminForm.price}
-                  onWheel={(e) => e.currentTarget.blur()}
-                  onChange={(e) => {
-                    const cleanVal = e.target.value.replace(/[^0-9]/g, '');
-                    setSubAdminForm({ ...subAdminForm, price: cleanVal });
-                    setSubAdminFieldErrors((prev) => ({ ...prev, price: undefined }));
-                  }}
-                  placeholder="Enter plot price"
-                  className={`w-full px-3 py-2 text-xs rounded-xl border font-mono font-bold ${
-                    subAdminFieldErrors.price
-                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
-                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
-                  }`}
-                />
-                {subAdminFieldErrors.price && (
-                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                    {subAdminFieldErrors.price}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="p-4 bg-amber-50/90 border border-amber-200 rounded-2xl text-xs text-amber-950 leading-relaxed">
-              ℹ️ <strong>Formalities Pending:</strong> Submitting this quick booking will secure the plot immediately as <strong>Booked (Pending Formalities)</strong> to prevent double-booking. Member registration and issuance of membership credentials can be finalized in the Customer Directory.
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              {queryReturnBlock && (
-                <button
-                  type="button"
-                  onClick={handleCancelLockAndReturn}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 cursor-pointer"
-                >
-                  Cancel & Return to Map
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={subAdminSubmitting}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
-              >
-                <Lock className="w-3.5 h-3.5" />
-                <span>{subAdminSubmitting ? 'Booking Plot...' : 'Confirm Quick Booking'}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      ) : (
-        <>
                     {/* Header & Navigation Pills / Completion Mode Banner */}
           {completeTargetCustomer || queryCompleteCustomer ? (
             <div className="bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-50 border-2 border-amber-500/40 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -3252,9 +2989,9 @@ function CustomersPageContent() {
               <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                   <span className="text-xs font-bold text-slate-900 font-serif">One-Time Full Settlement Parameters</span>
-                  {session?.role === 'super_admin' ? (
+                  {canEditPriceA ? (
                     <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded border border-indigo-200">
-                      Super Admin: Editable Price (Updates map on submit)
+                      Editable Price (Updates map on submit)
                     </span>
                   ) : (
                     <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
@@ -3268,9 +3005,9 @@ function CustomersPageContent() {
                     <label className="block text-[11px] font-bold text-slate-700">
                       Total Payment (Plot Price) *
                     </label>
-                    {session?.role === 'super_admin' && (
+                    {canEditPriceA && (
                       <span className="text-[9px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                        Super Admin
+                        Editable
                       </span>
                     )}
                   </div>
@@ -3332,9 +3069,9 @@ function CustomersPageContent() {
                       <label className="block text-[11px] font-bold text-slate-700">
                         Total Payment (Plot Price) *
                       </label>
-                      {session?.role === 'super_admin' ? (
+                      {canEditPriceA ? (
                         <span className="text-[9px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                          Super Admin
+                          Editable
                         </span>
                       ) : (
                         <span className="text-[9px] text-slate-400 font-medium flex items-center gap-0.5">
@@ -4159,9 +3896,9 @@ function CustomersPageContent() {
                 <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-3">
                   <div className="flex items-center justify-between border-b border-slate-200 pb-2">
                     <span className="text-xs font-bold text-slate-900 font-serif">One-Time Full Settlement Parameters</span>
-                    {session?.role === 'super_admin' ? (
+                    {canEditPriceB ? (
                       <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-2 py-0.5 rounded border border-indigo-200">
-                        Super Admin: Editable Price (Updates map on submit)
+                        Editable Price (Updates map on submit)
                       </span>
                     ) : (
                       <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1">
@@ -4175,9 +3912,9 @@ function CustomersPageContent() {
                       <label className="block text-[11px] font-bold text-slate-700">
                         Total Payment (Plot Price) *
                       </label>
-                      {session?.role === 'super_admin' && (
+                      {canEditPriceB && (
                         <span className="text-[9px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                          Super Admin
+                          Editable
                         </span>
                       )}
                     </div>
@@ -4239,9 +3976,9 @@ function CustomersPageContent() {
                         <label className="block text-[11px] font-bold text-slate-700">
                           Total Payment (Plot Price) *
                         </label>
-                        {session?.role === 'super_admin' ? (
+                        {canEditPriceB ? (
                           <span className="text-[9px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200">
-                            Super Admin
+                            Editable
                           </span>
                         ) : (
                           <span className="text-[9px] text-slate-400 font-medium flex items-center gap-0.5">
@@ -4431,8 +4168,6 @@ function CustomersPageContent() {
           )}
         </div>
       )}
-    </>
-  )}
 
 
 

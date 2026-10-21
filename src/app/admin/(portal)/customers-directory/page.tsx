@@ -869,7 +869,7 @@ function CustomersDirectoryContent() {
                                     <CreditCard className="w-3 h-3" />
                                     <span>Set payment plan</span>
                                   </button>
-                                ) : (isSuperAdmin || (session?.role === 'sub_admin' && Boolean(session?.permissions?.can_book) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId))) ? (
+                                ) : (isSuperAdmin || ((hasCustomerAccess || Boolean(session?.permissions?.can_book)) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId))) ? (
                                   <button
                                     type="button"
                                     onClick={() => openSetPaymentPlan(c, p.plotId || (p as any).id)}
@@ -1210,7 +1210,7 @@ function CustomersDirectoryContent() {
                                           <CreditCard className="w-2.5 h-2.5" />
                                           <span>Set payment plan</span>
                                         </button>
-                                      ) : isSuperAdmin || (session?.role === 'sub_admin' && Boolean(session?.permissions?.can_book) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId)) ? (
+                                      ) : (isSuperAdmin || ((hasCustomerAccess || Boolean(session?.permissions?.can_book)) && Array.isArray(session?.assignedBlocks) && session.assignedBlocks.includes(p.blockId))) ? (
                                         <button
                                           type="button"
                                           onClick={() => openSetPaymentPlan(c, p.plotId || (p as any).id)}

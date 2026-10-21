@@ -994,7 +994,7 @@ export default function AdminReceiptsPage() {
                       <span>View / Print A4 Slip</span>
                     </button>
 
-                    {session?.role === 'super_admin' && (
+                    {(session?.role === 'super_admin' || Boolean(session?.permissions?.can_verify_receipts)) && (
                       <>
 
                         <button
