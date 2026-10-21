@@ -45,7 +45,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
     if (record.feeType === 'plot_biannual') {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 text-[11px] font-bold border border-sky-200">
-          Bi-annual #{record.installmentNumber || ''}
+          Biannual #{record.installmentNumber || ''}
         </span>
       );
     }
@@ -68,7 +68,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
 
   const getFeeTypeTitle = (record: PaymentRecord) => {
     if (record.feeType === 'plot_downpayment') return 'Down payment';
-    if (record.feeType === 'plot_biannual') return `Bi-annual Installment #${record.installmentNumber || ''}`;
+    if (record.feeType === 'plot_biannual') return `Biannual #${record.installmentNumber || '1'}`;
     if (record.feeType === 'plot_possession') return 'Possession';
     if (record.feeType === 'plot_one_time') return 'Full Payment';
     return `Installment #${record.installmentNumber || '1'}`;

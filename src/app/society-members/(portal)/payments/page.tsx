@@ -69,14 +69,25 @@ function getNextUnpaidBill(sched?: PlotPaymentSchedule | null): import('@/lib/mo
   return unpaid[0] || null;
 }
 
-function getBillLabel(bill: import('@/lib/mock/types').PaymentRecord | null): string {
+function getBillLabel(
+  bill: import('@/lib/mock/types').PaymentRecord | null,
+  sched?: PlotPaymentSchedule | null
+): string {
   if (!bill) return 'No unpaid installments';
   if (bill.feeType === 'plot_downpayment') return 'Down Payment';
   if (bill.feeType === 'plot_possession') {
     return bill.installmentNumber ? `Installment #${bill.installmentNumber} (Possession)` : 'Possession Bill';
   }
   if (bill.feeType === 'plot_biannual') {
-    return bill.installmentNumber ? `Installment #${bill.installmentNumber} (Bi-Annual)` : 'Bi-Annual Installment';
+    let bNum = bill.installmentNumber;
+    if (sched && sched.schedule) {
+      const biannuals = sched.schedule
+        .filter((x) => x.feeType === 'plot_biannual')
+        .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+      const idx = biannuals.findIndex((x) => x.id === bill.id);
+      if (idx >= 0) bNum = idx + 1;
+    }
+    return `Biannual #${bNum || 1}`;
   }
   return `Installment #${bill.installmentNumber || 1}`;
 }
@@ -376,6 +387,8 @@ function PaymentsContent() {
     dueDate: string;
     amount: number;
     installmentNumber: number;
+    feeType?: string;
+    displayNumber: number;
     isOverdue: boolean;
   }
 
@@ -397,12 +410,23 @@ function PaymentsContent() {
           (isItemOverdue && !upcomingAlert.isOverdue) ||
           (!upcomingAlert.isOverdue && nextItem.dueDate < upcomingAlert.dueDate)
         ) {
+          let displayNumber = nextItem.installmentNumber || 1;
+          if (nextItem.feeType === 'plot_biannual') {
+            const biannualRecords = s.schedule
+              .filter((item) => item.feeType === 'plot_biannual')
+              .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+            const bIdx = biannualRecords.findIndex((item) => item.id === nextItem.id);
+            displayNumber = bIdx >= 0 ? bIdx + 1 : (nextItem.installmentNumber || 1);
+          }
+
           upcomingAlert = {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
             dueDate: String(nextItem.dueDate).split('T')[0],
             amount: nextItem.amount,
             installmentNumber: nextItem.installmentNumber || 1,
+            feeType: nextItem.feeType,
+            displayNumber,
             isOverdue: isItemOverdue,
           };
         }
@@ -586,6 +610,18 @@ function PaymentsContent() {
 
     const tempReceiptId = retrySub?.id || `rcpt-temp-${Date.now()}`;
     const matchedPlot = availablePlotOptions.find((p) => p.id === plotIdToUse);
+    const targetNextBill = getNextUnpaidBill(targetSched);
+    let resolvedInstallmentNumber = (retrySub ? retrySub.paymentType : formPaymentType) === 'installment'
+      ? Number(retrySub ? retrySub.installmentNumber : formInstallmentNo)
+      : undefined;
+
+    if (targetNextBill?.feeType === 'plot_biannual' && (retrySub ? retrySub.paymentType : formPaymentType) === 'installment') {
+      const biannuals = (targetSched?.schedule || [])
+        .filter((x) => x.feeType === 'plot_biannual')
+        .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+      const idx = biannuals.findIndex((x) => x.id === targetNextBill.id);
+      resolvedInstallmentNumber = idx >= 0 ? idx + 1 : (targetNextBill.installmentNumber || 1);
+    }
 
     const optimisticReceipt: ReceiptSubmission = {
       id: tempReceiptId,
@@ -596,9 +632,8 @@ function PaymentsContent() {
       plotNumber: matchedPlot?.plotNumber || retrySub?.plotNumber || '',
       blockName: matchedPlot?.blockName || retrySub?.blockName || '',
       paymentType: retrySub ? retrySub.paymentType : formPaymentType,
-      installmentNumber: (retrySub ? retrySub.paymentType : formPaymentType) === 'installment'
-        ? Number(retrySub ? retrySub.installmentNumber : formInstallmentNo)
-        : undefined,
+      feeType: retrySub?.feeType || targetNextBill?.feeType,
+      installmentNumber: resolvedInstallmentNumber,
       amount: amountNum,
       depositoryBank: retrySub ? retrySub.depositoryBank : formBankName,
       bankName: retrySub ? retrySub.bankName : formBankName,
@@ -963,12 +998,16 @@ function PaymentsContent() {
                             : 'bg-[#43612B] text-white'
                         }`}
                       >
-                        {upcomingAlert.isOverdue ? 'Overdue Installment Notice' : 'Upcoming Installment Alert'}
+                        {upcomingAlert.feeType === 'plot_biannual'
+                          ? (upcomingAlert.isOverdue ? 'Overdue Biannual Notice' : 'Upcoming Biannual Alert')
+                          : (upcomingAlert.isOverdue ? 'Overdue Installment Notice' : 'Upcoming Installment Alert')}
                       </span>
                       <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
                     </div>
                     <p className="text-xs text-[#4A5347] leading-relaxed">
-                      Installment #{upcomingAlert.installmentNumber} of{' '}
+                      {upcomingAlert.feeType === 'plot_biannual'
+                        ? `Biannual #${upcomingAlert.displayNumber}`
+                        : `Installment #${upcomingAlert.displayNumber}`} of{' '}
                       <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
                       {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
                       <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit slip below once paid.
@@ -992,7 +1031,12 @@ function PaymentsContent() {
                   }`}
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Upload Receipt for Inst. #{upcomingAlert.installmentNumber}</span>
+                  <span>
+                    Upload Receipt for{' '}
+                    {upcomingAlert.feeType === 'plot_biannual'
+                      ? `Biannual #${upcomingAlert.displayNumber}`
+                      : `Inst. #${upcomingAlert.displayNumber}`}
+                  </span>
                 </button>
               </div>
             )}
@@ -1551,7 +1595,7 @@ function PaymentsContent() {
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                          Installment Bill
+                          {currentNextBill?.feeType === 'plot_biannual' ? 'Biannual Bill' : 'Installment Bill'}
                         </label>
                         <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
                           <ShieldCheck className="w-3 h-3 text-[#43612B]" />
@@ -1566,7 +1610,7 @@ function PaymentsContent() {
                         </div>
                         <input
                           type="text"
-                          value={getBillLabel(currentNextBill)}
+                          value={getBillLabel(currentNextBill, currentSched)}
                           disabled
                           readOnly
                           className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed font-medium"

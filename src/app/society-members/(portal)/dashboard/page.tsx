@@ -91,6 +91,8 @@ export default function MemberDashboardPage() {
     dueDate: string;
     amount: number;
     installmentNumber: number;
+    feeType?: string;
+    displayNumber: number;
     isOverdue: boolean;
   }
 
@@ -126,12 +128,23 @@ export default function MemberDashboardPage() {
           (isItemOverdue && !upcomingAlert.isOverdue) ||
           (!upcomingAlert.isOverdue && nextItem.dueDate < upcomingAlert.dueDate)
         ) {
+          let displayNumber = nextItem.installmentNumber || 1;
+          if (nextItem.feeType === 'plot_biannual') {
+            const biannualRecords = s.schedule
+              .filter((item) => item.feeType === 'plot_biannual')
+              .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+            const bIdx = biannualRecords.findIndex((item) => item.id === nextItem.id);
+            displayNumber = bIdx >= 0 ? bIdx + 1 : (nextItem.installmentNumber || 1);
+          }
+
           upcomingAlert = {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
             dueDate: String(nextItem.dueDate).split('T')[0],
             amount: nextItem.amount,
             installmentNumber: nextItem.installmentNumber || 1,
+            feeType: nextItem.feeType,
+            displayNumber,
             isOverdue: isItemOverdue,
           };
         }
@@ -222,6 +235,8 @@ export default function MemberDashboardPage() {
           const installmentLabel =
             (r as any).paymentKind === 'balloon'
               ? 'Balloon Payment'
+              : (r as any).feeType === 'plot_biannual'
+              ? `Biannual #${r.installmentNumber ?? 1}`
               : r.paymentType === 'installment'
               ? `Installment #${r.installmentNumber ?? 1}`
               : 'Full Payment';
@@ -302,12 +317,16 @@ export default function MemberDashboardPage() {
                         : 'bg-[#43612B] text-white'
                     }`}
                   >
-                    {upcomingAlert.isOverdue ? 'Overdue Installment Alert' : 'Upcoming Installment Alert'}
+                    {upcomingAlert.feeType === 'plot_biannual'
+                      ? (upcomingAlert.isOverdue ? 'Overdue Biannual Alert' : 'Upcoming Biannual Alert')
+                      : (upcomingAlert.isOverdue ? 'Overdue Installment Alert' : 'Upcoming Installment Alert')}
                   </span>
                   <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
                 </div>
                 <p className="text-xs text-[#4A5347] leading-relaxed">
-                  Installment #{upcomingAlert.installmentNumber} of{' '}
+                  {upcomingAlert.feeType === 'plot_biannual'
+                    ? `Biannual #${upcomingAlert.displayNumber}`
+                    : `Installment #${upcomingAlert.displayNumber}`} of{' '}
                   <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
                   {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
                   <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit receipt directly in the portal once paid to maintain good standing.

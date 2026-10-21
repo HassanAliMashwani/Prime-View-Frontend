@@ -194,6 +194,8 @@ export async function getPaymentHistory(
         let desc = 'Plot Payment';
         if (payment.feeType === 'plot_downpayment') {
           desc = 'Plot Upfront Downpayment';
+        } else if (payment.feeType === 'plot_biannual' && payment.installmentNumber) {
+          desc = `Biannual #${payment.installmentNumber} Payment`;
         } else if (payment.feeType === 'plot_installment' && payment.installmentNumber) {
           desc = `Installment #${payment.installmentNumber} Payment`;
         } else if (payment.feeType === 'plot_one_time') {

@@ -64,6 +64,7 @@ function SubmittedReceiptsContent() {
   const [formPlotId, setFormPlotId] = useState<string>('');
   const [formPaymentType, setFormPaymentType] = useState<'installment' | 'one_time'>('installment');
   const [formPaymentKind, setFormPaymentKind] = useState<'regular' | 'balloon'>('regular');
+  const [formFeeType, setFormFeeType] = useState<string>('plot_installment');
   const [formInstallmentNo, setFormInstallmentNo] = useState<number>(1);
   const [formAmount, setFormAmount] = useState<string>('');
   const [formBankName, setFormBankName] = useState<string>('Meezan Bank Limited');
@@ -242,13 +243,24 @@ function SubmittedReceiptsContent() {
       const fullUnpaid = getTotalStillOwed(sched);
       setFormAmount(String(fullUnpaid));
       setFormInstallmentNo(1);
+      setFormFeeType('plot_one_time');
     } else {
       const nextBill = getNextUnpaidBill(sched);
       if (nextBill) {
-        setFormInstallmentNo(nextBill.installmentNumber || 0);
+        setFormFeeType(nextBill.feeType || 'plot_installment');
+        if (nextBill.feeType === 'plot_biannual') {
+          const biannuals = (sched?.schedule || [])
+            .filter((x) => x.feeType === 'plot_biannual')
+            .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+          const idx = biannuals.findIndex((x) => x.id === nextBill.id);
+          setFormInstallmentNo(idx >= 0 ? idx + 1 : (nextBill.installmentNumber || 1));
+        } else {
+          setFormInstallmentNo(nextBill.installmentNumber || 0);
+        }
         const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
         setFormAmount(String(outstanding));
       } else {
+        setFormFeeType('plot_installment');
         setFormInstallmentNo(1);
         setFormAmount('');
       }
@@ -360,6 +372,7 @@ function SubmittedReceiptsContent() {
       plotNumber: tempPlotNumber,
       blockName: tempBlockName,
       paymentType: formPaymentType,
+      feeType: formFeeType,
       installmentNumber: formPaymentType === 'installment' ? formInstallmentNo : undefined,
       amount: tempAmount,
       depositoryBank: formBankName,
@@ -697,6 +710,8 @@ function SubmittedReceiptsContent() {
                               <span className="font-semibold text-xs sm:text-sm text-[#151914]">
                                 {(sub as any).paymentKind === 'balloon'
                                   ? 'Balloon Payment'
+                                  : (sub as any).feeType === 'plot_biannual'
+                                  ? `Biannual #${sub.installmentNumber || 1}`
                                   : sub.paymentType === 'installment'
                                   ? `Installment #${sub.installmentNumber || 1}`
                                   : 'Full Payment Settlement'}
@@ -939,7 +954,7 @@ function SubmittedReceiptsContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                    {formPaymentType === 'one_time' ? 'Reference' : 'Bill Sequence'}
+                    {formPaymentType === 'one_time' ? 'Reference' : formFeeType === 'plot_biannual' ? 'Biannual Bill' : 'Installment Bill'}
                   </label>
                   <input
                     type="text"
@@ -947,6 +962,8 @@ function SubmittedReceiptsContent() {
                     value={
                       formPaymentType === 'one_time'
                         ? 'Full Balance Settlement'
+                        : formFeeType === 'plot_biannual'
+                        ? `Biannual #${formInstallmentNo}`
                         : `Installment #${formInstallmentNo}`
                     }
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-[#FAF9F7] text-[#4A5347] font-semibold cursor-not-allowed"

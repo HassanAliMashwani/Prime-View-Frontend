@@ -732,7 +732,9 @@ export default function AdminReceiptsPage() {
                   </span>
                   <span className="text-xs text-slate-400">&bull;</span>
                   <span className="text-xs font-semibold text-slate-700">
-                    {sub.paymentType === 'installment'
+                    {(sub as any).feeType === 'plot_biannual'
+                      ? `Biannual #${sub.installmentNumber}`
+                      : sub.paymentType === 'installment'
                       ? `Installment #${sub.installmentNumber}`
                       : 'Full Payment Settlement'}
                   </span>
@@ -1037,7 +1039,11 @@ export default function AdminReceiptsPage() {
                   </h3>
                   <p className="text-xs text-[#6B7462]">
                     {rejectModalReceipt.customerName || (rejectModalReceipt as any).customer?.fullName || 'Member'} • Plot {rejectModalReceipt.plotNumber || (rejectModalReceipt as any).plot?.plotNumber}
-                    {rejectModalReceipt.installmentNumber ? ` • Inst. #${rejectModalReceipt.installmentNumber}` : ''}
+                    {rejectModalReceipt.installmentNumber
+                      ? (rejectModalReceipt as any).feeType === 'plot_biannual'
+                        ? ` • Biannual #${rejectModalReceipt.installmentNumber}`
+                        : ` • Inst. #${rejectModalReceipt.installmentNumber}`
+                      : ''}
                   </p>
                 </div>
               </div>
