@@ -135,6 +135,28 @@ function SubmittedReceiptsContent() {
     return () => clearInterval(intervalId);
   }, [loadReceiptsData]);
 
+  // Mark receipts as opened to clear unread badge in sidebar
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('pv_receipts_last_opened', new Date().toISOString());
+      if ('BroadcastChannel' in window) {
+        try {
+          const channel = new BroadcastChannel('prime-view-sync');
+          channel.postMessage({ type: 'RECEIPTS_OPENED' });
+          channel.close();
+        } catch {
+          // ignore
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && receipts.length > 0) {
+      localStorage.setItem('pv_receipts_last_opened', new Date().toISOString());
+    }
+  }, [receipts]);
+
   // Unified available plot options
   const availablePlotOptions = useMemo(() => {
     let options: any[] = [];
@@ -166,7 +188,15 @@ function SubmittedReceiptsContent() {
   // Helper calculation functions for payment locks
   const getNextUnpaidBill = useCallback((sched: any) => {
     if (!sched || !Array.isArray(sched.schedule)) return null;
-    return sched.schedule.find((item: any) => {
+    const sorted = [...sched.schedule].sort((a, b) => {
+      if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
+      if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
+      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : 0;
+      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : 0;
+      if (timeA !== timeB) return timeA - timeB;
+      return (a.installmentNumber || 0) - (b.installmentNumber || 0);
+    });
+    return sorted.find((item: any) => {
       const outstanding = Math.max(0, (Number(item.amount) || 0) - (Number(item.paidAmount) || 0));
       return outstanding > 0 && item.status !== 'verified' && item.status !== 'approved';
     }) || null;
@@ -711,7 +741,7 @@ function SubmittedReceiptsContent() {
                                 {(sub as any).paymentKind === 'balloon'
                                   ? 'Balloon Payment'
                                   : (sub as any).feeType === 'plot_biannual'
-                                  ? `Biannual #${sub.installmentNumber || 1}`
+                                  ? `Bi-Annual #${sub.installmentNumber || 1}`
                                   : sub.paymentType === 'installment'
                                   ? `Installment #${sub.installmentNumber || 1}`
                                   : 'Full Payment Settlement'}
@@ -954,7 +984,7 @@ function SubmittedReceiptsContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                    {formPaymentType === 'one_time' ? 'Reference' : formFeeType === 'plot_biannual' ? 'Biannual Bill' : 'Installment Bill'}
+                    {formPaymentType === 'one_time' ? 'Reference' : formFeeType === 'plot_biannual' ? 'Bi-Annual Bill' : 'Installment Bill'}
                   </label>
                   <input
                     type="text"
@@ -963,7 +993,7 @@ function SubmittedReceiptsContent() {
                       formPaymentType === 'one_time'
                         ? 'Full Balance Settlement'
                         : formFeeType === 'plot_biannual'
-                        ? `Biannual #${formInstallmentNo}`
+                        ? `Bi-Annual #${formInstallmentNo}`
                         : `Installment #${formInstallmentNo}`
                     }
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-[#FAF9F7] text-[#4A5347] font-semibold cursor-not-allowed"
@@ -982,6 +1012,12 @@ function SubmittedReceiptsContent() {
                       step="any"
                       readOnly={formPaymentType === 'one_time' || formPaymentKind === 'regular'}
                       value={formAmount}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                          e.preventDefault();
+                        }
+                      }}
                       onChange={(e) => {
                         setFormAmount(e.target.value);
                         if (balloonError) setBalloonError(null);

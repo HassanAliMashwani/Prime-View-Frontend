@@ -115,13 +115,26 @@ export default function MemberDashboardPage() {
 
   for (const s of schedules) {
     if (s.paymentType === 'installment') {
+      const eligibleTypes = ['plot_downpayment', 'plot_installment', 'plot_biannual', 'plot_possession'];
       const pendingItems = s.schedule
-        .filter((item) => item.status === 'pending' || item.status === 'overdue')
-        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        .filter((item) => {
+          if (!eligibleTypes.includes(item.feeType)) return false;
+          const paid = Number(item.paidAmount || 0);
+          const amt = Number(item.amount || 0);
+          return paid < amt;
+        })
+        .sort((a, b) => {
+          if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
+          if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
+          const cmp = String(a.dueDate || '').localeCompare(String(b.dueDate || ''));
+          if (cmp !== 0) return cmp;
+          return (a.installmentNumber || 0) - (b.installmentNumber || 0);
+        });
 
       if (pendingItems.length > 0) {
         const nextItem = pendingItems[0];
-        const isItemOverdue = nextItem.status === 'overdue' || nextItem.dueDate < today;
+        const remainingDue = Math.max(0, Number(nextItem.amount) - Number(nextItem.paidAmount || 0));
+        const isItemOverdue = nextItem.status === 'overdue' || (Boolean(nextItem.dueDate) && String(nextItem.dueDate).split('T')[0] < today);
 
         if (
           !upcomingAlert ||
@@ -141,7 +154,7 @@ export default function MemberDashboardPage() {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
             dueDate: String(nextItem.dueDate).split('T')[0],
-            amount: nextItem.amount,
+            amount: remainingDue,
             installmentNumber: nextItem.installmentNumber || 1,
             feeType: nextItem.feeType,
             displayNumber,
@@ -236,7 +249,7 @@ export default function MemberDashboardPage() {
             (r as any).paymentKind === 'balloon'
               ? 'Balloon Payment'
               : (r as any).feeType === 'plot_biannual'
-              ? `Biannual #${r.installmentNumber ?? 1}`
+              ? `Bi-Annual #${r.installmentNumber ?? 1}`
               : r.paymentType === 'installment'
               ? `Installment #${r.installmentNumber ?? 1}`
               : 'Full Payment';
@@ -318,14 +331,14 @@ export default function MemberDashboardPage() {
                     }`}
                   >
                     {upcomingAlert.feeType === 'plot_biannual'
-                      ? (upcomingAlert.isOverdue ? 'Overdue Biannual Alert' : 'Upcoming Biannual Alert')
+                      ? (upcomingAlert.isOverdue ? 'Overdue Bi-Annual Alert' : 'Upcoming Bi-Annual Alert')
                       : (upcomingAlert.isOverdue ? 'Overdue Installment Alert' : 'Upcoming Installment Alert')}
                   </span>
                   <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
                 </div>
                 <p className="text-xs text-[#4A5347] leading-relaxed">
                   {upcomingAlert.feeType === 'plot_biannual'
-                    ? `Biannual #${upcomingAlert.displayNumber}`
+                    ? `Bi-Annual #${upcomingAlert.displayNumber}`
                     : `Installment #${upcomingAlert.displayNumber}`} of{' '}
                   <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
                   {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}

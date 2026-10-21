@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { siteConfig } from "@/data/site";
 import { ToastContainer } from "@/components/ui/ToastContainer";
+import { NumberInputGuard } from "@/components/common/NumberInputGuard";
 
 const sansFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -59,6 +60,7 @@ export default function RootLayout({
       className={`${sansFont.variable} scroll-smooth`}
     >
       <body className="font-sans antialiased bg-[#F8F7F5] text-[#151914] min-h-screen flex flex-col justify-between selection:bg-[#43612B] selection:text-white">
+        <NumberInputGuard />
         {children}
         <ToastContainer />
       </body>

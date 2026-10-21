@@ -52,11 +52,15 @@ import Link from 'next/link';
 // ── Member Payment Form Canonical Helpers ──
 function getNextUnpaidBill(sched?: PlotPaymentSchedule | null): import('@/lib/mock/types').PaymentRecord | null {
   if (!sched || !sched.schedule || sched.schedule.length === 0) return null;
-  const dueStatuses = ['pending', 'overdue', 'partially_paid'];
   const eligibleTypes = ['plot_downpayment', 'plot_installment', 'plot_biannual', 'plot_possession'];
 
   const unpaid = sched.schedule
-    .filter((item) => eligibleTypes.includes(item.feeType) && dueStatuses.includes(item.status))
+    .filter((item) => {
+      if (!eligibleTypes.includes(item.feeType)) return false;
+      const paid = Number(item.paidAmount || 0);
+      const amt = Number(item.amount || 0);
+      return paid < amt;
+    })
     .sort((a, b) => {
       if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
       if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
@@ -87,7 +91,7 @@ function getBillLabel(
       const idx = biannuals.findIndex((x) => x.id === bill.id);
       if (idx >= 0) bNum = idx + 1;
     }
-    return `Biannual #${bNum || 1}`;
+    return `Bi-Annual #${bNum || 1}`;
   }
   return `Installment #${bill.installmentNumber || 1}`;
 }
@@ -397,13 +401,26 @@ function PaymentsContent() {
 
   for (const s of schedules) {
     if (s.paymentType === 'installment') {
+      const eligibleTypes = ['plot_downpayment', 'plot_installment', 'plot_biannual', 'plot_possession'];
       const pendingItems = s.schedule
-        .filter((item) => item.status === 'pending' || item.status === 'overdue')
-        .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+        .filter((item) => {
+          if (!eligibleTypes.includes(item.feeType)) return false;
+          const paid = Number(item.paidAmount || 0);
+          const amt = Number(item.amount || 0);
+          return paid < amt;
+        })
+        .sort((a, b) => {
+          if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
+          if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
+          const cmp = String(a.dueDate || '').localeCompare(String(b.dueDate || ''));
+          if (cmp !== 0) return cmp;
+          return (a.installmentNumber || 0) - (b.installmentNumber || 0);
+        });
 
       if (pendingItems.length > 0) {
         const nextItem = pendingItems[0];
-        const isItemOverdue = nextItem.status === 'overdue' || nextItem.dueDate < today;
+        const remainingDue = Math.max(0, Number(nextItem.amount) - Number(nextItem.paidAmount || 0));
+        const isItemOverdue = nextItem.status === 'overdue' || (Boolean(nextItem.dueDate) && String(nextItem.dueDate).split('T')[0] < today);
 
         if (
           !upcomingAlert ||
@@ -423,7 +440,7 @@ function PaymentsContent() {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
             dueDate: String(nextItem.dueDate).split('T')[0],
-            amount: nextItem.amount,
+            amount: remainingDue,
             installmentNumber: nextItem.installmentNumber || 1,
             feeType: nextItem.feeType,
             displayNumber,
@@ -999,14 +1016,14 @@ function PaymentsContent() {
                         }`}
                       >
                         {upcomingAlert.feeType === 'plot_biannual'
-                          ? (upcomingAlert.isOverdue ? 'Overdue Biannual Notice' : 'Upcoming Biannual Alert')
+                          ? (upcomingAlert.isOverdue ? 'Overdue Bi-Annual Notice' : 'Upcoming Bi-Annual Alert')
                           : (upcomingAlert.isOverdue ? 'Overdue Installment Notice' : 'Upcoming Installment Alert')}
                       </span>
                       <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
                     </div>
                     <p className="text-xs text-[#4A5347] leading-relaxed">
                       {upcomingAlert.feeType === 'plot_biannual'
-                        ? `Biannual #${upcomingAlert.displayNumber}`
+                        ? `Bi-Annual #${upcomingAlert.displayNumber}`
                         : `Installment #${upcomingAlert.displayNumber}`} of{' '}
                       <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
                       {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
@@ -1034,7 +1051,7 @@ function PaymentsContent() {
                   <span>
                     Upload Receipt for{' '}
                     {upcomingAlert.feeType === 'plot_biannual'
-                      ? `Biannual #${upcomingAlert.displayNumber}`
+                      ? `Bi-Annual #${upcomingAlert.displayNumber}`
                       : `Inst. #${upcomingAlert.displayNumber}`}
                   </span>
                 </button>
@@ -1595,7 +1612,7 @@ function PaymentsContent() {
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                          {currentNextBill?.feeType === 'plot_biannual' ? 'Biannual Bill' : 'Installment Bill'}
+                          {currentNextBill?.feeType === 'plot_biannual' ? 'Bi-Annual Bill' : 'Installment Bill'}
                         </label>
                         <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
                           <ShieldCheck className="w-3 h-3 text-[#43612B]" />
@@ -1668,6 +1685,12 @@ function PaymentsContent() {
                           min={1}
                           step="any"
                           value={formAmount}
+                          onWheel={(e) => e.currentTarget.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                              e.preventDefault();
+                            }
+                          }}
                           onChange={(e) => {
                             if (!isAmountLocked) {
                               setFormAmount(e.target.value);

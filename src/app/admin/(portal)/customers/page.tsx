@@ -3023,6 +3023,11 @@ function CustomersPageContent() {
                           step="any"
                           value={totalPaymentA || ''}
                           onWheel={(e) => e.currentTarget.blur()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                              e.preventDefault();
+                            }
+                          }}
                           onChange={(e) => {
                             setTotalPaymentA(toPlainNumber(e.target.value));
                             setPathAFieldErrors((prev) => ({ ...prev, price: undefined }));
@@ -3091,6 +3096,11 @@ function CustomersPageContent() {
                             step="any"
                             value={totalPaymentA || ''}
                             onWheel={(e) => e.currentTarget.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                e.preventDefault();
+                              }
+                            }}
                             onChange={(e) => {
                               setTotalPaymentA(toPlainNumber(e.target.value));
                               setPathAFieldErrors((prev) => ({ ...prev, price: undefined }));
@@ -3930,6 +3940,11 @@ function CustomersPageContent() {
                             step="any"
                             value={totalPaymentB || ''}
                             onWheel={(e) => e.currentTarget.blur()}
+                            onKeyDown={(e) => {
+                              if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                e.preventDefault();
+                              }
+                            }}
                             onChange={(e) => {
                               setTotalPaymentB(toPlainNumber(e.target.value));
                               setPathBFieldErrors((prev) => ({ ...prev, price: undefined }));
@@ -3998,6 +4013,11 @@ function CustomersPageContent() {
                               step="any"
                               value={totalPaymentB || ''}
                               onWheel={(e) => e.currentTarget.blur()}
+                              onKeyDown={(e) => {
+                                if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                                  e.preventDefault();
+                                }
+                              }}
                               onChange={(e) => {
                                 setTotalPaymentB(toPlainNumber(e.target.value));
                                 setPathBFieldErrors((prev) => ({ ...prev, price: undefined }));

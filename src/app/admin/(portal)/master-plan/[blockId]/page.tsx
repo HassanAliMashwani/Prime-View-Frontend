@@ -3117,6 +3117,11 @@ function BlockPlotsContent() {
                   step="any"
                   value={minimalForm.price}
                   onWheel={(e) => e.currentTarget.blur()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                    }
+                  }}
                   onChange={(e) => {
                     setMinimalForm({ ...minimalForm, price: e.target.value });
                     if (minimalFieldErrors.price) {

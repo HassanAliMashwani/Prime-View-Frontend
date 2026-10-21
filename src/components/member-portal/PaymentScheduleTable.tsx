@@ -18,12 +18,27 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
 }) => {
   const schedule = sortLedgerBills(rawSchedule);
   const remainingBalance = Math.max(0, totalPrice - paidAmount);
-  const isFullyPaid = totalPrice > 0 && remainingBalance === 0 && (schedule.length === 0 || schedule.every((p) => p.status === 'paid'));
+  const isFullyPaid = totalPrice > 0 && remainingBalance === 0 && (schedule.length === 0 || schedule.every((p) => {
+    const pAmt = Number(p.amount || 0);
+    const pPaid = Number(p.paidAmount || 0);
+    return p.status === 'paid' || pPaid >= pAmt;
+  }));
   const hasNoSchedule = schedule.length === 0;
 
-  // Find upcoming payment or overdue payment
-  const overdueInstallment = schedule.find((p) => p.status === 'overdue');
-  const nextPendingInstallment = schedule.find((p) => p.status === 'pending' || p.status === 'partially_paid');
+  // The next due is the remainder of the earliest bill that is not fully paid.
+  const earliestUnfinished = schedule.find((p) => {
+    const pAmt = Number(p.amount || 0);
+    const pPaid = Number(p.paidAmount || 0);
+    return pPaid < pAmt;
+  });
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const isEarliestOverdue = earliestUnfinished
+    ? earliestUnfinished.status === 'overdue' || (Boolean(earliestUnfinished.dueDate) && String(earliestUnfinished.dueDate).split('T')[0] < todayStr)
+    : false;
+
+  const overdueInstallment = isEarliestOverdue ? earliestUnfinished : undefined;
+  const nextPendingInstallment = !isEarliestOverdue ? earliestUnfinished : undefined;
 
   const formatPKR = (num: number) =>
     new Intl.NumberFormat('en-PK', {
@@ -45,7 +60,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
     if (record.feeType === 'plot_biannual') {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 text-[11px] font-bold border border-sky-200">
-          Biannual #{record.installmentNumber || ''}
+          Bi-Annual #{record.installmentNumber || ''}
         </span>
       );
     }
@@ -68,7 +83,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
 
   const getFeeTypeTitle = (record: PaymentRecord) => {
     if (record.feeType === 'plot_downpayment') return 'Down payment';
-    if (record.feeType === 'plot_biannual') return `Biannual #${record.installmentNumber || '1'}`;
+    if (record.feeType === 'plot_biannual') return `Bi-Annual #${record.installmentNumber || '1'}`;
     if (record.feeType === 'plot_possession') return 'Possession';
     if (record.feeType === 'plot_one_time') return 'Full Payment';
     return `Installment #${record.installmentNumber || '1'}`;
@@ -87,8 +102,8 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
               Action Required: {getFeeTypeTitle(overdueInstallment)} is Overdue
             </h4>
             <p className="text-xs text-red-700 leading-relaxed">
-              An installment of{' '}
-              <span className="font-bold">{formatPKR(overdueInstallment.amount)}</span> was due on{' '}
+              {overdueInstallment.feeType === 'plot_biannual' ? 'A bi-annual bill of ' : 'An installment of '}
+              <span className="font-bold">{formatPKR(Math.max(0, Number(overdueInstallment.amount) - Number(overdueInstallment.paidAmount || 0)))}</span> was due on{' '}
               <span className="font-bold">{cleanDate(overdueInstallment.dueDate)}</span>. Please submit payment
               to the society accounts office to avoid any surcharge.
             </p>
@@ -186,11 +201,16 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
             let Icon = Clock;
             let statusLabel: string = record.status;
 
-            if (record.status === 'paid') {
+            const paid = Number(record.paidAmount || 0);
+            const amt = Number(record.amount || 0);
+            const isPartiallyPaid = record.status === 'partially_paid' || (paid > 0 && paid < amt);
+            const isPaid = (record.status === 'paid' || paid >= amt) && !isPartiallyPaid;
+
+            if (isPaid) {
               badgeClass = 'bg-[#EAF0E7] text-[#43612B] border-[#43612B]/20';
               Icon = Check;
               statusLabel = 'Paid';
-            } else if (record.status === 'partially_paid') {
+            } else if (isPartiallyPaid) {
               badgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
               Icon = Clock;
               statusLabel = 'Partially Paid';
@@ -278,11 +298,16 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                 let Icon = Clock;
                 let statusLabel: string = record.status;
 
-                if (record.status === 'paid') {
+                const paid = Number(record.paidAmount || 0);
+                const amt = Number(record.amount || 0);
+                const isPartiallyPaid = record.status === 'partially_paid' || (paid > 0 && paid < amt);
+                const isPaid = (record.status === 'paid' || paid >= amt) && !isPartiallyPaid;
+
+                if (isPaid) {
                   badgeClass = 'bg-[#EAF0E7] text-[#43612B] border-[#43612B]/20';
                   Icon = Check;
                   statusLabel = 'Paid';
-                } else if (record.status === 'partially_paid') {
+                } else if (isPartiallyPaid) {
                   badgeClass = 'bg-amber-50 text-amber-800 border-amber-300';
                   Icon = Clock;
                   statusLabel = 'Partially Paid';

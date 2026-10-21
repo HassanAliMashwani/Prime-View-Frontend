@@ -30,7 +30,7 @@ import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
 import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl, cancelReceipt } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
-import { getCache, setCache, reconcileItems } from '@/lib/dal/apiCache';
+import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
 import { runLane1, runLane2, enqueueLane2 } from '@/lib/requestLanes';
 import { AdminActionToast } from '@/components/admin/AdminActionToast';
@@ -269,6 +269,71 @@ export default function AdminReceiptsPage() {
     return () => clearInterval(intervalId);
   }, [router, loadData]);
 
+  // Real-time synchronization via BroadcastChannel: add single saved row or remove moved rows without full reload
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const channel = new BroadcastChannel('prime-view-sync');
+
+    channel.onmessage = (event) => {
+      const data = event.data;
+      if (!data) return;
+
+      if (data.type === 'RECEIPT_SUBMITTED' && data.receipt) {
+        // Real-time: member upload appears on admin pending only after saved in DB (add that single saved row without reloading all)
+        if (statusRef.current === 'pending' || statusRef.current === 'all') {
+          setReceipts((prev) => {
+            if (prev.some((r) => r.id === data.receipt.id)) return prev;
+            return [data.receipt, ...prev];
+          });
+          setTotalCount((prev) => prev + 1);
+        }
+      } else if (data.type === 'RECEIPT_VERIFIED' && data.receiptId) {
+        if (statusRef.current === 'pending') {
+          setReceipts((prev) => prev.filter((r) => r.id !== data.receiptId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        } else if (statusRef.current === 'verified' && data.receipt) {
+          setReceipts((prev) => {
+            if (prev.some((r) => r.id === data.receipt.id)) {
+              return prev.map((r) => (r.id === data.receipt.id ? { ...r, ...data.receipt } : r));
+            }
+            return [data.receipt, ...prev];
+          });
+          setTotalCount((prev) => prev + 1);
+        }
+      } else if (data.type === 'RECEIPT_CANCELLED' && data.receiptId) {
+        if (statusRef.current === 'pending' || statusRef.current === 'verified') {
+          setReceipts((prev) => prev.filter((r) => r.id !== data.receiptId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        } else if (statusRef.current === 'cancelled' && data.receipt) {
+          setReceipts((prev) => {
+            if (prev.some((r) => r.id === data.receipt.id)) {
+              return prev.map((r) => (r.id === data.receipt.id ? { ...r, ...data.receipt } : r));
+            }
+            return [data.receipt, ...prev];
+          });
+          setTotalCount((prev) => prev + 1);
+        }
+      } else if (data.type === 'RECEIPT_REJECTED' && data.receiptId) {
+        if (statusRef.current === 'pending') {
+          setReceipts((prev) => prev.filter((r) => r.id !== data.receiptId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        } else if (statusRef.current === 'rejected' && data.receipt) {
+          setReceipts((prev) => {
+            if (prev.some((r) => r.id === data.receipt.id)) {
+              return prev.map((r) => (r.id === data.receipt.id ? { ...r, ...data.receipt } : r));
+            }
+            return [data.receipt, ...prev];
+          });
+          setTotalCount((prev) => prev + 1);
+        }
+      }
+    };
+
+    return () => {
+      channel.close();
+    };
+  }, []);
+
   // Flash feedback auto-clear
   useEffect(() => {
     if (feedback) {
@@ -347,17 +412,23 @@ export default function AdminReceiptsPage() {
           message: `Official Slip #${slipNumber} was generated successfully!`,
         });
 
-        // Update the card immediately from the server's answer
-        setReceipts((prev) =>
-          prev.map((r) => (r.id === receiptId ? { ...r, ...res.receipt, status: 'verified' as const } : r))
-        );
+        // Remove from pending immediately upon server response without full reload
+        if (statusRef.current === 'pending') {
+          setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        } else if (statusRef.current === 'verified' || statusRef.current === 'all') {
+          setReceipts((prev) =>
+            prev.map((r) => (r.id === receiptId ? { ...r, ...res.receipt, status: 'verified' as const } : r))
+          );
+        } else {
+          setReceipts((prev) => prev.filter((r) => r.id !== receiptId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        }
 
+        clearCachePrefix('/receipts:');
         setDriftReceipt(null);
         setDriftNewPreview(null);
         setActiveSlip(res.receipt);
-
-        // Refresh receipt list in the background
-        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
       } else {
         if (res.error === 'PREVIEW_DRIFT') {
           setBottomNotice(null);
@@ -427,21 +498,31 @@ export default function AdminReceiptsPage() {
           message: successMsg,
         });
 
-        // The card leaves Pending Verification and shows Declined, with the reason on the card
-        setReceipts((prev) =>
-          prev.map((r) =>
-            r.id === targetId
-              ? {
-                  ...r,
-                  status: 'rejected' as const,
-                  rejectionReason: trimmedReason,
-                  customerStrikeCount: res.strikeAssigned
-                    ? ((r as any).customerStrikeCount ?? (r as any).customer?.strikeCount ?? 0) + 1
-                    : ((r as any).customerStrikeCount ?? (r as any).customer?.strikeCount ?? 0),
-                }
-              : r
-          )
-        );
+        // The card leaves Pending Verification immediately upon server response without full reload
+        if (statusRef.current === 'pending') {
+          setReceipts((prev) => prev.filter((r) => r.id !== targetId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        } else if (statusRef.current === 'rejected' || statusRef.current === 'all') {
+          setReceipts((prev) =>
+            prev.map((r) =>
+              r.id === targetId
+                ? {
+                    ...r,
+                    status: 'rejected' as const,
+                    rejectionReason: trimmedReason,
+                    customerStrikeCount: res.strikeAssigned
+                      ? ((r as any).customerStrikeCount ?? (r as any).customer?.strikeCount ?? 0) + 1
+                      : ((r as any).customerStrikeCount ?? (r as any).customer?.strikeCount ?? 0),
+                  }
+                : r
+            )
+          );
+        } else {
+          setReceipts((prev) => prev.filter((r) => r.id !== targetId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        }
+
+        clearCachePrefix('/receipts:');
 
         // Close decline modal window
         setRejectModalReceipt(null);
@@ -449,9 +530,6 @@ export default function AdminReceiptsPage() {
         setAssignStrike(false);
         setStrikeReason('');
         setRejectModalError(null);
-
-        // Refresh receipt list in background
-        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
       } else {
         const errMsg = toSafeErrorMessage(res.message || res.error || 'Failed to decline receipt.');
         setRejectModalError(errMsg);
@@ -492,15 +570,31 @@ export default function AdminReceiptsPage() {
         newIdempotencyKey
       );
       if (res.ok) {
+        const cancelledId = cancelModalReceipt.id;
+        const cancelledSlip = cancelModalReceipt.slipNumber || cancelModalReceipt.id;
         setCancelModalReceipt(null);
         setCancelReason('');
         setCancelConfirmed(false);
         setBottomNotice({
-          id: cancelModalReceipt.id,
+          id: cancelledId,
           type: 'success',
-          message: `Receipt ${cancelModalReceipt.slipNumber || cancelModalReceipt.id} cancelled successfully.`,
+          message: `Receipt ${cancelledSlip} cancelled successfully.`,
         });
-        loadData(session, pageRef.current, statusRef.current, searchRef.current, true);
+
+        // Remove from list immediately upon server response without full reload
+        if (statusRef.current === 'pending' || statusRef.current === 'verified') {
+          setReceipts((prev) => prev.filter((r) => r.id !== cancelledId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        } else if (statusRef.current === 'cancelled' || statusRef.current === 'all') {
+          setReceipts((prev) =>
+            prev.map((r) => (r.id === cancelledId ? { ...r, ...(res.receipt || {}), status: 'cancelled' as const } : r))
+          );
+        } else {
+          setReceipts((prev) => prev.filter((r) => r.id !== cancelledId));
+          setTotalCount((prev) => Math.max(0, prev - 1));
+        }
+
+        clearCachePrefix('/receipts:');
       } else {
         setBottomNotice({
           id: cancelModalReceipt.id,

@@ -100,7 +100,22 @@ export async function submitPaymentReceipt(
   }
 
   const receipt = (res.data as any)?.receipt || res.data;
-  return { ok: true, receipt: cleanReceiptDate(receipt) };
+  const cleanReceipt = cleanReceiptDate(receipt);
+
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'RECEIPT_SUBMITTED',
+        receipt: cleanReceipt,
+      });
+      channel.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  return { ok: true, receipt: cleanReceipt };
 }
 
 export async function getBalloonPreview(plotId: string, amount: number, bookingId?: string, signal?: AbortSignal) {
@@ -209,10 +224,17 @@ export async function verifyReceipt(
   }
 
   const receipt = (res.data as any)?.receipt || res.data;
+  const cleanReceipt = cleanReceiptDate(receipt);
 
   if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
     try {
       const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'RECEIPT_VERIFIED',
+        receiptId,
+        receipt: cleanReceipt,
+        customerId: (receipt as any)?.customerId,
+      });
       channel.postMessage({
         type: 'PAYMENT_RECORD_UPDATED',
         receiptId,
@@ -226,7 +248,7 @@ export async function verifyReceipt(
     }
   }
 
-  return { ok: true, receipt: cleanReceiptDate(receipt) };
+  return { ok: true, receipt: cleanReceipt };
 }
 
 export interface RejectReceiptOptions {
@@ -278,8 +300,25 @@ export async function rejectReceipt(
   }
 
   const receipt = (res.data as any)?.receipt || res.data;
+  const cleanReceipt = cleanReceiptDate(receipt);
   const strikeAssigned = Boolean((res.data as any)?.strikeAssigned ?? shouldAssignStrike);
-  return { ok: true, receipt, strikeAssigned };
+
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'RECEIPT_REJECTED',
+        receiptId,
+        receipt: cleanReceipt,
+        customerId: (receipt as any)?.customerId,
+      });
+      channel.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  return { ok: true, receipt: cleanReceipt, strikeAssigned };
 }
 
 export interface PublicSlipVerification {
@@ -461,5 +500,41 @@ export async function cancelReceipt(
   }
 
   const receipt = (res.data as any)?.receipt || res.data;
-  return { ok: true, receipt: cleanReceiptDate(receipt) };
+  const cleanReceipt = cleanReceiptDate(receipt);
+
+  if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+    try {
+      const channel = new BroadcastChannel('prime-view-sync');
+      channel.postMessage({
+        type: 'RECEIPT_CANCELLED',
+        receiptId,
+        receipt: cleanReceipt,
+        customerId: (cleanReceipt as any)?.customerId,
+      });
+      channel.close();
+    } catch {
+      // ignore
+    }
+  }
+
+  return { ok: true, receipt: cleanReceipt };
 }
+
+/**
+ * Fetch the number of unread receipt updates for the authenticated member.
+ * Calls backend GET /receipts/unread-count?since=...
+ * The count is derived directly from saved database records.
+ */
+export async function getUnreadReceiptsCount(since?: string, signal?: AbortSignal): Promise<number> {
+  const token = getMemberToken();
+  if (!token) return 0;
+  const params = new URLSearchParams();
+  if (since) params.set('since', since);
+  const endpoint = params.toString() ? `/receipts/unread-count?${params.toString()}` : '/receipts/unread-count';
+  const res = await apiGet<{ ok: boolean; unreadCount: number }>(endpoint, token, signal);
+  if (res.ok && typeof res.data?.unreadCount === 'number') {
+    return res.data.unreadCount;
+  }
+  return 0;
+}
+

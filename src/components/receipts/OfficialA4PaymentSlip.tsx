@@ -291,7 +291,7 @@ export function buildSlipDataFromSubmission(
 
   let onAccountOf = '';
   if (feeType === 'plot_biannual') {
-    onAccountOf = instNum !== null ? `Biannual #${instNum}` : 'Biannual';
+    onAccountOf = instNum !== null ? `Bi-Annual #${instNum}` : 'Bi-Annual';
   } else if (isInstallment) {
     onAccountOf = instNum !== null ? `Installment #${instNum}` : 'Installment';
   } else if (isFullPayment || isFullSettlementCategory) {
@@ -324,7 +324,7 @@ export function buildSlipDataFromSubmission(
     fatherOrHusbandName,
     cnic,
     membershipNo,
-    bookingFileNo: '', // Booking / File No. stays blank. Do not print a booking id there.
+    bookingFileNo: membershipNo,
     blockName,
     plotNumber,
     plotSize,
@@ -713,10 +713,9 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
           />
           <div className="grid grid-cols-2 gap-4 px-1">
             <div className="space-y-1">
-              {/* Booking / File No. stays blank. Do not print a booking id there. */}
               <FormUnderlineField
                 label="Booking / File No."
-                value=""
+                value={slip.bookingFileNo || slip.membershipNo}
                 labelWidth="110px"
               />
               <FormUnderlineField
@@ -849,50 +848,39 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
         </div>
 
         {/* ═════════════════════════════════════════════════════════════════ */}
-        {/* 7. LOWER SECTION: Stamp / Instructions / Verification QR         */}
+        {/* 7. LOWER SECTION: Instructions / Security Hash / Verification QR  */}
+        {/* Stamp & Signature section removed; remaining sections reflowed to */}
+        {/* close gap and pull form up neatly without leaving blank boxes.    */}
         {/* ═════════════════════════════════════════════════════════════════ */}
         <div className="shrink-0 mb-1 grid grid-cols-12 gap-3 px-1">
-          {/* Col 1: Stamp & Signature and Security Hash */}
-          <div className="col-span-4 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-1.5 mb-1 text-slate-800 font-bold text-[10px]">
-                <PenLine className="w-3 h-3 text-slate-600" />
-                <span>STAMP &amp; SIGNATURE</span>
-              </div>
-              {/* Stamp box: empty space for real physical ink stamp.
-                  Label: Treasurer / Secretary. The words Treasurer / Accountant must not appear. */}
-              <div className="border border-slate-400 rounded-md bg-white p-2 h-20 flex flex-col justify-end items-center shadow-2xs">
-                <div className="w-44 border-b border-slate-700 mb-1.5" />
-                <span className="text-[9.5px] font-bold text-slate-800 tracking-tight">
-                  Treasurer / Secretary
-                </span>
-              </div>
-            </div>
-
-            {/* Security Hash Box */}
-            <div className="mt-1.5">
-              <div className="flex items-center gap-1.5 mb-0.5 text-slate-800 font-bold text-[9.5px]">
-                <Lock className="w-3 h-3 text-slate-600" />
-                <span>SECURITY HASH</span>
-              </div>
-              <div className="border border-slate-400 rounded-md bg-white px-2 py-0.5 font-mono font-bold text-[10px] text-slate-900 select-all tracking-wider text-center truncate shadow-2xs">
-                {slip.securityHash || '—'}
-              </div>
-            </div>
-          </div>
-
-          {/* Col 2: Special Instructions (Exact 1, 2, 3) */}
-          <div className="col-span-5 flex flex-col">
+          {/* Col 1: Special Instructions (Exact 1, 2, 3) */}
+          <div className="col-span-6 flex flex-col">
             <div className="flex items-center gap-1.5 mb-1 text-slate-800 font-bold text-[10px]">
               <Info className="w-3 h-3 text-slate-600" />
               <span>SPECIAL INSTRUCTIONS</span>
             </div>
-            <div className="border border-slate-400 rounded-md bg-white p-2 h-[135px] flex flex-col justify-center text-[9px] text-slate-700 leading-relaxed shadow-2xs">
+            <div className="border border-slate-400 rounded-md bg-white p-2 h-[120px] flex flex-col justify-center text-[9px] text-slate-700 leading-relaxed shadow-2xs">
               <ol className="list-decimal pl-3 space-y-1 font-medium">
                 <li>Please make sure to pay the installment before 05th day of each month.</li>
                 <li>Don’t forget to receive the duly stamped receipt from the treasurer.</li>
                 <li>Keep the receipt in original with your plot file, which shall be demanded at time of dues clearance certificate.</li>
               </ol>
+            </div>
+          </div>
+
+          {/* Col 2: Security Hash Box */}
+          <div className="col-span-3 flex flex-col">
+            <div className="flex items-center gap-1.5 mb-1 text-slate-800 font-bold text-[9.5px]">
+              <Lock className="w-3 h-3 text-slate-600" />
+              <span>SECURITY HASH</span>
+            </div>
+            <div className="border border-slate-400 rounded-md bg-white p-2 h-[120px] flex flex-col justify-center items-center text-center shadow-2xs">
+              <span className="text-[8.5px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
+                Digital Signature
+              </span>
+              <div className="border border-slate-300 rounded bg-slate-50 px-2 py-1.5 font-mono font-bold text-[10px] text-slate-900 select-all tracking-wider text-center break-all shadow-2xs w-full">
+                {slip.securityHash || '—'}
+              </div>
             </div>
           </div>
 
@@ -902,26 +890,26 @@ export const OfficialReceiptCopy: React.FC<OfficialReceiptCopyProps> = ({
               <ShieldCheck className="w-3 h-3 text-slate-600" />
               <span>RECEIPT VERIFICATION</span>
             </div>
-            <div className="border border-slate-400 rounded-md bg-white p-1 h-[135px] flex flex-col items-center justify-center text-center shadow-2xs overflow-hidden">
+            <div className="border border-slate-400 rounded-md bg-white p-1 h-[120px] flex flex-col items-center justify-center text-center shadow-2xs overflow-hidden">
               {qrDataUri ? (
                 <div className="flex flex-col items-center justify-center w-full px-1">
                   <img
                     src={qrDataUri}
                     alt="Receipt Verification QR"
-                    className="w-[74px] h-[74px] object-contain block"
+                    className="w-[66px] h-[66px] object-contain block"
                   />
                   <span className="text-[8.5px] font-bold text-slate-700 leading-tight mt-0.5">
                     Scan to Verify
                   </span>
                   <span
-                    className="text-[6.5px] sm:text-[7px] font-mono text-slate-600 leading-[1.1] max-w-full break-all select-all mt-0.5"
+                    className="text-[6.5px] font-mono text-slate-600 leading-[1.1] max-w-full break-all select-all mt-0.5"
                     title={verifyAddress}
                   >
                     {verifyAddress}
                   </span>
                 </div>
               ) : (
-                <div className="w-[74px] h-[74px] bg-slate-100 rounded-md flex items-center justify-center text-slate-400 text-[9px]">
+                <div className="w-[66px] h-[66px] bg-slate-100 rounded-md flex items-center justify-center text-slate-400 text-[9px]">
                   Generating QR…
                 </div>
               )}

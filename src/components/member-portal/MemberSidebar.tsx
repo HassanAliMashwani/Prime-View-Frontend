@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -19,6 +19,7 @@ import {
   ShieldAlert,
 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getUnreadReceiptsCount } from '@/lib/dal/receipts';
 
 interface MemberSidebarProps {
   isOpen?: boolean;
@@ -38,6 +39,67 @@ const navItems = [
 export const MemberSidebar: React.FC<MemberSidebarProps> = ({ isOpen, onClose }) => {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+
+  const refreshUnreadCount = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    const isCurrentPage = pathname === '/society-members/payments/receipts';
+    if (isCurrentPage) {
+      localStorage.setItem('pv_receipts_last_opened', new Date().toISOString());
+      setUnreadCount(0);
+      return;
+    }
+
+    let lastOpened = localStorage.getItem('pv_receipts_last_opened');
+    if (!lastOpened) {
+      lastOpened = new Date().toISOString();
+      localStorage.setItem('pv_receipts_last_opened', lastOpened);
+      setUnreadCount(0);
+      return;
+    }
+
+    try {
+      const count = await getUnreadReceiptsCount(lastOpened);
+      setUnreadCount(count);
+    } catch {
+      // non-blocking
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    refreshUnreadCount();
+  }, [refreshUnreadCount]);
+
+  // Real-time synchronization via BroadcastChannel
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
+    const channel = new BroadcastChannel('prime-view-sync');
+
+    channel.onmessage = (event) => {
+      const data = event.data;
+      if (!data) return;
+
+      if (
+        data.type === 'RECEIPT_SUBMITTED' ||
+        data.type === 'RECEIPT_VERIFIED' ||
+        data.type === 'RECEIPT_CANCELLED' ||
+        data.type === 'RECEIPT_REJECTED'
+      ) {
+        refreshUnreadCount();
+      } else if (data.type === 'RECEIPTS_OPENED') {
+        setUnreadCount(0);
+      }
+    };
+
+    const intervalId = setInterval(() => {
+      refreshUnreadCount();
+    }, 30000);
+
+    return () => {
+      channel.close();
+      clearInterval(intervalId);
+    };
+  }, [refreshUnreadCount]);
 
   return (
     <>
@@ -110,7 +172,17 @@ export const MemberSidebar: React.FC<MemberSidebarProps> = ({ isOpen, onClose })
                   <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-[#43612B]'}`} />
                   <span>{item.label}</span>
                 </div>
-                {isActive && <ChevronRight className="w-3.5 h-3.5 opacity-90" />}
+                <div className="flex items-center gap-1.5">
+                  {item.href === '/society-members/payments/receipts' && unreadCount > 0 && !isActive && (
+                    <span
+                      id="submitted-receipts-unread-badge"
+                      className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-700 text-white min-w-[18px] text-center shadow-xs"
+                    >
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                  {isActive && <ChevronRight className="w-3.5 h-3.5 opacity-90" />}
+                </div>
               </Link>
             );
           })}

@@ -42,11 +42,12 @@ body {
 /* Disable spin buttons and ensure scrolling does not manipulate number inputs */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  -webkit-appearance: none !important;
+  margin: 0 !important;
 }
 input[type="number"] {
-  -moz-appearance: textfield;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }
 
 /* Ensure full-screen fixed overlays, dialog backdrops, and fixed drawers always cover the viewport
