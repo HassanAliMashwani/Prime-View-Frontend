@@ -7,7 +7,14 @@ import { PaymentScheduleTable } from '@/components/member-portal/PaymentSchedule
 import { MemberPaymentsSkeleton } from '@/components/ui/skeleton';
 import { useMemberStore } from '@/lib/store/useMemberStore';
 import { PlotPaymentSchedule } from '@/lib/dal/payments';
-import { submitPaymentReceipt, getCustomerReceipts, getBalloonPreview, uploadReceiptFileToStorage } from '@/lib/dal/receipts';
+import {
+  submitPaymentReceipt,
+  getCustomerReceipts,
+  getBalloonPreview,
+  uploadReceiptFileToStorage,
+  isExecutableReceiptFile,
+  DISALLOWED_EXECUTABLE_MESSAGE,
+} from '@/lib/dal/receipts';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { ReceiptSubmission } from '@/lib/mock/types';
 import { getActiveSession } from '@/lib/dal/auth';
@@ -38,6 +45,7 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react';
+import { BankCombobox } from '@/components/receipts/BankCombobox';
 import Link from 'next/link';
 
 
@@ -130,7 +138,7 @@ function PaymentsContent() {
   const [formPaymentKind, setFormPaymentKind] = useState<'regular' | 'balloon'>('regular');
   const [formInstallmentNo, setFormInstallmentNo] = useState<number>(1);
   const [formAmount, setFormAmount] = useState<string>('');
-  const [formBankName, setFormBankName] = useState<string>('Meezan Bank');
+  const [formBankName, setFormBankName] = useState<string>('Meezan Bank Limited');
   const [formTxnRef, setFormTxnRef] = useState<string>('');
   const [formDate, setFormDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [previewData, setPreviewData] = useState<any>(null);
@@ -482,6 +490,14 @@ function PaymentsContent() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (await isExecutableReceiptFile(file)) {
+      setSelectedReceiptFile(null);
+      setFormFileName('');
+      setUploadError(DISALLOWED_EXECUTABLE_MESSAGE);
+      e.target.value = '';
+      return;
+    }
+
     setSelectedReceiptFile(file);
     setFormFileName(file.name);
     setUploadError(null);
@@ -504,6 +520,11 @@ function PaymentsContent() {
     const plotIdToUse = retrySub ? retrySub.plotId : formPlotId;
     const txnRefToUse = retrySub ? retrySub.transactionRef : formTxnRef.trim();
     const fileToUpload = retrySub?._rawFile || selectedReceiptFile;
+
+    if (fileToUpload && (await isExecutableReceiptFile(fileToUpload))) {
+      setUploadError(DISALLOWED_EXECUTABLE_MESSAGE);
+      return;
+    }
 
     if (!plotIdToUse) {
       setUploadError('Please select a property plot file.');
@@ -675,8 +696,16 @@ function PaymentsContent() {
               fetchDashboardData(true);
               loadReceipts(true);
             } else {
-              const errMsg = toSafeErrorMessage(res.message || res.error || 'Failed to submit receipt.');
+              const rawMsg = `${res.message || ''} ${res.error || ''}`.toLowerCase();
+              const isExec =
+                rawMsg.includes('disallowed_executable_content') ||
+                rawMsg.includes('program content') ||
+                rawMsg.includes('disallowed executable');
+              const errMsg = isExec
+                ? DISALLOWED_EXECUTABLE_MESSAGE
+                : toSafeErrorMessage(res.message || res.error || 'Failed to submit receipt.');
               setUploadError(errMsg);
+              setShowUploadModal(true);
               setReceipts((prev) =>
                 prev.map((r) =>
                   r.id === tempReceiptId
@@ -699,8 +728,16 @@ function PaymentsContent() {
           },
         });
       } catch (err: any) {
-        const errMsg = err?.message || 'Failed to upload receipt.';
+        const rawMsg = (err?.message || '').toLowerCase();
+        const isExec =
+          rawMsg.includes('disallowed_executable_content') ||
+          rawMsg.includes('program content') ||
+          rawMsg.includes('disallowed executable');
+        const errMsg = isExec
+          ? DISALLOWED_EXECUTABLE_MESSAGE
+          : toSafeErrorMessage(err?.message || 'Failed to upload receipt.');
         setUploadError(errMsg);
+        setShowUploadModal(true);
         setReceipts((prev) =>
           prev.map((r) =>
             r.id === tempReceiptId
@@ -1662,20 +1699,13 @@ function PaymentsContent() {
                 {/* Bank Name */}
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                    Depository Bank
+                    Depository Bank <span className="text-rose-600">*</span>
                   </label>
-                  <select
+                  <BankCombobox
                     value={formBankName}
-                    onChange={(e) => setFormBankName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914]"
-                  >
-                    <option value="Meezan Bank Ltd">Meezan Bank Ltd</option>
-                    <option value="Bank of Khyber">Bank of Khyber</option>
-                    <option value="Habib Bank Limited (HBL)">Habib Bank Limited (HBL)</option>
-                    <option value="Allied Bank Limited">Allied Bank Limited</option>
-                    <option value="MCB Bank Limited">MCB Bank Limited</option>
-                    <option value="Society Cash Desk / Pay Order">Society Cash Desk / Pay Order</option>
-                  </select>
+                    onChange={setFormBankName}
+                    required
+                  />
                 </div>
 
                 {/* Transaction Ref */}

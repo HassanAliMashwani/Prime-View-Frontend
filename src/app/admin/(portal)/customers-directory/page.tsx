@@ -596,9 +596,9 @@ function CustomersDirectoryContent() {
   ).length;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6 -mt-3 md:-mt-5 lg:-mt-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 !mt-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 shadow-xs">
@@ -1474,10 +1474,9 @@ function CustomersDirectoryContent() {
                 <div>
                   <div className="font-bold text-slate-700 mb-2">Next of Kin (NOK)</div>
                   <div className="space-y-1 text-slate-600">
-                    <div><span className="text-slate-400">Name:</span> {dossierCustomer.nokName || 'Not recorded'}</div>
-                    <div><span className="text-slate-400">CNIC:</span> {dossierCustomer.nokCnic ? formatCnic(dossierCustomer.nokCnic) : 'Not recorded'}</div>
-                    <div><span className="text-slate-400">Registration Date:</span> {dossierCustomer.createdDate}</div>
-                    <div><span className="text-slate-400">Last Login:</span> {dossierCustomer.lastLogin || 'Never logged in'}</div>
+                    <div><span className="text-slate-400">Name:</span> {dossierCustomer.nokName || (dossierCustomerDetail as any)?.nokName || 'Not recorded'}</div>
+                    <div><span className="text-slate-400">CNIC:</span> {(dossierCustomer.nokCnic || (dossierCustomerDetail as any)?.nokCnic) ? formatCnic(dossierCustomer.nokCnic || (dossierCustomerDetail as any)?.nokCnic) : 'Not recorded'}</div>
+                    <div><span className="text-slate-400">Registration Date:</span> {dossierCustomer.createdDate || (dossierCustomerDetail as any)?.createdDate}</div>
                   </div>
                 </div>
               </div>

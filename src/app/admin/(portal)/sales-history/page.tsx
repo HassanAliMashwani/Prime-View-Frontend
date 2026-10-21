@@ -481,7 +481,7 @@ function SalesHistoryContent() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+    <>
       {/* Real 12mm print margins to ensure report starts on Page 1 and no empty page is added */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -517,8 +517,9 @@ function SalesHistoryContent() {
         }
       `}} />
 
-      {/* Screen-Only Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden !mt-0">
+      <div className="max-w-7xl mx-auto space-y-6 -mt-3 md:-mt-5 lg:-mt-6 print:mt-0 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+        {/* Screen-Only Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-xs">
@@ -1148,6 +1149,7 @@ function SalesHistoryContent() {
       {/* Action Toast Feedback */}
       <AdminActionToast feedback={feedback} onClose={() => setFeedback(null)} />
     </div>
+    </>
   );
 }
 

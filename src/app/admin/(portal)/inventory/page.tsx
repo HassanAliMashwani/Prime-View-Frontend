@@ -405,7 +405,7 @@ export default function InventoryOverviewPage() {
   const blocksToPrint = allBlocksForPrint || liveStats;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 print:space-y-4 print:p-0">
+    <>
       {/* Real 12mm print margins to ensure no table cells or headings are cut off at page edges */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -558,7 +558,8 @@ export default function InventoryOverviewPage() {
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden !mt-0">
+      <div className="max-w-7xl mx-auto space-y-6 -mt-3 md:-mt-5 lg:-mt-6 print:mt-0 print:space-y-4 print:p-0">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2 font-serif">
@@ -1057,5 +1058,6 @@ export default function InventoryOverviewPage() {
         )}
       </section>
     </div>
+    </>
   );
 }

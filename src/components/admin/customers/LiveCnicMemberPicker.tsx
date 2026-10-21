@@ -104,7 +104,7 @@ export default function LiveCnicMemberPicker({
           setIsOpen(false);
         }
       }
-    }, 250);
+    }, 75);
 
     return () => {
       clearTimeout(timer);

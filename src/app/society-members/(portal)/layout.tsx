@@ -46,8 +46,35 @@ function MemberPortalContent({ children }: { children: React.ReactNode }) {
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs text-left text-slate-600 space-y-2">
             <div className="font-bold text-slate-800">Prime View Society Secretariat:</div>
             <div>📍 Main Boulevard, Sector B, Prime View Housing Society</div>
-            <div>📞 (051) 111-PRIME / +92 51 9876543</div>
-            <div>✉️ secretariat@primeview.org</div>
+            <div>
+              📞 <span className="font-semibold text-slate-700">Phone:</span>{' '}
+              <a
+                href="tel:+923219986707"
+                className="text-emerald-700 hover:text-emerald-800 font-medium hover:underline"
+              >
+                +92 321 9986707
+              </a>
+            </div>
+            <div>
+              💬 <span className="font-semibold text-slate-700">WhatsApp:</span>{' '}
+              <a
+                href="https://wa.me/923219986707"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-700 hover:text-emerald-800 font-medium hover:underline"
+              >
+                +92 321 9986707
+              </a>
+            </div>
+            <div>
+              ✉️ <span className="font-semibold text-slate-700">Email:</span>{' '}
+              <a
+                href="mailto:secretary@primeview.pk"
+                className="text-emerald-700 hover:text-emerald-800 font-medium hover:underline"
+              >
+                secretary@primeview.pk
+              </a>
+            </div>
           </div>
           <button
             type="button"

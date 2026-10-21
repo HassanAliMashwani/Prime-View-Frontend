@@ -17,6 +17,46 @@ export interface SubmitReceiptInput {
   previewData?: any;
 }
 
+export const DISALLOWED_EXECUTABLE_MESSAGE =
+  'This file was not accepted. A receipt must be a photo or a PDF. This file contains program content, so it cannot be uploaded.';
+
+export async function isExecutableReceiptFile(file: File): Promise<boolean> {
+  try {
+    const slice = file.slice(0, 512);
+    const buffer = await slice.arrayBuffer();
+    const bytes = new Uint8Array(buffer);
+    // MZ header (EXE, DLL)
+    if (bytes.length >= 2 && bytes[0] === 0x4d && bytes[1] === 0x5a) return true;
+    // ELF header (Linux executable)
+    if (bytes.length >= 4 && bytes[0] === 0x7f && bytes[1] === 0x45 && bytes[2] === 0x4c && bytes[3] === 0x46) return true;
+    // Mach-O headers (macOS executable)
+    if (bytes.length >= 4) {
+      if (
+        (bytes[0] === 0xfe && bytes[1] === 0xed && bytes[2] === 0xfa && bytes[3] === 0xce) ||
+        (bytes[0] === 0xce && bytes[1] === 0xfa && bytes[2] === 0xed && bytes[3] === 0xfe) ||
+        (bytes[0] === 0xfe && bytes[1] === 0xed && bytes[2] === 0xfa && bytes[3] === 0xcf) ||
+        (bytes[0] === 0xcf && bytes[1] === 0xfa && bytes[2] === 0xed && bytes[3] === 0xfe)
+      ) {
+        return true;
+      }
+    }
+    // Script / HTML detection
+    const text = new TextDecoder().decode(bytes).toLowerCase();
+    if (
+      text.includes('<html') ||
+      text.includes('<script') ||
+      text.includes('<?php') ||
+      text.includes('<svg') ||
+      text.includes('javascript:')
+    ) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+  return false;
+}
+
 /**
  * Submit a customer payment receipt for verification.
  * Calls backend POST /receipts with member JWT token.
@@ -46,10 +86,16 @@ export async function submitPaymentReceipt(
   const res = await apiPost<{ receipt: ReceiptSubmission }>('/receipts', payload, token || undefined);
 
   if (!res.ok) {
+    const rawMsg = `${res.message || ''} ${res.error || ''}`.toLowerCase();
+    const isExec =
+      rawMsg.includes('disallowed_executable_content') ||
+      rawMsg.includes('program content') ||
+      rawMsg.includes('disallowed executable');
+    const msg = isExec ? DISALLOWED_EXECUTABLE_MESSAGE : (res.message || 'Failed to submit payment receipt.');
     return {
       ok: false,
-      error: res.error || 'SUBMISSION_FAILED',
-      message: res.message || 'Failed to submit payment receipt.',
+      error: msg,
+      message: msg,
     };
   }
 
@@ -297,6 +343,13 @@ export async function verifySlipPublic(
 export async function uploadReceiptFileToStorage(
   file: File
 ): Promise<{ ok: boolean; storageKey?: string; error?: string }> {
+  if (await isExecutableReceiptFile(file)) {
+    return {
+      ok: false,
+      error: DISALLOWED_EXECUTABLE_MESSAGE,
+    };
+  }
+
   const token = getMemberToken() || getAdminToken();
   const presignedRes = await apiPost<any>(
     '/storage/presigned-url',

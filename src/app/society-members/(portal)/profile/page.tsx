@@ -30,7 +30,6 @@ import {
   Eye,
   EyeOff,
   Camera,
-  Trash2,
 } from 'lucide-react';
 
 const profileSchema = z.object({
@@ -127,36 +126,6 @@ export default function ProfilePage() {
       if (avatarInputRef.current) {
         avatarInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleRemoveMemberAvatar = async () => {
-    if (!profile?.id) return;
-    setAvatarSaving(true);
-    setToastMessage(null);
-
-    try {
-      const res = await updateProfile({ applicantPhotoUrl: '' });
-      if (res.ok) {
-        setMemberAvatar('');
-        useMemberStore.setState((state) => ({
-          ...state,
-          profile: state.profile ? { ...state.profile, applicantPhotoUrl: undefined } : null,
-        }));
-
-        // Delete old browser copy
-        try {
-          localStorage.removeItem(`pv_member_avatar_${profile.id}`);
-        } catch {}
-
-        setToastMessage({ type: 'success', text: 'Profile picture reset to default.' });
-      } else {
-        setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
-      }
-    } catch {
-      setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
-    } finally {
-      setAvatarSaving(false);
     }
   };
 
@@ -390,16 +359,6 @@ export default function ProfilePage() {
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-[#EAF0E7] text-[#43612B] border border-[#43612B]/20">
                   {profile?.accountStatus || 'Active'}
                 </span>
-                {memberAvatar && (
-                  <button
-                    type="button"
-                    onClick={handleRemoveMemberAvatar}
-                    className="text-[10px] font-semibold text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2 py-0.5 rounded-full transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-2.5 h-2.5" />
-                    <span>Reset</span>
-                  </button>
-                )}
               </div>
               <p className="text-xs text-[#6B7462] truncate mt-0.5">
                 {profile?.fatherOrHusbandName
@@ -902,10 +861,14 @@ export default function ProfilePage() {
                                 {s.reason}
                               </span>
                             </div>
-                            <div className="text-[11px] text-slate-500 flex items-center gap-2">
-                              <span>Issued: {new Date(s.issuedAt).toLocaleDateString()}</span>
+                            <div className="text-[11px] text-slate-600 flex items-center gap-2 flex-wrap font-mono">
+                              <span className="font-medium text-slate-700 bg-slate-200/70 px-2 py-0.5 rounded">
+                                Issued by Administration
+                              </span>
                               <span>•</span>
-                              <span>By: {s.issuedByName || 'Administration'}</span>
+                              <span className="text-slate-600">
+                                Date: {s.issuedAt ? new Date(s.issuedAt).toLocaleDateString('en-PK', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Date on record'}
+                              </span>
                             </div>
                           </div>
                         </div>

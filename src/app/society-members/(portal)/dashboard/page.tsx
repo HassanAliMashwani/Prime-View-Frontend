@@ -205,7 +205,7 @@ export default function MemberDashboardPage() {
               </div>
             </div>
             <Link
-              href="/society-members/profile"
+              href="/society-members/strikes"
               className="w-full sm:w-auto min-h-[44px] justify-center shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition-colors whitespace-nowrap"
             >
               <span>View Strike Record</span>

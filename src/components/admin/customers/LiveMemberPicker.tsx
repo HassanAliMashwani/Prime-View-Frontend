@@ -98,7 +98,7 @@ export default function LiveMemberPicker({
           setIsOpen(false);
         }
       }
-    }, 250);
+    }, 75);
 
     return () => {
       clearTimeout(timer);
@@ -151,7 +151,7 @@ export default function LiveMemberPicker({
   };
 
   return (
-    <div ref={containerRef} className={`relative ${className}`}>
+    <div ref={containerRef} id={selectedMember ? id : undefined} className={`relative ${className}`}>
       {/* If a saved member is selected, show compact locked field with name and clear control */}
       {selectedMember ? (
         <div className="flex items-center justify-between px-3 py-2 bg-emerald-50/80 border border-emerald-300 rounded-xl text-xs h-[38px] shadow-2xs transition-all">

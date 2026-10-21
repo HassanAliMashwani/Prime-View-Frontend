@@ -53,7 +53,7 @@ export function useAuth() {
   return {
     session,
     currentUser: session,
-    isAuthenticated: !!session && session.role === 'customer',
+    isAuthenticated: !!session && session.role === 'customer' && session.expiresAt > Date.now(),
     isLoading,
     login,
     logout,

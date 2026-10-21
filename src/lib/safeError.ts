@@ -35,16 +35,21 @@ export function toSafeErrorMessage(input: unknown): string {
     return GENERAL_SAFE_ERROR;
   }
 
-  if (text === GENERAL_SAFE_ERROR) {
-    return GENERAL_SAFE_ERROR;
+  const lower = text.toLowerCase();
+
+  // Executable content upload rejection
+  if (
+    lower.includes('disallowed_executable_content') ||
+    lower.includes('disallowed executable') ||
+    lower.includes('program content')
+  ) {
+    return 'This file was not accepted. A receipt must be a photo or a PDF. This file contains program content, so it cannot be uploaded.';
   }
 
   // Uppercase constant error codes (e.g. BALLOON_ENGINE_ERROR, LOCKED_BY_ANOTHER, SLIP_NOT_FOUND)
   if (/^[A-Z0-9_]{3,}$/.test(text)) {
     return GENERAL_SAFE_ERROR;
   }
-
-  const lower = text.toLowerCase();
 
   // Guard, policy, trigger, row security, schema
   if (

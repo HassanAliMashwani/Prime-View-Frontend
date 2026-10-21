@@ -155,6 +155,7 @@ function BlockPlotsContent() {
     customerName: '',
     cnic: '',
     city: '',
+    nokCnic: '',
     lockToken: '',
     customerId: '',
     price: '',
@@ -164,6 +165,7 @@ function BlockPlotsContent() {
     customerName?: string;
     cnic?: string;
     city?: string;
+    nokCnic?: string;
     price?: string;
   }>({});
 
@@ -960,7 +962,7 @@ function BlockPlotsContent() {
     if (!session || !selectedPlot) return;
 
     // Field-specific validation
-    const errors: { customerName?: string; cnic?: string; city?: string; price?: string } = {};
+    const errors: { customerName?: string; cnic?: string; city?: string; nokCnic?: string; price?: string } = {};
 
     if (!minimalForm.customerName.trim()) {
       errors.customerName = 'Please enter customer full name.';
@@ -976,6 +978,12 @@ function BlockPlotsContent() {
       errors.city = 'City is required.';
     }
 
+    if (!minimalForm.nokCnic.trim()) {
+      errors.nokCnic = 'Next of Kin CNIC is required.';
+    } else if (!isValidCnic(minimalForm.nokCnic)) {
+      errors.nokCnic = 'Next of Kin CNIC must be exactly 13 digits in 00000-0000000-0 format.';
+    }
+
     const parsedPrice = Number(minimalForm.price);
     if (!minimalForm.price || !parsedPrice || parsedPrice <= 0 || isNaN(parsedPrice)) {
       errors.price = 'Plot price must be greater than 0.';
@@ -985,6 +993,22 @@ function BlockPlotsContent() {
 
     if (Object.keys(errors).length > 0) {
       setMinimalFieldErrors(errors);
+      const FIELD_ORDER = ['customerName', 'cnic', 'city', 'nokCnic', 'price'];
+      for (const field of FIELD_ORDER) {
+        if ((errors as any)[field]) {
+          const el = document.getElementById(`minimal_${field}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if ('focus' in el && typeof (el as any).focus === 'function') {
+              (el as any).focus();
+            } else {
+              const inputEl = el.querySelector('input, select') as HTMLElement | null;
+              if (inputEl && typeof inputEl.focus === 'function') inputEl.focus();
+            }
+          }
+          break;
+        }
+      }
       return;
     }
 
@@ -998,6 +1022,7 @@ function BlockPlotsContent() {
         customerName: minimalForm.customerName,
         cnic: minimalForm.cnic,
         city: minimalForm.city,
+        nokCnic: minimalForm.nokCnic,
         lockToken: minimalForm.lockToken || undefined,
         customerId: minimalSelectedMember?.id || minimalForm.customerId || undefined,
         plotPrice: parsedPrice,
@@ -1027,16 +1052,36 @@ function BlockPlotsContent() {
       } else {
         const msg = toSafeErrorMessage(res.message || res.error || 'Failed to complete quick booking.');
         const lowerMsg = msg.toLowerCase();
+        let failedField: string | null = null;
         if (lowerMsg.includes('price')) {
           setMinimalFieldErrors(prev => ({ ...prev, price: msg }));
+          failedField = 'price';
+        } else if (lowerMsg.includes('nok') || lowerMsg.includes('kin') || lowerMsg.includes('nominee')) {
+          setMinimalFieldErrors(prev => ({ ...prev, nokCnic: msg }));
+          failedField = 'nokCnic';
         } else if (lowerMsg.includes('cnic')) {
           setMinimalFieldErrors(prev => ({ ...prev, cnic: msg }));
+          failedField = 'cnic';
         } else if (lowerMsg.includes('name')) {
           setMinimalFieldErrors(prev => ({ ...prev, customerName: msg }));
+          failedField = 'customerName';
         } else if (lowerMsg.includes('city')) {
           setMinimalFieldErrors(prev => ({ ...prev, city: msg }));
+          failedField = 'city';
         } else {
           setActionError(msg);
+        }
+        if (failedField) {
+          const el = document.getElementById(`minimal_${failedField}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            if ('focus' in el && typeof (el as any).focus === 'function') {
+              (el as any).focus();
+            } else {
+              const inputEl = el.querySelector('input, select') as HTMLElement | null;
+              if (inputEl && typeof inputEl.focus === 'function') inputEl.focus();
+            }
+          }
         }
       }
     } catch {
@@ -1548,6 +1593,7 @@ function BlockPlotsContent() {
         customerName: prefillReservation?.customerName || '',
         cnic: '',
         city: '',
+        nokCnic: '',
         lockToken: lockRes.lockToken || '',
         customerId: prefillReservation?.customerId || '',
         price: Number(selectedPlot.price) > 0 ? String(selectedPlot.price) : '',
@@ -2898,6 +2944,7 @@ function BlockPlotsContent() {
                   Customer Full Name <span className="text-rose-500">*</span>
                 </label>
                 <LiveMemberPicker
+                  id="minimal_customerName"
                   value={minimalForm.customerName}
                   onChange={(val) => {
                     setMinimalForm((prev) => ({ ...prev, customerName: val }));
@@ -2914,6 +2961,7 @@ function BlockPlotsContent() {
                         customerName: member.fullName,
                         cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
                         city: member.city || prev.city,
+                        nokCnic: member.nokCnic ? formatCnic(member.nokCnic) : prev.nokCnic,
                         customerId: member.id,
                       }));
                       setMinimalFieldErrors({});
@@ -2943,6 +2991,7 @@ function BlockPlotsContent() {
                   )}
                 </label>
                 <LiveCnicMemberPicker
+                  id="minimal_cnic"
                   value={minimalForm.cnic}
                   onChange={(val) => {
                     setMinimalForm((prev) => ({ ...prev, cnic: val }));
@@ -2959,6 +3008,7 @@ function BlockPlotsContent() {
                         customerName: member.fullName,
                         cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
                         city: member.city || prev.city,
+                        nokCnic: member.nokCnic ? formatCnic(member.nokCnic) : prev.nokCnic,
                         customerId: member.id,
                       }));
                       setMinimalFieldErrors({});
@@ -2988,6 +3038,7 @@ function BlockPlotsContent() {
                   )}
                 </label>
                 <input
+                  id="minimal_city"
                   type="text"
                   required
                   value={minimalForm.city}
@@ -3017,9 +3068,49 @@ function BlockPlotsContent() {
 
               <div>
                 <label className="block text-slate-700 mb-1 font-semibold flex items-center justify-between">
+                  <span>Next of Kin CNIC <span className="text-rose-500">*</span></span>
+                  {minimalSelectedMember && minimalSelectedMember.nokCnic && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                    </span>
+                  )}
+                </label>
+                <input
+                  id="minimal_nokCnic"
+                  type="text"
+                  required
+                  maxLength={15}
+                  value={minimalForm.nokCnic}
+                  disabled={Boolean(minimalSelectedMember && minimalSelectedMember.nokCnic)}
+                  onChange={(e) => {
+                    setMinimalForm({ ...minimalForm, nokCnic: formatCnic(e.target.value) });
+                    if (minimalFieldErrors.nokCnic) {
+                      setMinimalFieldErrors((prev) => ({ ...prev, nokCnic: undefined }));
+                    }
+                  }}
+                  placeholder="00000-0000000-0"
+                  className={`w-full px-3 py-2 border rounded-xl text-slate-900 font-mono transition-all ${
+                    minimalSelectedMember && minimalSelectedMember.nokCnic
+                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : minimalFieldErrors.nokCnic
+                      ? 'bg-rose-50/20 border-rose-400 ring-1 ring-rose-400/20 focus:outline-none focus:border-rose-500'
+                      : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10'
+                  }`}
+                />
+                {minimalFieldErrors.nokCnic && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{minimalFieldErrors.nokCnic}</span>
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-slate-700 mb-1 font-semibold flex items-center justify-between">
                   <span>Plot Price (PKR) <span className="text-rose-500">*</span></span>
                 </label>
                 <input
+                  id="minimal_price"
                   type="number"
                   required
                   min={1}

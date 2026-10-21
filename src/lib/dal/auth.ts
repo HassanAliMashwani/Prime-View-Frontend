@@ -55,18 +55,21 @@ export async function login(identifier: string, password: string): Promise<Login
         : Buffer.from(access_token.split('.')[1], 'base64').toString()
     );
 
+    const thirtyMinutesMs = 30 * 60 * 1000;
     const session: MemberSession = {
       customerId: payload.customerId,
       role: 'customer',
       fullName: payload.fullName,
       email: payload.email,
       token: access_token,
-      expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+      expiresAt: Date.now() + thirtyMinutesMs,
     };
 
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+        document.cookie = `pv_member_token=${access_token}; path=/; max-age=1800; SameSite=Lax`;
+        document.cookie = `pv_member_session=${encodeURIComponent(trimmedId)}; path=/; max-age=1800; SameSite=Lax`;
       } catch {
         // Storage unavailable fallback
       }
@@ -88,6 +91,8 @@ export async function logout(): Promise<void> {
   if (typeof window !== 'undefined') {
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
+      document.cookie = 'pv_member_token=; path=/; max-age=0; SameSite=Lax';
+      document.cookie = 'pv_member_session=; path=/; max-age=0; SameSite=Lax';
     } catch {
       // Storage unavailable fallback
     }

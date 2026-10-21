@@ -11,6 +11,7 @@ import { getActiveSession } from './auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
 import { fetchWith60sCache, clearCachePrefix } from './apiCache';
+import { formatCnic } from '../utils/cnic';
 
 export interface CustomerDisambiguation {
   id: string;
@@ -127,6 +128,7 @@ export interface CreateMinimalBookingInput {
   customerName: string;
   cnic: string;
   city: string;
+  nokCnic?: string;
   lockToken?: string;
   reservationId?: string;
   customerId?: string;
@@ -250,6 +252,8 @@ export interface PickerMember {
   phone: string;
   email: string;
   city: string;
+  nokCnic?: string;
+  nokName?: string;
   plotCount: number;
   registrationStatus?: 'minimal' | 'complete';
 }
@@ -299,7 +303,9 @@ export async function searchMembersForPicker(
         cnic: c.cnic,
         phone: c.phone || '',
         email: c.email || '',
-        city: c.city || '',
+        city: c.city || c.mailingAddress || '',
+        nokCnic: c.nokCnic || '',
+        nokName: c.nokName || '',
         plotCount: c.plotCount || c.propertiesCount || c.bookings?.length || 0,
         registrationStatus: c.registrationStatus || 'minimal',
       }));
@@ -736,7 +742,12 @@ export async function createMinimalBooking(
   reason?: string;
   message?: string;
 }> {
-  const res = await apiPost<any>('/customers/minimal-booking', input, session?.token);
+  const payload = {
+    ...input,
+    cnic: input.cnic ? formatCnic(input.cnic) : input.cnic,
+    nokCnic: input.nokCnic ? formatCnic(input.nokCnic) : undefined,
+  };
+  const res = await apiPost<any>('/customers/minimal-booking', payload, session?.token);
   if (!res.ok || !res.data) {
     return {
       ok: false,

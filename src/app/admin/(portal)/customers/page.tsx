@@ -296,6 +296,7 @@ function CustomersPageContent() {
     customerName: queryCustomerName || '',
     cnic: queryCustomerCnic ? formatCnic(queryCustomerCnic) : '',
     city: '',
+    nokCnic: '',
     customerId: queryCustomerId || '',
     price: queryPrice || '',
   });
@@ -310,6 +311,7 @@ function CustomersPageContent() {
     customerName?: string;
     cnic?: string;
     city?: string;
+    nokCnic?: string;
     price?: string;
   }>({});
 
@@ -1015,31 +1017,67 @@ function CustomersPageContent() {
     setTotalPaymentB(cleanPrice);
   };
 
+  const scrollToField = (fieldId: string) => {
+    const el = document.getElementById(fieldId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if ('focus' in el && typeof (el as any).focus === 'function') {
+        (el as any).focus();
+      } else {
+        const inputEl = el.querySelector('input, select, textarea, button') as HTMLElement | null;
+        if (inputEl && typeof inputEl.focus === 'function') {
+          inputEl.focus();
+        }
+      }
+    }
+  };
+
   const handleMapPathAError = (errMsg: string) => {
     setPathASubmitting(false);
     const msg = errMsg || 'Failed to complete booking.';
     const lower = msg.toLowerCase();
-    if (lower.includes('cnic')) {
+    let failedField = '';
+    if (lower.includes('cnic') && (lower.includes('nok') || lower.includes('kin') || lower.includes('nominee'))) {
+      setPathAFieldErrors((prev) => ({ ...prev, nokCnic: msg }));
+      failedField = 'pathA_nokCnic';
+    } else if (lower.includes('cnic')) {
       setPathAFieldErrors((prev) => ({ ...prev, cnic: msg }));
+      failedField = 'pathA_cnic';
     } else if (lower.includes('phone') || lower.includes('mobile')) {
       setPathAFieldErrors((prev) => ({ ...prev, phone: msg }));
+      failedField = 'pathA_phone';
     } else if (lower.includes('email')) {
       setPathAFieldErrors((prev) => ({ ...prev, email: msg }));
+      failedField = 'pathA_email';
     } else if (lower.includes('price')) {
       setPathAFieldErrors((prev) => ({ ...prev, price: msg }));
+      failedField = 'pathA_price';
     } else if (lower.includes('password')) {
       setPathAFieldErrors((prev) => ({ ...prev, portalPassword: msg }));
+      failedField = 'pathA_portalPassword';
     } else if (lower.includes('nominee') || lower.includes('nok')) {
-      setPathAFieldErrors((prev) => ({ ...prev, nokCnic: msg }));
+      setPathAFieldErrors((prev) => ({ ...prev, nokName: msg }));
+      failedField = 'pathA_nokName';
     } else if (lower.includes('plot') || lower.includes('lock') || lower.includes('block')) {
       setPathAFieldErrors((prev) => ({ ...prev, plot: msg }));
       setPathAPlotError(msg);
+      failedField = 'pathA_plot';
     } else if (lower.includes('city')) {
       setPathAFieldErrors((prev) => ({ ...prev, city: msg }));
+      failedField = 'pathA_city';
+    } else if (lower.includes('address')) {
+      setPathAFieldErrors((prev) => ({ ...prev, mailingAddress: msg }));
+      failedField = 'pathA_mailingAddress';
     } else if (lower.includes('name')) {
       setPathAFieldErrors((prev) => ({ ...prev, fullName: msg }));
+      failedField = 'pathA_fullName';
     } else {
+      setPathAFieldErrors((prev) => ({ ...prev, fullName: msg }));
+      failedField = 'pathA_fullName';
       setFeedback({ type: 'error', message: msg });
+    }
+    if (failedField) {
+      setTimeout(() => scrollToField(failedField), 50);
     }
   };
 
@@ -1138,9 +1176,13 @@ function CustomersPageContent() {
     // Portal Credentials Gate: Super Admin or Sub-Admin with granted Customer box
     const canIssueCreds = session.role === 'super_admin' || Boolean(session.permissions?.can_create_customer && session.permissions?.can_view_customers);
 
-    // Minimum 8 characters check if issuing credentials
-    if (canIssueCreds && !setPlanCustomer && pathAForm.portalPassword && pathAForm.portalPassword.trim().length < 8) {
-      errors.portalPassword = 'Initial customer portal password must be at least 8 characters long.';
+    // Initial password required when issuing credentials
+    if (canIssueCreds && !setPlanCustomer && !pathASelectedMember) {
+      if (!pathAForm.portalPassword || !pathAForm.portalPassword.trim()) {
+        errors.portalPassword = 'Initial customer portal password is required (minimum 8 characters).';
+      } else if (pathAForm.portalPassword.trim().length < 8) {
+        errors.portalPassword = 'Initial customer portal password must be at least 8 characters long.';
+      }
     }
 
     const canEditPriceA = Boolean(
@@ -1165,6 +1207,26 @@ function CustomersPageContent() {
     if (Object.keys(errors).length > 0) {
       setPathAFieldErrors(errors);
       if (errors.plot) setPathAPlotError(errors.plot);
+      const orderedFields = [
+        'fullName',
+        'fatherOrHusbandName',
+        'cnic',
+        'phone',
+        'email',
+        'mailingAddress',
+        'city',
+        'portalPassword',
+        'nokName',
+        'nokCnic',
+        'plot',
+        'price',
+      ];
+      for (const field of orderedFields) {
+        if ((errors as any)[field]) {
+          setTimeout(() => scrollToField(`pathA_${field}`), 50);
+          break;
+        }
+      }
       return;
     }
 
@@ -1650,6 +1712,21 @@ function CustomersPageContent() {
     if (Object.keys(errors).length > 0) {
       setPathBFieldErrors(errors);
       if (errors.plot) setPathBPlotError(errors.plot);
+      const orderedFields = ['customer', 'plot', 'price'];
+      for (const field of orderedFields) {
+        if ((errors as any)[field]) {
+          if (field === 'customer') {
+            if (selectedCustomer && !isCustomerConfirmed) {
+              setTimeout(() => scrollToField('pathB_confirm_btn'), 50);
+            } else {
+              setTimeout(() => scrollToField('pathB_customer'), 50);
+            }
+          } else {
+            setTimeout(() => scrollToField(`pathB_${field}`), 50);
+          }
+          break;
+        }
+      }
       return;
     }
 
@@ -1725,15 +1802,24 @@ function CustomersPageContent() {
       setPathBSubmitting(false);
       const msg = res.message || res.error || 'Failed to attach booking.';
       const lower = msg.toLowerCase();
+      let failedField = '';
       if (lower.includes('price')) {
         setPathBFieldErrors((prev) => ({ ...prev, price: msg }));
+        failedField = 'pathB_price';
       } else if (lower.includes('plot') || lower.includes('lock') || lower.includes('block')) {
         setPathBFieldErrors((prev) => ({ ...prev, plot: msg }));
         setPathBPlotError(msg);
+        failedField = 'pathB_plot';
       } else if (lower.includes('customer') || lower.includes('member')) {
         setPathBFieldErrors((prev) => ({ ...prev, customer: msg }));
+        failedField = 'pathB_customer';
       } else {
+        setPathBFieldErrors((prev) => ({ ...prev, customer: msg }));
+        failedField = 'pathB_customer';
         setFeedback({ type: 'error', message: msg });
+      }
+      if (failedField) {
+        setTimeout(() => scrollToField(failedField), 50);
       }
       return;
     }
@@ -1780,7 +1866,7 @@ function CustomersPageContent() {
     setSubAdminPlotError(null);
     setSubAdminFieldErrors({});
 
-    const errors: { plot?: string; customerName?: string; cnic?: string; city?: string; price?: string } = {};
+    const errors: { plot?: string; customerName?: string; cnic?: string; city?: string; nokCnic?: string; price?: string } = {};
 
     const targetPlotId = lockedPlot ? lockedPlot.id : subAdminPlotId;
     if (!targetPlotId) {
@@ -1812,8 +1898,16 @@ function CustomersPageContent() {
       errors.cnic = 'CNIC must be exactly 13 digits in 00000-0000000-0 format.';
     }
 
-    if (!subAdminSelectedMember && (!subAdminForm.city || !subAdminForm.city.trim())) {
+    const effectiveCity = subAdminSelectedMember?.city || subAdminForm.city;
+    if (!effectiveCity || !effectiveCity.trim()) {
       errors.city = 'Please enter the customer city.';
+    }
+
+    const effectiveNokCnic = subAdminSelectedMember?.nokCnic || subAdminForm.nokCnic;
+    if (!effectiveNokCnic || !effectiveNokCnic.trim()) {
+      errors.nokCnic = 'Please enter Next of Kin CNIC.';
+    } else if (!isValidCnic(effectiveNokCnic)) {
+      errors.nokCnic = 'Next of Kin CNIC must be exactly 13 digits in 00000-0000000-0 format.';
     }
 
     const parsedSubAdminPrice = toPlainNumber(subAdminForm.price);
@@ -1826,6 +1920,13 @@ function CustomersPageContent() {
     if (Object.keys(errors).length > 0) {
       setSubAdminFieldErrors(errors);
       if (errors.plot) setSubAdminPlotError(errors.plot);
+      const orderedFields = ['plot', 'customerName', 'cnic', 'city', 'nokCnic', 'price'];
+      for (const field of orderedFields) {
+        if ((errors as any)[field]) {
+          setTimeout(() => scrollToField(`subAdmin_${field}`), 50);
+          break;
+        }
+      }
       return;
     }
 
@@ -1839,7 +1940,8 @@ function CustomersPageContent() {
         plotId: plot!.id,
         customerName: subAdminForm.customerName,
         cnic: subAdminForm.cnic,
-        city: subAdminForm.city,
+        city: effectiveCity,
+        nokCnic: effectiveNokCnic,
         lockToken: queryLockToken || undefined,
         reservationId: queryReservationId || undefined,
         customerId: subAdminSelectedMember?.id || subAdminForm.customerId || undefined,
@@ -1851,19 +1953,33 @@ function CustomersPageContent() {
     if (!res.ok) {
       const msg = res.message || res.error || 'Failed to complete quick booking.';
       const lower = msg.toLowerCase();
-      if (lower.includes('cnic')) {
+      let failedField = '';
+      if (lower.includes('cnic') && (lower.includes('nok') || lower.includes('kin') || lower.includes('nominee'))) {
+        setSubAdminFieldErrors((prev) => ({ ...prev, nokCnic: msg }));
+        failedField = 'subAdmin_nokCnic';
+      } else if (lower.includes('cnic')) {
         setSubAdminFieldErrors((prev) => ({ ...prev, cnic: msg }));
+        failedField = 'subAdmin_cnic';
       } else if (lower.includes('price')) {
         setSubAdminFieldErrors((prev) => ({ ...prev, price: msg }));
+        failedField = 'subAdmin_price';
       } else if (lower.includes('city')) {
         setSubAdminFieldErrors((prev) => ({ ...prev, city: msg }));
+        failedField = 'subAdmin_city';
       } else if (lower.includes('name')) {
         setSubAdminFieldErrors((prev) => ({ ...prev, customerName: msg }));
+        failedField = 'subAdmin_customerName';
       } else if (lower.includes('plot') || lower.includes('lock') || lower.includes('block')) {
         setSubAdminFieldErrors((prev) => ({ ...prev, plot: msg }));
         setSubAdminPlotError(msg);
+        failedField = 'subAdmin_plot';
       } else {
+        setSubAdminFieldErrors((prev) => ({ ...prev, customerName: msg }));
+        failedField = 'subAdmin_customerName';
         setFeedback({ type: 'error', message: msg });
+      }
+      if (failedField) {
+        setTimeout(() => scrollToField(failedField), 50);
       }
       return;
     }
@@ -1874,7 +1990,7 @@ function CustomersPageContent() {
       message: `Quick booking successfully created for ${res.customer?.fullName} on Plot ${plot.plotNumber} (Booked - Pending Formalities)!`,
     });
 
-    setSubAdminForm({ customerName: '', cnic: '', city: '', customerId: '', price: '' });
+    setSubAdminForm({ customerName: '', cnic: '', city: '', nokCnic: '', customerId: '', price: '' });
     setSubAdminSelectedMember(null);
     if (!queryPlotId) {
       setSubAdminPlotId('');
@@ -2144,7 +2260,7 @@ function CustomersPageContent() {
 
           <form onSubmit={handleSubmitSubAdmin} noValidate className="space-y-5">
             {/* Target Plot Display / Selector */}
-            <div>
+            <div id="subAdmin_plot">
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
                 Target Plot *
               </label>
@@ -2193,9 +2309,9 @@ function CustomersPageContent() {
               )}
             </div>
 
-            {/* 4 Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
+            {/* 5 Quick Booking Fields */}
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div id="subAdmin_customerName">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Customer Full Name <span className="text-rose-500">*</span>
                 </label>
@@ -2214,14 +2330,15 @@ function CustomersPageContent() {
                         customerName: member.fullName,
                         cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
                         city: member.city || prev.city,
+                        nokCnic: member.nokCnic ? formatCnic(member.nokCnic) : prev.nokCnic,
                         customerId: member.id,
                       }));
-                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined }));
+                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined, nokCnic: undefined }));
                     } else {
                       setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
                     }
                   }}
-                  placeholder="e.g. Hamza Tariq (type to search saved members)"
+                  placeholder="e.g. Hamza Tariq (type to search)"
                   required
                 />
                 {subAdminFieldErrors.customerName && (
@@ -2232,12 +2349,12 @@ function CustomersPageContent() {
                 )}
               </div>
 
-              <div>
+              <div id="subAdmin_cnic">
                 <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
                   <span>Customer CNIC <span className="text-rose-500">*</span></span>
                   {subAdminSelectedMember && (
                     <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                      <Lock className="w-2.5 h-2.5" /> Locked
                     </span>
                   )}
                 </label>
@@ -2256,9 +2373,10 @@ function CustomersPageContent() {
                         customerName: member.fullName,
                         cnic: member.cnic ? formatCnic(member.cnic) : prev.cnic,
                         city: member.city || prev.city,
+                        nokCnic: member.nokCnic ? formatCnic(member.nokCnic) : prev.nokCnic,
                         customerId: member.id,
                       }));
-                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined }));
+                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined, nokCnic: undefined }));
                     } else {
                       setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
                     }
@@ -2279,11 +2397,12 @@ function CustomersPageContent() {
                   <span>City <span className="text-rose-500">*</span></span>
                   {subAdminSelectedMember && (
                     <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Locked from Member
+                      <Lock className="w-2.5 h-2.5" /> Locked
                     </span>
                   )}
                 </label>
                 <input
+                  id="subAdmin_city"
                   type="text"
                   required
                   value={subAdminForm.city}
@@ -2292,7 +2411,7 @@ function CustomersPageContent() {
                     setSubAdminForm({ ...subAdminForm, city: e.target.value });
                     setSubAdminFieldErrors((prev) => ({ ...prev, city: undefined }));
                   }}
-                  placeholder="e.g. Lahore, Rawalpindi, Islamabad"
+                  placeholder="e.g. Abbottabad, Lahore"
                   className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
                     subAdminSelectedMember
                       ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
@@ -2310,10 +2429,48 @@ function CustomersPageContent() {
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                  <span>Next of Kin CNIC <span className="text-rose-500">*</span></span>
+                  {subAdminSelectedMember && (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Lock className="w-2.5 h-2.5" /> Locked
+                    </span>
+                  )}
+                </label>
+                <input
+                  id="subAdmin_nokCnic"
+                  type="text"
+                  required
+                  maxLength={15}
+                  value={subAdminForm.nokCnic}
+                  disabled={Boolean(subAdminSelectedMember)}
+                  onChange={(e) => {
+                    setSubAdminForm({ ...subAdminForm, nokCnic: formatCnic(e.target.value) });
+                    setSubAdminFieldErrors((prev) => ({ ...prev, nokCnic: undefined }));
+                  }}
+                  placeholder="00000-0000000-0"
+                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                    subAdminSelectedMember
+                      ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : subAdminFieldErrors.nokCnic
+                        ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                        : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
+                />
+                {subAdminFieldErrors.nokCnic && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {subAdminFieldErrors.nokCnic}
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Plot Price (PKR) <span className="text-rose-500">*</span>
                 </label>
                 <input
+                  id="subAdmin_price"
                   type="number"
                   required
                   min={1}
@@ -2530,7 +2687,7 @@ function CustomersPageContent() {
                 />
               </div>
 
-              <div>
+              <div id="pathA_fullName">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Full Name of Applicant *
                 </label>
@@ -2587,6 +2744,7 @@ function CustomersPageContent() {
                   Father / Husband Name (S/O or W/O) *
                 </label>
                 <input
+                  id="pathA_fatherOrHusbandName"
                   type="text"
                   required
                   placeholder="e.g. Haji Abdul Rasheed"
@@ -2614,6 +2772,7 @@ function CustomersPageContent() {
                   13-Digit CNIC *
                 </label>
                 <input
+                  id="pathA_cnic"
                   type="text"
                   required
                   maxLength={15}
@@ -2644,6 +2803,7 @@ function CustomersPageContent() {
                   Mobile / Phone Number *
                 </label>
                 <input
+                  id="pathA_phone"
                   type="text"
                   required
                   maxLength={12}
@@ -2674,6 +2834,7 @@ function CustomersPageContent() {
                   Email Address *
                 </label>
                 <input
+                  id="pathA_email"
                   type="email"
                   required
                   placeholder="aslam@example.com"
@@ -2701,6 +2862,7 @@ function CustomersPageContent() {
                   Permanent / Mailing Address *
                 </label>
                 <input
+                  id="pathA_mailingAddress"
                   type="text"
                   required
                   placeholder="House #, Street #, Sector/Area"
@@ -2728,6 +2890,7 @@ function CustomersPageContent() {
                   City *
                 </label>
                 <input
+                  id="pathA_city"
                   type="text"
                   required
                   placeholder="e.g. Islamabad, Peshawar"
@@ -2828,6 +2991,7 @@ function CustomersPageContent() {
                         </button>
                       </div>
                       <input
+                        id="pathA_portalPassword"
                         type="text"
                         required
                         minLength={8}
@@ -2873,6 +3037,7 @@ function CustomersPageContent() {
                   Nominee Full Name *
                 </label>
                 <input
+                  id="pathA_nokName"
                   type="text"
                   required
                   placeholder="e.g. Farooq Aslam Khan"
@@ -2900,6 +3065,7 @@ function CustomersPageContent() {
                   Nominee 13-Digit CNIC *
                 </label>
                 <input
+                  id="pathA_nokCnic"
                   type="text"
                   required
                   maxLength={15}
@@ -2935,7 +3101,7 @@ function CustomersPageContent() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div id="pathA_plot">
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Select Registered Plot *
                 </label>
@@ -3113,6 +3279,7 @@ function CustomersPageContent() {
                       <div className="flex items-center gap-1">
                         <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                         <input
+                          id="pathA_price"
                           type="number"
                           required
                           min={1}
@@ -3180,6 +3347,7 @@ function CustomersPageContent() {
                         <div className="flex items-center gap-1">
                           <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                           <input
+                            id="pathA_price"
                             type="number"
                             required
                             min={1}
@@ -3489,7 +3657,7 @@ function CustomersPageContent() {
       {activeTab === 'path_b' && (
         <div className="space-y-6">
           {/* Step 1: Customer Lookup */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+          <div id="pathB_customer" className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
             <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
               <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center text-xs font-bold">1</span>
               <div>
@@ -3789,6 +3957,7 @@ function CustomersPageContent() {
                         setPathBFieldErrors((prev) => ({ ...prev, customer: undefined }));
                         setIsCustomerConfirmed(true);
                       }}
+                      id="pathB_confirm_btn"
                       className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5"
                     >
                       <Check className="w-4 h-4" />
@@ -3883,7 +4052,7 @@ function CustomersPageContent() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
+                <div id="pathB_plot">
                   <label className="block text-xs font-bold text-slate-700 mb-1">
                     Select Registered Plot *
                   </label>
@@ -4017,6 +4186,7 @@ function CustomersPageContent() {
                         <div className="flex items-center gap-1">
                           <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                           <input
+                            id="pathB_price"
                             type="number"
                             required
                             min={1}
@@ -4084,6 +4254,7 @@ function CustomersPageContent() {
                           <div className="flex items-center gap-1">
                             <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
                             <input
+                              id="pathB_price"
                               type="number"
                               required
                               min={1}

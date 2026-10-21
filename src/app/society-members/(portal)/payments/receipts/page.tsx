@@ -9,7 +9,12 @@ import {
   ReceiptSubmission,
   ReceiptStatus,
 } from '@/lib/mock/types';
-import { getCustomerReceipts, submitPaymentReceipt } from '@/lib/dal/receipts';
+import {
+  getCustomerReceipts,
+  submitPaymentReceipt,
+  isExecutableReceiptFile,
+  DISALLOWED_EXECUTABLE_MESSAGE,
+} from '@/lib/dal/receipts';
 import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { compressAndEncodeReceipt } from '@/lib/utils/imageCompression';
 import { toSafeErrorMessage } from '@/lib/safeError';
@@ -36,19 +41,8 @@ import {
   Loader2,
   ArrowRight,
 } from 'lucide-react';
+import { BankCombobox } from '@/components/receipts/BankCombobox';
 
-const DEPOSITORY_BANKS = [
-  'Meezan Bank Ltd',
-  'Habib Bank Limited (HBL)',
-  'Bank Alfalah',
-  'United Bank Limited (UBL)',
-  'MCB Bank',
-  'National Bank of Pakistan (NBP)',
-  'Faysal Bank',
-  'Askari Bank',
-  'Allied Bank Limited (ABL)',
-  'Standard Chartered Bank',
-];
 
 function SubmittedReceiptsContent() {
   const searchParams = useSearchParams();
@@ -72,7 +66,7 @@ function SubmittedReceiptsContent() {
   const [formPaymentKind, setFormPaymentKind] = useState<'regular' | 'balloon'>('regular');
   const [formInstallmentNo, setFormInstallmentNo] = useState<number>(1);
   const [formAmount, setFormAmount] = useState<string>('');
-  const [formBankName, setFormBankName] = useState<string>('Meezan Bank Ltd');
+  const [formBankName, setFormBankName] = useState<string>('Meezan Bank Limited');
   const [formTxnRef, setFormTxnRef] = useState<string>('');
   const [formDate, setFormDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [formFileName, setFormFileName] = useState<string>('');
@@ -265,6 +259,15 @@ function SubmittedReceiptsContent() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (await isExecutableReceiptFile(file)) {
+      setSelectedReceiptFile(null);
+      setFormFileName('');
+      setUploadError(DISALLOWED_EXECUTABLE_MESSAGE);
+      e.target.value = '';
+      return;
+    }
+
     setSelectedReceiptFile(file);
     setFormFileName(file.name);
     setUploadError(null);
@@ -279,6 +282,12 @@ function SubmittedReceiptsContent() {
       setUploadError('Please select a photo or scan of your bank deposit slip.');
       return;
     }
+
+    if (selectedReceiptFile && (await isExecutableReceiptFile(selectedReceiptFile))) {
+      setUploadError(DISALLOWED_EXECUTABLE_MESSAGE);
+      return;
+    }
+
     if (!formPlotId) {
       setUploadError('Please select a plot.');
       return;
@@ -340,8 +349,6 @@ function SubmittedReceiptsContent() {
       }
     }
 
-    setShowUploadModal(false);
-
     // Optimistic addition
     const tempId = `temp-${Date.now()}`;
     const optimisticReceipt: ReceiptSubmission = {
@@ -393,6 +400,7 @@ function SubmittedReceiptsContent() {
       });
 
       if (res.ok && res.receipt) {
+        setShowUploadModal(false);
         setReceipts((prev) =>
           prev.map((r) => (r.id === tempId ? { ...res.receipt!, status: 'pending' as const } : r))
         );
@@ -403,20 +411,40 @@ function SubmittedReceiptsContent() {
         });
         loadReceiptsData(true);
       } else {
+        const rawErr = `${res.message || ''} ${res.error || ''}`.toLowerCase();
+        const isExec =
+          rawErr.includes('disallowed_executable_content') ||
+          rawErr.includes('program content') ||
+          rawErr.includes('disallowed executable');
+        const errMsg = isExec
+          ? DISALLOWED_EXECUTABLE_MESSAGE
+          : toSafeErrorMessage(res.message || 'Failed to submit receipt. Please try again.');
+        setShowUploadModal(true);
+        setUploadError(errMsg);
         setReceipts((prev) => prev.filter((r) => r.id !== tempId));
         setBottomNotice({
           id: tempId,
           type: 'error',
-          message: toSafeErrorMessage(res.message || 'Failed to submit receipt. Please try again.'),
+          message: errMsg,
         });
       }
     } catch (err: any) {
       if (err?.message !== 'REQUEST_SUPERSEDED') {
+        const rawErr = (err?.message || '').toLowerCase();
+        const isExec =
+          rawErr.includes('disallowed_executable_content') ||
+          rawErr.includes('program content') ||
+          rawErr.includes('disallowed executable');
+        const errMsg = isExec
+          ? DISALLOWED_EXECUTABLE_MESSAGE
+          : toSafeErrorMessage(err?.message || 'Something went wrong. Please try again.');
+        setShowUploadModal(true);
+        setUploadError(errMsg);
         setReceipts((prev) => prev.filter((r) => r.id !== tempId));
         setBottomNotice({
           id: tempId,
           type: 'error',
-          message: toSafeErrorMessage(err?.message || 'Something went wrong. Please try again.'),
+          message: errMsg,
         });
       }
     } finally {
@@ -964,18 +992,11 @@ function SubmittedReceiptsContent() {
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
                     Depository Bank <span className="text-rose-600">*</span>
                   </label>
-                  <select
+                  <BankCombobox
                     value={formBankName}
-                    onChange={(e) => setFormBankName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] cursor-pointer"
+                    onChange={setFormBankName}
                     required
-                  >
-                    {DEPOSITORY_BANKS.map((b) => (
-                      <option key={b} value={b}>
-                        {b}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="space-y-1.5">

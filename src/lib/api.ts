@@ -58,6 +58,15 @@ export interface ApiResponse<T> {
 }
 
 function sanitizeErrorMessage(rawMessage?: any, rawError?: any): string {
+  const combined = `${rawMessage || ''} ${rawError || ''}`.toLowerCase();
+  if (
+    combined.includes('disallowed_executable_content') ||
+    combined.includes('disallowed executable') ||
+    combined.includes('program content')
+  ) {
+    return 'This file was not accepted. A receipt must be a photo or a PDF. This file contains program content, so it cannot be uploaded.';
+  }
+
   if (Array.isArray(rawMessage)) {
     return rawMessage.join(', ');
   }
