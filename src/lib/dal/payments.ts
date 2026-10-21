@@ -90,13 +90,24 @@ export async function getPaymentSchedule(
 
       const bookingPayments = allPayments
         .filter((p) => p.bookingId === booking.id || p.plotId === plot.id)
-        .map((p) => ({
-          ...p,
-          dueDate: p.dueDate ? String(p.dueDate).split('T')[0] : '',
-          paidDate: p.paidDate ? String(p.paidDate).split('T')[0] : undefined,
-          amount: Number(p.amount) || 0,
-          paidAmount: Number(p.paidAmount) || 0,
-        }));
+        .map((p) => {
+          const amt = Number(p.amount) || 0;
+          const paid = Number(p.paidAmount) || 0;
+          let status = p.status;
+          if (paid >= amt && amt > 0) {
+            status = 'paid';
+          } else if (paid > 0 && paid < amt) {
+            status = 'partially_paid';
+          }
+          return {
+            ...p,
+            status,
+            dueDate: p.dueDate ? String(p.dueDate).split('T')[0] : '',
+            paidDate: p.paidDate ? String(p.paidDate).split('T')[0] : undefined,
+            amount: amt,
+            paidAmount: paid,
+          };
+        });
 
       // Plot price payments only
       const plotPricePayments = bookingPayments.filter(
@@ -185,19 +196,23 @@ export async function getPaymentHistory(
     const transactions: PaymentTransaction[] = [];
 
     for (const payment of payments) {
-      const isPaid = payment.status === 'paid';
-      const isPartial = payment.status === 'partially_paid' && Number(payment.paidAmount) > 0;
+      const amt = Number(payment.amount) || 0;
+      const paid = Number(payment.paidAmount) || 0;
+      const isPaid = (payment.status === 'paid' || paid >= amt) && !(paid > 0 && paid < amt);
+      const isPartial = payment.status === 'partially_paid' || (paid > 0 && paid < amt);
       if (isPaid || isPartial || payment.transactionRef) {
         const plot = plotMap.get(payment.plotId);
         const plotNumber = plot ? plot.plotNumber : 'Plot';
 
         let desc = 'Plot Payment';
         if (payment.feeType === 'plot_downpayment') {
-          desc = 'Plot Upfront Downpayment';
-        } else if (payment.feeType === 'plot_biannual' && payment.installmentNumber) {
-          desc = `Bi-Annual #${payment.installmentNumber} Payment`;
+          desc = 'Down Payment';
+        } else if (payment.feeType === 'plot_possession') {
+          desc = 'Possession Fee';
+        } else if (payment.feeType === 'plot_biannual' || String(payment.feeType || '').toLowerCase().includes('biannual')) {
+          desc = payment.installmentNumber ? `Bi-Annual #${payment.installmentNumber} Payment` : 'Bi-Annual Payment';
         } else if (payment.feeType === 'plot_installment' && payment.installmentNumber) {
-          desc = `Installment #${payment.installmentNumber} Payment`;
+          desc = `Monthly #${payment.installmentNumber} Payment`;
         } else if (payment.feeType === 'plot_one_time') {
           desc = 'Full Payment';
         } else {

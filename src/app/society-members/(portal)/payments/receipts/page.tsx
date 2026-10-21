@@ -42,7 +42,12 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { BankCombobox } from '@/components/receipts/BankCombobox';
-
+const formatPKR = (amount: number) =>
+  new Intl.NumberFormat('en-PK', {
+    style: 'currency',
+    currency: 'PKR',
+    maximumFractionDigits: 0,
+  }).format(amount);
 
 function SubmittedReceiptsContent() {
   const searchParams = useSearchParams();
@@ -215,6 +220,32 @@ function SubmittedReceiptsContent() {
     }, 0);
   }, []);
 
+  const isBiannualReceiptItem = useCallback((item: any): boolean => {
+    return (
+      item?.feeType === 'plot_biannual' ||
+      String(item?.feeType || '').toLowerCase().includes('biannual') ||
+      String(item?.label || '').toLowerCase().includes('bi-annual') ||
+      String(item?.label || '').toLowerCase().includes('biannual') ||
+      String(item?.feeTitle || '').toLowerCase().includes('bi-annual') ||
+      String(item?.feeTitle || '').toLowerCase().includes('biannual')
+    );
+  }, []);
+
+  const getResolvedReceiptInstallmentNo = useCallback((item: any, sched?: any): number => {
+    if (!item) return 1;
+    if (isBiannualReceiptItem(item)) {
+      if (sched && Array.isArray(sched.schedule)) {
+        const biannuals = sched.schedule
+          .filter(isBiannualReceiptItem)
+          .sort((a: any, b: any) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+        const idx = biannuals.findIndex((x: any) => (x.id && x.id === item.id) || x.dueDate === item.dueDate);
+        if (idx >= 0) return idx + 1;
+      }
+      return item.installmentNumber || 1;
+    }
+    return item.installmentNumber || 1;
+  }, [isBiannualReceiptItem]);
+
   const openUploadModal = (plotId?: string, installmentNo?: number, amount?: number) => {
     const targetPlotId = plotId || initialPlotParam || (availablePlotOptions.length > 0 ? availablePlotOptions[0].id : '');
     setFormPlotId(targetPlotId);
@@ -229,13 +260,16 @@ function SubmittedReceiptsContent() {
       const fullUnpaid = getTotalStillOwed(sched);
       setFormAmount(String(fullUnpaid));
       setFormInstallmentNo(1);
+      setFormFeeType('plot_one_time');
     } else {
       const nextBill = getNextUnpaidBill(sched);
       if (nextBill) {
-        setFormInstallmentNo(nextBill.installmentNumber || 0);
+        setFormFeeType(nextBill.feeType || 'plot_installment');
+        setFormInstallmentNo(getResolvedReceiptInstallmentNo(nextBill, sched));
         const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
         setFormAmount(String(outstanding));
       } else {
+        setFormFeeType('plot_installment');
         setFormInstallmentNo(installmentNo || 1);
         setFormAmount(amount !== undefined ? String(amount) : '0');
       }
@@ -278,15 +312,7 @@ function SubmittedReceiptsContent() {
       const nextBill = getNextUnpaidBill(sched);
       if (nextBill) {
         setFormFeeType(nextBill.feeType || 'plot_installment');
-        if (nextBill.feeType === 'plot_biannual') {
-          const biannuals = (sched?.schedule || [])
-            .filter((x) => x.feeType === 'plot_biannual')
-            .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
-          const idx = biannuals.findIndex((x) => x.id === nextBill.id);
-          setFormInstallmentNo(idx >= 0 ? idx + 1 : (nextBill.installmentNumber || 1));
-        } else {
-          setFormInstallmentNo(nextBill.installmentNumber || 0);
-        }
+        setFormInstallmentNo(getResolvedReceiptInstallmentNo(nextBill, sched));
         const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
         setFormAmount(String(outstanding));
       } else {
@@ -494,13 +520,6 @@ function SubmittedReceiptsContent() {
       setIsSubmittingReceipt(false);
     }
   };
-
-  const formatPKR = (amount: number) =>
-    new Intl.NumberFormat('en-PK', {
-      style: 'currency',
-      currency: 'PKR',
-      maximumFractionDigits: 0,
-    }).format(amount);
 
   // Group receipts by plot
   interface PlotReceiptGroup {
@@ -740,7 +759,7 @@ function SubmittedReceiptsContent() {
                               <span className="font-semibold text-xs sm:text-sm text-[#151914]">
                                 {(sub as any).paymentKind === 'balloon'
                                   ? 'Balloon Payment'
-                                  : (sub as any).feeType === 'plot_biannual'
+                                  : isBiannualReceiptItem(sub)
                                   ? `Bi-Annual #${sub.installmentNumber || 1}`
                                   : sub.paymentType === 'installment'
                                   ? `Installment #${sub.installmentNumber || 1}`
@@ -948,7 +967,8 @@ function SubmittedReceiptsContent() {
                           const sched = schedules.find((s) => s.plotId === formPlotId);
                           const nextBill = getNextUnpaidBill(sched);
                           if (nextBill) {
-                            setFormInstallmentNo(nextBill.installmentNumber || 0);
+                            setFormFeeType(nextBill.feeType || 'plot_installment');
+                            setFormInstallmentNo(getResolvedReceiptInstallmentNo(nextBill, sched));
                             const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
                             setFormAmount(String(outstanding));
                           }
@@ -984,7 +1004,15 @@ function SubmittedReceiptsContent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                    {formPaymentType === 'one_time' ? 'Reference' : formFeeType === 'plot_biannual' ? 'Bi-Annual Bill' : 'Installment Bill'}
+                    {formPaymentType === 'one_time'
+                      ? 'Reference'
+                      : formFeeType === 'plot_downpayment'
+                      ? 'Down Payment Bill'
+                      : formFeeType === 'plot_possession'
+                      ? 'Possession Bill'
+                      : isBiannualReceiptItem({ feeType: formFeeType })
+                      ? 'Bi-Annual Bill'
+                      : 'Monthly Installment Bill'}
                   </label>
                   <input
                     type="text"
@@ -992,13 +1020,73 @@ function SubmittedReceiptsContent() {
                     value={
                       formPaymentType === 'one_time'
                         ? 'Full Balance Settlement'
-                        : formFeeType === 'plot_biannual'
+                        : formFeeType === 'plot_downpayment'
+                        ? 'Down Payment'
+                        : formFeeType === 'plot_possession'
+                        ? 'Possession'
+                        : isBiannualReceiptItem({ feeType: formFeeType })
                         ? `Bi-Annual #${formInstallmentNo}`
-                        : `Installment #${formInstallmentNo}`
+                        : `Monthly #${formInstallmentNo}`
                     }
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-[#FAF9F7] text-[#4A5347] font-semibold cursor-not-allowed"
                   />
                 </div>
+
+                {/* Target Bill Breakdown Notice */}
+                {formPaymentType === 'installment' && formPaymentKind === 'regular' && (() => {
+                  const sched = schedules.find((s) => s.plotId === formPlotId);
+                  const nextBill = getNextUnpaidBill(sched);
+                  if (!nextBill) return null;
+                  const currentUnpaidOnNextBill = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
+                  const isPartial = Number(nextBill.paidAmount || 0) > 0 && Number(nextBill.paidAmount || 0) < Number(nextBill.amount || 0);
+                  const billLabel =
+                    nextBill.feeType === 'plot_downpayment'
+                      ? 'Down Payment'
+                      : nextBill.feeType === 'plot_possession'
+                      ? 'Possession'
+                      : isBiannualReceiptItem(nextBill)
+                      ? `Bi-Annual #${getResolvedReceiptInstallmentNo(nextBill, sched)}`
+                      : `Monthly #${nextBill.installmentNumber || 1}`;
+
+                  return (
+                    <div className={`sm:col-span-2 p-3.5 rounded-2xl border text-xs ${
+                      isPartial
+                        ? 'bg-amber-50/70 border-amber-200 text-amber-950'
+                        : 'bg-[#FAF9F5] border-[#43612B]/20 text-[#151914]'
+                    }`}>
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-xs sm:text-sm">
+                          Target Bill: {billLabel}
+                        </span>
+                        {isPartial ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                            Partially Paid
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EAF0E7] text-[#43612B]">
+                            Next Due
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#6B7462]">
+                        <div>
+                          Due Date: <span className="font-semibold text-[#151914]">{nextBill.dueDate ? String(nextBill.dueDate).split('T')[0] : '—'}</span>
+                        </div>
+                        <div>
+                          Total Bill: <span className="font-semibold text-[#151914]">{formatPKR(Number(nextBill.amount))}</span>
+                        </div>
+                        {isPartial && (
+                          <div>
+                            Paid: <span className="font-semibold text-emerald-800">{formatPKR(Number(nextBill.paidAmount || 0))}</span>
+                          </div>
+                        )}
+                        <div>
+                          Remaining Due: <span className="font-bold text-[#43612B]">{formatPKR(currentUnpaidOnNextBill)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">

@@ -290,7 +290,7 @@ export function buildSlipDataFromSubmission(
   const isFullPaymentPlan = isFullPayment || isFullSettlementCategory || (!isInstallmentsPlan && isExplicitOneTime);
 
   let onAccountOf = '';
-  if (feeType === 'plot_biannual') {
+  if (feeType === 'plot_biannual' || feeType.includes('biannual')) {
     onAccountOf = instNum !== null ? `Bi-Annual #${instNum}` : 'Bi-Annual';
   } else if (isInstallment) {
     onAccountOf = instNum !== null ? `Installment #${instNum}` : 'Installment';

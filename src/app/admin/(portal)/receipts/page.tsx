@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '@/lib/mock/types';
 import { getActiveAdminSession } from '@/lib/dal/adminAuth';
-import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl, cancelReceipt } from '@/lib/dal/receipts';
+import { getAdminReceipts, verifyReceipt, rejectReceipt, getReceiptFileUrl } from '@/lib/dal/receipts';
 import { AdminTableSkeleton } from '@/components/ui/skeleton';
 import { getCache, setCache, reconcileItems, clearCachePrefix } from '@/lib/dal/apiCache';
 import { AdminTableShell } from '@/components/admin/table/AdminTableShell';
@@ -81,12 +81,6 @@ export default function AdminReceiptsPage() {
   const [approvedSuccessId, setApprovedSuccessId] = useState<string | null>(null);
   const [decliningReceiptId, setDecliningReceiptId] = useState<string | null>(null);
   const [rejectModalError, setRejectModalError] = useState<string | null>(null);
-
-  // Cancel modal state (super_admin only)
-  const [cancelModalReceipt, setCancelModalReceipt] = useState<ReceiptSubmission | null>(null);
-  const [cancelReasonCode, setCancelReasonCode] = useState<'administrative_error' | 'duplicate_receipt'>('administrative_error');
-  const [cancelReason, setCancelReason] = useState('');
-  const [cancelConfirmed, setCancelConfirmed] = useState(false);
 
   const reqIdRef = React.useRef(0);
   const [searchInput, setSearchInput] = useState('');
@@ -551,65 +545,6 @@ export default function AdminReceiptsPage() {
       }
     } finally {
       setDecliningReceiptId(null);
-    }
-  };
-
-  const handleCancelReceiptSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!session || !cancelModalReceipt || !cancelReason.trim() || !cancelConfirmed) return;
-    setIsProcessing(true);
-    const newIdempotencyKey = `cancel-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-    try {
-      const res = await cancelReceipt(
-        session,
-        cancelModalReceipt.id,
-        {
-          reasonCode: cancelReasonCode,
-          reason: cancelReason.trim(),
-        },
-        newIdempotencyKey
-      );
-      if (res.ok) {
-        const cancelledId = cancelModalReceipt.id;
-        const cancelledSlip = cancelModalReceipt.slipNumber || cancelModalReceipt.id;
-        setCancelModalReceipt(null);
-        setCancelReason('');
-        setCancelConfirmed(false);
-        setBottomNotice({
-          id: cancelledId,
-          type: 'success',
-          message: `Receipt ${cancelledSlip} cancelled successfully.`,
-        });
-
-        // Remove from list immediately upon server response without full reload
-        if (statusRef.current === 'pending' || statusRef.current === 'verified') {
-          setReceipts((prev) => prev.filter((r) => r.id !== cancelledId));
-          setTotalCount((prev) => Math.max(0, prev - 1));
-        } else if (statusRef.current === 'cancelled' || statusRef.current === 'all') {
-          setReceipts((prev) =>
-            prev.map((r) => (r.id === cancelledId ? { ...r, ...(res.receipt || {}), status: 'cancelled' as const } : r))
-          );
-        } else {
-          setReceipts((prev) => prev.filter((r) => r.id !== cancelledId));
-          setTotalCount((prev) => Math.max(0, prev - 1));
-        }
-
-        clearCachePrefix('/receipts:');
-      } else {
-        setBottomNotice({
-          id: cancelModalReceipt.id,
-          type: 'error',
-          message: res.message || 'Failed to cancel receipt.',
-        });
-      }
-    } catch (err: any) {
-      setBottomNotice({
-        id: cancelModalReceipt.id,
-        type: 'error',
-        message: err?.message || 'Error cancelling receipt.',
-      });
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -1087,26 +1022,6 @@ export default function AdminReceiptsPage() {
                       <Printer className="w-3.5 h-3.5 text-[#D4AF37]" />
                       <span>View / Print A4 Slip</span>
                     </button>
-
-                    {(session?.role === 'super_admin' || Boolean(session?.permissions?.can_verify_receipts)) && (
-                      <>
-
-                        <button
-                          type="button"
-                          id={`cancel-receipt-${sub.id}`}
-                          onClick={() => {
-                            setCancelModalReceipt(sub);
-                            setCancelReasonCode('administrative_error');
-                            setCancelReason('');
-                            setCancelConfirmed(false);
-                          }}
-                          className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[44px]"
-                        >
-                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Cancel</span>
-                        </button>
-                      </>
-                    )}
                   </div>
                 )}
               </div>

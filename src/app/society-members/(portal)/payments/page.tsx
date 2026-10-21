@@ -73,6 +73,33 @@ function getNextUnpaidBill(sched?: PlotPaymentSchedule | null): import('@/lib/mo
   return unpaid[0] || null;
 }
 
+function isBiannualPaymentItem(bill: any): boolean {
+  return (
+    bill?.feeType === 'plot_biannual' ||
+    String(bill?.feeType || '').toLowerCase().includes('biannual') ||
+    String(bill?.label || '').toLowerCase().includes('bi-annual') ||
+    String(bill?.label || '').toLowerCase().includes('biannual')
+  );
+}
+
+function getResolvedBillInstallmentNumber(
+  bill: import('@/lib/mock/types').PaymentRecord | null,
+  sched?: PlotPaymentSchedule | null
+): number {
+  if (!bill) return 1;
+  if (isBiannualPaymentItem(bill)) {
+    if (sched && sched.schedule) {
+      const biannuals = sched.schedule
+        .filter(isBiannualPaymentItem)
+        .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+      const idx = biannuals.findIndex((x) => (x.id && x.id === bill.id) || x.dueDate === bill.dueDate);
+      if (idx >= 0) return idx + 1;
+    }
+    return bill.installmentNumber || 1;
+  }
+  return bill.installmentNumber || 1;
+}
+
 function getBillLabel(
   bill: import('@/lib/mock/types').PaymentRecord | null,
   sched?: PlotPaymentSchedule | null
@@ -80,20 +107,13 @@ function getBillLabel(
   if (!bill) return 'No unpaid installments';
   if (bill.feeType === 'plot_downpayment') return 'Down Payment';
   if (bill.feeType === 'plot_possession') {
-    return bill.installmentNumber ? `Installment #${bill.installmentNumber} (Possession)` : 'Possession Bill';
+    return 'Possession';
   }
-  if (bill.feeType === 'plot_biannual') {
-    let bNum = bill.installmentNumber;
-    if (sched && sched.schedule) {
-      const biannuals = sched.schedule
-        .filter((x) => x.feeType === 'plot_biannual')
-        .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
-      const idx = biannuals.findIndex((x) => x.id === bill.id);
-      if (idx >= 0) bNum = idx + 1;
-    }
-    return `Bi-Annual #${bNum || 1}`;
+  if (isBiannualPaymentItem(bill)) {
+    const bNum = getResolvedBillInstallmentNumber(bill, sched);
+    return `Bi-Annual #${bNum}`;
   }
-  return `Installment #${bill.installmentNumber || 1}`;
+  return `Monthly #${bill.installmentNumber || 1}`;
 }
 
 function getTotalStillOwed(sched?: PlotPaymentSchedule | null): number {
@@ -339,7 +359,7 @@ function PaymentsContent() {
           } else {
             const nextBill = getNextUnpaidBill(matchingSchedule);
             if (nextBill) {
-              setFormInstallmentNo(nextBill.installmentNumber || 0);
+              setFormInstallmentNo(getResolvedBillInstallmentNumber(nextBill, matchingSchedule));
               const unpaid = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
               setFormAmount(String(unpaid));
             }
@@ -368,7 +388,7 @@ function PaymentsContent() {
       } else {
         const nextBill = getNextUnpaidBill(sched);
         if (nextBill) {
-          setFormInstallmentNo(nextBill.installmentNumber || 0);
+          setFormInstallmentNo(getResolvedBillInstallmentNumber(nextBill, sched));
           const unpaid = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
           setFormAmount(String(unpaid));
         }
@@ -390,10 +410,13 @@ function PaymentsContent() {
     plotId: string;
     dueDate: string;
     amount: number;
+    totalAmount?: number;
+    paidAmount?: number;
     installmentNumber: number;
     feeType?: string;
     displayNumber: number;
     isOverdue: boolean;
+    isPartiallyPaid?: boolean;
   }
 
   let upcomingAlert: UpcomingAlert | null = null;
@@ -412,6 +435,8 @@ function PaymentsContent() {
         .sort((a, b) => {
           if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
           if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
+          if (a.feeType === 'plot_possession' && b.feeType !== 'plot_possession') return 1;
+          if (b.feeType === 'plot_possession' && a.feeType !== 'plot_possession') return -1;
           const cmp = String(a.dueDate || '').localeCompare(String(b.dueDate || ''));
           if (cmp !== 0) return cmp;
           return (a.installmentNumber || 0) - (b.installmentNumber || 0);
@@ -427,24 +452,30 @@ function PaymentsContent() {
           (isItemOverdue && !upcomingAlert.isOverdue) ||
           (!upcomingAlert.isOverdue && nextItem.dueDate < upcomingAlert.dueDate)
         ) {
+          const isItemBiannual = isBiannualPaymentItem(nextItem);
           let displayNumber = nextItem.installmentNumber || 1;
-          if (nextItem.feeType === 'plot_biannual') {
+          if (isItemBiannual) {
             const biannualRecords = s.schedule
-              .filter((item) => item.feeType === 'plot_biannual')
+              .filter(isBiannualPaymentItem)
               .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
-            const bIdx = biannualRecords.findIndex((item) => item.id === nextItem.id);
+            const bIdx = biannualRecords.findIndex((item) => (item.id && item.id === nextItem.id) || item.dueDate === nextItem.dueDate);
             displayNumber = bIdx >= 0 ? bIdx + 1 : (nextItem.installmentNumber || 1);
           }
+
+          const isItemPartial = (Number(nextItem.paidAmount || 0) > 0 && Number(nextItem.paidAmount || 0) < Number(nextItem.amount));
 
           upcomingAlert = {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
             dueDate: String(nextItem.dueDate).split('T')[0],
             amount: remainingDue,
+            totalAmount: Number(nextItem.amount),
+            paidAmount: Number(nextItem.paidAmount || 0),
             installmentNumber: nextItem.installmentNumber || 1,
-            feeType: nextItem.feeType,
+            feeType: isItemBiannual ? 'plot_biannual' : nextItem.feeType,
             displayNumber,
             isOverdue: isItemOverdue,
+            isPartiallyPaid: isItemPartial,
           };
         }
       }
@@ -502,7 +533,7 @@ function PaymentsContent() {
     } else {
       const nextBill = getNextUnpaidBill(sched);
       if (nextBill) {
-        setFormInstallmentNo(nextBill.installmentNumber || 0);
+        setFormInstallmentNo(getResolvedBillInstallmentNumber(nextBill, sched));
         const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
         setFormAmount(String(outstanding));
       } else {
@@ -632,12 +663,8 @@ function PaymentsContent() {
       ? Number(retrySub ? retrySub.installmentNumber : formInstallmentNo)
       : undefined;
 
-    if (targetNextBill?.feeType === 'plot_biannual' && (retrySub ? retrySub.paymentType : formPaymentType) === 'installment') {
-      const biannuals = (targetSched?.schedule || [])
-        .filter((x) => x.feeType === 'plot_biannual')
-        .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
-      const idx = biannuals.findIndex((x) => x.id === targetNextBill.id);
-      resolvedInstallmentNumber = idx >= 0 ? idx + 1 : (targetNextBill.installmentNumber || 1);
+    if (targetNextBill && isBiannualPaymentItem(targetNextBill) && (retrySub ? retrySub.paymentType : formPaymentType) === 'installment') {
+      resolvedInstallmentNumber = getResolvedBillInstallmentNumber(targetNextBill, targetSched);
     }
 
     const optimisticReceipt: ReceiptSubmission = {
@@ -1015,18 +1042,39 @@ function PaymentsContent() {
                             : 'bg-[#43612B] text-white'
                         }`}
                       >
-                        {upcomingAlert.feeType === 'plot_biannual'
+                        {upcomingAlert.feeType === 'plot_downpayment'
+                          ? (upcomingAlert.isOverdue ? 'Overdue Down Payment Notice' : 'Upcoming Down Payment Alert')
+                          : upcomingAlert.feeType === 'plot_possession'
+                          ? (upcomingAlert.isOverdue ? 'Overdue Possession Notice' : 'Upcoming Possession Alert')
+                          : upcomingAlert.feeType === 'plot_biannual' || String(upcomingAlert.feeType || '').toLowerCase().includes('biannual')
                           ? (upcomingAlert.isOverdue ? 'Overdue Bi-Annual Notice' : 'Upcoming Bi-Annual Alert')
-                          : (upcomingAlert.isOverdue ? 'Overdue Installment Notice' : 'Upcoming Installment Alert')}
+                          : (upcomingAlert.isOverdue ? 'Overdue Monthly Installment Notice' : 'Upcoming Monthly Installment Alert')}
                       </span>
+                      {upcomingAlert.isPartiallyPaid && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                          Partially Paid
+                        </span>
+                      )}
                       <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
                     </div>
                     <p className="text-xs text-[#4A5347] leading-relaxed">
-                      {upcomingAlert.feeType === 'plot_biannual'
+                      {upcomingAlert.feeType === 'plot_downpayment'
+                        ? 'Down payment'
+                        : upcomingAlert.feeType === 'plot_possession'
+                        ? 'Possession fee'
+                        : upcomingAlert.feeType === 'plot_biannual' || String(upcomingAlert.feeType || '').toLowerCase().includes('biannual')
                         ? `Bi-Annual #${upcomingAlert.displayNumber}`
-                        : `Installment #${upcomingAlert.displayNumber}`} of{' '}
-                      <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
-                      {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
+                        : `Monthly #${upcomingAlert.displayNumber}`}{' '}
+                      {upcomingAlert.isPartiallyPaid ? (
+                        <>
+                          has a remaining balance of <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> due ({formatPKR(upcomingAlert.paidAmount || 0)} of {formatPKR(upcomingAlert.totalAmount || 0)} paid)
+                        </>
+                      ) : (
+                        <>
+                          of <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong>
+                        </>
+                      )}{' '}
+                      {upcomingAlert.isOverdue ? 'was due on' : 'is due on'}{' '}
                       <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit slip below once paid.
                     </p>
                   </div>
@@ -1037,7 +1085,7 @@ function PaymentsContent() {
                   onClick={() =>
                     openUploadModalWithPlot(
                       upcomingAlert?.plotId,
-                      upcomingAlert?.installmentNumber,
+                      upcomingAlert?.displayNumber,
                       upcomingAlert?.amount
                     )
                   }
@@ -1050,9 +1098,13 @@ function PaymentsContent() {
                   <Upload className="w-3.5 h-3.5" />
                   <span>
                     Upload Receipt for{' '}
-                    {upcomingAlert.feeType === 'plot_biannual'
+                    {upcomingAlert.feeType === 'plot_downpayment'
+                      ? 'Down Payment'
+                      : upcomingAlert.feeType === 'plot_possession'
+                      ? 'Possession'
+                      : upcomingAlert.feeType === 'plot_biannual' || String(upcomingAlert.feeType || '').toLowerCase().includes('biannual')
                       ? `Bi-Annual #${upcomingAlert.displayNumber}`
-                      : `Inst. #${upcomingAlert.displayNumber}`}
+                      : `Monthly #${upcomingAlert.displayNumber}`}
                   </span>
                 </button>
               </div>
@@ -1483,7 +1535,7 @@ function PaymentsContent() {
                       } else {
                         const nextBill = getNextUnpaidBill(sched);
                         if (nextBill) {
-                          setFormInstallmentNo(nextBill.installmentNumber || 0);
+                          setFormInstallmentNo(getResolvedBillInstallmentNumber(nextBill, sched));
                           const unpaid = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
                           setFormAmount(String(unpaid));
                         } else {
@@ -1608,11 +1660,23 @@ function PaymentsContent() {
                 {formPaymentType === 'installment' && formPaymentKind === 'regular' && (() => {
                   const currentSched = schedules.find((s) => s.plotId === formPlotId);
                   const currentNextBill = getNextUnpaidBill(currentSched);
+                  const billLabel = getBillLabel(currentNextBill, currentSched);
+                  const isPartial = currentNextBill && Number(currentNextBill.paidAmount || 0) > 0 && Number(currentNextBill.paidAmount || 0) < Number(currentNextBill.amount || 0);
+                  const currentUnpaidOnNextBill = currentNextBill
+                    ? Math.max(0, (Number(currentNextBill.amount) || 0) - (Number(currentNextBill.paidAmount) || 0))
+                    : 0;
+
                   return (
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
-                          {currentNextBill?.feeType === 'plot_biannual' ? 'Bi-Annual Bill' : 'Installment Bill'}
+                          {currentNextBill?.feeType === 'plot_downpayment'
+                            ? 'Down Payment Bill'
+                            : currentNextBill?.feeType === 'plot_possession'
+                            ? 'Possession Bill'
+                            : isBiannualPaymentItem(currentNextBill)
+                            ? 'Bi-Annual Bill'
+                            : 'Monthly Installment Bill'}
                         </label>
                         <span className="text-[10px] text-[#6B7462] flex items-center gap-1 font-medium">
                           <ShieldCheck className="w-3 h-3 text-[#43612B]" />
@@ -1627,11 +1691,63 @@ function PaymentsContent() {
                         </div>
                         <input
                           type="text"
-                          value={getBillLabel(currentNextBill, currentSched)}
+                          value={
+                            isPartial
+                              ? `${billLabel} (Partially Paid — Remaining PKR ${currentUnpaidOnNextBill.toLocaleString()} Due)`
+                              : billLabel
+                          }
                           disabled
                           readOnly
                           className="w-full pl-9 pr-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-black/5 text-[#6B7462] cursor-not-allowed font-medium"
                         />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Target Bill Breakdown Notice */}
+                {formPaymentType === 'installment' && formPaymentKind === 'regular' && (() => {
+                  const currentSched = schedules.find((s) => s.plotId === formPlotId);
+                  const currentNextBill = getNextUnpaidBill(currentSched);
+                  if (!currentNextBill) return null;
+                  const currentUnpaidOnNextBill = Math.max(0, (Number(currentNextBill.amount) || 0) - (Number(currentNextBill.paidAmount) || 0));
+                  const isPartial = Number(currentNextBill.paidAmount || 0) > 0 && Number(currentNextBill.paidAmount || 0) < Number(currentNextBill.amount || 0);
+
+                  return (
+                    <div className={`sm:col-span-2 p-3.5 rounded-2xl border text-xs ${
+                      isPartial
+                        ? 'bg-amber-50/70 border-amber-200 text-amber-950'
+                        : 'bg-[#FAF9F5] border-[#43612B]/20 text-[#151914]'
+                    }`}>
+                      <div className="flex items-center justify-between font-bold">
+                        <span className="text-xs sm:text-sm">
+                          Target Bill: {getBillLabel(currentNextBill, currentSched)}
+                        </span>
+                        {isPartial ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                            Partially Paid
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#EAF0E7] text-[#43612B]">
+                            Next Due
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#6B7462]">
+                        <div>
+                          Due Date: <span className="font-semibold text-[#151914]">{currentNextBill.dueDate ? String(currentNextBill.dueDate).split('T')[0] : '—'}</span>
+                        </div>
+                        <div>
+                          Total Bill: <span className="font-semibold text-[#151914]">{formatPKR(currentNextBill.amount)}</span>
+                        </div>
+                        {isPartial && (
+                          <div>
+                            Paid: <span className="font-semibold text-emerald-800">{formatPKR(currentNextBill.paidAmount || 0)}</span>
+                          </div>
+                        )}
+                        <div>
+                          Remaining Amount Due: <span className="font-bold text-[#43612B]">{formatPKR(currentUnpaidOnNextBill)}</span>
+                        </div>
                       </div>
                     </div>
                   );
@@ -1753,7 +1869,11 @@ function PaymentsContent() {
                         <div className="space-y-1 bg-white/50 rounded-lg p-2 border border-[#43612B]/10">
                           {rows.map((a: any, i: number) => (
                             <div key={i} className="text-[11px] text-[#151914] flex justify-between border-b border-[#43612B]/10 py-1.5 last:border-0 font-medium">
-                              <span>{a.installmentNumber ? `Installment #${a.installmentNumber}` : 'Installment Alloc'}</span>
+                              <span>
+                                {isBiannualPaymentItem(a)
+                                  ? (a.installmentNumber ? `Bi-Annual #${a.installmentNumber}` : 'Bi-Annual Alloc')
+                                  : (a.installmentNumber ? `Installment #${a.installmentNumber}` : 'Installment Alloc')}
+                              </span>
                               <span className="font-mono text-[#43612B]">Rs. {Number(a.amountApplied || 0).toLocaleString()}</span>
                             </div>
                           ))}

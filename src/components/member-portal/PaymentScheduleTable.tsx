@@ -49,6 +49,25 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
 
   const cleanDate = (val?: string | null) => (val ? String(val).split('T')[0] : '');
 
+  const isBiannualRecord = (record: PaymentRecord) =>
+    record && (
+      record.feeType === 'plot_biannual' ||
+      String(record.feeType || '').toLowerCase().includes('biannual') ||
+      String(record.feeType || '').toLowerCase().includes('bi_annual') ||
+      String((record as any).label || '').toLowerCase().includes('biannual') ||
+      String((record as any).label || '').toLowerCase().includes('bi-annual')
+    );
+
+  const getBiannualNumber = (record: PaymentRecord) => {
+    let bNum = record.installmentNumber;
+    const biannuals = schedule
+      .filter(isBiannualRecord)
+      .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
+    const idx = biannuals.findIndex((x) => x.id === record.id);
+    if (idx >= 0) bNum = idx + 1;
+    return bNum || 1;
+  };
+
   const getFeeTypeBadge = (record: PaymentRecord) => {
     if (record.feeType === 'plot_downpayment') {
       return (
@@ -57,10 +76,10 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
         </span>
       );
     }
-    if (record.feeType === 'plot_biannual') {
+    if (isBiannualRecord(record)) {
       return (
         <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-sky-50 text-sky-800 text-[11px] font-bold border border-sky-200">
-          Bi-Annual #{record.installmentNumber || ''}
+          Bi-Annual #{getBiannualNumber(record)}
         </span>
       );
     }
@@ -78,16 +97,34 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
         </span>
       );
     }
-    return `Installment #${record.installmentNumber || '1'}`;
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-800 text-[11px] font-bold border border-slate-200">
+        Monthly #{record.installmentNumber || '1'}
+      </span>
+    );
   };
 
   const getFeeTypeTitle = (record: PaymentRecord) => {
     if (record.feeType === 'plot_downpayment') return 'Down payment';
-    if (record.feeType === 'plot_biannual') return `Bi-Annual #${record.installmentNumber || '1'}`;
+    if (isBiannualRecord(record)) return `Bi-Annual #${getBiannualNumber(record)}`;
     if (record.feeType === 'plot_possession') return 'Possession';
     if (record.feeType === 'plot_one_time') return 'Full Payment';
-    return `Installment #${record.installmentNumber || '1'}`;
+    return `Monthly #${record.installmentNumber || '1'}`;
   };
+
+  const isOverduePartial = overdueInstallment
+    ? (Number(overdueInstallment.paidAmount || 0) > 0 && Number(overdueInstallment.paidAmount || 0) < Number(overdueInstallment.amount || 0)) || overdueInstallment.status === 'partially_paid'
+    : false;
+  const overdueRemaining = overdueInstallment
+    ? Math.max(0, Number(overdueInstallment.amount) - Number(overdueInstallment.paidAmount || 0))
+    : 0;
+
+  const isPendingPartial = nextPendingInstallment
+    ? (Number(nextPendingInstallment.paidAmount || 0) > 0 && Number(nextPendingInstallment.paidAmount || 0) < Number(nextPendingInstallment.amount || 0)) || nextPendingInstallment.status === 'partially_paid'
+    : false;
+  const pendingRemaining = nextPendingInstallment
+    ? Math.max(0, Number(nextPendingInstallment.amount) - Number(nextPendingInstallment.paidAmount || 0))
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -98,39 +135,55 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
             <AlertCircle className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-bold text-sm text-red-800">
-              Action Required: {getFeeTypeTitle(overdueInstallment)} is Overdue
+            <h4 className="font-bold text-sm text-red-800 flex items-center gap-2 flex-wrap">
+              <span>Action Required: {getFeeTypeTitle(overdueInstallment)} is Overdue</span>
+              {isOverduePartial && (
+                <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                  Partially Paid
+                </span>
+              )}
             </h4>
             <p className="text-xs text-red-700 leading-relaxed">
-              {overdueInstallment.feeType === 'plot_biannual' ? 'A bi-annual bill of ' : 'An installment of '}
-              <span className="font-bold">{formatPKR(Math.max(0, Number(overdueInstallment.amount) - Number(overdueInstallment.paidAmount || 0)))}</span> was due on{' '}
-              <span className="font-bold">{cleanDate(overdueInstallment.dueDate)}</span>. Please submit payment
-              to the society accounts office to avoid any surcharge.
+              {isOverduePartial ? (
+                <>
+                  A remaining balance of <span className="font-bold">{formatPKR(overdueRemaining)}</span> for{' '}
+                  <span className="font-bold">{getFeeTypeTitle(overdueInstallment)}</span>{' '}
+                  ({formatPKR(Number(overdueInstallment.paidAmount || 0))} of {formatPKR(Number(overdueInstallment.amount))} paid) was due on{' '}
+                  <span className="font-bold">{cleanDate(overdueInstallment.dueDate)}</span>.
+                </>
+              ) : (
+                <>
+                  <span className="font-bold">{getFeeTypeTitle(overdueInstallment)}</span> of{' '}
+                  <span className="font-bold">{formatPKR(Number(overdueInstallment.amount))}</span> was due on{' '}
+                  <span className="font-bold">{cleanDate(overdueInstallment.dueDate)}</span>.
+                </>
+              )}{' '}
+              Please submit payment to the society accounts office to avoid any surcharge.
             </p>
           </div>
         </div>
       ) : nextPendingInstallment ? (
-        <div className="bg-[#FAF9F7] border border-[#43612B]/20 rounded-2xl p-4 sm:p-5 flex items-start gap-4">
+        <div className="bg-[#FAF9F5] border border-[#43612B]/20 rounded-2xl p-4 sm:p-5 flex items-start gap-4">
           <div className="w-10 h-10 rounded-xl bg-[#EAF0E7] flex items-center justify-center shrink-0 text-[#43612B]">
             <Calendar className="w-5 h-5" />
           </div>
           <div className="space-y-1">
-            <h4 className="font-bold text-sm text-[#151914]">
-              Next Upcoming Due: {getFeeTypeTitle(nextPendingInstallment)}
-              {nextPendingInstallment.status === 'partially_paid' && (
-                <span className="ml-2 text-xs font-bold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-full">
-                  Partially Settled
+            <h4 className="font-bold text-sm text-[#151914] flex items-center gap-2 flex-wrap">
+              <span>Next Upcoming Due: {getFeeTypeTitle(nextPendingInstallment)}</span>
+              {isPendingPartial && (
+                <span className="text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                  Partially Paid
                 </span>
               )}
             </h4>
             <p className="text-xs text-[#6B7462] leading-relaxed">
               Due Date: <span className="font-bold text-[#151914]">{cleanDate(nextPendingInstallment.dueDate)}</span> &bull; Remaining Due:{' '}
               <span className="font-bold text-[#43612B]">
-                {formatPKR(nextPendingInstallment.amount - (nextPendingInstallment.paidAmount || 0))}
+                {formatPKR(pendingRemaining)}
               </span>
-              {nextPendingInstallment.status === 'partially_paid' && (
+              {isPendingPartial && (
                 <span className="text-[11px] text-amber-700 font-semibold ml-1.5">
-                  ({formatPKR(nextPendingInstallment.paidAmount || 0)} of {formatPKR(nextPendingInstallment.amount)} paid)
+                  ({formatPKR(Number(nextPendingInstallment.paidAmount || 0))} of {formatPKR(Number(nextPendingInstallment.amount))} paid)
                 </span>
               )}
             </p>
@@ -176,7 +229,11 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
           <span className="text-xs font-semibold text-[#6B7462]">
             {schedule.length === 0
               ? 'Pending Plan Assignment'
-              : `${schedule.filter((p) => p.status === 'paid').length} of ${schedule.length} Paid`}
+              : `${schedule.filter((p) => {
+                  const amt = Number(p.amount || 0);
+                  const paid = Number(p.paidAmount || 0);
+                  return (paid >= amt && amt > 0) || (p.status === 'paid' && !(paid > 0 && paid < amt));
+                }).length} of ${schedule.length} Paid`}
           </span>
         </div>
 
@@ -228,7 +285,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                 className={`rounded-2xl border border-black/[0.08] p-4 space-y-2.5 bg-white shadow-2xs ${
                   record.status === 'overdue'
                     ? 'border-red-200 bg-red-50/20'
-                    : record.status === 'partially_paid'
+                    : isPartiallyPaid
                     ? 'border-amber-200 bg-amber-50/10'
                     : ''
                 }`}
@@ -255,9 +312,9 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                   <div className="text-right">
                     <span className="text-[10px] uppercase font-bold text-[#6B7462] block tracking-wider">Amount</span>
                     <div className="font-bold text-sm text-[#151914] mt-0.5">{formatPKR(record.amount)}</div>
-                    {record.status === 'partially_paid' && (
+                    {isPartiallyPaid && (
                       <div className="text-[10px] font-semibold text-amber-800 mt-0.5">
-                        Paid: {formatPKR(record.paidAmount || 0)} • Left: {formatPKR(record.amount - (record.paidAmount || 0))}
+                        Paid: {formatPKR(paid)} • Left: {formatPKR(Math.max(0, amt - paid))}
                       </div>
                     )}
                   </div>
@@ -284,7 +341,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-[#FAF9F5] border-b border-black/[0.06] text-[#6B7462] font-semibold uppercase tracking-wider text-[11px]">
-                <th className="py-3.5 px-4">Inst. #</th>
+                <th className="py-3.5 px-4">Inst. / Bill #</th>
                 <th className="py-3.5 px-4">Due Date</th>
                 <th className="py-3.5 px-4">Amount</th>
                 <th className="py-3.5 px-4">Status</th>
@@ -323,7 +380,7 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                   <tr
                     key={record.id}
                     className={`hover:bg-black/[0.01] transition-colors ${
-                      record.status === 'overdue' ? 'bg-red-50/40' : record.status === 'partially_paid' ? 'bg-amber-50/20' : ''
+                      record.status === 'overdue' ? 'bg-red-50/40' : isPartiallyPaid ? 'bg-amber-50/20' : ''
                     }`}
                   >
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
@@ -334,9 +391,9 @@ export const PaymentScheduleTable: React.FC<PaymentScheduleTableProps> = ({
                     </td>
                     <td className="py-3.5 px-4 font-bold text-[#151914]">
                       <div>{formatPKR(record.amount)}</div>
-                      {record.status === 'partially_paid' && (
+                      {isPartiallyPaid && (
                         <div className="text-[10px] font-semibold text-amber-800 mt-0.5">
-                          Paid: {formatPKR(record.paidAmount || 0)} &bull; Left: {formatPKR(record.amount - (record.paidAmount || 0))}
+                          Paid: {formatPKR(paid)} &bull; Left: {formatPKR(Math.max(0, amt - paid))}
                         </div>
                       )}
                     </td>

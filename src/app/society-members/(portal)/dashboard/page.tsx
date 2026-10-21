@@ -64,7 +64,82 @@ export default function MemberDashboardPage() {
     return () => clearInterval(intervalId);
   }, [fetchDashboardData, loadReceipts]);
 
-  const declinedReceipts = receipts.filter((r) => r.status === 'rejected');
+  // A declined or cancelled receipt that has not been paid again still shows, with its reason.
+  // If a bill has a newer receipt and that receipt is verified, do not show the older declined or cancelled receipt for that same bill on the member dashboard.
+  const declinedReceipts = receipts.filter((r) => {
+    if (r.status !== 'rejected' && r.status !== 'cancelled') return false;
+
+    const rTime = new Date(r.uploadedAt || r.paymentDate || 0).getTime();
+
+    const hasNewerVerifiedReceipt = receipts.some((other) => {
+      if (other.status !== 'verified') return false;
+      if (other.id === r.id) return false;
+
+      const otherTime = new Date(other.uploadedAt || other.paymentDate || 0).getTime();
+      if (otherTime < rTime) return false;
+
+      // 1. Direct paymentRecordId match
+      if (r.paymentRecordId && other.paymentRecordId && r.paymentRecordId === other.paymentRecordId) {
+        return true;
+      }
+
+      // 2. Explicit replacement link
+      if (other.replacesReceiptId && other.replacesReceiptId === r.id) {
+        return true;
+      }
+
+      // 3. Same plot/booking, feeType, and installmentNumber
+      const samePlot =
+        (r.plotId && other.plotId && r.plotId === other.plotId) ||
+        (r.bookingId && other.bookingId && r.bookingId === other.bookingId);
+      if (
+        samePlot &&
+        r.feeType &&
+        other.feeType &&
+        r.feeType === other.feeType &&
+        r.installmentNumber != null &&
+        other.installmentNumber != null &&
+        Number(r.installmentNumber) === Number(other.installmentNumber)
+      ) {
+        return true;
+      }
+
+      // 4. Balloon allocation coverage: if other covers r.paymentRecordId
+      if (
+        Array.isArray((other as any).allocations) &&
+        r.paymentRecordId &&
+        (other as any).allocations.some((a: any) => a.paymentRecordId === r.paymentRecordId)
+      ) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (hasNewerVerifiedReceipt) {
+      return false;
+    }
+
+    // Also check if the underlying bill in schedules is already fully paid and has a verified receipt on that plot
+    if (r.paymentRecordId) {
+      for (const s of schedules) {
+        const matchingBill = s.schedule?.find((item) => item.id === r.paymentRecordId);
+        if (matchingBill && (matchingBill.status === 'paid' || Number(matchingBill.paidAmount) >= Number(matchingBill.amount))) {
+          const hasAnyVerifiedOnPlot = receipts.some(
+            (other) =>
+              other.status === 'verified' &&
+              (other.plotId === r.plotId || other.bookingId === r.bookingId) &&
+              new Date(other.uploadedAt || other.paymentDate || 0).getTime() >= rTime
+          );
+          if (hasAnyVerifiedOnPlot) {
+            return false;
+          }
+        }
+      }
+    }
+
+    return true;
+  });
 
   // Aggregate stats strictly for display cards: Total Value, Total Paid, and Remaining ignore held plots
   const isHeldPlot = (p: any) => p.hasPaymentPlan === false || p.billsCount === 0;
@@ -90,10 +165,13 @@ export default function MemberDashboardPage() {
     plotId: string;
     dueDate: string;
     amount: number;
+    totalAmount?: number;
+    paidAmount?: number;
     installmentNumber: number;
     feeType?: string;
     displayNumber: number;
     isOverdue: boolean;
+    isPartiallyPaid?: boolean;
   }
 
   let upcomingAlert: UpcomingAlert | null = null;
@@ -126,6 +204,8 @@ export default function MemberDashboardPage() {
         .sort((a, b) => {
           if (a.feeType === 'plot_downpayment' && b.feeType !== 'plot_downpayment') return -1;
           if (b.feeType === 'plot_downpayment' && a.feeType !== 'plot_downpayment') return 1;
+          if (a.feeType === 'plot_possession' && b.feeType !== 'plot_possession') return 1;
+          if (b.feeType === 'plot_possession' && a.feeType !== 'plot_possession') return -1;
           const cmp = String(a.dueDate || '').localeCompare(String(b.dueDate || ''));
           if (cmp !== 0) return cmp;
           return (a.installmentNumber || 0) - (b.installmentNumber || 0);
@@ -141,24 +221,36 @@ export default function MemberDashboardPage() {
           (isItemOverdue && !upcomingAlert.isOverdue) ||
           (!upcomingAlert.isOverdue && nextItem.dueDate < upcomingAlert.dueDate)
         ) {
+          const isBiannualItem = (item: any) =>
+            item?.feeType === 'plot_biannual' ||
+            String(item?.feeType || '').toLowerCase().includes('biannual') ||
+            String(item?.label || '').toLowerCase().includes('bi-annual') ||
+            String(item?.label || '').toLowerCase().includes('biannual');
+
+          const isItemBiannual = isBiannualItem(nextItem);
           let displayNumber = nextItem.installmentNumber || 1;
-          if (nextItem.feeType === 'plot_biannual') {
+          if (isItemBiannual) {
             const biannualRecords = s.schedule
-              .filter((item) => item.feeType === 'plot_biannual')
+              .filter(isBiannualItem)
               .sort((a, b) => String(a.dueDate || '').localeCompare(String(b.dueDate || '')));
-            const bIdx = biannualRecords.findIndex((item) => item.id === nextItem.id);
+            const bIdx = biannualRecords.findIndex((item) => (item.id && item.id === nextItem.id) || item.dueDate === nextItem.dueDate);
             displayNumber = bIdx >= 0 ? bIdx + 1 : (nextItem.installmentNumber || 1);
           }
+
+          const isItemPartial = (Number(nextItem.paidAmount || 0) > 0 && Number(nextItem.paidAmount || 0) < Number(nextItem.amount));
 
           upcomingAlert = {
             plotNumber: s.plotNumber,
             plotId: s.plotId,
             dueDate: String(nextItem.dueDate).split('T')[0],
             amount: remainingDue,
+            totalAmount: Number(nextItem.amount),
+            paidAmount: Number(nextItem.paidAmount || 0),
             installmentNumber: nextItem.installmentNumber || 1,
-            feeType: nextItem.feeType,
+            feeType: isItemBiannual ? 'plot_biannual' : nextItem.feeType,
             displayNumber,
             isOverdue: isItemOverdue,
+            isPartiallyPaid: isItemPartial,
           };
         }
       }
@@ -245,10 +337,15 @@ export default function MemberDashboardPage() {
           const matchedPlot = plots?.find((p) => p.id === r.plotId || p.plotNumber === r.plotNumber);
           const blockTitle = r.blockName || (matchedPlot as any)?.blockName || matchedPlot?.blockId || '';
           const plotLabel = `Plot ${r.plotNumber || matchedPlot?.plotNumber || '—'}${blockTitle ? ` (${blockTitle})` : ''}`;
+          const isDeclinedBiannual =
+            (r as any).feeType === 'plot_biannual' ||
+            String((r as any).feeType || '').toLowerCase().includes('biannual') ||
+            String((r as any).feeTitle || '').toLowerCase().includes('bi-annual') ||
+            String((r as any).feeTitle || '').toLowerCase().includes('biannual');
           const installmentLabel =
             (r as any).paymentKind === 'balloon'
               ? 'Balloon Payment'
-              : (r as any).feeType === 'plot_biannual'
+              : isDeclinedBiannual
               ? `Bi-Annual #${r.installmentNumber ?? 1}`
               : r.paymentType === 'installment'
               ? `Installment #${r.installmentNumber ?? 1}`
@@ -267,7 +364,7 @@ export default function MemberDashboardPage() {
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-rose-700 text-white font-mono">
-                      Receipt Declined
+                      {r.status === 'cancelled' ? 'Receipt Cancelled' : 'Receipt Declined'}
                     </span>
                     <span className="text-xs font-bold text-rose-950">
                       {plotLabel}
@@ -282,7 +379,7 @@ export default function MemberDashboardPage() {
                     </span>
                   </div>
                   <p className="text-xs text-rose-900 leading-relaxed">
-                    <strong>Reason:</strong> &ldquo;{r.rejectionReason || 'Deposit could not be verified by committee.'}&rdquo;
+                    <strong>Reason:</strong> &ldquo;{r.rejectionReason || (r.status === 'cancelled' ? (r as any).cancellationReason || 'Receipt was cancelled by society administration.' : 'Deposit could not be verified by committee.')}&rdquo;
                   </p>
                 </div>
               </div>
@@ -330,18 +427,39 @@ export default function MemberDashboardPage() {
                         : 'bg-[#43612B] text-white'
                     }`}
                   >
-                    {upcomingAlert.feeType === 'plot_biannual'
+                    {upcomingAlert.feeType === 'plot_downpayment'
+                      ? (upcomingAlert.isOverdue ? 'Overdue Down Payment Alert' : 'Upcoming Down Payment Alert')
+                      : upcomingAlert.feeType === 'plot_possession'
+                      ? (upcomingAlert.isOverdue ? 'Overdue Possession Alert' : 'Upcoming Possession Alert')
+                      : upcomingAlert.feeType === 'plot_biannual' || String(upcomingAlert.feeType || '').toLowerCase().includes('biannual')
                       ? (upcomingAlert.isOverdue ? 'Overdue Bi-Annual Alert' : 'Upcoming Bi-Annual Alert')
-                      : (upcomingAlert.isOverdue ? 'Overdue Installment Alert' : 'Upcoming Installment Alert')}
+                      : (upcomingAlert.isOverdue ? 'Overdue Monthly Installment Alert' : 'Upcoming Monthly Installment Alert')}
                   </span>
+                  {upcomingAlert.isPartiallyPaid && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-300">
+                      Partially Paid
+                    </span>
+                  )}
                   <span className="text-xs font-bold">Plot {upcomingAlert.plotNumber}</span>
                 </div>
                 <p className="text-xs text-[#4A5347] leading-relaxed">
-                  {upcomingAlert.feeType === 'plot_biannual'
+                  {upcomingAlert.feeType === 'plot_downpayment'
+                    ? 'Down payment'
+                    : upcomingAlert.feeType === 'plot_possession'
+                    ? 'Possession fee'
+                    : upcomingAlert.feeType === 'plot_biannual' || String(upcomingAlert.feeType || '').toLowerCase().includes('biannual')
                     ? `Bi-Annual #${upcomingAlert.displayNumber}`
-                    : `Installment #${upcomingAlert.displayNumber}`} of{' '}
-                  <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> is{' '}
-                  {upcomingAlert.isOverdue ? 'overdue since' : 'due on'}{' '}
+                    : `Monthly #${upcomingAlert.displayNumber}`}{' '}
+                  {upcomingAlert.isPartiallyPaid ? (
+                    <>
+                      has a remaining balance of <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong> due ({formatPKR(upcomingAlert.paidAmount || 0)} of {formatPKR(upcomingAlert.totalAmount || 0)} paid)
+                    </>
+                  ) : (
+                    <>
+                      of <strong className="text-[#151914]">{formatPKR(upcomingAlert.amount)}</strong>
+                    </>
+                  )}{' '}
+                  {upcomingAlert.isOverdue ? 'was due on' : 'is due on'}{' '}
                   <strong className="text-[#151914]">{String(upcomingAlert.dueDate).split('T')[0]}</strong>. Upload your bank deposit receipt directly in the portal once paid to maintain good standing.
                 </p>
               </div>

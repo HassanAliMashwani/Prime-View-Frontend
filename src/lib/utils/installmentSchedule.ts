@@ -94,7 +94,7 @@ export function generateFrontendSchedule(options: GenerateFrontendScheduleOption
       } else if (r === totalRows - 1 || r % 6 === 0) {
         biannualIdx++;
         feeType = 'plot_biannual';
-        label = `Bi-annual installment #${biannualIdx}`;
+        label = `Bi-Annual #${biannualIdx}`;
         installmentNumber = biannualIdx;
         amountPaisa = (biannualIdx === biannualCount) ? lastBiannualPaisa : baseBiannualPaisa;
       } else {

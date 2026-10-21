@@ -368,6 +368,13 @@ export interface ReceiptSubmission {
     receiptId?: string;
   }>;
   previewData?: any;
+  paymentRecordId?: string;
+  bookingId?: string;
+  replacesReceiptId?: string | null;
+  allocations?: Array<{ paymentRecordId: string; amountApplied: number; allocationType?: string }>;
+  cancellationReason?: string;
+  cancellationReasonCode?: string;
+  cancelledAt?: string;
 }
 
 // ── Physical Customer Booking Documents (Change Request 05 §2) ──
