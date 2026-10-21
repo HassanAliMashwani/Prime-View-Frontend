@@ -33,6 +33,7 @@ import {
   UserCheck,
   ArrowLeft,
   Loader2,
+  AlertCircle,
 } from 'lucide-react';
 import { AdminSession, PaymentType, Plot, Customer, InstallmentPlanConfig } from '@/lib/mock/types';
 import { generateFrontendSchedule, FrontendScheduleRow } from '@/lib/utils/installmentSchedule';
@@ -304,6 +305,34 @@ function CustomersPageContent() {
   const [pathBHighlightedIndex, setPathBHighlightedIndex] = useState<number>(-1);
   const [subAdminSubmitting, setSubAdminSubmitting] = useState(false);
   const [subAdminPlotError, setSubAdminPlotError] = useState<string | null>(null);
+  const [subAdminFieldErrors, setSubAdminFieldErrors] = useState<{
+    plot?: string;
+    customerName?: string;
+    cnic?: string;
+    city?: string;
+    price?: string;
+  }>({});
+
+  const [pathAFieldErrors, setPathAFieldErrors] = useState<{
+    plot?: string;
+    fullName?: string;
+    fatherOrHusbandName?: string;
+    cnic?: string;
+    phone?: string;
+    email?: string;
+    city?: string;
+    mailingAddress?: string;
+    portalPassword?: string;
+    nokName?: string;
+    nokCnic?: string;
+    price?: string;
+  }>({});
+
+  const [pathBFieldErrors, setPathBFieldErrors] = useState<{
+    customer?: string;
+    plot?: string;
+    price?: string;
+  }>({});
 
   // ----------------------------------------------------
   // SECTION 5: PHYSICAL DOCUMENT ATTACHMENTS STATE
@@ -327,6 +356,13 @@ function CustomersPageContent() {
     membershipNo: string;
   } | null>(null);
   const [copiedCreds, setCopiedCreds] = useState(false);
+  const copyCredsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyCredsTimeoutRef.current) clearTimeout(copyCredsTimeoutRef.current);
+    };
+  }, []);
 
   const [agreementModal, setAgreementModal] = useState<{
     open: boolean;
@@ -979,6 +1015,34 @@ function CustomersPageContent() {
     setTotalPaymentB(cleanPrice);
   };
 
+  const handleMapPathAError = (errMsg: string) => {
+    setPathASubmitting(false);
+    const msg = errMsg || 'Failed to complete booking.';
+    const lower = msg.toLowerCase();
+    if (lower.includes('cnic')) {
+      setPathAFieldErrors((prev) => ({ ...prev, cnic: msg }));
+    } else if (lower.includes('phone') || lower.includes('mobile')) {
+      setPathAFieldErrors((prev) => ({ ...prev, phone: msg }));
+    } else if (lower.includes('email')) {
+      setPathAFieldErrors((prev) => ({ ...prev, email: msg }));
+    } else if (lower.includes('price')) {
+      setPathAFieldErrors((prev) => ({ ...prev, price: msg }));
+    } else if (lower.includes('password')) {
+      setPathAFieldErrors((prev) => ({ ...prev, portalPassword: msg }));
+    } else if (lower.includes('nominee') || lower.includes('nok')) {
+      setPathAFieldErrors((prev) => ({ ...prev, nokCnic: msg }));
+    } else if (lower.includes('plot') || lower.includes('lock') || lower.includes('block')) {
+      setPathAFieldErrors((prev) => ({ ...prev, plot: msg }));
+      setPathAPlotError(msg);
+    } else if (lower.includes('city')) {
+      setPathAFieldErrors((prev) => ({ ...prev, city: msg }));
+    } else if (lower.includes('name')) {
+      setPathAFieldErrors((prev) => ({ ...prev, fullName: msg }));
+    } else {
+      setFeedback({ type: 'error', message: msg });
+    }
+  };
+
   // ----------------------------------------------------
   // SUBMIT PATH A (NEW CUSTOMER)
   // ----------------------------------------------------
@@ -986,6 +1050,7 @@ function CustomersPageContent() {
     e.preventDefault();
     if (!session) return;
     setPathAPlotError(null);
+    setPathAFieldErrors({});
 
     // Prerequisite verification: use selectedPlotA, lockedPlot or load once with getAdminPlotDetails
     // Prerequisite verification: use plot already loaded on the form
@@ -993,82 +1058,117 @@ function CustomersPageContent() {
       ? selectedPlotA
       : (lockedPlot && lockedPlot.id === pathAForm.plotId ? lockedPlot : selectedPlotA);
 
+    const errors: {
+      plot?: string;
+      fullName?: string;
+      fatherOrHusbandName?: string;
+      cnic?: string;
+      phone?: string;
+      email?: string;
+      city?: string;
+      mailingAddress?: string;
+      portalPassword?: string;
+      nokName?: string;
+      nokCnic?: string;
+      price?: string;
+    } = {};
+
     if (!plot) {
-      setPathAPlotError('Plot details could not be loaded. Please re-select the plot.');
-      return;
+      errors.plot = 'Plot details could not be loaded. Please select a plot.';
+    } else if (plot.category === 'amenity') {
+      errors.plot = 'Amenity utility plots cannot be booked or sold.';
+    } else if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
+      errors.plot = `Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`;
     }
 
-    if (plot.category === 'amenity') {
-      setPathAPlotError('Amenity utility plots cannot be booked or sold.');
-      return;
+    if (!pathAForm.fullName || !pathAForm.fullName.trim()) {
+      errors.fullName = 'Please enter applicant full name.';
     }
 
-    if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
-      setPathAPlotError(`Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`);
-      return;
+    if (!setPlanCustomer && (!pathAForm.fatherOrHusbandName || !pathAForm.fatherOrHusbandName.trim())) {
+      errors.fatherOrHusbandName = 'Please enter father or husband name.';
     }
 
-    if (!isValidCnic(pathAForm.cnic)) {
-      setFeedback({ type: 'error', message: 'Applicant CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
-      return;
+    if (!pathAForm.cnic || !pathAForm.cnic.trim()) {
+      errors.cnic = 'Please enter applicant 13-digit CNIC.';
+    } else if (!isValidCnic(pathAForm.cnic)) {
+      errors.cnic = 'Applicant CNIC must be exactly 13 digits in 00000-0000000-0 format.';
     }
-    const cleanPhoneDigits = pathAForm.phone.replace(/\D/g, '');
-    if (cleanPhoneDigits.length > 11) {
-      setFeedback({ type: 'error', message: 'Phone number cannot be greater than 11 digits.' });
-      return;
+
+    const cleanPhoneDigits = pathAForm.phone ? pathAForm.phone.replace(/\D/g, '') : '';
+    if (!cleanPhoneDigits) {
+      errors.phone = 'Please enter applicant mobile phone number.';
+    } else if (cleanPhoneDigits.length > 11) {
+      errors.phone = 'Phone number cannot be greater than 11 digits.';
+    } else if (cleanPhoneDigits.length < 10) {
+      errors.phone = 'Please enter a valid 11-digit phone number (e.g. 0300-1234567).';
     }
-    if (cleanPhoneDigits.length < 10) {
-      setFeedback({ type: 'error', message: 'Please enter a valid 11-digit phone number (e.g. 0300-1234567).' });
-      return;
+
+    if (!setPlanCustomer) {
+      if (!pathAForm.email || !pathAForm.email.trim()) {
+        errors.email = 'Please enter applicant email address.';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pathAForm.email.trim())) {
+        errors.email = 'Please enter a valid email address (e.g. name@domain.com).';
+      }
+
+      if (!pathAForm.mailingAddress || !pathAForm.mailingAddress.trim()) {
+        errors.mailingAddress = 'Please enter permanent / mailing address.';
+      }
     }
+
+    if (!memberCity || !memberCity.trim()) {
+      errors.city = 'Please enter applicant city.';
+    }
+
     const isNokCnicUnchanged = Boolean(
       (completeTargetCustomer &&
         pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
       (setPlanCustomer &&
         pathAForm.nokCnic === (setPlanCustomer.nokCnic ? formatCnic(setPlanCustomer.nokCnic) : ''))
     );
-    if (!isNokCnicUnchanged && (!pathAForm.nokCnic || !isValidCnic(pathAForm.nokCnic))) {
-      setFeedback({ type: 'error', message: 'Nominee CNIC must be exactly 13 digits in 00000-0000000-0 format.' });
-      return;
+    if (!setPlanCustomer) {
+      if (!pathAForm.nokName || !pathAForm.nokName.trim()) {
+        errors.nokName = 'Please enter nominee full name.';
+      }
+      if (!isNokCnicUnchanged && (!pathAForm.nokCnic || !isValidCnic(pathAForm.nokCnic))) {
+        errors.nokCnic = 'Nominee CNIC must be exactly 13 digits in 00000-0000000-0 format.';
+      }
     }
 
-    // Portal Credentials Gate: Strictly Super Admin Only (Change Request 07 §5)
-    const canIssueCreds = session.role === 'super_admin';
+    // Portal Credentials Gate: Super Admin or Sub-Admin with granted Customer box
+    const canIssueCreds = session.role === 'super_admin' || Boolean(session.permissions?.can_create_customer && session.permissions?.can_view_customers);
 
     // Minimum 8 characters check if issuing credentials
     if (canIssueCreds && !setPlanCustomer && pathAForm.portalPassword && pathAForm.portalPassword.trim().length < 8) {
-      setFeedback({ type: 'error', message: 'Initial customer portal password must be at least 8 characters long.' });
-      return;
+      errors.portalPassword = 'Initial customer portal password must be at least 8 characters long.';
     }
 
     const canEditPriceA = Boolean(
       session.role === 'super_admin' ||
       (session.role === 'sub_admin' &&
-        session.permissions?.can_book &&
+        (session.permissions?.can_book || (session.permissions?.can_create_customer && session.permissions?.can_view_customers)) &&
         Array.isArray(session.assignedBlocks) &&
-        session.assignedBlocks.includes(plot.blockId))
+        session.assignedBlocks.includes(plot?.blockId || ''))
     );
 
-    const serverAuthoritativePrice = toPlainNumber(plot.price);
+    const serverAuthoritativePrice = plot ? toPlainNumber(plot.price) : 0;
     const finalPriceA = (canEditPriceA && totalPaymentA > 0)
       ? toPlainNumber(totalPaymentA)
       : serverAuthoritativePrice;
 
     if (!finalPriceA || isNaN(finalPriceA) || finalPriceA <= 0) {
-      setFeedback({
-        type: 'error',
-        message: 'Total Payment (Plot Price) must be a valid positive amount greater than zero.',
-      });
+      errors.price = 'Total Payment (Plot Price) must be a valid positive amount greater than zero.';
+    } else if (finalPriceA % 10 !== 0 || !Number.isInteger(finalPriceA)) {
+      errors.price = 'Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPathAFieldErrors(errors);
+      if (errors.plot) setPathAPlotError(errors.plot);
       return;
     }
 
-    if (finalPriceA % 10 !== 0 || !Number.isInteger(finalPriceA)) {
-      setFeedback({
-        type: 'error',
-        message: 'Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.',
-      });
-      return;
-    }
+    if (!plot) return;
 
     // Build installment plan config if installment type
     let installmentPlan: any = undefined;
@@ -1131,13 +1231,11 @@ function CustomersPageContent() {
           });
 
           if (!attachRes.ok) {
-            setPathASubmitting(false);
-            setFeedback({ type: 'error', message: attachRes.message || attachRes.error || 'Failed to attach plot to member.' });
+            handleMapPathAError(attachRes.message || attachRes.error || 'Failed to attach plot to member.');
             return;
           }
         } else {
-          setPathASubmitting(false);
-          setFeedback({ type: 'error', message: res.message || res.error || 'Failed to assign payment plan.' });
+          handleMapPathAError(res.message || res.error || 'Failed to assign payment plan.');
           return;
         }
       }
@@ -1199,8 +1297,7 @@ function CustomersPageContent() {
       });
 
       if (!res.ok) {
-        setPathASubmitting(false);
-        setFeedback({ type: 'error', message: res.message || res.error || 'Failed to complete registration.' });
+        handleMapPathAError(res.message || res.error || 'Failed to complete registration.');
         return;
       }
 
@@ -1268,8 +1365,7 @@ function CustomersPageContent() {
       });
 
       if (!res.ok) {
-        setPathASubmitting(false);
-        setFeedback({ type: 'error', message: res.message || res.error || 'Failed to attach plot to member.' });
+        handleMapPathAError(res.message || res.error || 'Failed to attach plot to member.');
         return;
       }
 
@@ -1316,8 +1412,7 @@ function CustomersPageContent() {
 
     if (!res.ok) {
       // NOTE: Form values are preserved on failure per specification!
-      setPathASubmitting(false);
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to complete booking.' });
+      handleMapPathAError(res.message || res.error || 'Failed to complete booking.');
       return;
     }
 
@@ -1362,28 +1457,31 @@ function CustomersPageContent() {
       });
     }
 
-    // Reset Form if not in query mode
-    if (!queryPlotId) {
-      setPathAForm({
-        plotId: '',
-        paymentType: 'installment',
-        paperInstallmentRef: '',
-        membershipNo: `PV-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
-        fullName: '',
-        fatherOrHusbandName: '',
-        cnic: '',
-        phone: '',
-        email: '',
-        mailingAddress: '',
-        nokName: '',
-        nokCnic: '',
-        applicantPhotoUrl: '/media/placeholder-applicant.jpg',
-        cnicCopyUrl: '/media/placeholder-cnic.jpg',
-        nokCnicCopyUrl: '/media/placeholder-nok.jpg',
-        portalPassword: '',
-      });
-      setSelectedPlotA(null);
-    }
+    // Reset Form so there is no stale data in it
+    setPathAForm({
+      plotId: '',
+      paymentType: 'installment',
+      paperInstallmentRef: '',
+      membershipNo: `PV-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
+      fullName: '',
+      fatherOrHusbandName: '',
+      cnic: '',
+      phone: '',
+      email: '',
+      mailingAddress: '',
+      nokName: '',
+      nokCnic: '',
+      applicantPhotoUrl: '/media/placeholder-applicant.jpg',
+      cnicCopyUrl: '/media/placeholder-cnic.jpg',
+      nokCnicCopyUrl: '/media/placeholder-nok.jpg',
+      portalPassword: '',
+    });
+    setSelectedPlotA(null);
+    setLockedPlot(null);
+    setIsLockedFromMap(false);
+    setDocFiles({});
+    setPathASelectedMember(null);
+    setMemberCity('');
     loadInitialData();
   };
 
@@ -1391,6 +1489,7 @@ function CustomersPageContent() {
   // SEARCH PATH B CUSTOMERS & LIVE PICKER HOOK
   // ----------------------------------------------------
   const handleSelectCustomer = async (cust: CustomerDisambiguation) => {
+    setPathBFieldErrors((prev) => ({ ...prev, customer: undefined }));
     setSelectingCustomerId(cust.id);
     setSelectedCustomer(cust);
     setIsCustomerConfirmed(false);
@@ -1506,8 +1605,17 @@ function CustomersPageContent() {
   // ----------------------------------------------------
   const handleSubmitPathB = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!session || !selectedCustomer || !isCustomerConfirmed) return;
+    if (!session) return;
     setPathBPlotError(null);
+    setPathBFieldErrors({});
+
+    const errors: { customer?: string; plot?: string; price?: string } = {};
+
+    if (!selectedCustomer) {
+      errors.customer = 'Please search and select an existing customer record.';
+    } else if (!isCustomerConfirmed) {
+      errors.customer = 'Please click "Confirm & Proceed to Plot Attachment" to confirm customer identity.';
+    }
 
     // Prerequisite verification: use selectedPlotB, lockedPlot or load once with getAdminPlotDetails
     // Prerequisite verification: use plot already loaded on the form
@@ -1516,39 +1624,36 @@ function CustomersPageContent() {
       : (lockedPlot && lockedPlot.id === pathBPlotId ? lockedPlot : selectedPlotB);
 
     if (!plot) {
-      setPathBPlotError('Plot details could not be loaded. Please re-select the plot.');
-      return;
-    }
-
-    if (plot.category === 'amenity') {
-      setPathBPlotError('Amenity utility plots cannot be booked or sold.');
-      return;
-    }
-
-    if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
-      setPathBPlotError(`Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`);
-      return;
+      errors.plot = 'Please select a plot to attach to this customer.';
+    } else if (plot.category === 'amenity') {
+      errors.plot = 'Amenity utility plots cannot be booked or sold.';
+    } else if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
+      errors.plot = `Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`;
     }
 
     const canEditPriceB = Boolean(
       session.role === 'super_admin' ||
       (session.role === 'sub_admin' &&
-        session.permissions?.can_book &&
+        (session.permissions?.can_book || (session.permissions?.can_create_customer && session.permissions?.can_view_customers)) &&
         Array.isArray(session.assignedBlocks) &&
-        session.assignedBlocks.includes(plot.blockId))
+        session.assignedBlocks.includes(plot?.blockId || ''))
     );
 
-    const finalPriceB = (canEditPriceB && totalPaymentB > 0) ? toPlainNumber(totalPaymentB) : toPlainNumber(plot.price);
+    const finalPriceB = (canEditPriceB && totalPaymentB > 0) ? toPlainNumber(totalPaymentB) : (plot ? toPlainNumber(plot.price) : 0);
 
     if (!finalPriceB || isNaN(finalPriceB) || finalPriceB <= 0) {
-      setPathBPlotError('Total Payment (Plot Price) must be a valid positive amount greater than zero.');
+      errors.price = 'Total Payment (Plot Price) must be a valid positive amount greater than zero.';
+    } else if (finalPriceB % 10 !== 0 || !Number.isInteger(finalPriceB)) {
+      errors.price = 'Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setPathBFieldErrors(errors);
+      if (errors.plot) setPathBPlotError(errors.plot);
       return;
     }
 
-    if (finalPriceB % 10 !== 0 || !Number.isInteger(finalPriceB)) {
-      setPathBPlotError('Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.');
-      return;
-    }
+    if (!plot || !selectedCustomer) return;
 
     // Build installment plan config if installment type
     let installmentPlan: any = undefined;
@@ -1618,7 +1723,18 @@ function CustomersPageContent() {
     if (!res.ok) {
       // NOTE: Form values are preserved on failure per specification!
       setPathBSubmitting(false);
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to attach booking.' });
+      const msg = res.message || res.error || 'Failed to attach booking.';
+      const lower = msg.toLowerCase();
+      if (lower.includes('price')) {
+        setPathBFieldErrors((prev) => ({ ...prev, price: msg }));
+      } else if (lower.includes('plot') || lower.includes('lock') || lower.includes('block')) {
+        setPathBFieldErrors((prev) => ({ ...prev, plot: msg }));
+        setPathBPlotError(msg);
+      } else if (lower.includes('customer') || lower.includes('member')) {
+        setPathBFieldErrors((prev) => ({ ...prev, customer: msg }));
+      } else {
+        setFeedback({ type: 'error', message: msg });
+      }
       return;
     }
 
@@ -1662,11 +1778,13 @@ function CustomersPageContent() {
     e.preventDefault();
     if (!session) return;
     setSubAdminPlotError(null);
+    setSubAdminFieldErrors({});
+
+    const errors: { plot?: string; customerName?: string; cnic?: string; city?: string; price?: string } = {};
 
     const targetPlotId = lockedPlot ? lockedPlot.id : subAdminPlotId;
     if (!targetPlotId) {
-      setSubAdminPlotError('Please select an available plot to book.');
-      return;
+      errors.plot = 'Please select an available plot to book.';
     }
 
     // Prerequisite verification: use plot already loaded on the form
@@ -1674,42 +1792,51 @@ function CustomersPageContent() {
       ? lockedPlot
       : (selectedPlotA && selectedPlotA.id === targetPlotId ? selectedPlotA : lockedPlot);
 
-    if (!plot) {
-      setSubAdminPlotError('Plot details could not be loaded. Please re-select the plot.');
-      return;
+    if (targetPlotId && !plot) {
+      errors.plot = 'Plot details could not be loaded. Please re-select the plot.';
+    } else if (plot) {
+      if (plot.category === 'amenity') {
+        errors.plot = 'Amenity utility plots cannot be booked or sold.';
+      } else if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
+        errors.plot = `Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`;
+      }
     }
 
-    if (plot.category === 'amenity') {
-      setSubAdminPlotError('Amenity utility plots cannot be booked or sold.');
-      return;
+    if (!subAdminForm.customerName || !subAdminForm.customerName.trim()) {
+      errors.customerName = 'Please enter the customer full name.';
     }
 
-    if (session.role !== 'super_admin' && !session.assignedBlocks.includes(plot.blockId)) {
-      setSubAdminPlotError(`Plot ${plot.plotNumber} (${plot.blockId}) is outside your assigned administrative block scope.`);
-      return;
+    if (!subAdminForm.cnic || !subAdminForm.cnic.trim()) {
+      errors.cnic = 'Please enter customer CNIC.';
+    } else if (!isValidCnic(subAdminForm.cnic)) {
+      errors.cnic = 'CNIC must be exactly 13 digits in 00000-0000000-0 format.';
     }
 
-    if (!isValidCnic(subAdminForm.cnic)) {
-      setSubAdminPlotError('CNIC must be exactly 13 digits in 00000-0000000-0 format.');
-      return;
+    if (!subAdminSelectedMember && (!subAdminForm.city || !subAdminForm.city.trim())) {
+      errors.city = 'Please enter the customer city.';
     }
 
     const parsedSubAdminPrice = toPlainNumber(subAdminForm.price);
     if (!parsedSubAdminPrice || parsedSubAdminPrice <= 0) {
-      setSubAdminPlotError('Plot price must be greater than 0.');
+      errors.price = 'Plot price must be greater than 0.';
+    } else if (parsedSubAdminPrice % 10 !== 0 || !Number.isInteger(parsedSubAdminPrice)) {
+      errors.price = 'Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setSubAdminFieldErrors(errors);
+      if (errors.plot) setSubAdminPlotError(errors.plot);
       return;
     }
-    if (parsedSubAdminPrice % 10 !== 0 || !Number.isInteger(parsedSubAdminPrice)) {
-      setSubAdminPlotError('Plot price must end in 0 (e.g. 2,500,000). Please enter a price ending in 0.');
-      return;
-    }
+
+    if (!plot) return;
 
     setSubAdminSubmitting(true);
     const res = await runLane1({
       screen: 'customer-booking',
       isSave: true,
       fn: async () => createMinimalBooking(session, {
-        plotId: plot.id,
+        plotId: plot!.id,
         customerName: subAdminForm.customerName,
         cnic: subAdminForm.cnic,
         city: subAdminForm.city,
@@ -1722,7 +1849,22 @@ function CustomersPageContent() {
     setSubAdminSubmitting(false);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to complete quick booking.' });
+      const msg = res.message || res.error || 'Failed to complete quick booking.';
+      const lower = msg.toLowerCase();
+      if (lower.includes('cnic')) {
+        setSubAdminFieldErrors((prev) => ({ ...prev, cnic: msg }));
+      } else if (lower.includes('price')) {
+        setSubAdminFieldErrors((prev) => ({ ...prev, price: msg }));
+      } else if (lower.includes('city')) {
+        setSubAdminFieldErrors((prev) => ({ ...prev, city: msg }));
+      } else if (lower.includes('name')) {
+        setSubAdminFieldErrors((prev) => ({ ...prev, customerName: msg }));
+      } else if (lower.includes('plot') || lower.includes('lock') || lower.includes('block')) {
+        setSubAdminFieldErrors((prev) => ({ ...prev, plot: msg }));
+        setSubAdminPlotError(msg);
+      } else {
+        setFeedback({ type: 'error', message: msg });
+      }
       return;
     }
 
@@ -1791,9 +1933,9 @@ function CustomersPageContent() {
     return null;
   }
 
-  // Permission Guard
-  const canAccess = session?.role === 'super_admin' || Boolean(session?.permissions?.can_create_customer || session?.permissions?.can_book);
-  if (!canAccess) {
+  // Permission Guard - Box 2: Create Customer Account and View Customer Directory
+  const hasCustomerAccess = session?.role === 'super_admin' || Boolean(session?.permissions?.can_create_customer && session?.permissions?.can_view_customers);
+  if (!hasCustomerAccess) {
     return (
       <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
         <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
@@ -1801,7 +1943,7 @@ function CustomersPageContent() {
         </div>
         <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Customer Registration</h2>
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          Your administrative account does not have permission to create customer records or attach plot bookings. Contact administration to adjust your privileges.
+          Your administrative account does not have permission to create customer records or view the customer directory. Contact administration to adjust your privileges.
         </p>
         <button
           onClick={() => router.push('/admin/dashboard')}
@@ -1911,12 +2053,12 @@ function CustomersPageContent() {
     ? generateFrontendSchedule({ plotPriceRupees: setPlanPrice, planYears: setPlanYears })
     : null;
 
-  const canIssueCredentials = session?.role === 'super_admin';
+  const canIssueCredentials = session?.role === 'super_admin' || Boolean(session?.permissions?.can_create_customer && session?.permissions?.can_view_customers);
 
   const canEditPriceA = Boolean(
     session?.role === 'super_admin' ||
     (session?.role === 'sub_admin' &&
-      session?.permissions?.can_book &&
+      (session?.permissions?.can_book || (session?.permissions?.can_create_customer && session?.permissions?.can_view_customers)) &&
       Array.isArray(session?.assignedBlocks) &&
       selectedPlotA &&
       session.assignedBlocks.includes(selectedPlotA.blockId))
@@ -1925,7 +2067,7 @@ function CustomersPageContent() {
   const canEditPriceB = Boolean(
     session?.role === 'super_admin' ||
     (session?.role === 'sub_admin' &&
-      session?.permissions?.can_book &&
+      (session?.permissions?.can_book || (session?.permissions?.can_create_customer && session?.permissions?.can_view_customers)) &&
       Array.isArray(session?.assignedBlocks) &&
       selectedPlotB &&
       session.assignedBlocks.includes(selectedPlotB.blockId))
@@ -2000,7 +2142,7 @@ function CustomersPageContent() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmitSubAdmin} className="space-y-5">
+          <form onSubmit={handleSubmitSubAdmin} noValidate className="space-y-5">
             {/* Target Plot Display / Selector */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -2026,18 +2168,28 @@ function CustomersPageContent() {
               ) : (
                 <PlotSelector
                   value={subAdminPlotId}
-                  onChange={setSubAdminPlotId}
+                  onChange={(val) => {
+                    setSubAdminPlotId(val);
+                    setSubAdminFieldErrors((prev) => ({ ...prev, plot: undefined }));
+                  }}
                   onSelectPlot={(p) => {
                     setRegisteredPlotsCache([p]);
                     const clean = toPlainNumber(p.price);
                     setSubAdminForm((prev) => ({ ...prev, price: clean > 0 ? String(clean) : '' }));
+                    setSubAdminFieldErrors((prev) => ({ ...prev, plot: undefined, price: undefined }));
                   }}
-                  onErrorClear={() => setSubAdminPlotError(null)}
+                  onErrorClear={() => {
+                    setSubAdminPlotError(null);
+                    setSubAdminFieldErrors((prev) => ({ ...prev, plot: undefined }));
+                  }}
                   session={session}
                 />
               )}
-              {subAdminPlotError && (
-                <p className="text-xs text-rose-600 mt-1 font-semibold">{subAdminPlotError}</p>
+              {(subAdminFieldErrors.plot || subAdminPlotError) && (
+                <p className="text-[11px] text-rose-600 mt-1 font-semibold flex items-center gap-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  {subAdminFieldErrors.plot || subAdminPlotError}
+                </p>
               )}
             </div>
 
@@ -2049,7 +2201,10 @@ function CustomersPageContent() {
                 </label>
                 <LiveMemberPicker
                   value={subAdminForm.customerName}
-                  onChange={(val) => setSubAdminForm((prev) => ({ ...prev, customerName: val }))}
+                  onChange={(val) => {
+                    setSubAdminForm((prev) => ({ ...prev, customerName: val }));
+                    setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined }));
+                  }}
                   selectedMember={subAdminSelectedMember}
                   onSelectMember={(member) => {
                     setSubAdminSelectedMember(member);
@@ -2061,6 +2216,7 @@ function CustomersPageContent() {
                         city: member.city || prev.city,
                         customerId: member.id,
                       }));
+                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined }));
                     } else {
                       setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
                     }
@@ -2068,6 +2224,12 @@ function CustomersPageContent() {
                   placeholder="e.g. Hamza Tariq (type to search saved members)"
                   required
                 />
+                {subAdminFieldErrors.customerName && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {subAdminFieldErrors.customerName}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2081,7 +2243,10 @@ function CustomersPageContent() {
                 </label>
                 <LiveCnicMemberPicker
                   value={subAdminForm.cnic}
-                  onChange={(val) => setSubAdminForm((prev) => ({ ...prev, cnic: val }))}
+                  onChange={(val) => {
+                    setSubAdminForm((prev) => ({ ...prev, cnic: val }));
+                    setSubAdminFieldErrors((prev) => ({ ...prev, cnic: undefined }));
+                  }}
                   selectedMember={subAdminSelectedMember}
                   onSelectMember={(member) => {
                     setSubAdminSelectedMember(member);
@@ -2093,6 +2258,7 @@ function CustomersPageContent() {
                         city: member.city || prev.city,
                         customerId: member.id,
                       }));
+                      setSubAdminFieldErrors((prev) => ({ ...prev, customerName: undefined, cnic: undefined, city: undefined }));
                     } else {
                       setSubAdminForm((prev) => ({ ...prev, customerId: '' }));
                     }
@@ -2100,6 +2266,12 @@ function CustomersPageContent() {
                   placeholder="00000-0000000-0"
                   required
                 />
+                {subAdminFieldErrors.cnic && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {subAdminFieldErrors.cnic}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2116,14 +2288,25 @@ function CustomersPageContent() {
                   required
                   value={subAdminForm.city}
                   disabled={Boolean(subAdminSelectedMember)}
-                  onChange={(e) => setSubAdminForm({ ...subAdminForm, city: e.target.value })}
+                  onChange={(e) => {
+                    setSubAdminForm({ ...subAdminForm, city: e.target.value });
+                    setSubAdminFieldErrors((prev) => ({ ...prev, city: undefined }));
+                  }}
                   placeholder="e.g. Lahore, Rawalpindi, Islamabad"
                   className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
                     subAdminSelectedMember
                       ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
-                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                      : subAdminFieldErrors.city
+                        ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                        : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
                   }`}
                 />
+                {subAdminFieldErrors.city && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {subAdminFieldErrors.city}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2136,13 +2319,25 @@ function CustomersPageContent() {
                   min={1}
                   step="any"
                   value={subAdminForm.price}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => {
                     const cleanVal = e.target.value.replace(/[^0-9]/g, '');
                     setSubAdminForm({ ...subAdminForm, price: cleanVal });
+                    setSubAdminFieldErrors((prev) => ({ ...prev, price: undefined }));
                   }}
                   placeholder="Enter plot price"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 font-mono font-bold"
+                  className={`w-full px-3 py-2 text-xs rounded-xl border font-mono font-bold ${
+                    subAdminFieldErrors.price
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
+                {subAdminFieldErrors.price && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {subAdminFieldErrors.price}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -2162,7 +2357,7 @@ function CustomersPageContent() {
               )}
               <button
                 type="submit"
-                disabled={subAdminSubmitting || (!lockedPlot && !subAdminPlotId) || !isValidCnic(subAdminForm.cnic) || !subAdminForm.price || Number(subAdminForm.price) <= 0}
+                disabled={subAdminSubmitting}
                 className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 <Lock className="w-3.5 h-3.5" />
@@ -2311,7 +2506,7 @@ function CustomersPageContent() {
       {/* PATH A: FULL PAPER BOOKING FORM (NEW CUSTOMER)       */}
       {/* ==================================================== */}
       {activeTab === 'path_a' && (
-        <form onSubmit={handleSubmitPathA} className="space-y-6">
+        <form onSubmit={handleSubmitPathA} noValidate className="space-y-6">
 
 
           {/* Section 1: Applicant Details */}
@@ -2341,7 +2536,10 @@ function CustomersPageContent() {
                 </label>
                 <LiveMemberPicker
                   value={pathAForm.fullName}
-                  onChange={(val) => setPathAForm((prev) => ({ ...prev, fullName: val }))}
+                  onChange={(val) => {
+                    setPathAForm((prev) => ({ ...prev, fullName: val }));
+                    setPathAFieldErrors((prev) => ({ ...prev, fullName: undefined }));
+                  }}
                   selectedMember={pathASelectedMember}
                   onSelectMember={async (member) => {
                     setPathASelectedMember(member);
@@ -2362,8 +2560,10 @@ function CustomersPageContent() {
                         email: member.email || prev.email,
                         membershipNo: member.membershipNo || prev.membershipNo,
                       }));
+                      setPathAFieldErrors((prev) => ({ ...prev, fullName: undefined, cnic: undefined, phone: undefined, email: undefined }));
                       if (member.city) {
                         setMemberCity(member.city);
+                        setPathAFieldErrors((prev) => ({ ...prev, city: undefined }));
                       }
                     } else {
                       if (completeTargetCustomer && completeTargetCustomer.id === pathASelectedMember?.id) {
@@ -2374,6 +2574,12 @@ function CustomersPageContent() {
                   placeholder="e.g. Muhammad Aslam Khan (type name, CNIC, phone or membership #)"
                   required
                 />
+                {pathAFieldErrors.fullName && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.fullName}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2385,9 +2591,22 @@ function CustomersPageContent() {
                   required
                   placeholder="e.g. Haji Abdul Rasheed"
                   value={pathAForm.fatherOrHusbandName}
-                  onChange={(e) => setPathAForm({ ...pathAForm, fatherOrHusbandName: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, fatherOrHusbandName: e.target.value });
+                    setPathAFieldErrors((prev) => ({ ...prev, fatherOrHusbandName: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
+                    pathAFieldErrors.fatherOrHusbandName
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
+                {pathAFieldErrors.fatherOrHusbandName && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.fatherOrHusbandName}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2400,10 +2619,24 @@ function CustomersPageContent() {
                   maxLength={15}
                   placeholder="00000-0000000-0"
                   value={pathAForm.cnic}
-                  onChange={(e) => setPathAForm({ ...pathAForm, cnic: formatCnic(e.target.value) })}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, cnic: formatCnic(e.target.value) });
+                    setPathAFieldErrors((prev) => ({ ...prev, cnic: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                    pathAFieldErrors.cnic
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
-                <span className="text-[10px] text-slate-400">13 digits in 00000-0000000-0 format</span>
+                {pathAFieldErrors.cnic ? (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.cnic}
+                  </p>
+                ) : (
+                  <span className="text-[10px] text-slate-400">13 digits in 00000-0000000-0 format</span>
+                )}
               </div>
 
               <div>
@@ -2416,10 +2649,24 @@ function CustomersPageContent() {
                   maxLength={12}
                   placeholder="0300-1234567"
                   value={pathAForm.phone}
-                  onChange={(e) => setPathAForm({ ...pathAForm, phone: formatPhone(e.target.value) })}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, phone: formatPhone(e.target.value) });
+                    setPathAFieldErrors((prev) => ({ ...prev, phone: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                    pathAFieldErrors.phone
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
-                <span className="text-[10px] text-slate-400">Cannot exceed 11 digits (e.g. 0300-1234567)</span>
+                {pathAFieldErrors.phone ? (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.phone}
+                  </p>
+                ) : (
+                  <span className="text-[10px] text-slate-400">Cannot exceed 11 digits (e.g. 0300-1234567)</span>
+                )}
               </div>
 
               <div>
@@ -2431,9 +2678,22 @@ function CustomersPageContent() {
                   required
                   placeholder="aslam@example.com"
                   value={pathAForm.email}
-                  onChange={(e) => setPathAForm({ ...pathAForm, email: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, email: e.target.value });
+                    setPathAFieldErrors((prev) => ({ ...prev, email: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
+                    pathAFieldErrors.email
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
+                {pathAFieldErrors.email && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.email}
+                  </p>
+                )}
               </div>
 
               <div className="md:col-span-2">
@@ -2445,9 +2705,22 @@ function CustomersPageContent() {
                   required
                   placeholder="House #, Street #, Sector/Area"
                   value={pathAForm.mailingAddress}
-                  onChange={(e) => setPathAForm({ ...pathAForm, mailingAddress: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, mailingAddress: e.target.value });
+                    setPathAFieldErrors((prev) => ({ ...prev, mailingAddress: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
+                    pathAFieldErrors.mailingAddress
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
+                {pathAFieldErrors.mailingAddress && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.mailingAddress}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2459,10 +2732,24 @@ function CustomersPageContent() {
                   required
                   placeholder="e.g. Islamabad, Peshawar"
                   value={memberCity}
-                  onChange={(e) => setMemberCity(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setMemberCity(e.target.value);
+                    setPathAFieldErrors((prev) => ({ ...prev, city: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
+                    pathAFieldErrors.city
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
-                <span className="text-[10px] text-slate-400">City is saved on member profile</span>
+                {pathAFieldErrors.city ? (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.city}
+                  </p>
+                ) : (
+                  <span className="text-[10px] text-slate-400">City is saved on member profile</span>
+                )}
               </div>
 
               {/* Member Portal Login Credentials Gate (Item 4) */}
@@ -2533,6 +2820,7 @@ function CustomersPageContent() {
                               p += chars.charAt(Math.floor(Math.random() * chars.length));
                             }
                             setPathAForm((prev) => ({ ...prev, portalPassword: p }));
+                            setPathAFieldErrors((prev) => ({ ...prev, portalPassword: undefined }));
                           }}
                           className="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer"
                         >
@@ -2545,12 +2833,26 @@ function CustomersPageContent() {
                         minLength={8}
                         placeholder="Enter member portal password"
                         value={pathAForm.portalPassword || ''}
-                        onChange={(e) => setPathAForm({ ...pathAForm, portalPassword: e.target.value })}
-                        className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                        onChange={(e) => {
+                          setPathAForm({ ...pathAForm, portalPassword: e.target.value });
+                          setPathAFieldErrors((prev) => ({ ...prev, portalPassword: undefined }));
+                        }}
+                        className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                          pathAFieldErrors.portalPassword
+                            ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                            : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                        }`}
                       />
-                      <span className="text-[10px] text-slate-400 mt-0.5 block">
-                        Minimum 8 characters. Member can change this later in their profile.
-                      </span>
+                      {pathAFieldErrors.portalPassword ? (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          {pathAFieldErrors.portalPassword}
+                        </p>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 mt-0.5 block">
+                          Minimum 8 characters. Member can change this later in their profile.
+                        </span>
+                      )}
                     </div>
                   </div>
                 )}
@@ -2575,9 +2877,22 @@ function CustomersPageContent() {
                   required
                   placeholder="e.g. Farooq Aslam Khan"
                   value={pathAForm.nokName}
-                  onChange={(e) => setPathAForm({ ...pathAForm, nokName: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, nokName: e.target.value });
+                    setPathAFieldErrors((prev) => ({ ...prev, nokName: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs rounded-xl border transition-all ${
+                    pathAFieldErrors.nokName
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
+                {pathAFieldErrors.nokName && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.nokName}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2590,9 +2905,24 @@ function CustomersPageContent() {
                   maxLength={15}
                   placeholder="00000-0000000-0"
                   value={pathAForm.nokCnic}
-                  onChange={(e) => setPathAForm({ ...pathAForm, nokCnic: formatCnic(e.target.value) })}
-                  className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600"
+                  onChange={(e) => {
+                    setPathAForm({ ...pathAForm, nokCnic: formatCnic(e.target.value) });
+                    setPathAFieldErrors((prev) => ({ ...prev, nokCnic: undefined }));
+                  }}
+                  className={`w-full px-3 py-2 text-xs font-mono rounded-xl border transition-all ${
+                    pathAFieldErrors.nokCnic
+                      ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                      : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                  }`}
                 />
+                {pathAFieldErrors.nokCnic ? (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.nokCnic}
+                  </p>
+                ) : (
+                  <span className="text-[10px] text-slate-400">13 digits in 00000-0000000-0 format</span>
+                )}
               </div>
             </div>
           </div>
@@ -2635,16 +2965,26 @@ function CustomersPageContent() {
                 ) : (
                   <PlotSelector
                     value={pathAForm.plotId}
-                    onChange={handleVerifyPlotA}
+                    onChange={(val) => {
+                      handleVerifyPlotA(val);
+                      setPathAFieldErrors((prev) => ({ ...prev, plot: undefined }));
+                    }}
                     onSelectPlot={(p) => {
                       setRegisteredPlotsCache([p]);
                       const cleanPrice = toPlainNumber(p.price);
                       const normalizedPlot = { ...p, price: cleanPrice };
                       setSelectedPlotA(normalizedPlot);
                       setTotalPaymentA(cleanPrice);
+                      setPathAFieldErrors((prev) => ({ ...prev, plot: undefined, price: undefined }));
                     }}
                     session={session}
                   />
+                )}
+                {pathAFieldErrors.plot && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    {pathAFieldErrors.plot}
+                  </p>
                 )}
               </div>
 
@@ -2769,18 +3109,34 @@ function CustomersPageContent() {
                     )}
                   </div>
                   {canEditPriceA ? (
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
-                      <input
-                        type="number"
-                        required
-                        min={1}
-                        step="any"
-                        value={totalPaymentA || ''}
-                        onChange={(e) => setTotalPaymentA(toPlainNumber(e.target.value))}
-                        placeholder="Enter plot price"
-                        className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
-                      />
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
+                        <input
+                          type="number"
+                          required
+                          min={1}
+                          step="any"
+                          value={totalPaymentA || ''}
+                          onWheel={(e) => e.currentTarget.blur()}
+                          onChange={(e) => {
+                            setTotalPaymentA(toPlainNumber(e.target.value));
+                            setPathAFieldErrors((prev) => ({ ...prev, price: undefined }));
+                          }}
+                          placeholder="Enter plot price"
+                          className={`w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border ${
+                            pathAFieldErrors.price
+                              ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                              : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                          } bg-white`}
+                        />
+                      </div>
+                      {pathAFieldErrors.price && (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          {pathAFieldErrors.price}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <input
@@ -2820,18 +3176,34 @@ function CustomersPageContent() {
                       )}
                     </div>
                     {canEditPriceA ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
-                        <input
-                          type="number"
-                          required
-                          min={1}
-                          step="any"
-                          value={totalPaymentA || ''}
-                          onChange={(e) => setTotalPaymentA(toPlainNumber(e.target.value))}
-                          placeholder="Enter plot price"
-                          className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
-                        />
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
+                          <input
+                            type="number"
+                            required
+                            min={1}
+                            step="any"
+                            value={totalPaymentA || ''}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            onChange={(e) => {
+                              setTotalPaymentA(toPlainNumber(e.target.value));
+                              setPathAFieldErrors((prev) => ({ ...prev, price: undefined }));
+                            }}
+                            placeholder="Enter plot price"
+                            className={`w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border ${
+                              pathAFieldErrors.price
+                                ? 'border-rose-400 focus:border-rose-600 ring-1 ring-rose-400/20'
+                                : 'border-slate-300 focus:outline-hidden focus:border-emerald-600'
+                            } bg-white`}
+                          />
+                        </div>
+                        {pathAFieldErrors.price && (
+                          <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            {pathAFieldErrors.price}
+                          </p>
+                        )}
                       </div>
                     ) : (
                       <input
@@ -3082,21 +3454,7 @@ function CustomersPageContent() {
             <button
               id="submit-booking-btn"
               type="submit"
-              disabled={
-                pathASubmitting ||
-                pathASuccess ||
-                plotLoading ||
-                !selectedPlotA ||
-                Boolean(pathAPlotError) ||
-                !isValidCnic(pathAForm.cnic) ||
-                !(
-                  (completeTargetCustomer && pathAForm.nokCnic === (completeTargetCustomer.nokCnic ? formatCnic(completeTargetCustomer.nokCnic) : '')) ||
-                  (setPlanCustomer && pathAForm.nokCnic === (setPlanCustomer.nokCnic ? formatCnic(setPlanCustomer.nokCnic) : '')) ||
-                  isValidCnic(pathAForm.nokCnic)
-                ) ||
-                (Boolean(queryPlotId) && !dbPriceArrived) ||
-                Boolean(plotLockHolder)
-              }
+              disabled={pathASubmitting || Boolean(plotLockHolder)}
               className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[260px]"
             >
               {pathASubmitting ? (
@@ -3243,6 +3601,13 @@ function CustomersPageContent() {
                   <span>{isSearching ? 'Searching…' : 'Search'}</span>
                 </button>
               </form>
+            )}
+
+            {pathBFieldErrors.customer && (
+              <p className="text-[11px] text-rose-600 font-medium mt-2 flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                {pathBFieldErrors.customer}
+              </p>
             )}
 
             {/* Live Results Table (updates while typing, max 8 rows) */}
@@ -3421,6 +3786,7 @@ function CustomersPageContent() {
                             });
                           }
                         }
+                        setPathBFieldErrors((prev) => ({ ...prev, customer: undefined }));
                         setIsCustomerConfirmed(true);
                       }}
                       className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center gap-1.5"
@@ -3510,7 +3876,7 @@ function CustomersPageContent() {
 
           {/* Step 3: Attach Plot (Only after confirmation) */}
           {selectedCustomer && isCustomerConfirmed && selectedCustomer.accountStatus !== 'suspended' && (
-            <form onSubmit={handleSubmitPathB} className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
+            <form onSubmit={handleSubmitPathB} noValidate className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                 <span className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-xs font-bold">3</span>
                 <h2 className="text-sm font-bold text-slate-800 font-serif">Attach Plot & Select Financial Schedule</h2>
@@ -3543,18 +3909,30 @@ function CustomersPageContent() {
                       </p>
                     </div>
                   ) : (
-                    <PlotSelector
-                      value={pathBPlotId}
-                      onChange={handleVerifyPlotB}
-                      onSelectPlot={(p) => {
-                        setRegisteredPlotsCache([p]);
-                        const cleanPrice = toPlainNumber(p.price);
-                        const normalizedPlot = { ...p, price: cleanPrice };
-                        setSelectedPlotB(normalizedPlot);
-                        setTotalPaymentB(cleanPrice);
-                      }}
-                      session={session}
-                    />
+                    <>
+                      <PlotSelector
+                        value={pathBPlotId}
+                        onChange={(id) => {
+                          handleVerifyPlotB(id);
+                          setPathBFieldErrors((prev) => ({ ...prev, plot: undefined }));
+                        }}
+                        onSelectPlot={(p) => {
+                          setRegisteredPlotsCache([p]);
+                          const cleanPrice = toPlainNumber(p.price);
+                          const normalizedPlot = { ...p, price: cleanPrice };
+                          setSelectedPlotB(normalizedPlot);
+                          setTotalPaymentB(cleanPrice);
+                          setPathBFieldErrors((prev) => ({ ...prev, plot: undefined, price: undefined }));
+                        }}
+                        session={session}
+                      />
+                      {pathBFieldErrors.plot && (
+                        <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          {pathBFieldErrors.plot}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -3635,18 +4013,34 @@ function CustomersPageContent() {
                       )}
                     </div>
                     {canEditPriceB ? (
-                      <div className="flex items-center gap-1">
-                        <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
-                        <input
-                          type="number"
-                          required
-                          min={1}
-                          step="any"
-                          value={totalPaymentB || ''}
-                          onChange={(e) => setTotalPaymentB(toPlainNumber(e.target.value))}
-                          placeholder="Enter plot price"
-                          className="w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
-                        />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1">
+                          <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
+                          <input
+                            type="number"
+                            required
+                            min={1}
+                            step="any"
+                            value={totalPaymentB || ''}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            onChange={(e) => {
+                              setTotalPaymentB(toPlainNumber(e.target.value));
+                              setPathBFieldErrors((prev) => ({ ...prev, price: undefined }));
+                            }}
+                            placeholder="Enter plot price"
+                            className={`w-full px-3 py-2 text-xs font-mono font-bold rounded-xl border ${
+                              pathBFieldErrors.price
+                                ? 'border-rose-400 ring-2 ring-rose-200 focus:border-rose-500'
+                                : 'border-slate-300 focus:border-emerald-600'
+                            } focus:outline-hidden bg-white`}
+                          />
+                        </div>
+                        {pathBFieldErrors.price && (
+                          <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1">
+                            <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                            {pathBFieldErrors.price}
+                          </p>
+                        )}
                       </div>
                     ) : (
                       <input
@@ -3686,18 +4080,34 @@ function CustomersPageContent() {
                         )}
                       </div>
                       {canEditPriceB ? (
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
-                          <input
-                            type="number"
-                            required
-                            min={1}
-                            step="any"
-                            value={totalPaymentB || ''}
-                            onChange={(e) => setTotalPaymentB(toPlainNumber(e.target.value))}
-                            placeholder="Enter plot price"
-                            className="w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border border-slate-300 focus:outline-hidden focus:border-emerald-600 bg-white"
-                          />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-mono font-bold text-slate-500">PKR</span>
+                            <input
+                              type="number"
+                              required
+                              min={1}
+                              step="any"
+                              value={totalPaymentB || ''}
+                              onWheel={(e) => e.currentTarget.blur()}
+                              onChange={(e) => {
+                                setTotalPaymentB(toPlainNumber(e.target.value));
+                                setPathBFieldErrors((prev) => ({ ...prev, price: undefined }));
+                              }}
+                              placeholder="Enter plot price"
+                              className={`w-full px-2.5 py-2 text-xs font-mono font-bold rounded-xl border ${
+                                pathBFieldErrors.price
+                                  ? 'border-rose-400 ring-2 ring-rose-200 focus:border-rose-500'
+                                  : 'border-slate-300 focus:border-emerald-600'
+                              } focus:outline-hidden bg-white`}
+                            />
+                          </div>
+                          {pathBFieldErrors.price && (
+                            <p className="text-[11px] text-rose-600 font-medium flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                              {pathBFieldErrors.price}
+                            </p>
+                          )}
                         </div>
                       ) : (
                         <input
@@ -3825,7 +4235,7 @@ function CustomersPageContent() {
                 )}
                 <button
                   type="submit"
-                  disabled={pathBSubmitting || pathBSuccess || !selectedPlotB || Boolean(pathBPlotError)}
+                  disabled={pathBSubmitting || pathBSuccess}
                   className="px-6 py-2.5 bg-[#10251E] hover:bg-[#18392C] disabled:bg-slate-300 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-2 min-w-[240px]"
                 >
                   {pathBSubmitting ? (
@@ -3984,9 +4394,12 @@ function CustomersPageContent() {
               </div>
               <button
                 onClick={() => {
+                  if (copyCredsTimeoutRef.current) clearTimeout(copyCredsTimeoutRef.current);
                   setCredentialsModal(null);
                   if (completeTargetCustomer) {
                     router.push('/admin/customers-directory');
+                  } else {
+                    window.location.replace('/admin/customers');
                   }
                 }}
                 className="text-emerald-300 hover:text-white cursor-pointer"
@@ -4021,7 +4434,14 @@ function CustomersPageContent() {
                       `Username: ${credentialsModal.username}\nPassword: ${credentialsModal.password}`
                     );
                     setCopiedCreds(true);
-                    setTimeout(() => setCopiedCreds(false), 2500);
+                    if (copyCredsTimeoutRef.current) clearTimeout(copyCredsTimeoutRef.current);
+                    copyCredsTimeoutRef.current = setTimeout(() => {
+                      if (completeTargetCustomer) {
+                        router.push('/admin/customers-directory');
+                      } else {
+                        window.location.replace('/admin/customers');
+                      }
+                    }, 1000);
                   }}
                   className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
                 >
@@ -4042,6 +4462,7 @@ function CustomersPageContent() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (copyCredsTimeoutRef.current) clearTimeout(copyCredsTimeoutRef.current);
                       setCredentialsModal(null);
                       setAgreementModal((prev) => (prev ? { ...prev, open: true } : null));
                     }}
@@ -4055,9 +4476,12 @@ function CustomersPageContent() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (copyCredsTimeoutRef.current) clearTimeout(copyCredsTimeoutRef.current);
                     setCredentialsModal(null);
                     if (completeTargetCustomer) {
                       router.push('/admin/customers-directory');
+                    } else {
+                      window.location.replace('/admin/customers');
                     }
                   }}
                   className="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
@@ -4079,6 +4503,8 @@ function CustomersPageContent() {
           setAgreementModal((prev) => (prev ? { ...prev, open: false } : null));
           if (completeTargetCustomer) {
             router.push('/admin/customers-directory');
+          } else {
+            window.location.replace('/admin/customers');
           }
         }}
         data={agreementModal ? {

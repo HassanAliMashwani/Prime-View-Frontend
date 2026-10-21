@@ -72,19 +72,16 @@ export function toSafeErrorMessage(input: unknown): string {
     return GENERAL_SAFE_ERROR;
   }
 
-  // 2. HTTP status codes, protocols, or response body text
+  // 2. HTTP internal server errors
   if (
-    /\b(status\s*code|status\s*\d{3}|http\s*\d{3}|\b(400|401|403|404|409|500|502|503|504)\b)\b/i.test(text) ||
     lower.includes('internal server error') ||
     lower.includes('bad gateway') ||
-    lower.includes('service unavailable') ||
-    lower.includes('unauthorized') ||
-    lower.includes('forbidden')
+    lower.includes('service unavailable')
   ) {
     return GENERAL_SAFE_ERROR;
   }
 
-  // 3. Database / Prisma / Postgres keywords and codes
+  // 3. Database / Prisma / Postgres raw dumps
   if (
     lower.includes('prisma') ||
     lower.includes('connectorerror') ||
@@ -100,30 +97,9 @@ export function toSafeErrorMessage(input: unknown): string {
     lower.includes('insert ') ||
     lower.includes('update ') ||
     lower.includes('delete ') ||
-    lower.includes('table ') ||
-    lower.includes('column ') ||
-    lower.includes('relation ') ||
-    lower.includes('violates ') ||
-    lower.includes('constraint ') ||
-    lower.includes('duplicate key')
+    lower.includes('violates foreign key') ||
+    lower.includes('duplicate key value')
   ) {
-    return GENERAL_SAFE_ERROR;
-  }
-
-  // 4. Privilege / escalation / roles / permissions
-  if (
-    lower.includes('privilege') ||
-    lower.includes('escalation') ||
-    lower.includes('super_admin') ||
-    lower.includes('sub_admin') ||
-    lower.includes('system_sweep') ||
-    /\bcan_[a-z0-9_]+\b/i.test(text)
-  ) {
-    return GENERAL_SAFE_ERROR;
-  }
-
-  // 5. Table or model names
-  if (/\b(adminuser|plot|booking|customer|auditentry|blockassignment|paymentschedule|depositslip)\b/i.test(text)) {
     return GENERAL_SAFE_ERROR;
   }
 

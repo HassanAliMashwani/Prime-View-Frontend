@@ -58,6 +58,21 @@ export interface ApiResponse<T> {
 }
 
 function sanitizeErrorMessage(rawMessage?: any, rawError?: any): string {
+  if (Array.isArray(rawMessage)) {
+    return rawMessage.join(', ');
+  }
+  if (typeof rawMessage === 'string' && rawMessage.trim()) {
+    const text = rawMessage.trim();
+    if (!text.includes('    at ') && !text.includes('PrismaClient') && !text.includes('syntax error')) {
+      return text;
+    }
+  }
+  if (typeof rawError === 'string' && rawError.trim()) {
+    const text = rawError.trim();
+    if (!text.includes('    at ') && !text.includes('PrismaClient') && !text.includes('syntax error')) {
+      return text;
+    }
+  }
   if (rawMessage !== undefined && rawMessage !== null) {
     const sanitized = toSafeErrorMessage(rawMessage);
     if (sanitized !== GENERAL_SAFE_ERROR) return sanitized;
@@ -66,7 +81,7 @@ function sanitizeErrorMessage(rawMessage?: any, rawError?: any): string {
     const sanitized = toSafeErrorMessage(rawError);
     if (sanitized !== GENERAL_SAFE_ERROR) return sanitized;
   }
-  return GENERAL_SAFE_ERROR;
+  return typeof rawMessage === 'string' ? rawMessage : typeof rawError === 'string' ? rawError : GENERAL_SAFE_ERROR;
 }
 
 /**

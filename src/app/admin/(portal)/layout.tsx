@@ -22,6 +22,22 @@ export default function AdminPortalLayout({
     setMobileOpen(false);
   }, [pathname]);
 
+  // Prevent mouse wheel from inadvertently changing values in number inputs across the admin portal
+  useEffect(() => {
+    const handleWheel = () => {
+      const active = document.activeElement;
+      if (
+        active &&
+        active.tagName === 'INPUT' &&
+        (active as HTMLInputElement).type === 'number'
+      ) {
+        (active as HTMLInputElement).blur();
+      }
+    };
+    window.addEventListener('wheel', handleWheel, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheel);
+  }, []);
+
   useEffect(() => {
     const active = getActiveAdminSession();
     if (!active) {

@@ -14,6 +14,7 @@ import {
   CheckCircle2, 
   Clock, 
   AlertTriangle, 
+  AlertCircle,
   X, 
   Phone, 
   Mail, 
@@ -159,6 +160,12 @@ function BlockPlotsContent() {
     price: '',
   });
   const [minimalSelectedMember, setMinimalSelectedMember] = useState<PickerMember | null>(null);
+  const [minimalFieldErrors, setMinimalFieldErrors] = useState<{
+    customerName?: string;
+    cnic?: string;
+    city?: string;
+    price?: string;
+  }>({});
 
   // Reservation Form State
   const [reserveForm, setReserveForm] = useState({
@@ -268,7 +275,12 @@ function BlockPlotsContent() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      loadPlots(s, false);
+      const canAccessBox1 = s.role === 'super_admin' || Boolean(s.permissions?.can_reserve && s.permissions?.can_book && s.permissions?.can_view_master_plan);
+      if (canAccessBox1) {
+        loadPlots(s, false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [loadPlots]);
 
@@ -907,6 +919,8 @@ function BlockPlotsContent() {
     const plotToRelease = selectedPlot;
     setMinimalSelectedMember(null);
     setIsMinimalBookModalOpen(false);
+    setActionError(null);
+    setMinimalFieldErrors({});
 
     if (session && plotToRelease && plotToRelease.lockedBy === (session.adminId || session.username)) {
       releaseLock(session, plotToRelease.id)
@@ -945,17 +959,36 @@ function BlockPlotsContent() {
     e.preventDefault();
     if (!session || !selectedPlot) return;
 
+    // Field-specific validation
+    const errors: { customerName?: string; cnic?: string; city?: string; price?: string } = {};
+
+    if (!minimalForm.customerName.trim()) {
+      errors.customerName = 'Please enter customer full name.';
+    }
+
+    if (!minimalForm.cnic.trim()) {
+      errors.cnic = 'Customer CNIC is required.';
+    } else if (!isValidCnic(minimalForm.cnic)) {
+      errors.cnic = 'CNIC must be exactly 13 digits in 00000-0000000-0 format.';
+    }
+
+    if (!minimalForm.city.trim()) {
+      errors.city = 'City is required.';
+    }
+
     const parsedPrice = Number(minimalForm.price);
-    if (!parsedPrice || parsedPrice <= 0) {
-      setActionError('Plot price must be greater than 0.');
+    if (!minimalForm.price || !parsedPrice || parsedPrice <= 0 || isNaN(parsedPrice)) {
+      errors.price = 'Plot price must be greater than 0.';
+    } else if (parsedPrice % 10 !== 0 || !Number.isInteger(parsedPrice)) {
+      errors.price = 'Plot price must end in 0 (e.g. 2,500,000).';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setMinimalFieldErrors(errors);
       return;
     }
 
-    if (!isValidCnic(minimalForm.cnic)) {
-      setActionError('CNIC must be exactly 13 digits in 00000-0000000-0 format.');
-      return;
-    }
-
+    setMinimalFieldErrors({});
     setActionLoading(true);
     setActionError(null);
 
@@ -992,7 +1025,19 @@ function BlockPlotsContent() {
         setSelectedPlot(null);
         clearCachePrefix(`/master-plan/${blockId}`);
       } else {
-        setActionError(toSafeErrorMessage(res.message || res.error || 'Failed to complete quick booking.'));
+        const msg = toSafeErrorMessage(res.message || res.error || 'Failed to complete quick booking.');
+        const lowerMsg = msg.toLowerCase();
+        if (lowerMsg.includes('price')) {
+          setMinimalFieldErrors(prev => ({ ...prev, price: msg }));
+        } else if (lowerMsg.includes('cnic')) {
+          setMinimalFieldErrors(prev => ({ ...prev, cnic: msg }));
+        } else if (lowerMsg.includes('name')) {
+          setMinimalFieldErrors(prev => ({ ...prev, customerName: msg }));
+        } else if (lowerMsg.includes('city')) {
+          setMinimalFieldErrors(prev => ({ ...prev, city: msg }));
+        } else {
+          setActionError(msg);
+        }
       }
     } catch {
       setActionError('An unexpected error occurred during quick booking.');
@@ -1155,6 +1200,17 @@ function BlockPlotsContent() {
   const handleOpenAdjustPlot = async (plot: Plot, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!session) return;
+
+    const isPlotReserved = plot.status === 'reserved' ||
+      plot.displayStatus === 'reserved' ||
+      plot.lockReason === 'reserve' ||
+      Boolean(plot.reservations?.some((r: any) => r.status === 'active')) ||
+      (Number(plot.activeReservationCount || 0) > 0);
+    if (isPlotReserved || plot.status !== 'available') {
+      setActionError('Cannot adjust plot while it is reserved or not available.');
+      return;
+    }
+
     const targetPlotId = plot.id;
     const officerId = session.adminId || session.username || 'admin';
     const officerName = session.fullName || session.username || 'Admin';
@@ -1364,7 +1420,10 @@ function BlockPlotsContent() {
     const officerName = session.fullName || session.username || 'Admin';
 
     const isPlotReserved = selectedPlot.status === 'reserved' ||
+      selectedPlot.displayStatus === 'reserved' ||
+      selectedPlot.lockReason === 'reserve' ||
       Boolean(selectedPlot.reservations?.some((r) => r.status === 'active')) ||
+      plotReservations.some((r) => r.status === 'active' && (!r.validUntil || new Date(r.validUntil).getTime() > Date.now())) ||
       (Number(selectedPlot.activeReservationCount || 0) > 0);
 
     // If plot is reserved, do not open the quick-booking popup
@@ -1537,7 +1596,7 @@ function BlockPlotsContent() {
     );
   }
 
-  const canAccess = session?.role === 'super_admin' || Boolean(session?.permissions?.can_view_master_plan);
+  const canAccess = session?.role === 'super_admin' || Boolean(session?.permissions?.can_reserve && session?.permissions?.can_book && session?.permissions?.can_view_master_plan);
   if (session && !canAccess) {
     return (
       <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
@@ -1913,7 +1972,7 @@ function BlockPlotsContent() {
                 </div>
 
                 {/* Super Admin Quick Adjust Plot Action on Card */}
-                {session?.role === 'super_admin' && (plot.category === 'residential' || plot.category === 'commercial') && visualStatus !== 'allotted' && visualStatus !== 'booked' && !isBooked && plot.status !== 'booked' && !isAdjustment && (
+                {session?.role === 'super_admin' && (plot.category === 'residential' || plot.category === 'commercial') && visualStatus !== 'allotted' && visualStatus !== 'booked' && !isBooked && plot.status !== 'booked' && !isReserved && plot.status !== 'reserved' && plot.lockReason !== 'reserve' && !isAdjustment && (
                   <button
                     type="button"
                     onClick={(e) => handleOpenAdjustPlot(plot, e)}
@@ -2137,6 +2196,7 @@ function BlockPlotsContent() {
                           min={1}
                           step="any"
                           value={newPriceInput}
+                          onWheel={(e) => e.currentTarget.blur()}
                           onChange={(e) => setNewPriceInput(e.target.value)}
                           placeholder="Enter price"
                           className="w-full px-2 py-1 text-xs font-mono font-bold bg-white border border-emerald-400 rounded-md focus:outline-hidden"
@@ -2452,99 +2512,111 @@ function BlockPlotsContent() {
             </div>
 
             {/* Modal Fixed / Pinned Action Footer */}
-            <div className="p-3 sm:px-5 sm:py-3.5 border-t border-slate-200 bg-slate-50 shrink-0 flex flex-col gap-2 shadow-xs">
-              {selectedPlot.isAdjustment ? (
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <div className="flex-1 py-2 px-3 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-1.5 w-full">
-                    <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                    <span>Operations Locked Under Town Planning Freeze</span>
+            {(() => {
+              if (selectedPlot.isAdjustment) {
+                return (
+                  <div className="p-3 sm:px-5 sm:py-3.5 border-t border-slate-200 bg-slate-50 shrink-0 flex flex-col gap-2 shadow-xs">
+                    <div className="flex flex-col sm:flex-row items-center gap-2">
+                      <div className="flex-1 py-2 px-3 bg-blue-50 border border-blue-200 rounded-xl text-center text-xs font-bold text-blue-900 flex items-center justify-center gap-1.5 w-full">
+                        <Lock className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                        <span>Operations Locked Under Town Planning Freeze</span>
+                      </div>
+                      {session?.role === 'super_admin' && selectedPlot.status !== 'allotted' && (
+                        <button
+                          type="button"
+                          onClick={handleReleaseAdjustment}
+                          disabled={actionLoading || releasingFreeze}
+                          className="w-full sm:w-auto min-w-[130px] justify-center py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer text-center shadow-xs flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                        >
+                          {releasingFreeze ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Releasing…</span>
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Release Freeze</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  {session?.role === 'super_admin' && selectedPlot.status !== 'allotted' && (
+                );
+              }
+
+              const isPlotReserved = selectedPlot.status === 'reserved' ||
+                selectedPlot.displayStatus === 'reserved' ||
+                selectedPlot.lockReason === 'reserve' ||
+                Boolean(selectedPlot.reservingByName || (selectedPlot.reservingUsers && selectedPlot.reservingUsers.length > 0)) ||
+                Boolean(selectedPlot.lockedBy && selectedPlot.lockReason === 'reserve') ||
+                Boolean(selectedPlot.reservations?.some((r) => r.status === 'active')) ||
+                plotReservations.some((r) => r.status === 'active' && (!r.validUntil || new Date(r.validUntil).getTime() > Date.now())) ||
+                (Number(selectedPlot.activeReservationCount || 0) > 0);
+
+              // If a plot is being reserved, reserved, booked, allotted, or amenity: do not show the bottom action buttons.
+              // When released back to available, show: Reserve Plot (Token), Quick Booking, Full Registration, Adjust Plot.
+              if (isPlotReserved || selectedPlot.status !== 'available' || selectedPlot.category === 'amenity') {
+                return null;
+              }
+
+              return (
+                <div className="p-3 sm:px-5 sm:py-3.5 border-t border-slate-200 bg-slate-50 shrink-0 flex flex-col gap-2 shadow-xs">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Reserve Button: Available plots only */}
                     <button
                       type="button"
-                      onClick={handleReleaseAdjustment}
-                      disabled={actionLoading || releasingFreeze}
-                      className="w-full sm:w-auto min-w-[130px] justify-center py-2 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all cursor-pointer text-center shadow-xs flex items-center gap-1.5 shrink-0 disabled:opacity-50"
+                      onClick={openReserve}
+                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
+                      className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-amber-50 hover:bg-amber-100/90 active:bg-amber-200/80 border border-amber-300 hover:border-amber-400 text-amber-950 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-xs disabled:opacity-50"
                     >
-                      {releasingFreeze ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          <span>Releasing…</span>
-                        </>
-                      ) : (
-                        <>
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Release Freeze</span>
-                        </>
-                      )}
+                      <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
+                      <span>Reserve Plot (Token)</span>
                     </button>
-                  )}
-                </div>
-              ) : (() => {
-                const isPlotReserved = selectedPlot.status === 'reserved' ||
-                  Boolean(selectedPlot.reservations?.some((r) => r.status === 'active')) ||
-                  (Number(selectedPlot.activeReservationCount || 0) > 0);
-                return (
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* Reserve Button: Available or Reserved plots - The Reserve action stays */}
-                    {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && (
-                      <button
-                        type="button"
-                        onClick={openReserve}
-                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
-                        className={`inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-amber-50 hover:bg-amber-100/90 active:bg-amber-200/80 border border-amber-300 hover:border-amber-400 text-amber-950 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-xs disabled:opacity-50 ${
-                          isPlotReserved && session?.role !== 'super_admin' ? 'col-span-2' : ''
-                        }`}
-                      >
-                        <BookmarkCheck className="w-4 h-4 text-amber-600 shrink-0" />
-                        <span>Reserve Plot (Token)</span>
-                      </button>
-                    )}
 
-                    {/* Lock & Book Button: Available only - HIDDEN when plot is reserved or has active reservation */}
-                    {selectedPlot.category !== 'amenity' && selectedPlot.status === 'available' && !isPlotReserved && !selectedPlot.isAdjustment && (
-                      <button
-                        type="button"
-                        onClick={() => openBook(undefined, true)}
-                        disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
-                        className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
-                      >
-                        <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
-                        <span>Quick Booking</span>
-                      </button>
-                    )}
+                    {/* Quick Booking Button: Available plots only */}
+                    <button
+                      type="button"
+                      onClick={() => openBook(undefined, true)}
+                      disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
+                      className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs hover:shadow-md transition-all cursor-pointer text-center disabled:opacity-50"
+                    >
+                      <Lock className="w-4 h-4 text-emerald-200 shrink-0" />
+                      <span>Quick Booking</span>
+                    </button>
 
-                    {/* Full Registration Button: Super Admin only - Available or Reserved */}
-                    {selectedPlot.category !== 'amenity' && (selectedPlot.status === 'available' || selectedPlot.status === 'reserved') && !selectedPlot.isAdjustment && session?.role === 'super_admin' && (
+                    {/* Full Registration Button: Super Admin only - Available plots only */}
+                    {session?.role === 'super_admin' && (
                       <button
                         type="button"
                         onClick={() => openBook(undefined, false)}
                         disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== session?.adminId)}
-                        className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-200/80 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 hover:border-slate-400 shadow-2xs transition-all cursor-pointer text-center disabled:opacity-50"
+                        className={`inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-slate-200/80 hover:bg-slate-200 active:bg-slate-300 text-slate-800 font-semibold text-xs sm:text-sm rounded-xl border border-slate-300 hover:border-slate-400 shadow-2xs transition-all cursor-pointer text-center disabled:opacity-50 ${
+                          selectedPlot.category !== 'residential' && selectedPlot.category !== 'commercial' ? 'col-span-2' : ''
+                        }`}
                       >
                         <User className="w-4 h-4 text-slate-600 shrink-0" />
                         <span>Full Registration</span>
                       </button>
                     )}
 
-                    {/* Super Admin Master Plan Adjustment Button: HIDDEN for booked and allotted */}
-                    {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && selectedPlot.status !== 'allotted' && selectedPlot.status !== 'booked' && !selectedPlot.isAdjustment && (
+                    {/* Super Admin Master Plan Adjustment Button: Available plots only */}
+                    {session?.role === 'super_admin' && (selectedPlot.category === 'residential' || selectedPlot.category === 'commercial') && (
                       <button
                         type="button"
                         onClick={() => handleOpenAdjustPlot(selectedPlot)}
                         disabled={actionLoading}
-                        className={`inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-white hover:bg-blue-50/80 active:bg-blue-100 border border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-2xs ${
-                          selectedPlot.status !== 'available' ? 'col-span-2' : ''
-                        }`}
+                        className="inline-flex items-center justify-center gap-2 py-2.5 px-3 bg-white hover:bg-blue-50/80 active:bg-blue-100 border border-slate-300 hover:border-blue-300 text-slate-700 hover:text-blue-900 font-semibold text-xs sm:text-sm rounded-xl transition-all cursor-pointer text-center shadow-2xs"
                       >
                         <AlertTriangle className="w-3.5 h-3.5 text-blue-600 shrink-0" />
                         <span>Adjust Plot</span>
                       </button>
                     )}
                   </div>
-                );
-              })()}
-            </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}
@@ -2633,6 +2705,7 @@ function BlockPlotsContent() {
                     step="any"
                     required
                     value={reserveForm.tokenFee}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setReserveForm({ ...reserveForm, tokenFee: Number(e.target.value) })}
                     className="w-full px-3 py-2 bg-amber-50/80 border border-amber-300 rounded-xl text-amber-950 font-mono font-bold focus:bg-white"
                   />
@@ -2650,6 +2723,7 @@ function BlockPlotsContent() {
                     max="30"
                     required
                     value={reserveForm.validDays}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setReserveForm({ ...reserveForm, validDays: Number(e.target.value) })}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono focus:bg-white"
                   />
@@ -2818,14 +2892,19 @@ function BlockPlotsContent() {
 
             
 
-            <form onSubmit={handleMinimalBookSubmit} className="space-y-3.5 text-xs">
+            <form onSubmit={handleMinimalBookSubmit} noValidate className="space-y-3.5 text-xs">
               <div>
                 <label className="block text-slate-700 mb-1 font-semibold">
                   Customer Full Name <span className="text-rose-500">*</span>
                 </label>
                 <LiveMemberPicker
                   value={minimalForm.customerName}
-                  onChange={(val) => setMinimalForm((prev) => ({ ...prev, customerName: val }))}
+                  onChange={(val) => {
+                    setMinimalForm((prev) => ({ ...prev, customerName: val }));
+                    if (minimalFieldErrors.customerName) {
+                      setMinimalFieldErrors((prev) => ({ ...prev, customerName: undefined }));
+                    }
+                  }}
                   selectedMember={minimalSelectedMember}
                   onSelectMember={(member) => {
                     setMinimalSelectedMember(member);
@@ -2837,13 +2916,21 @@ function BlockPlotsContent() {
                         city: member.city || prev.city,
                         customerId: member.id,
                       }));
+                      setMinimalFieldErrors({});
                     } else {
                       setMinimalForm((prev) => ({ ...prev, customerId: '' }));
                     }
                   }}
                   placeholder="e.g. Hamza Tariq (type name, CNIC, phone or membership #)"
+                  inputClassName={minimalFieldErrors.customerName ? 'border-rose-400 ring-1 ring-rose-400/20 bg-rose-50/20' : undefined}
                   required
                 />
+                {minimalFieldErrors.customerName && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{minimalFieldErrors.customerName}</span>
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2857,7 +2944,12 @@ function BlockPlotsContent() {
                 </label>
                 <LiveCnicMemberPicker
                   value={minimalForm.cnic}
-                  onChange={(val) => setMinimalForm((prev) => ({ ...prev, cnic: val }))}
+                  onChange={(val) => {
+                    setMinimalForm((prev) => ({ ...prev, cnic: val }));
+                    if (minimalFieldErrors.cnic) {
+                      setMinimalFieldErrors((prev) => ({ ...prev, cnic: undefined }));
+                    }
+                  }}
                   selectedMember={minimalSelectedMember}
                   onSelectMember={(member) => {
                     setMinimalSelectedMember(member);
@@ -2869,14 +2961,21 @@ function BlockPlotsContent() {
                         city: member.city || prev.city,
                         customerId: member.id,
                       }));
+                      setMinimalFieldErrors({});
                     } else {
                       setMinimalForm((prev) => ({ ...prev, customerId: '' }));
                     }
                   }}
                   placeholder="00000-0000000-0"
-                  inputClassName="bg-slate-50 border-slate-200 focus:bg-white"
+                  inputClassName={minimalFieldErrors.cnic ? 'border-rose-400 ring-1 ring-rose-400/20 bg-rose-50/20' : 'bg-slate-50 border-slate-200 focus:bg-white'}
                   required
                 />
+                {minimalFieldErrors.cnic && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{minimalFieldErrors.cnic}</span>
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2893,14 +2992,27 @@ function BlockPlotsContent() {
                   required
                   value={minimalForm.city}
                   disabled={Boolean(minimalSelectedMember)}
-                  onChange={(e) => setMinimalForm({ ...minimalForm, city: e.target.value })}
+                  onChange={(e) => {
+                    setMinimalForm({ ...minimalForm, city: e.target.value });
+                    if (minimalFieldErrors.city) {
+                      setMinimalFieldErrors((prev) => ({ ...prev, city: undefined }));
+                    }
+                  }}
                   placeholder="e.g. Lahore, Rawalpindi, Islamabad"
                   className={`w-full px-3 py-2 border rounded-xl text-slate-900 transition-all ${
                     minimalSelectedMember
                       ? 'bg-emerald-50/50 border-emerald-200 text-slate-700 cursor-not-allowed'
+                      : minimalFieldErrors.city
+                      ? 'bg-rose-50/20 border-rose-400 ring-1 ring-rose-400/20 focus:outline-none focus:border-rose-500'
                       : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10'
                   }`}
                 />
+                {minimalFieldErrors.city && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{minimalFieldErrors.city}</span>
+                  </p>
+                )}
               </div>
 
               <div>
@@ -2913,10 +3025,26 @@ function BlockPlotsContent() {
                   min={1}
                   step="any"
                   value={minimalForm.price}
-                  onChange={(e) => setMinimalForm({ ...minimalForm, price: e.target.value })}
+                  onWheel={(e) => e.currentTarget.blur()}
+                  onChange={(e) => {
+                    setMinimalForm({ ...minimalForm, price: e.target.value });
+                    if (minimalFieldErrors.price) {
+                      setMinimalFieldErrors((prev) => ({ ...prev, price: undefined }));
+                    }
+                  }}
                   placeholder="Enter plot price"
-                  className="w-full px-3 py-2 border rounded-xl text-slate-900 bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10 font-mono font-bold"
+                  className={`w-full px-3 py-2 border rounded-xl text-slate-900 font-mono font-bold transition-all ${
+                    minimalFieldErrors.price
+                      ? 'bg-rose-50/20 border-rose-400 ring-1 ring-rose-400/20 focus:outline-none focus:border-rose-500'
+                      : 'bg-slate-50 border-slate-200 focus:bg-white focus:outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/10'
+                  }`}
                 />
+                {minimalFieldErrors.price && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                    <span>{minimalFieldErrors.price}</span>
+                  </p>
+                )}
               </div>
 
               <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
@@ -2929,7 +3057,7 @@ function BlockPlotsContent() {
                 </button>
                 <button
                   type="submit"
-                  disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== (session?.adminId || session?.username)) || !minimalForm.customerName.trim() || !isValidCnic(minimalForm.cnic) || !minimalForm.city.trim() || !minimalForm.price || Number(minimalForm.price) <= 0}
+                  disabled={actionLoading || Boolean(selectedPlot.lockedBy && selectedPlot.lockedBy !== (session?.adminId || session?.username))}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 min-w-[165px]"
                 >
                   {actionLoading ? (

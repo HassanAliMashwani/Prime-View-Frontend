@@ -1039,6 +1039,7 @@ export default function ContentCMSPage() {
                         step="any"
                         placeholder="e.g. 4900000"
                         value={editForm.price || ''}
+                        onWheel={(e) => e.currentTarget.blur()}
                         onChange={(e) =>
                           setEditForm({ ...editForm, price: Number(e.target.value) || undefined })
                         }

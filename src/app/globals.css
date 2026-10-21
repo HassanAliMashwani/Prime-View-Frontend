@@ -26,11 +26,36 @@
   --color-surface-dark: #1c342b;
 }
 
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
 body {
   background-color: var(--color-soft-white);
   color: var(--color-charcoal);
   font-family: var(--font-sans), system-ui, sans-serif;
   overflow-x: hidden;
+}
+
+/* Disable spin buttons and ensure scrolling does not manipulate number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Ensure full-screen fixed overlays, dialog backdrops, and fixed drawers always cover the viewport
+   without inheriting unwanted margin-top from parent space-y-* utility containers */
+.fixed.inset-0,
+[class*="fixed"][class*="inset-0"],
+.fixed.top-0,
+[class*="fixed"][class*="top-0"] {
+  margin: 0 !important;
 }
 
 /* Typography Utilities */

@@ -318,15 +318,15 @@ export default function InteractiveBlockMap({
             
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.available.fill }} />
-              <span>Available</span>
+              <span className="font-bold text-emerald-600">Available</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.reserved.fill }} />
-              <span>Reserve</span>
+              <span className="font-bold text-amber-500">Reserve</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: PLOT_STATUS_STYLES.booked.fill }} />
-              <span>Book</span>
+              <span className="font-bold text-red-600">Book</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.adjustment.fill }} />
@@ -344,7 +344,7 @@ export default function InteractiveBlockMap({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full shadow-xs" style={{ backgroundColor: SPECIAL_PLOT_STYLES.amenity.fill }} />
-              <span>Amenity</span>
+              <span className="font-bold text-purple-600">Amenity</span>
             </div>
           </div>
 

@@ -72,13 +72,15 @@ export async function adminLogin(username: string, password: string): Promise<Ad
       token: access_token,
       expiresAt: typeof payload.exp === 'number' && payload.exp > 0
         ? payload.exp * 1000
-        : Date.now() + 24 * 60 * 60 * 1000,
+        : Date.now() + 23 * 60 * 60 * 1000,
     };
 
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
         localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+        // Admin cookie maxAge: 23 hours in seconds = 82800
+        document.cookie = `pv_admin_session=${encodeURIComponent(payload.username)}; path=/; max-age=82800; SameSite=Lax`;
       } catch {
         // Storage unavailable fallback
       }
@@ -124,6 +126,7 @@ export async function adminLogout(): Promise<{ ok: boolean }> {
     try {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
       localStorage.removeItem(SESSION_STORAGE_KEY);
+      document.cookie = 'pv_admin_session=; path=/; max-age=0; SameSite=Lax';
     } catch {
       // Storage fallback
     }

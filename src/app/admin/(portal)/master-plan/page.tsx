@@ -62,7 +62,8 @@ export default function MasterPlanPage() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      if (s.role === 'super_admin' || s.permissions?.can_view_master_plan) {
+      const canAccessBox1 = s.role === 'super_admin' || Boolean(s.permissions?.can_reserve && s.permissions?.can_book && s.permissions?.can_view_master_plan);
+      if (canAccessBox1) {
         loadBlocks(s, false);
       } else {
         setLoading(false);
@@ -74,7 +75,7 @@ export default function MasterPlanPage() {
   useEffect(() => {
     if (!imageLoaded || !session || hasPrefetchedRef.current) return;
     const isSuper = session.role === 'super_admin';
-    const canAccess = isSuper || Boolean(session.permissions?.can_view_master_plan);
+    const canAccess = isSuper || Boolean(session.permissions?.can_reserve && session.permissions?.can_book && session.permissions?.can_view_master_plan);
     if (!canAccess) return;
 
     hasPrefetchedRef.current = true;
@@ -128,7 +129,7 @@ export default function MasterPlanPage() {
   }, [loadBlocks]);
 
   const isSuper = session?.role === 'super_admin';
-  const canAccess = !session || isSuper || Boolean(session?.permissions?.can_view_master_plan);
+  const canAccess = !session || isSuper || Boolean(session?.permissions?.can_reserve && session?.permissions?.can_book && session?.permissions?.can_view_master_plan);
 
   if (session && !canAccess) {
     return (

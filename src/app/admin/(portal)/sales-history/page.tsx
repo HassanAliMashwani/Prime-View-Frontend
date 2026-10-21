@@ -16,6 +16,7 @@ import {
   Filter,
   Printer,
   ShieldCheck,
+  ShieldAlert,
   Layers,
   ExternalLink,
   RefreshCw,
@@ -295,6 +296,12 @@ function SalesHistoryContent() {
         .catch((err) => console.error('Failed to load sub-admins for officer filter', err));
     }
 
+    const canAccessSalesBox = cur.role === 'super_admin' || Boolean(cur.permissions?.can_view_sales_reports && cur.permissions?.can_view_sales_history);
+    if (!canAccessSalesBox) {
+      setLoading(false);
+      return;
+    }
+
     loadData(cur, page, false);
 
     // 30-second refresh in background Lane 2
@@ -447,8 +454,34 @@ function SalesHistoryContent() {
   const printPlotCount = rowsToPrint.length;
   const printTotalSum = rowsToPrint.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
 
+  if (!session) {
+    return null;
+  }
+
+  // Permission Guard - Box 3: View Sales History (can_view_sales_reports && can_view_sales_history)
+  const canAccessSalesBox = session.role === 'super_admin' || Boolean(session.permissions?.can_view_sales_reports && session.permissions?.can_view_sales_history);
+  if (!canAccessSalesBox) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Sales History</h2>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+          Your administrative account does not have permission to view sales reports or transaction history. Contact administration to adjust your privileges.
+        </p>
+        <button
+          onClick={() => router.push('/admin/dashboard')}
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
+    <div className="max-w-7xl mx-auto space-y-6 print:p-0 print:m-0 print:max-w-none print:space-y-0">
       {/* Real 12mm print margins to ensure report starts on Page 1 and no empty page is added */}
       <style dangerouslySetInnerHTML={{
         __html: `
@@ -485,7 +518,7 @@ function SalesHistoryContent() {
       `}} />
 
       {/* Screen-Only Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden !mt-0">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 shadow-xs">

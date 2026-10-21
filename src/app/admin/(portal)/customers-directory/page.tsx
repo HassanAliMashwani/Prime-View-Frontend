@@ -293,12 +293,13 @@ function CustomersDirectoryContent() {
       if (!res || reqId !== reqIdRef.current || statusParam !== statusFilterRef.current) return;
       if (res.error === 'REQUEST_ABORTED') return;
       if (!res.ok) {
+        const errorMsg = toSafeErrorMessage(res.message || res.error || 'Failed to refresh customer directory.');
         setCustomers((prev) => {
           if (prev.length > 0) {
-            setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to refresh customer directory.') });
+            setFeedback({ type: 'error', message: errorMsg });
             return prev;
           }
-          setError('Something went wrong. Please try again.');
+          setError(errorMsg);
           return [];
         });
       } else {
@@ -334,13 +335,14 @@ function CustomersDirectoryContent() {
     } catch (err: any) {
       if (err?.message === 'REQUEST_SUPERSEDED') return;
       if (reqId !== reqIdRef.current) return;
-      console.error('request failed');
+      console.error('request failed', err);
+      const errorMsg = toSafeErrorMessage(err?.message || 'Failed to load customer directory.');
       setCustomers((prev) => {
         if (prev.length > 0) {
-          setFeedback({ type: 'error', message: 'Something went wrong. Please try again.' });
+          setFeedback({ type: 'error', message: errorMsg });
           return prev;
         }
-        setError('Something went wrong. Please try again.');
+        setError(errorMsg);
         return [];
       });
     } finally {
@@ -488,7 +490,10 @@ function CustomersDirectoryContent() {
   };
 
   // Handle Issue Credentials (Change Request 05 §4 & Change Request 07 §5)
-  const canIssueCredentials = session?.role === 'super_admin';
+  const hasCustomerAccess = session?.role === 'super_admin' || Boolean(
+    session?.permissions?.can_create_customer && session?.permissions?.can_view_customers
+  );
+  const canIssueCredentials = hasCustomerAccess;
 
   const handleIssueCredentials = async (cust: CustomerDirectoryEntry) => {
     if (!session) return;
@@ -501,7 +506,7 @@ function CustomersDirectoryContent() {
     setResetSubmitting(false);
 
     if (!res.ok) {
-      setFeedback({ type: 'error', message: toSafeErrorMessage(res.message || res.error || 'Failed to issue portal credentials.') });
+      setFeedback({ type: 'error', message: res.message || res.error || 'Failed to issue portal credentials.' });
     } else if (!res.password) {
       setFeedback({ type: 'error', message: 'Credential issuance returned empty credentials.' });
     } else {
@@ -534,6 +539,25 @@ function CustomersDirectoryContent() {
   const from = totalRecords === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1;
   const to = Math.min(safePage * PAGE_SIZE, totalRecords);
 
+  if (session && !hasCustomerAccess) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
+          <ShieldAlert className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Customer Directory</h2>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+          Your administrative account does not have permission to view the customer directory. Contact administration to adjust your privileges.
+        </p>
+        <button
+          onClick={() => router.push('/admin/dashboard')}
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
+  }
 
   if (error && customers.length === 0) {
     return (
@@ -572,9 +596,9 @@ function CustomersDirectoryContent() {
   ).length;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 !mt-0">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 shadow-xs">
@@ -886,9 +910,26 @@ function CustomersDirectoryContent() {
                 {/* Compliance Status */}
                 <div className="flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-2.5">
                   {c.registrationStatus === 'minimal' ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
-                      <AlertTriangle className="w-3 h-3 text-amber-700" />
-                      <span>Needs Registration</span>
+                    hasCustomerAccess ? (
+                      <button
+                        type="button"
+                        onClick={() => openCompleteRegistration(c, c.plots?.[0]?.plotId || (c.plots?.[0] as any)?.id)}
+                        title="Needs registration — Click to Complete Registration"
+                        className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 transition-colors cursor-pointer"
+                      >
+                        <AlertTriangle className="w-3 h-3 text-amber-700" />
+                        <span>Needs registration</span>
+                      </button>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
+                        <AlertTriangle className="w-3 h-3 text-amber-700" />
+                        <span>Needs registration</span>
+                      </span>
+                    )
+                  ) : !c.credentialsPending ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                      <span>Portal issued</span>
                     </span>
                   ) : (
                     <span
@@ -926,10 +967,10 @@ function CustomersDirectoryContent() {
 
                 {/* 7. Actions */}
                 <div className="flex items-center justify-end gap-1 border-t border-slate-100 pt-2.5 flex-wrap">
-                  {c.registrationStatus === 'minimal' && (session?.role === 'super_admin' || getActiveAdminSession()?.role === 'super_admin') && (
+                  {c.registrationStatus === 'minimal' && hasCustomerAccess && (
                     <button
                       onClick={() => openCompleteRegistration(c, c.plots?.[0]?.plotId || (c.plots?.[0] as any)?.id)}
-                      title="Complete Member Registration (Super Admin)"
+                      title="Complete Member Registration"
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-auto"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
@@ -1211,9 +1252,26 @@ function CustomersDirectoryContent() {
                       <td className="py-3.5 px-4">
                         <div className="flex flex-col items-start gap-1">
                           {c.registrationStatus === 'minimal' ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
-                              <AlertTriangle className="w-3 h-3 text-amber-700" />
-                              <span>Needs Registration</span>
+                            hasCustomerAccess ? (
+                              <button
+                                type="button"
+                                onClick={() => openCompleteRegistration(c, c.plots?.[0]?.plotId || (c.plots?.[0] as any)?.id)}
+                                title="Needs registration — Click to Complete Registration"
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 transition-colors cursor-pointer"
+                              >
+                                <AlertTriangle className="w-3 h-3 text-amber-700" />
+                                <span>Needs registration</span>
+                              </button>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
+                                <AlertTriangle className="w-3 h-3 text-amber-700" />
+                                <span>Needs registration</span>
+                              </span>
+                            )
+                          ) : !c.credentialsPending ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              <ShieldCheck className="w-3 h-3 text-emerald-600" />
+                              <span>Portal issued</span>
                             </span>
                           ) : (
                             <span
@@ -1253,10 +1311,10 @@ function CustomersDirectoryContent() {
                       {/* Action Buttons */}
                       <td className="py-3.5 px-4 text-right">
                         <div className="inline-flex items-center gap-1">
-                          {c.registrationStatus === 'minimal' && (session?.role === 'super_admin' || getActiveAdminSession()?.role === 'super_admin') && (
+                          {c.registrationStatus === 'minimal' && hasCustomerAccess && (
                             <button
                               onClick={() => openCompleteRegistration(c, c.plots?.[0]?.plotId || (c.plots?.[0] as any)?.id)}
-                              title="Complete Member Registration (Super Admin)"
+                              title="Complete Member Registration"
                               className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer mr-1"
                             >
                               <UserCheck className="w-3.5 h-3.5" />
@@ -1371,7 +1429,22 @@ function CustomersDirectoryContent() {
                   );
                 })()}
                 <div>
-                  <h3 className="font-bold text-base text-slate-900">{dossierCustomer.fullName}</h3>
+                  <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
+                    <span>{dossierCustomer.fullName}</span>
+                    {dossierCustomer.registrationStatus === 'minimal' ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-950 border border-amber-300">
+                        Needs registration
+                      </span>
+                    ) : !dossierCustomer.credentialsPending ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Portal issued
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        Credentials Pending
+                      </span>
+                    )}
+                  </h3>
                   <div className="text-xs font-mono text-emerald-800 font-semibold">
                     Membership: {dossierCustomer.membershipNo} • Account: {dossierCustomer.accountStatus.toUpperCase()}
                   </div>
@@ -1692,7 +1765,7 @@ function CustomersDirectoryContent() {
                       </div>
                     </div>
                   </div>
-                  {session?.role === 'super_admin' && (
+                  {hasCustomerAccess && (
                     <button
                       type="button"
                       onClick={() => {

@@ -230,7 +230,12 @@ export default function ReservationsPage() {
     const s = getActiveAdminSession();
     if (s) {
       setSession(s);
-      loadData(s, 1, search, blockFilter, activeTab, false);
+      const canAccessBox1 = s.role === 'super_admin' || Boolean(s.permissions?.can_reserve && s.permissions?.can_book && s.permissions?.can_view_master_plan);
+      if (canAccessBox1) {
+        loadData(s, 1, search, blockFilter, activeTab, false);
+      } else {
+        setLoading(false);
+      }
     }
   }, [loadData]);
 
@@ -388,6 +393,28 @@ export default function ReservationsPage() {
 
   if (!session) {
     return null;
+  }
+
+  // Permission Guard - Box 1: Reserve, Book, Sort Reservations, and Master Plan
+  const canAccess = session.role === 'super_admin' || Boolean(session.permissions?.can_reserve && session.permissions?.can_book && session.permissions?.can_view_master_plan);
+  if (!canAccess) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 bg-white rounded-2xl border border-rose-200 p-8 shadow-sm text-center">
+        <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-rose-100 flex items-center justify-center text-rose-600">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900 mb-2 font-serif">Access Denied: Sort Reservations</h2>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">
+          Your administrative account does not have permission to view or manage token reservations. Contact administration to adjust your privileges.
+        </p>
+        <button
+          onClick={() => router.push('/admin/dashboard')}
+          className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+        >
+          Return to Dashboard
+        </button>
+      </div>
+    );
   }
 
   const activeReservations = reservations.filter((r) => r.status === 'active');

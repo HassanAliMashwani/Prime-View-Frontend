@@ -20,7 +20,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { AdminSession } from '@/lib/mock/types';
-import { adminLogout } from '@/lib/dal/adminAuth';
+import { adminLogout, getActiveAdminSession } from '@/lib/dal/adminAuth';
 
 interface AdminSidebarProps {
   session: AdminSession | null;
@@ -43,17 +43,37 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
     setMounted(true);
   }, []);
 
-  const isSuper = mounted && session?.role === 'super_admin';
-  const isSessionLoading = !mounted || !session;
-  // Draw the real sidebar labels on that first paint before saved session is read
-  const canCreateCustomer = isSessionLoading || isSuper || Boolean(session?.permissions?.can_create_customer);
-  const canViewCustomers = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_customers);
-  const canReserve = isSessionLoading || isSuper || Boolean(session?.permissions?.can_reserve || session?.permissions?.can_book);
-  const canViewSales = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_sales_history || session?.permissions?.can_view_sales_reports);
-  const canEditContent = isSessionLoading || isSuper || Boolean(session?.permissions?.can_edit_content);
-  const canVerifyReceipts = isSessionLoading || isSuper || Boolean(session?.permissions?.can_verify_receipts);
-  const canViewInventory = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_inventory);
-  const canViewMasterPlan = isSessionLoading || isSuper || Boolean(session?.permissions?.can_view_master_plan);
+  const currentSession = session || (typeof window !== 'undefined' ? getActiveAdminSession() : null);
+  const isSuper = currentSession?.role === 'super_admin';
+  const isSessionLoading = !mounted && !currentSession;
+
+  // Box 1: Reserve, Book, Sort Reservations, and Master Plan (keys: can_reserve, can_book, can_view_master_plan)
+  const canMasterPlanBox = isSessionLoading || isSuper || Boolean(
+    currentSession?.permissions?.can_reserve &&
+    currentSession?.permissions?.can_book &&
+    currentSession?.permissions?.can_view_master_plan
+  );
+
+  // Box 2: Create Customer Account and View Customer Directory (keys: can_create_customer, can_view_customers)
+  const canCustomerBox = isSessionLoading || isSuper || Boolean(
+    currentSession?.permissions?.can_create_customer &&
+    currentSession?.permissions?.can_view_customers
+  );
+
+  // Box 3: View Sales History (keys: can_view_sales_reports, can_view_sales_history)
+  const canSalesBox = isSessionLoading || isSuper || Boolean(
+    currentSession?.permissions?.can_view_sales_reports &&
+    currentSession?.permissions?.can_view_sales_history
+  );
+
+  // Box 4: Edit Website Plans
+  const canEditContent = isSessionLoading || isSuper || Boolean(currentSession?.permissions?.can_edit_content);
+
+  // Box 5: Receipt Verification
+  const canVerifyReceipts = isSessionLoading || isSuper || Boolean(currentSession?.permissions?.can_verify_receipts);
+
+  // Box 6: View Inventory Overview
+  const canViewInventory = isSessionLoading || isSuper || Boolean(currentSession?.permissions?.can_view_inventory);
 
   const coreNavItems = [
     {
@@ -72,7 +92,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       iconColor: 'text-indigo-600',
       activeColor: 'bg-indigo-50 text-indigo-950 border-indigo-600',
       active: pathname.startsWith('/admin/master-plan'),
-      visible: canViewMasterPlan,
+      visible: canMasterPlanBox,
     },
     {
       label: 'Inventory Overview',
@@ -90,7 +110,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       iconColor: 'text-amber-600',
       activeColor: 'bg-amber-50 text-amber-950 border-amber-600',
       active: pathname === '/admin/reservations',
-      visible: canReserve,
+      visible: canMasterPlanBox,
     },
     {
       label: 'Customer Directory',
@@ -99,7 +119,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       iconColor: 'text-cyan-600',
       activeColor: 'bg-cyan-50 text-cyan-950 border-cyan-600',
       active: pathname === '/admin/customers-directory',
-      visible: canViewCustomers,
+      visible: canCustomerBox,
     },
     {
       label: 'Customer Bookings',
@@ -108,7 +128,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       iconColor: 'text-blue-600',
       activeColor: 'bg-blue-50 text-blue-950 border-blue-600',
       active: pathname === '/admin/customers',
-      visible: canCreateCustomer,
+      visible: canCustomerBox,
     },
     {
       label: 'Sales History',
@@ -117,7 +137,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ session, isOpen, onC
       iconColor: 'text-emerald-600',
       activeColor: 'bg-emerald-50 text-emerald-950 border-emerald-600',
       active: pathname === '/admin/sales-history',
-      visible: canViewSales,
+      visible: canSalesBox,
     },
     {
       label: 'Receipt Verification',
