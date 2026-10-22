@@ -56,7 +56,7 @@ function SubmittedReceiptsContent() {
   const installmentParam = searchParams.get('installment');
   const reuploadParam = searchParams.get('reupload');
 
-  const { profile, plots, schedules, fetchProfile, fetchPlots, fetchPayments, isLoading } = useMemberStore();
+  const { profile, plots, schedules, fetchProfile, fetchPlots, fetchPayments, fetchDashboardData, isLoading } = useMemberStore();
 
   const [receipts, setReceipts] = useState<ReceiptSubmission[]>([]);
   const [loadingReceipts, setLoadingReceipts] = useState(true);
@@ -66,6 +66,7 @@ function SubmittedReceiptsContent() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [activeSlipSubmission, setActiveSlipSubmission] = useState<ReceiptSubmission | null>(null);
   const [replacesReceipt, setReplacesReceipt] = useState<ReceiptSubmission | null>(null);
+  const [isPlotFixed, setIsPlotFixed] = useState(false);
 
   // Upload Form state
   const [formPlotId, setFormPlotId] = useState<string>('');
@@ -248,16 +249,22 @@ function SubmittedReceiptsContent() {
     return item.installmentNumber || 1;
   }, [isBiannualReceiptItem]);
 
-  // Helper to find unreplaced declined receipt (Rule 6)
-  const getFirstUnreplacedDeclinedReceipt = useCallback(() => {
-    return (
-      receipts.find((r) => {
-        if (r.status !== 'rejected') return false;
-        const hasReplacement = receipts.some((other) => other.replacesReceiptId === r.id);
-        return !hasReplacement;
-      }) || null
-    );
-  }, [receipts]);
+  // Helper to find unreplaced declined receipt for a specific plot (Rule 7)
+  const getUnreplacedDeclinedReceiptForPlot = useCallback(
+    (plotId: string) => {
+      return (
+        receipts.find((r) => {
+          if (r.plotId !== plotId) return false;
+          if (r.status !== 'rejected') return false;
+          const hasActiveReplacement = receipts.some(
+            (other) => other.replacesReceiptId === r.id && other.status !== 'rejected',
+          );
+          return !hasActiveReplacement;
+        }) || null
+      );
+    },
+    [receipts]
+  );
 
   // Helper to get replacement of a receipt
   const getReplacementForReceipt = useCallback(
@@ -267,15 +274,27 @@ function SubmittedReceiptsContent() {
     [receipts]
   );
 
-  const openReuploadModal = useCallback(
-    (declinedReceipt: ReceiptSubmission) => {
+  const configureFormForReupload = useCallback(
+    (declinedReceipt: ReceiptSubmission, lockPlot: boolean = false) => {
       setReplacesReceipt(declinedReceipt);
+      setIsPlotFixed(lockPlot);
       setFormPlotId(declinedReceipt.plotId);
       setFormPaymentType(declinedReceipt.paymentType || 'installment');
       setFormFeeType(declinedReceipt.feeType || 'plot_installment');
       setFormInstallmentNo(declinedReceipt.installmentNumber || 1);
       setFormPaymentKind('regular');
-      setFormAmount(String(declinedReceipt.amount));
+
+      // Rule 2: Amount is what the bill still owes: bill amount minus anything already credited
+      const sched = schedules.find((s) => s.plotId === declinedReceipt.plotId);
+      const targetItem = sched?.schedule?.find((item: any) =>
+        (declinedReceipt.paymentRecordId && item.id === declinedReceipt.paymentRecordId) ||
+        (item.feeType === declinedReceipt.feeType && item.installmentNumber === declinedReceipt.installmentNumber)
+      );
+      const billAmount = targetItem ? Number(targetItem.amount) : Number(declinedReceipt.amount);
+      const paidAmount = targetItem ? Number(targetItem.paidAmount || 0) : 0;
+      const stillOwed = Math.max(0, billAmount - paidAmount);
+
+      setFormAmount(String(stillOwed));
       setFormBankName(declinedReceipt.depositoryBank || declinedReceipt.bankName || 'Meezan Bank Limited');
       setFormTxnRef('');
       setFormDate(new Date().toISOString().split('T')[0]);
@@ -287,55 +306,74 @@ function SubmittedReceiptsContent() {
       setBalloonError(null);
       setShowUploadModal(true);
     },
-    []
+    [schedules]
   );
 
-  const openUploadModal = (plotId?: string, installmentNo?: number, amount?: number) => {
-    // Rule 6: Upload New Receipt, when this member still has a declined slip with no replacement uploaded yet,
-    // opens the re-upload of that declined slip first and asks for that image. It does not start a different bill.
-    const unreplacedDeclined = getFirstUnreplacedDeclinedReceipt();
-    if (unreplacedDeclined) {
-      openReuploadModal(unreplacedDeclined);
-      return;
-    }
+  const configureFormForNormalUpload = useCallback(
+    (targetPlotId: string, installmentNo?: number, amount?: number) => {
+      setReplacesReceipt(null);
+      setIsPlotFixed(false);
+      setFormPlotId(targetPlotId);
 
-    setReplacesReceipt(null);
-    const targetPlotId = plotId || initialPlotParam || (availablePlotOptions.length > 0 ? availablePlotOptions[0].id : '');
-    setFormPlotId(targetPlotId);
+      const targetPlot = availablePlotOptions.find((p) => p.id === targetPlotId);
+      const sched = schedules.find((s) => s.plotId === targetPlotId);
+      const effectivePaymentType = targetPlot?.paymentType || sched?.paymentType || 'installment';
+      setFormPaymentType(effectivePaymentType === 'one_time' ? 'one_time' : 'installment');
+      setFormPaymentKind('regular');
 
-    const targetPlot = availablePlotOptions.find((p) => p.id === targetPlotId);
-    const sched = schedules.find((s) => s.plotId === targetPlotId);
-    const effectivePaymentType = targetPlot?.paymentType || sched?.paymentType || 'installment';
-    setFormPaymentType(effectivePaymentType === 'one_time' ? 'one_time' : 'installment');
-    setFormPaymentKind('regular');
-
-    if (effectivePaymentType === 'one_time') {
-      const fullUnpaid = getTotalStillOwed(sched);
-      setFormAmount(String(fullUnpaid));
-      setFormInstallmentNo(1);
-      setFormFeeType('plot_one_time');
-    } else {
-      const nextBill = getNextUnpaidBill(sched);
-      if (nextBill) {
-        setFormFeeType(nextBill.feeType || 'plot_installment');
-        setFormInstallmentNo(getResolvedReceiptInstallmentNo(nextBill, sched));
-        const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
-        setFormAmount(String(outstanding));
+      if (effectivePaymentType === 'one_time') {
+        const fullUnpaid = getTotalStillOwed(sched);
+        setFormAmount(String(fullUnpaid));
+        setFormInstallmentNo(1);
+        setFormFeeType('plot_one_time');
       } else {
-        setFormFeeType('plot_installment');
-        setFormInstallmentNo(installmentNo || 1);
-        setFormAmount(amount !== undefined ? String(amount) : '0');
+        const nextBill = getNextUnpaidBill(sched);
+        if (nextBill) {
+          setFormFeeType(nextBill.feeType || 'plot_installment');
+          setFormInstallmentNo(getResolvedReceiptInstallmentNo(nextBill, sched));
+          const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
+          setFormAmount(String(outstanding));
+        } else {
+          setFormFeeType('plot_installment');
+          setFormInstallmentNo(installmentNo || 1);
+          setFormAmount(amount !== undefined ? String(amount) : '0');
+        }
       }
-    }
 
-    setUploadError(null);
-    setBalloonError(null);
-    setSelectedReceiptFile(null);
-    setFormFileName('');
-    setFormFileUrl('');
-    setFormNotes('');
-    setShowUploadModal(true);
-  };
+      setUploadError(null);
+      setBalloonError(null);
+      setSelectedReceiptFile(null);
+      setFormFileName('');
+      setFormFileUrl('');
+      setFormNotes('');
+      setShowUploadModal(true);
+    },
+    [availablePlotOptions, schedules, getTotalStillOwed, getNextUnpaidBill, getResolvedReceiptInstallmentNo]
+  );
+
+  const openReuploadModal = useCallback(
+    (declinedReceipt: ReceiptSubmission) => {
+      // Rule 1: Opened from decline notification or "Re-upload Receipt" on that declined slip -> plot and bill fixed!
+      configureFormForReupload(declinedReceipt, true);
+    },
+    [configureFormForReupload]
+  );
+
+  const openUploadModal = useCallback(
+    (plotId?: string, installmentNo?: number, amount?: number) => {
+      // Rule 7: "Upload New Receipt" opens the form with the plot select enabled.
+      // Choosing a plot that has an unreplaced declined slip switches the form to that slip's re-upload (rules 1 to 3).
+      // Choosing any other plot gives the normal upload.
+      const targetPlotId = plotId || initialPlotParam || (availablePlotOptions.length > 0 ? availablePlotOptions[0].id : '');
+      const unreplaced = getUnreplacedDeclinedReceiptForPlot(targetPlotId);
+      if (unreplaced) {
+        configureFormForReupload(unreplaced, false);
+      } else {
+        configureFormForNormalUpload(targetPlotId, installmentNo, amount);
+      }
+    },
+    [initialPlotParam, availablePlotOptions, getUnreplacedDeclinedReceiptForPlot, configureFormForReupload, configureFormForNormalUpload]
+  );
 
   // Auto-open modal if ?reupload=id is passed via URL
   useEffect(() => {
@@ -355,37 +393,22 @@ function SubmittedReceiptsContent() {
         installmentParam ? Number(installmentParam) : undefined
       );
     }
-  }, [uploadParam, initialPlotParam, installmentParam, schedules.length]);
+  }, [uploadParam, initialPlotParam, installmentParam, schedules.length, openUploadModal]);
 
   // Handle plot change in modal
-  const handlePlotSelectionChange = (newPlotId: string) => {
-    setFormPlotId(newPlotId);
-    const targetPlot = availablePlotOptions.find((p) => p.id === newPlotId);
-    const sched = schedules.find((s) => s.plotId === newPlotId);
-    const effectivePaymentType = targetPlot?.paymentType || sched?.paymentType || 'installment';
-    setFormPaymentType(effectivePaymentType === 'one_time' ? 'one_time' : 'installment');
-    setFormPaymentKind('regular');
-
-    if (effectivePaymentType === 'one_time') {
-      const fullUnpaid = getTotalStillOwed(sched);
-      setFormAmount(String(fullUnpaid));
-      setFormInstallmentNo(1);
-      setFormFeeType('plot_one_time');
-    } else {
-      const nextBill = getNextUnpaidBill(sched);
-      if (nextBill) {
-        setFormFeeType(nextBill.feeType || 'plot_installment');
-        setFormInstallmentNo(getResolvedReceiptInstallmentNo(nextBill, sched));
-        const outstanding = Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0));
-        setFormAmount(String(outstanding));
+  const handlePlotSelectionChange = useCallback(
+    (newPlotId: string) => {
+      // Rule 7: Choosing a plot that has an unreplaced declined slip switches the form to that slip's re-upload (rules 1 to 3).
+      // Choosing any other plot gives the normal upload.
+      const unreplaced = getUnreplacedDeclinedReceiptForPlot(newPlotId);
+      if (unreplaced) {
+        configureFormForReupload(unreplaced, false);
       } else {
-        setFormFeeType('plot_installment');
-        setFormInstallmentNo(1);
-        setFormAmount('');
+        configureFormForNormalUpload(newPlotId);
       }
-    }
-    setBalloonError(null);
-  };
+    },
+    [getUnreplacedDeclinedReceiptForPlot, configureFormForReupload, configureFormForNormalUpload]
+  );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -436,28 +459,39 @@ function SubmittedReceiptsContent() {
       return;
     }
 
+    const targetItem = replacesReceipt
+      ? sched?.schedule?.find((item: any) =>
+          (replacesReceipt.paymentRecordId && item.id === replacesReceipt.paymentRecordId) ||
+          (item.feeType === replacesReceipt.feeType && item.installmentNumber === replacesReceipt.installmentNumber)
+        )
+      : getNextUnpaidBill(sched);
+
+    const billAmount = targetItem ? Number(targetItem.amount) : (replacesReceipt ? Number(replacesReceipt.amount) : 0);
+    const paidAmount = targetItem ? Number(targetItem.paidAmount || 0) : 0;
+    const billStillOwed = Math.max(0, billAmount - paidAmount);
+    const totalOwed = getTotalStillOwed(sched);
+
     // Balloon & Re-upload boundary validation
     if (formPaymentKind === 'balloon') {
-      const nextBill = getNextUnpaidBill(sched);
-      const nextBillOutstanding = nextBill
-        ? Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0))
-        : 0;
-      const totalOwed = getTotalStillOwed(sched);
-      const minBalloon = replacesReceipt ? Number(replacesReceipt.amount) : nextBillOutstanding;
-      const maxBalloon = replacesReceipt ? Math.max(Number(replacesReceipt.amount), totalOwed) : totalOwed;
+      const minBalloon = billStillOwed > 0 ? billStillOwed : (getNextUnpaidBill(sched) ? Math.max(0, Number(getNextUnpaidBill(sched)!.amount) - Number(getNextUnpaidBill(sched)!.paidAmount || 0)) : 0);
+      const maxBalloon = totalOwed;
 
       if (minBalloon > 0 && parsedAmount < minBalloon) {
-        setBalloonError(`A balloon payment cannot be smaller than the bill amount (${formatPKR(minBalloon)}).`);
+        setBalloonError(`A balloon payment cannot be smaller than what the bill still owes (${formatPKR(minBalloon)}).`);
         return;
       }
       if (maxBalloon > 0 && parsedAmount > maxBalloon) {
         setBalloonError(`A balloon payment cannot exceed the total balance owed on the plot (${formatPKR(maxBalloon)}).`);
         return;
       }
-    } else if (replacesReceipt) {
-      const minBill = Number(replacesReceipt.amount);
-      if (parsedAmount < minBill) {
-        setUploadError(`The minimum payment is the full current bill (${formatPKR(minBill)}). An installment cannot be saved short.`);
+    } else if (formPaymentType === 'installment') {
+      // Regular payment
+      if (Math.abs(parsedAmount - billStillOwed) > 0.01) {
+        if (parsedAmount > billStillOwed) {
+          setUploadError(`Regular payment for ${modalBillLabel} is Rs ${Math.round(billStillOwed).toLocaleString()}. To pay more, choose Balloon / Bulk.`);
+          return;
+        }
+        setUploadError(`Regular payment must be exactly what is still unpaid on this bill (${formatPKR(billStillOwed)}).`);
         return;
       }
     }
@@ -565,6 +599,9 @@ function SubmittedReceiptsContent() {
           message: `${isReupload ? 'Replacement receipt' : 'Receipt'} for Plot ${tempPlotNumber} (${uploadBillLabel}) submitted successfully! Awaiting admin verification.`,
         });
         loadReceiptsData(true);
+        fetchPlots();
+        fetchPayments();
+        fetchDashboardData();
       } else {
         const rawErr = `${res.message || ''} ${res.error || ''}`.toLowerCase();
         const isExec =
@@ -878,7 +915,24 @@ function SubmittedReceiptsContent() {
                               </span>
 
                               {/* Status Badge */}
-                              {isVerified ? (
+                              {sub.replacesReceiptId ? (
+                                sub.status === 'verified' ? (
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Reuploaded &amp; Verified</span>
+                                  </span>
+                                ) : sub.status === 'rejected' ? (
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1">
+                                    <XCircle className="w-3 h-3 text-rose-600" />
+                                    <span>Reuploaded &amp; Declined</span>
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-amber-600" />
+                                    <span>Reuploaded &amp; Pending</span>
+                                  </span>
+                                )
+                              ) : isVerified ? (
                                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
                                   <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                                   <span>Verified</span>
@@ -953,27 +1007,36 @@ function SubmittedReceiptsContent() {
                                 const rep = getReplacementForReceipt(sub.id);
                                 if (rep?.status === 'pending') {
                                   return (
-                                    <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-amber-800 font-semibold px-4 py-2 rounded-xl bg-amber-50 border border-amber-200">
-                                      <Clock className="w-3.5 h-3.5 text-amber-600 mr-1.5" />
-                                      Replacement Under Review
-                                    </span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-amber-800 font-semibold px-4 py-2 rounded-xl bg-amber-50 border border-amber-200">
+                                        <Clock className="w-3.5 h-3.5 text-amber-600 mr-1.5" />
+                                        Replacement Under Review
+                                      </span>
+                                      <button
+                                        type="button"
+                                        disabled
+                                        title="Replacement receipt is currently pending review"
+                                        className="w-full sm:w-auto min-h-[44px] justify-center px-4 py-2 rounded-xl text-xs font-bold bg-slate-200 text-slate-500 flex items-center gap-2 opacity-50 cursor-not-allowed"
+                                      >
+                                        <Upload className="w-3.5 h-3.5" />
+                                        <span>Re-upload Receipt</span>
+                                      </button>
+                                    </div>
                                   );
                                 }
                                 if (rep?.status === 'verified') {
                                   return (
-                                    <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-emerald-800 font-semibold px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                                    <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-emerald-800 font-semibold px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200 cursor-not-allowed">
                                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 mr-1.5" />
                                       Replaced &amp; Verified
                                     </span>
                                   );
                                 }
-                                if (rep?.status === 'rejected') {
-                                  return null;
-                                }
+                                const targetToReupload = rep?.status === 'rejected' ? rep : sub;
                                 return (
                                   <button
                                     type="button"
-                                    onClick={() => openReuploadModal(sub)}
+                                    onClick={() => openReuploadModal(targetToReupload)}
                                     className="w-full sm:w-auto min-h-[44px] justify-center px-4 py-2 rounded-xl text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
                                   >
                                     <Upload className="w-3.5 h-3.5" />
@@ -1074,10 +1137,10 @@ function SubmittedReceiptsContent() {
                 </label>
                 <select
                   value={formPlotId}
-                  disabled={Boolean(replacesReceipt)}
+                  disabled={isPlotFixed}
                   onChange={(e) => handlePlotSelectionChange(e.target.value)}
                   className={`w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-white text-[#151914] ${
-                    replacesReceipt ? 'bg-[#FAF9F7] text-[#4A5347] cursor-not-allowed' : 'focus:ring-2 focus:ring-[#43612B] cursor-pointer'
+                    isPlotFixed ? 'bg-[#FAF9F7] text-[#4A5347] cursor-not-allowed' : 'focus:ring-2 focus:ring-[#43612B] cursor-pointer'
                   }`}
                   required
                 >
@@ -1121,11 +1184,18 @@ function SubmittedReceiptsContent() {
                         onClick={() => {
                           setFormPaymentKind('regular');
                           setBalloonError(null);
+                          const sched = schedules.find((s) => s.plotId === formPlotId);
                           if (replacesReceipt) {
-                            setFormAmount(String(replacesReceipt.amount));
+                            const targetItem = sched?.schedule?.find((item: any) =>
+                              (replacesReceipt.paymentRecordId && item.id === replacesReceipt.paymentRecordId) ||
+                              (item.feeType === replacesReceipt.feeType && item.installmentNumber === replacesReceipt.installmentNumber)
+                            );
+                            const billAmount = targetItem ? Number(targetItem.amount) : Number(replacesReceipt.amount);
+                            const paidAmount = targetItem ? Number(targetItem.paidAmount || 0) : 0;
+                            const stillOwed = Math.max(0, billAmount - paidAmount);
+                            setFormAmount(String(stillOwed));
                             return;
                           }
-                          const sched = schedules.find((s) => s.plotId === formPlotId);
                           const nextBill = getNextUnpaidBill(sched);
                           if (nextBill) {
                             setFormFeeType(nextBill.feeType || 'plot_installment');
@@ -1192,11 +1262,20 @@ function SubmittedReceiptsContent() {
                 {/* Target Bill Breakdown Notice */}
                 {formPaymentType === 'installment' && formPaymentKind === 'regular' && (() => {
                   if (replacesReceipt) {
+                    const sched = schedules.find((s) => s.plotId === formPlotId);
+                    const targetItem = sched?.schedule?.find((item: any) =>
+                      (replacesReceipt.paymentRecordId && item.id === replacesReceipt.paymentRecordId) ||
+                      (item.feeType === replacesReceipt.feeType && item.installmentNumber === replacesReceipt.installmentNumber)
+                    );
+                    const billAmount = targetItem ? Number(targetItem.amount) : Number(replacesReceipt.amount);
+                    const paidAmount = targetItem ? Number(targetItem.paidAmount || 0) : 0;
+                    const stillOwed = Math.max(0, billAmount - paidAmount);
+
                     return (
                       <div className="sm:col-span-2 p-3.5 rounded-2xl border text-xs bg-rose-50/70 border-rose-200 text-rose-950">
                         <div className="flex items-center justify-between font-bold">
                           <span className="text-xs sm:text-sm">
-                            Re-upload Target Bill: {modalBillLabel}
+                            Target Bill: {modalBillLabel}
                           </span>
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900 border border-rose-300">
                             Declined Slip Replacement
@@ -1204,7 +1283,15 @@ function SubmittedReceiptsContent() {
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#6B7462]">
                           <div>
-                            Bill Amount: <span className="font-semibold text-[#151914]">{formatPKR(Number(replacesReceipt.amount))}</span>
+                            Installment amount: <span className="font-semibold text-[#151914]">{formatPKR(billAmount)}</span>
+                          </div>
+                          {paidAmount > 0 && (
+                            <div>
+                              Already credited: <span className="font-semibold text-emerald-800">{formatPKR(paidAmount)}</span>
+                            </div>
+                          )}
+                          <div>
+                            Still owed on this bill: <span className="font-bold text-[#43612B]">{formatPKR(stillOwed)}</span>
                           </div>
                           <div>
                             Original Ref: <span className="font-mono font-bold text-[#151914]">{replacesReceipt.transactionRef}</span>
@@ -1265,6 +1352,38 @@ function SubmittedReceiptsContent() {
                         <div>
                           Remaining Due: <span className="font-bold text-[#43612B]">{formatPKR(currentUnpaidOnNextBill)}</span>
                         </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Balloon / Bulk Bounds Notice */}
+                {formPaymentType === 'installment' && formPaymentKind === 'balloon' && (() => {
+                  const sched = schedules.find((s) => s.plotId === formPlotId);
+                  const targetItem = replacesReceipt
+                    ? sched?.schedule?.find((item: any) =>
+                        (replacesReceipt.paymentRecordId && item.id === replacesReceipt.paymentRecordId) ||
+                        (item.feeType === replacesReceipt.feeType && item.installmentNumber === replacesReceipt.installmentNumber)
+                      )
+                    : getNextUnpaidBill(sched);
+
+                  const billAmount = targetItem ? Number(targetItem.amount) : (replacesReceipt ? Number(replacesReceipt.amount) : 0);
+                  const paidAmount = targetItem ? Number(targetItem.paidAmount || 0) : 0;
+                  const billStillOwed = Math.max(0, billAmount - paidAmount);
+                  const totalOwed = getTotalStillOwed(sched);
+                  const minBalloon = billStillOwed > 0 ? billStillOwed : (getNextUnpaidBill(sched) ? Math.max(0, Number(getNextUnpaidBill(sched)!.amount) - Number(getNextUnpaidBill(sched)!.paidAmount || 0)) : 0);
+                  const maxBalloon = totalOwed;
+
+                  return (
+                    <div className="sm:col-span-2 p-3 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-950 text-xs flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5 font-medium">
+                        <CreditCard className="w-4 h-4 text-indigo-600 shrink-0" />
+                        <span>Balloon Payment Range:</span>
+                      </div>
+                      <div className="flex items-center gap-3 font-semibold text-[11px]">
+                        <span>Minimum: <strong className="text-indigo-900">{formatPKR(minBalloon)}</strong></span>
+                        <span>&bull;</span>
+                        <span>Maximum: <strong className="text-indigo-900">{formatPKR(maxBalloon)}</strong></span>
                       </div>
                     </div>
                   );
