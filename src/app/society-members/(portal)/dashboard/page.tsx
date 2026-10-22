@@ -20,6 +20,7 @@ import {
   FileCheck,
   Upload,
   XCircle,
+  Clock,
 } from 'lucide-react';
 import { MemberDashboardSkeleton } from '@/components/ui/skeleton';
 import { ReceiptSubmission } from '@/lib/mock/types';
@@ -65,77 +66,16 @@ export default function MemberDashboardPage() {
   }, [fetchDashboardData, loadReceipts]);
 
   // A declined or cancelled receipt that has not been paid again still shows, with its reason.
-  // If a bill has a newer receipt and that receipt is verified, do not show the older declined or cancelled receipt for that same bill on the member dashboard.
+  // The member dashboard hides an old declined or cancelled receipt only after a newer verified receipt covers the same bill.
   const declinedReceipts = receipts.filter((r) => {
     if (r.status !== 'rejected' && r.status !== 'cancelled') return false;
 
-    const rTime = new Date(r.uploadedAt || r.paymentDate || 0).getTime();
-
-    const hasNewerVerifiedReceipt = receipts.some((other) => {
-      if (other.status !== 'verified') return false;
-      if (other.id === r.id) return false;
-
-      const otherTime = new Date(other.uploadedAt || other.paymentDate || 0).getTime();
-      if (otherTime < rTime) return false;
-
-      // 1. Direct paymentRecordId match
-      if (r.paymentRecordId && other.paymentRecordId && r.paymentRecordId === other.paymentRecordId) {
-        return true;
-      }
-
-      // 2. Explicit replacement link
-      if (other.replacesReceiptId && other.replacesReceiptId === r.id) {
-        return true;
-      }
-
-      // 3. Same plot/booking, feeType, and installmentNumber
-      const samePlot =
-        (r.plotId && other.plotId && r.plotId === other.plotId) ||
-        (r.bookingId && other.bookingId && r.bookingId === other.bookingId);
-      if (
-        samePlot &&
-        r.feeType &&
-        other.feeType &&
-        r.feeType === other.feeType &&
-        r.installmentNumber != null &&
-        other.installmentNumber != null &&
-        Number(r.installmentNumber) === Number(other.installmentNumber)
-      ) {
-        return true;
-      }
-
-      // 4. Balloon allocation coverage: if other covers r.paymentRecordId
-      if (
-        Array.isArray((other as any).allocations) &&
-        r.paymentRecordId &&
-        (other as any).allocations.some((a: any) => a.paymentRecordId === r.paymentRecordId)
-      ) {
-        return true;
-      }
-
+    // A declined slip is hidden once a newer verified receipt specifically replaced / covered it
+    const isCoveredByVerifiedReplacement = receipts.some(
+      (other) => other.status === 'verified' && other.replacesReceiptId === r.id
+    );
+    if (isCoveredByVerifiedReplacement) {
       return false;
-    });
-
-    if (hasNewerVerifiedReceipt) {
-      return false;
-    }
-
-    // Also check if the underlying bill in schedules is already fully paid and has a verified receipt on that plot
-    if (r.paymentRecordId) {
-      for (const s of schedules) {
-        const matchingBill = s.schedule?.find((item) => item.id === r.paymentRecordId);
-        if (matchingBill && (matchingBill.status === 'paid' || Number(matchingBill.paidAmount) >= Number(matchingBill.amount))) {
-          const hasAnyVerifiedOnPlot = receipts.some(
-            (other) =>
-              other.status === 'verified' &&
-              (other.plotId === r.plotId || other.bookingId === r.bookingId) &&
-              new Date(other.uploadedAt || other.paymentDate || 0).getTime() >= rTime
-          );
-          if (hasAnyVerifiedOnPlot) {
-            return false;
-          }
-        }
-      }
     }
 
     return true;
@@ -384,13 +324,20 @@ export default function MemberDashboardPage() {
                 </div>
               </div>
 
-              <Link
-                href={`/society-members/payments?plot=${r.plotId}&installment=${r.installmentNumber ?? 1}&upload=true`}
-                className="w-full sm:w-auto min-h-[44px] justify-center shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white shadow-xs transition-colors whitespace-nowrap cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Re-upload Receipt</span>
-              </Link>
+              {receipts.some((other) => other.status === 'pending' && other.replacesReceiptId === r.id) ? (
+                <span className="w-full sm:w-auto min-h-[44px] justify-center shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-xs whitespace-nowrap">
+                  <Clock className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Replacement Under Review</span>
+                </span>
+              ) : (
+                <Link
+                  href={`/society-members/payments/receipts?reupload=${r.id}`}
+                  className="w-full sm:w-auto min-h-[44px] justify-center shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white shadow-xs transition-colors whitespace-nowrap cursor-pointer"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Re-upload Receipt</span>
+                </Link>
+              )}
             </div>
           );
         })}

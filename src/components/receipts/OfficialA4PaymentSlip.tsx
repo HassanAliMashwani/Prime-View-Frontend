@@ -1091,6 +1091,7 @@ interface OfficialA4PaymentSlipProps {
  */
 export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
   slip,
+  submission,
   viewMode = 'full',
   onClose,
   isReadOnly = false,
@@ -1128,11 +1129,21 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
               <ShieldCheck className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-sm tracking-tight">
-                {isCustomerView
-                  ? `Official Member Payment Slip • ${slip.slipNumber}`
-                  : `Official A4 Verified Payment Slip • ${slip.slipNumber}`}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-sm tracking-tight">
+                  {isCustomerView
+                    ? `Official Member Payment Slip • ${slip.slipNumber}`
+                    : `Official A4 Verified Payment Slip • ${slip.slipNumber}`}
+                </h3>
+                {submission?.replacesReceiptId && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200">
+                    Reuploaded
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                  Verified
+                </span>
+              </div>
               <p className="text-[11px] text-[#A6ADA0]">
                 {isCustomerView
                   ? 'Official Member Copy (1 Page)'

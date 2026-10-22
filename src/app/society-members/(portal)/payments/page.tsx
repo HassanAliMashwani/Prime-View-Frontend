@@ -517,6 +517,17 @@ function PaymentsContent() {
   };
 
   const openUploadModalWithPlot = (plotId?: string, installmentNo?: number, amount?: number) => {
+    // Rule 6: If member has an unreplaced declined receipt, route to re-upload first
+    const unreplacedDeclined = receipts.find((r) => {
+      if (r.status !== 'rejected') return false;
+      const hasReplacement = receipts.some((other) => other.replacesReceiptId === r.id);
+      return !hasReplacement;
+    });
+    if (unreplacedDeclined) {
+      router.push(`/society-members/payments/receipts?reupload=${unreplacedDeclined.id}`);
+      return;
+    }
+
     const targetPlotId = plotId || selectedPlotId || (availablePlotOptions.length > 0 ? availablePlotOptions[0].id : '');
     setFormPlotId(targetPlotId);
 
@@ -551,12 +562,21 @@ function PaymentsContent() {
   // Auto-open upload modal if ?upload=true is passed via URL
   useEffect(() => {
     if (uploadParam === 'true' && schedules.length > 0) {
+      const unreplacedDeclined = receipts.find((r) => {
+        if (r.status !== 'rejected') return false;
+        const hasReplacement = receipts.some((other) => other.replacesReceiptId === r.id);
+        return !hasReplacement;
+      });
+      if (unreplacedDeclined) {
+        router.push(`/society-members/payments/receipts?reupload=${unreplacedDeclined.id}`);
+        return;
+      }
       openUploadModalWithPlot(
         initialPlotParam || undefined,
         installmentParam ? Number(installmentParam) : undefined
       );
     }
-  }, [uploadParam, initialPlotParam, installmentParam, schedules.length]);
+  }, [uploadParam, initialPlotParam, installmentParam, schedules.length, receipts, router]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

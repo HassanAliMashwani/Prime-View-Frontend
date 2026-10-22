@@ -15,6 +15,7 @@ export interface SubmitReceiptInput {
   notes?: string;
   paymentKind?: 'regular' | 'balloon';
   previewData?: any;
+  replacesReceiptId?: string | null;
 }
 
 export const DISALLOWED_EXECUTABLE_MESSAGE =
@@ -81,6 +82,7 @@ export async function submitPaymentReceipt(
     notes: input.notes?.trim(),
     paymentKind: input.paymentKind,
     previewData: input.previewData,
+    replacesReceiptId: input.replacesReceiptId || undefined,
   };
 
   const res = await apiPost<{ receipt: ReceiptSubmission }>('/receipts', payload, token || undefined);

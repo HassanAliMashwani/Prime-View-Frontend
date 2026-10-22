@@ -54,6 +54,7 @@ function SubmittedReceiptsContent() {
   const initialPlotParam = searchParams.get('plot');
   const uploadParam = searchParams.get('upload');
   const installmentParam = searchParams.get('installment');
+  const reuploadParam = searchParams.get('reupload');
 
   const { profile, plots, schedules, fetchProfile, fetchPlots, fetchPayments, isLoading } = useMemberStore();
 
@@ -64,6 +65,7 @@ function SubmittedReceiptsContent() {
   // Modals
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [activeSlipSubmission, setActiveSlipSubmission] = useState<ReceiptSubmission | null>(null);
+  const [replacesReceipt, setReplacesReceipt] = useState<ReceiptSubmission | null>(null);
 
   // Upload Form state
   const [formPlotId, setFormPlotId] = useState<string>('');
@@ -246,7 +248,58 @@ function SubmittedReceiptsContent() {
     return item.installmentNumber || 1;
   }, [isBiannualReceiptItem]);
 
+  // Helper to find unreplaced declined receipt (Rule 6)
+  const getFirstUnreplacedDeclinedReceipt = useCallback(() => {
+    return (
+      receipts.find((r) => {
+        if (r.status !== 'rejected') return false;
+        const hasReplacement = receipts.some((other) => other.replacesReceiptId === r.id);
+        return !hasReplacement;
+      }) || null
+    );
+  }, [receipts]);
+
+  // Helper to get replacement of a receipt
+  const getReplacementForReceipt = useCallback(
+    (receiptId: string) => {
+      return receipts.find((r) => r.replacesReceiptId === receiptId) || null;
+    },
+    [receipts]
+  );
+
+  const openReuploadModal = useCallback(
+    (declinedReceipt: ReceiptSubmission) => {
+      setReplacesReceipt(declinedReceipt);
+      setFormPlotId(declinedReceipt.plotId);
+      setFormPaymentType(declinedReceipt.paymentType || 'installment');
+      setFormFeeType(declinedReceipt.feeType || 'plot_installment');
+      setFormInstallmentNo(declinedReceipt.installmentNumber || 1);
+      setFormPaymentKind('regular');
+      setFormAmount(String(declinedReceipt.amount));
+      setFormBankName(declinedReceipt.depositoryBank || declinedReceipt.bankName || 'Meezan Bank Limited');
+      setFormTxnRef('');
+      setFormDate(new Date().toISOString().split('T')[0]);
+      setSelectedReceiptFile(null);
+      setFormFileName('');
+      setFormFileUrl('');
+      setFormNotes('');
+      setUploadError(null);
+      setBalloonError(null);
+      setShowUploadModal(true);
+    },
+    []
+  );
+
   const openUploadModal = (plotId?: string, installmentNo?: number, amount?: number) => {
+    // Rule 6: Upload New Receipt, when this member still has a declined slip with no replacement uploaded yet,
+    // opens the re-upload of that declined slip first and asks for that image. It does not start a different bill.
+    const unreplacedDeclined = getFirstUnreplacedDeclinedReceipt();
+    if (unreplacedDeclined) {
+      openReuploadModal(unreplacedDeclined);
+      return;
+    }
+
+    setReplacesReceipt(null);
     const targetPlotId = plotId || initialPlotParam || (availablePlotOptions.length > 0 ? availablePlotOptions[0].id : '');
     setFormPlotId(targetPlotId);
 
@@ -283,6 +336,16 @@ function SubmittedReceiptsContent() {
     setFormNotes('');
     setShowUploadModal(true);
   };
+
+  // Auto-open modal if ?reupload=id is passed via URL
+  useEffect(() => {
+    if (reuploadParam && receipts.length > 0) {
+      const target = receipts.find((r) => r.id === reuploadParam);
+      if (target && target.status === 'rejected') {
+        openReuploadModal(target);
+      }
+    }
+  }, [reuploadParam, receipts, openReuploadModal]);
 
   // Auto-open modal if ?upload=true is passed via URL
   useEffect(() => {
@@ -373,20 +436,28 @@ function SubmittedReceiptsContent() {
       return;
     }
 
-    // Balloon boundary validation
+    // Balloon & Re-upload boundary validation
     if (formPaymentKind === 'balloon') {
       const nextBill = getNextUnpaidBill(sched);
       const nextBillOutstanding = nextBill
         ? Math.max(0, (Number(nextBill.amount) || 0) - (Number(nextBill.paidAmount) || 0))
         : 0;
       const totalOwed = getTotalStillOwed(sched);
+      const minBalloon = replacesReceipt ? Number(replacesReceipt.amount) : nextBillOutstanding;
+      const maxBalloon = replacesReceipt ? Math.max(Number(replacesReceipt.amount), totalOwed) : totalOwed;
 
-      if (nextBillOutstanding > 0 && parsedAmount < nextBillOutstanding) {
-        setBalloonError(`A balloon payment cannot be smaller than the next unpaid bill (${formatPKR(nextBillOutstanding)}).`);
+      if (minBalloon > 0 && parsedAmount < minBalloon) {
+        setBalloonError(`A balloon payment cannot be smaller than the bill amount (${formatPKR(minBalloon)}).`);
         return;
       }
-      if (totalOwed > 0 && parsedAmount > totalOwed) {
-        setBalloonError(`A balloon payment cannot exceed the total balance owed on the plot (${formatPKR(totalOwed)}).`);
+      if (maxBalloon > 0 && parsedAmount > maxBalloon) {
+        setBalloonError(`A balloon payment cannot exceed the total balance owed on the plot (${formatPKR(maxBalloon)}).`);
+        return;
+      }
+    } else if (replacesReceipt) {
+      const minBill = Number(replacesReceipt.amount);
+      if (parsedAmount < minBill) {
+        setUploadError(`The minimum payment is the full current bill (${formatPKR(minBill)}). An installment cannot be saved short.`);
         return;
       }
     }
@@ -401,6 +472,18 @@ function SubmittedReceiptsContent() {
     const targetPlot = availablePlotOptions.find((p) => p.id === tempPlotId);
     const tempPlotNumber = targetPlot?.plotNumber || '';
     const tempBlockName = targetPlot?.blockName || '';
+
+    const isReupload = Boolean(replacesReceipt);
+    const isReuploadBiannual = replacesReceipt && isBiannualReceiptItem(replacesReceipt);
+    const uploadBillLabel = replacesReceipt
+      ? (isReuploadBiannual
+          ? `Bi-Annual #${replacesReceipt.installmentNumber || 1}`
+          : replacesReceipt.feeType === 'plot_downpayment'
+          ? 'Down Payment'
+          : replacesReceipt.feeType === 'plot_possession'
+          ? 'Possession'
+          : `Installment #${replacesReceipt.installmentNumber || 1}`)
+      : (formFeeType === 'plot_biannual' ? `Bi-Annual #${formInstallmentNo}` : `Installment #${formInstallmentNo}`);
 
     let compressedDataUrl = formFileUrl;
     if (selectedReceiptFile) {
@@ -439,13 +522,14 @@ function SubmittedReceiptsContent() {
       receiptFileName: formFileName || 'deposit_receipt.jpg',
       status: 'pending',
       paymentKind: formPaymentKind,
+      replacesReceiptId: replacesReceipt ? replacesReceipt.id : undefined,
     };
 
     setReceipts((prev) => [optimisticReceipt, ...prev.filter((r) => r.id !== tempId)]);
     setBottomNotice({
       id: tempId,
       type: 'sending',
-      message: `Uploading receipt for Plot ${tempPlotNumber} (${formatPKR(tempAmount)})...`,
+      message: `Uploading ${isReupload ? 'replacement ' : ''}receipt for Plot ${tempPlotNumber} (${uploadBillLabel} - ${formatPKR(tempAmount)})...`,
     });
 
     try {
@@ -465,18 +549,20 @@ function SubmittedReceiptsContent() {
             receiptFileName: formFileName || 'deposit_receipt.jpg',
             notes: formNotes.trim() || undefined,
             paymentKind: formPaymentKind,
+            replacesReceiptId: replacesReceipt ? replacesReceipt.id : undefined,
           }),
       });
 
       if (res.ok && res.receipt) {
         setShowUploadModal(false);
+        setReplacesReceipt(null);
         setReceipts((prev) =>
           prev.map((r) => (r.id === tempId ? { ...res.receipt!, status: 'pending' as const } : r))
         );
         setBottomNotice({
           id: res.receipt.id,
           type: 'success',
-          message: `Receipt for Plot ${tempPlotNumber} submitted successfully! Awaiting admin verification.`,
+          message: `${isReupload ? 'Replacement receipt' : 'Receipt'} for Plot ${tempPlotNumber} (${uploadBillLabel}) submitted successfully! Awaiting admin verification.`,
         });
         loadReceiptsData(true);
       } else {
@@ -582,9 +668,29 @@ function SubmittedReceiptsContent() {
     return plotsWithReceipts;
   }, [receipts, availablePlotOptions]);
 
+  const modalBillLabel = useMemo(() => {
+    if (replacesReceipt) {
+      const isBiannual = isBiannualReceiptItem(replacesReceipt);
+      if (isBiannual) {
+        return `Bi-Annual #${replacesReceipt.installmentNumber || 1}`;
+      }
+      if (replacesReceipt.paymentType === 'installment') {
+        if (replacesReceipt.feeType === 'plot_downpayment') return 'Down Payment';
+        if (replacesReceipt.feeType === 'plot_possession') return 'Possession';
+        return `Installment #${replacesReceipt.installmentNumber || 1}`;
+      }
+      return 'Full Payment Settlement';
+    }
+    if (formPaymentType === 'one_time') return 'Full Balance Settlement';
+    if (formFeeType === 'plot_downpayment') return 'Down Payment';
+    if (formFeeType === 'plot_possession') return 'Possession';
+    if (isBiannualReceiptItem({ feeType: formFeeType })) return `Bi-Annual #${formInstallmentNo}`;
+    return `Monthly #${formInstallmentNo}`;
+  }, [replacesReceipt, formPaymentType, formFeeType, formInstallmentNo, isBiannualReceiptItem]);
+
   const totalReceiptsCount = receipts.length;
-  const pendingCount = receipts.filter((r) => r.status === 'pending').length;
   const verifiedCount = receipts.filter((r) => r.status === 'verified').length;
+  const pendingCount = receipts.filter((r) => r.status === 'pending').length;
   const declinedCount = receipts.filter((r) => r.status === 'rejected').length;
 
   return (
@@ -843,17 +949,42 @@ function SubmittedReceiptsContent() {
                                 <span>View Official Member Slip</span>
                               </button>
                             ) : isDeclined ? (
-                              <button
-                                type="button"
-                                onClick={() => openUploadModal(sub.plotId, sub.installmentNumber, sub.amount)}
-                                className="w-full sm:w-auto min-h-[44px] justify-center px-4 py-2 rounded-xl text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
-                              >
-                                <Upload className="w-3.5 h-3.5" />
-                                <span>Re-upload Receipt</span>
-                              </button>
+                              (() => {
+                                const rep = getReplacementForReceipt(sub.id);
+                                if (rep?.status === 'pending') {
+                                  return (
+                                    <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-amber-800 font-semibold px-4 py-2 rounded-xl bg-amber-50 border border-amber-200">
+                                      <Clock className="w-3.5 h-3.5 text-amber-600 mr-1.5" />
+                                      Replacement Under Review
+                                    </span>
+                                  );
+                                }
+                                if (rep?.status === 'verified') {
+                                  return (
+                                    <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-emerald-800 font-semibold px-4 py-2 rounded-xl bg-emerald-50 border border-emerald-200">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 mr-1.5" />
+                                      Replaced &amp; Verified
+                                    </span>
+                                  );
+                                }
+                                if (rep?.status === 'rejected') {
+                                  return null;
+                                }
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => openReuploadModal(sub)}
+                                    className="w-full sm:w-auto min-h-[44px] justify-center px-4 py-2 rounded-xl text-xs font-bold bg-rose-700 hover:bg-rose-800 text-white flex items-center gap-2 shadow-xs transition-all cursor-pointer"
+                                  >
+                                    <Upload className="w-3.5 h-3.5" />
+                                    <span>Re-upload Receipt</span>
+                                  </button>
+                                );
+                              })()
                             ) : isPending ? (
                               <span className="w-full sm:w-auto min-h-[44px] flex items-center justify-center text-xs text-amber-800 font-semibold px-4 py-2 rounded-xl bg-amber-50 border border-amber-200">
-                                Under Committee Review
+                                <Clock className="w-3.5 h-3.5 text-amber-600 mr-1.5" />
+                                {sub.replacesReceiptId ? 'Replacement Under Review' : 'Under Committee Review'}
                               </span>
                             ) : null}
                           </div>
@@ -881,17 +1012,22 @@ function SubmittedReceiptsContent() {
                 </div>
                 <div>
                   <h3 className="font-display font-bold text-lg text-[#151914]">
-                    Upload Payment Deposit Receipt
+                    {replacesReceipt ? 'Re-upload Payment Deposit Receipt' : 'Upload Payment Deposit Receipt'}
                   </h3>
                   <p className="text-xs text-[#6B7462]">
-                    Submit your bank slip for administrative verification and A4 slip generation.
+                    {replacesReceipt
+                      ? `Re-uploading deposit slip for ${modalBillLabel} (Replacing Ref: ${replacesReceipt.transactionRef})`
+                      : 'Submit your bank slip for administrative verification and A4 slip generation.'}
                   </p>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() => setShowUploadModal(false)}
+                onClick={() => {
+                  setShowUploadModal(false);
+                  setReplacesReceipt(null);
+                }}
                 className="p-1.5 rounded-lg hover:bg-black/5 text-[#6B7462] hover:text-[#151914] cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -913,6 +1049,24 @@ function SubmittedReceiptsContent() {
             )}
 
             <form onSubmit={handleReceiptSubmit} className="space-y-4">
+              {/* Re-upload Context Notice (Rule 2) */}
+              {replacesReceipt && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-950 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-rose-900">
+                    <AlertCircle className="w-4 h-4 text-rose-600" />
+                    <span>Re-uploading for Declined Bill: {modalBillLabel}</span>
+                  </div>
+                  <p className="text-[11px] text-rose-800">
+                    Previous Slip: <span className="font-mono font-bold">{replacesReceipt.transactionRef}</span> ({replacesReceipt.depositoryBank || replacesReceipt.bankName || 'Bank'}) on {replacesReceipt.paymentDate ? String(replacesReceipt.paymentDate).split('T')[0] : '—'}
+                  </p>
+                  {replacesReceipt.rejectionReason && (
+                    <p className="text-[11px] text-rose-900 font-medium">
+                      Decline Reason: &ldquo;{replacesReceipt.rejectionReason}&rdquo;
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Plot File Selector */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
@@ -920,8 +1074,11 @@ function SubmittedReceiptsContent() {
                 </label>
                 <select
                   value={formPlotId}
+                  disabled={Boolean(replacesReceipt)}
                   onChange={(e) => handlePlotSelectionChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl focus:ring-2 focus:ring-[#43612B] bg-white text-[#151914] cursor-pointer"
+                  className={`w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-white text-[#151914] ${
+                    replacesReceipt ? 'bg-[#FAF9F7] text-[#4A5347] cursor-not-allowed' : 'focus:ring-2 focus:ring-[#43612B] cursor-pointer'
+                  }`}
                   required
                 >
                   {availablePlotOptions.map((opt) => (
@@ -964,6 +1121,10 @@ function SubmittedReceiptsContent() {
                         onClick={() => {
                           setFormPaymentKind('regular');
                           setBalloonError(null);
+                          if (replacesReceipt) {
+                            setFormAmount(String(replacesReceipt.amount));
+                            return;
+                          }
                           const sched = schedules.find((s) => s.plotId === formPlotId);
                           const nextBill = getNextUnpaidBill(sched);
                           if (nextBill) {
@@ -1006,6 +1167,8 @@ function SubmittedReceiptsContent() {
                   <label className="text-xs font-bold text-[#151914] uppercase tracking-wider block">
                     {formPaymentType === 'one_time'
                       ? 'Reference'
+                      : replacesReceipt
+                      ? 'Target Bill'
                       : formFeeType === 'plot_downpayment'
                       ? 'Down Payment Bill'
                       : formFeeType === 'plot_possession'
@@ -1020,13 +1183,7 @@ function SubmittedReceiptsContent() {
                     value={
                       formPaymentType === 'one_time'
                         ? 'Full Balance Settlement'
-                        : formFeeType === 'plot_downpayment'
-                        ? 'Down Payment'
-                        : formFeeType === 'plot_possession'
-                        ? 'Possession'
-                        : isBiannualReceiptItem({ feeType: formFeeType })
-                        ? `Bi-Annual #${formInstallmentNo}`
-                        : `Monthly #${formInstallmentNo}`
+                        : modalBillLabel
                     }
                     className="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-black/10 rounded-xl bg-[#FAF9F7] text-[#4A5347] font-semibold cursor-not-allowed"
                   />
@@ -1034,6 +1191,31 @@ function SubmittedReceiptsContent() {
 
                 {/* Target Bill Breakdown Notice */}
                 {formPaymentType === 'installment' && formPaymentKind === 'regular' && (() => {
+                  if (replacesReceipt) {
+                    return (
+                      <div className="sm:col-span-2 p-3.5 rounded-2xl border text-xs bg-rose-50/70 border-rose-200 text-rose-950">
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="text-xs sm:text-sm">
+                            Re-upload Target Bill: {modalBillLabel}
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900 border border-rose-300">
+                            Declined Slip Replacement
+                          </span>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#6B7462]">
+                          <div>
+                            Bill Amount: <span className="font-semibold text-[#151914]">{formatPKR(Number(replacesReceipt.amount))}</span>
+                          </div>
+                          <div>
+                            Original Ref: <span className="font-mono font-bold text-[#151914]">{replacesReceipt.transactionRef}</span>
+                          </div>
+                          <div>
+                            Bank: <span className="font-semibold text-[#151914]">{replacesReceipt.depositoryBank || replacesReceipt.bankName || 'Bank'}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
                   const sched = schedules.find((s) => s.plotId === formPlotId);
                   const nextBill = getNextUnpaidBill(sched);
                   if (!nextBill) return null;
