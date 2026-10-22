@@ -769,14 +769,24 @@ export default function AdminReceiptsPage() {
                   )}
 
                   {/* Status chip */}
-                  {sub.replacesReceiptId && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200 flex items-center gap-1">
-                      <RefreshCw className="w-3 h-3 text-blue-600" />
-                      <span>Reuploaded</span>
-                    </span>
-                  )}
-
-                  {sub.status === 'verified' ? (
+                  {sub.replacesReceiptId ? (
+                    sub.status === 'verified' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        <span>Reuploaded &amp; Verified</span>
+                      </span>
+                    ) : sub.status === 'rejected' ? (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 flex items-center gap-1">
+                        <XCircle className="w-3 h-3 text-rose-600" />
+                        <span>Reuploaded &amp; Declined</span>
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-amber-600" />
+                        <span>Reuploaded &amp; Pending</span>
+                      </span>
+                    )
+                  ) : sub.status === 'verified' ? (
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                       <span>Verified</span>
@@ -1192,13 +1202,24 @@ export default function AdminReceiptsPage() {
                     <h3 id="bank-slip-modal-title" className="text-sm font-bold text-slate-800 font-serif truncate">
                       Bank Deposit Slip Document
                     </h3>
-                    {previewReceipt?.replacesReceiptId && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200 flex items-center gap-1">
-                        <RefreshCw className="w-3 h-3 text-blue-600" />
-                        <span>Reuploaded</span>
-                      </span>
-                    )}
-                    {previewReceipt?.status === 'verified' ? (
+                    {previewReceipt?.replacesReceiptId ? (
+                      previewReceipt.status === 'verified' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                          <span>Reuploaded &amp; Verified</span>
+                        </span>
+                      ) : previewReceipt.status === 'rejected' ? (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-900 border border-rose-200 flex items-center gap-1">
+                          <XCircle className="w-3 h-3 text-rose-600" />
+                          <span>Reuploaded &amp; Declined</span>
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-amber-600" />
+                          <span>Reuploaded &amp; Pending</span>
+                        </span>
+                      )
+                    ) : previewReceipt?.status === 'verified' ? (
                       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 flex items-center gap-1">
                         <CheckCircle2 className="w-3 h-3 text-emerald-600" />
                         <span>Verified</span>

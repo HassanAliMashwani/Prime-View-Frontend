@@ -1135,14 +1135,15 @@ export const OfficialA4PaymentSlip: React.FC<OfficialA4PaymentSlipProps> = ({
                     ? `Official Member Payment Slip • ${slip.slipNumber}`
                     : `Official A4 Verified Payment Slip • ${slip.slipNumber}`}
                 </h3>
-                {submission?.replacesReceiptId && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-900 border border-blue-200">
-                    Reuploaded
+                {submission?.replacesReceiptId ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                    Reuploaded &amp; Verified
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
+                    Verified
                   </span>
                 )}
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200">
-                  Verified
-                </span>
               </div>
               <p className="text-[11px] text-[#A6ADA0]">
                 {isCustomerView
