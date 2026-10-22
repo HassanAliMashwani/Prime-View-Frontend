@@ -4,7 +4,7 @@ import { EnrichedPlot, getMyPlots } from '../dal/plots';
 import { getCustomerProfile } from '../dal/customers';
 import { getPaymentSchedule, getPaymentHistory, PlotPaymentSchedule, PaymentTransaction, HeldPlotInfo } from '../dal/payments';
 import { getMyDocuments, PlotDocuments } from '../dal/documents';
-import { getActiveSession } from '../dal/auth';
+import { getActiveSession, handleMemberSessionExpired } from '../dal/auth';
 
 import { clearCachePrefix, reconcileItems } from '../dal/apiCache';
 import { runLane1, runLane2 } from '../requestLanes';
@@ -18,6 +18,12 @@ interface MemberState {
   documents: PlotDocuments[];
   isLoading: boolean;
   error: string | null;
+  /**
+   * Set when a non-401 fetch fails and there is no existing data to show.
+   * Pages use this to render an error+retry state instead of the empty state.
+   * Cleared on the next successful fetch.
+   */
+  fetchError: string | null;
 
   fetchDashboardData: (isBackground?: boolean) => Promise<void>;
   fetchProfile: (isBackground?: boolean) => Promise<void>;
@@ -43,6 +49,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
   documents: [],
   isLoading: false,
   error: null,
+  fetchError: null,
   termsModalOpen: false,
   openTermsModal: () => set({ termsModalOpen: true }),
   closeTermsModal: () => set({ termsModalOpen: false }),
@@ -64,8 +71,17 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               getPaymentSchedule(undefined, signal),
             ]);
 
-            if (profileRes.error === 'UNAUTHORIZED' || plotsRes.error === 'UNAUTHORIZED') {
+            // 401 from any endpoint → purge session and send to login
+            if (profileRes.error === 'UNAUTHORIZED' || plotsRes.error === 'UNAUTHORIZED' || schedulesRes.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
               set({ isLoading: false, error: 'UNAUTHORIZED' });
+              return;
+            }
+
+            // Non-401 failure with no existing data → show error state, don't clear
+            const hasExistingData = get().plots.length > 0;
+            if (!plotsRes.ok && !hasExistingData) {
+              set({ isLoading: false, fetchError: 'Could not load your data. Please retry.' });
               return;
             }
 
@@ -76,18 +92,30 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                     termsAccepted: Boolean(state.profile?.termsAccepted || profileRes.data.termsAccepted),
                   }
                 : state.profile,
-              plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
-              schedules: (schedulesRes.data && schedulesRes.data.length > 0)
-                ? reconcileItems(state.schedules, schedulesRes.data, (s) => s.plotId)
-                : [],
-              heldPlots: (schedulesRes as any)?.heldPlots || [],
+              plots: plotsRes.ok
+                ? reconcileItems(state.plots, plotsRes.data || [], (p) => p.id)
+                : state.plots, // Keep existing on failure
+              schedules: schedulesRes.ok
+                ? ((schedulesRes.data && schedulesRes.data.length > 0)
+                    ? reconcileItems(state.schedules, schedulesRes.data, (s) => s.plotId)
+                    : [])
+                : state.schedules, // Keep existing on failure
+              heldPlots: schedulesRes.ok
+                ? ((schedulesRes as any)?.heldPlots || [])
+                : state.heldPlots,
               isLoading: false,
+              fetchError: null, // Clear on success
             }));
           },
         });
       } catch (err: any) {
         if (err?.message !== 'REQUEST_SUPERSEDED') {
-          set({ isLoading: false, error: 'Failed to load dashboard data' });
+          const hasData = get().plots.length > 0;
+          set({
+            isLoading: false,
+            error: hasData ? null : 'Failed to load dashboard data',
+            fetchError: hasData ? null : 'Could not load your data. Please retry.',
+          });
         }
       }
     } else {
@@ -103,9 +131,14 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               getPaymentSchedule(undefined, signal),
             ]);
 
-            if (profileRes.error === 'UNAUTHORIZED' || plotsRes.error === 'UNAUTHORIZED') {
+            // 401 → sign out even in background
+            if (profileRes.error === 'UNAUTHORIZED' || plotsRes.error === 'UNAUTHORIZED' || schedulesRes.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
               return;
             }
+
+            // Non-401 failure in background: silently keep existing data
+            if (!plotsRes.ok) return;
 
             set((state) => ({
               profile: profileRes.data
@@ -115,10 +148,15 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                   }
                 : state.profile,
               plots: reconcileItems(state.plots, plotsRes.data || [], (p) => p.id),
-              schedules: (schedulesRes.data && schedulesRes.data.length > 0)
-                ? reconcileItems(state.schedules, schedulesRes.data, (s) => s.plotId)
-                : [],
-              heldPlots: (schedulesRes as any)?.heldPlots || [],
+              schedules: schedulesRes.ok
+                ? ((schedulesRes.data && schedulesRes.data.length > 0)
+                    ? reconcileItems(state.schedules, schedulesRes.data, (s) => s.plotId)
+                    : [])
+                : state.schedules,
+              heldPlots: schedulesRes.ok
+                ? ((schedulesRes as any)?.heldPlots || [])
+                : state.heldPlots,
+              fetchError: null,
             }));
           },
         });
@@ -141,6 +179,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               key: 'member-profile-data',
               fn: async (signal) => {
                 const res = await getCustomerProfile(signal);
+                if (res.error === 'UNAUTHORIZED') {
+                  handleMemberSessionExpired();
+                  return;
+                }
                 if (res.ok && res.data) {
                   const profileData: Customer = res.data;
                   set((state) => ({
@@ -148,13 +190,14 @@ export const useMemberStore = create<MemberState>((set, get) => ({
                       ...profileData,
                       termsAccepted: Boolean(state.profile?.termsAccepted || profileData.termsAccepted),
                     },
+                    fetchError: null,
                   }));
                 }
               },
             });
           } catch (err: any) {
             if (err?.message !== 'REQUEST_SUPERSEDED') {
-              // ignore
+              // ignore — profile failure is non-critical
             }
           }
         } else {
@@ -165,6 +208,10 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               isRefresh: true,
               fn: async (signal) => {
                 const res = await getCustomerProfile(signal);
+                if (res.error === 'UNAUTHORIZED') {
+                  handleMemberSessionExpired();
+                  return;
+                }
                 if (res.ok && res.data) {
                   const profileData: Customer = res.data;
                   set((state) => ({
@@ -198,19 +245,33 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           key: 'member-plots-data',
           fn: async (signal) => {
             const res = await getMyPlots(signal);
+            if (res.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              set({ isLoading: false });
+              return;
+            }
             if (res.ok) {
               set((state) => ({
                 plots: reconcileItems(state.plots, res.data || [], (p) => p.id),
                 isLoading: false,
+                fetchError: null,
               }));
             } else {
-              set({ isLoading: false });
+              const hasData = get().plots.length > 0;
+              set({
+                isLoading: false,
+                fetchError: hasData ? null : 'Could not load your properties. Please retry.',
+              });
             }
           },
         });
       } catch (err: any) {
         if (err?.message !== 'REQUEST_SUPERSEDED') {
-          set({ isLoading: false });
+          const hasData = get().plots.length > 0;
+          set({
+            isLoading: false,
+            fetchError: hasData ? null : 'Could not load your properties. Please retry.',
+          });
         }
       }
     } else {
@@ -221,9 +282,14 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           isRefresh: true,
           fn: async (signal) => {
             const res = await getMyPlots(signal);
+            if (res.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              return;
+            }
             if (res.ok && res.data) {
               set((state) => ({
                 plots: reconcileItems(state.plots, res.data || [], (p) => p.id),
+                fetchError: null,
               }));
             }
           },
@@ -248,19 +314,41 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               getPaymentSchedule(filterPlotId, signal),
               getPaymentHistory(filterPlotId, signal),
             ]);
+
+            if (schedRes.error === 'UNAUTHORIZED' || histRes.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              set({ isLoading: false });
+              return;
+            }
+
+            if (!schedRes.ok) {
+              const hasData = get().schedules.length > 0;
+              set({
+                isLoading: false,
+                fetchError: hasData ? null : 'Could not load your payment data. Please retry.',
+              });
+              return;
+            }
+
             set((state) => ({
               schedules: (schedRes.data && schedRes.data.length > 0)
                 ? reconcileItems(state.schedules, schedRes.data, (s) => s.plotId)
                 : [],
               heldPlots: (schedRes as any)?.heldPlots || [],
-              transactions: histRes.data || [],
+              transactions: histRes.ok ? (histRes.data || []) : state.transactions,
               isLoading: false,
+              fetchError: null,
             }));
           },
         });
       } catch (err: any) {
         if (err?.message !== 'REQUEST_SUPERSEDED') {
-          set({ isLoading: false, error: 'Failed to load payments' });
+          const hasData = get().schedules.length > 0;
+          set({
+            isLoading: false,
+            error: hasData ? null : 'Failed to load payments',
+            fetchError: hasData ? null : 'Could not load your payment data. Please retry.',
+          });
         }
       }
     } else {
@@ -274,12 +362,22 @@ export const useMemberStore = create<MemberState>((set, get) => ({
               getPaymentSchedule(filterPlotId, signal),
               getPaymentHistory(filterPlotId, signal),
             ]);
+
+            if (schedRes.error === 'UNAUTHORIZED' || histRes.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              return;
+            }
+
+            // On background failure: keep existing data
+            if (!schedRes.ok) return;
+
             set((state) => ({
               schedules: (schedRes.data && schedRes.data.length > 0)
                 ? reconcileItems(state.schedules, schedRes.data, (s) => s.plotId)
                 : [],
               heldPlots: (schedRes as any)?.heldPlots || [],
-              transactions: histRes.data || [],
+              transactions: histRes.ok ? (histRes.data || []) : state.transactions,
+              fetchError: null,
             }));
           },
         });
@@ -300,9 +398,15 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           key: `member-payment-history-${filterPlotId || 'all'}`,
           fn: async (signal) => {
             const histRes = await getPaymentHistory(filterPlotId, signal);
+            if (histRes.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              set({ isLoading: false });
+              return;
+            }
             set((state) => ({
-              transactions: histRes.data || [],
+              transactions: histRes.ok ? (histRes.data || []) : state.transactions,
               isLoading: false,
+              fetchError: null,
             }));
           },
         });
@@ -319,9 +423,15 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           isRefresh: true,
           fn: async (signal) => {
             const histRes = await getPaymentHistory(filterPlotId, signal);
-            set((state) => ({
-              transactions: histRes.data || [],
-            }));
+            if (histRes.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              return;
+            }
+            if (histRes.ok) {
+              set((state) => ({
+                transactions: histRes.data || [],
+              }));
+            }
           },
         });
       } catch {
@@ -341,9 +451,17 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           key: 'member-documents',
           fn: async (signal) => {
             const res = await getMyDocuments(signal);
+            if (res.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              set({ isLoading: false });
+              return;
+            }
             set((state) => ({
-              documents: reconcileItems(state.documents, res.data || [], (d) => d.plotId),
+              documents: res.ok
+                ? reconcileItems(state.documents, res.data || [], (d) => d.plotId)
+                : state.documents,
               isLoading: false,
+              fetchError: res.ok ? null : state.fetchError,
             }));
           },
         });
@@ -360,9 +478,15 @@ export const useMemberStore = create<MemberState>((set, get) => ({
           isRefresh: true,
           fn: async (signal) => {
             const res = await getMyDocuments(signal);
-            set((state) => ({
-              documents: reconcileItems(state.documents, res.data || [], (d) => d.plotId),
-            }));
+            if (res.error === 'UNAUTHORIZED') {
+              handleMemberSessionExpired();
+              return;
+            }
+            if (res.ok) {
+              set((state) => ({
+                documents: reconcileItems(state.documents, res.data || [], (d) => d.plotId),
+              }));
+            }
           },
         });
       } catch {
@@ -382,6 +506,7 @@ export const useMemberStore = create<MemberState>((set, get) => ({
       documents: [],
       isLoading: false,
       error: null,
+      fetchError: null,
       termsModalOpen: false,
     });
   },

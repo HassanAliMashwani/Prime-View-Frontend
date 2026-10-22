@@ -7,7 +7,7 @@ import {
   AccountStatus,
   InstallmentPlanConfig,
 } from '../mock/types';
-import { getActiveSession } from './auth';
+import { getActiveSession, handleMemberSessionExpired } from './auth';
 import { apiGet, apiPost, apiPatch, apiDelete } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
 import { fetchWith60sCache, clearCachePrefix } from './apiCache';
@@ -431,9 +431,25 @@ export async function getCustomerProfile(signal?: AbortSignal): Promise<{
   return fetchWith60sCache(cacheKey, async () => {
     const res = await apiGet<Customer>(`/customers/${session.customerId}`, session.token, signal);
     if (!res.ok || !res.data) {
-      return { ok: false, error: res.error || 'NOT_FOUND' };
+      if (res.status === 401) {
+        handleMemberSessionExpired();
+        throw new Error('MEMBER_SESSION_EXPIRED');
+      }
+      if (res.error === 'REQUEST_ABORTED') {
+        throw new Error('REQUEST_ABORTED');
+      }
+      // Throw so the failed response is never cached
+      throw new Error(res.error || 'FETCH_FAILED');
     }
     return { ok: true, data: res.data };
+  }).catch((err: any) => {
+    if (err?.message === 'MEMBER_SESSION_EXPIRED') {
+      return { ok: false, error: 'UNAUTHORIZED' } as { ok: boolean; error: string };
+    }
+    if (err?.message === 'REQUEST_ABORTED') {
+      return { ok: false, error: 'REQUEST_ABORTED' } as { ok: boolean; error: string };
+    }
+    return { ok: false, error: err?.message || 'FETCH_FAILED' } as { ok: boolean; error: string };
   });
 }
 

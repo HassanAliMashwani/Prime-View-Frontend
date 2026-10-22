@@ -1,5 +1,5 @@
 import { apiPost } from '../api';
-import { getActiveSession } from '../dal/auth';
+import { getActiveSession, handleMemberSessionExpired } from '../dal/auth';
 import { getActiveAdminSession } from '../dal/adminAuth';
 
 export interface ProfilePhotoUploadResult {
@@ -79,6 +79,9 @@ function shrinkImageTo320Jpeg(file: File): Promise<Blob> {
  * 2. Obtains presigned upload authorization for the public 'public-media' bucket.
  * 3. Uploads via HTTP PUT/POST directly to storage provider.
  * 4. Returns the permanent HTTPS public link.
+ *
+ * On 401 from step 2 (presigned URL): signs the member out and redirects to login.
+ * On other failures: returns a specific message indicating which step failed.
  */
 export async function uploadProfilePhoto(file: File): Promise<ProfilePhotoUploadResult> {
   try {
@@ -87,11 +90,16 @@ export async function uploadProfilePhoto(file: File): Promise<ProfilePhotoUpload
       return { ok: false, error: 'You must be logged in to upload a profile picture.' };
     }
 
-    // 1. Shrink step
-    const jpegBlob = await shrinkImageTo320Jpeg(file);
+    // Step 1 — Resize
+    let jpegBlob: Blob;
+    try {
+      jpegBlob = await shrinkImageTo320Jpeg(file);
+    } catch (err: any) {
+      return { ok: false, error: `Could not prepare image for upload: ${err?.message || 'Unknown error.'}` };
+    }
     const sizeKb = Math.max(1, Math.ceil(jpegBlob.size / 1024));
 
-    // 2. Request presigned upload URL for 'public-media' bucket
+    // Step 2 — Request presigned upload URL for 'public-media' bucket
     const presignedRes = await apiPost<any>(
       '/storage/presigned-url',
       {
@@ -104,52 +112,63 @@ export async function uploadProfilePhoto(file: File): Promise<ProfilePhotoUpload
     );
 
     if (!presignedRes.ok || !presignedRes.data?.uploadUrl) {
+      // 401 → session expired, sign out and redirect
+      if (presignedRes.status === 401) {
+        handleMemberSessionExpired();
+        return { ok: false, error: 'Your session has expired. Please sign in again.' };
+      }
       return {
         ok: false,
-        error: presignedRes.error || presignedRes.message || 'Failed to acquire upload authorization.',
+        error: `Could not get upload permission: ${presignedRes.error || presignedRes.message || 'Please try again.'}`,
       };
     }
 
     const { uploadUrl, fileUrl, method, fields, headers } = presignedRes.data;
 
-    // 3. Perform direct binary upload to storage provider
-    if (method === 'POST' && fields) {
-      const formData = new FormData();
-      for (const [k, v] of Object.entries(fields)) {
-        formData.append(k, v as string);
-      }
-      formData.append('file', jpegBlob, 'profile_avatar.jpg');
+    // Step 3 — Perform direct binary upload to storage provider
+    let uploadOk = false;
+    let uploadStatus = 0;
+    try {
+      if (method === 'POST' && fields) {
+        const formData = new FormData();
+        for (const [k, v] of Object.entries(fields)) {
+          formData.append(k, v as string);
+        }
+        formData.append('file', jpegBlob, 'profile_avatar.jpg');
 
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!uploadRes.ok) {
-        return {
-          ok: false,
-          error: `Storage upload failed with status ${uploadRes.status}`,
-        };
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'POST',
+          body: formData,
+        });
+        uploadOk = uploadRes.ok;
+        uploadStatus = uploadRes.status;
+      } else {
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'image/jpeg',
+            ...(headers || {}),
+          },
+          body: jpegBlob,
+        });
+        uploadOk = uploadRes.ok;
+        uploadStatus = uploadRes.status;
       }
-    } else {
-      const uploadRes = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'image/jpeg',
-          ...(headers || {}),
-        },
-        body: jpegBlob,
-      });
-
-      if (!uploadRes.ok) {
-        return {
-          ok: false,
-          error: `Storage upload failed with status ${uploadRes.status}`,
-        };
-      }
+    } catch (err: any) {
+      return {
+        ok: false,
+        error: `Image upload failed: ${err?.message || 'Network error. Please check your connection.'}`,
+      };
     }
 
-    // 4. Return permanent HTTPS file link
+    if (!uploadOk) {
+      return {
+        ok: false,
+        error: `Image upload failed (status ${uploadStatus}). Please try again.`,
+      };
+    }
+
+    // Step 4 — Return permanent HTTPS file link
     return {
       ok: true,
       fileUrl,

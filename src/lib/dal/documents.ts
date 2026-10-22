@@ -1,5 +1,5 @@
 import { AdminSession, CustomerDocument, CustomerDocumentType } from '../mock/types';
-import { requireMemberSession } from './auth';
+import { requireMemberSession, handleMemberSessionExpired } from './auth';
 import { compressAndEncodeReceipt } from '../utils/imageCompression';
 import { apiGet, apiPost, apiDelete } from '../api';
 
@@ -212,6 +212,10 @@ export async function getMyDocuments(signal?: AbortSignal): Promise<{ ok: boolea
     const res = await apiGet<any[]>('/me/plots', session.token, signal);
 
     if (!res.ok || !Array.isArray(res.data)) {
+      if (res.status === 401) {
+        handleMemberSessionExpired();
+        return { ok: false, data: [], error: 'UNAUTHORIZED' };
+      }
       return { ok: false, data: [], error: res.error || 'FETCH_FAILED' };
     }
 

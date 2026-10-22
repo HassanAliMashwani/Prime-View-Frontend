@@ -93,7 +93,10 @@ export default function ProfilePage() {
       // 1. Shrink step & upload to public-media bucket via presigned URL
       const uploadRes = await uploadProfilePhoto(file);
       if (!uploadRes.ok || !uploadRes.fileUrl) {
-        setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+        setToastMessage({
+          type: 'error',
+          text: uploadRes.error || 'Could not upload profile picture. Please try again.',
+        });
         setAvatarSaving(false);
         return;
       }
@@ -117,10 +120,18 @@ export default function ProfilePage() {
         // Show success notice only after the link is saved
         setToastMessage({ type: 'success', text: 'Profile picture updated successfully.' });
       } else {
-        setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+        setToastMessage({
+          type: 'error',
+          text: res.error && res.error !== 'UNKNOWN_ERROR'
+            ? `Could not save profile picture: ${res.error}`
+            : 'Could not save profile picture to your account. Please try again.',
+        });
       }
-    } catch {
-      setToastMessage({ type: 'error', text: 'Something went wrong. Please try again.' });
+    } catch (err: any) {
+      setToastMessage({
+        type: 'error',
+        text: err?.message || 'Unexpected error while updating profile picture.',
+      });
     } finally {
       setAvatarSaving(false);
       if (avatarInputRef.current) {

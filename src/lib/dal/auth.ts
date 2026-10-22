@@ -55,14 +55,19 @@ export async function login(identifier: string, password: string): Promise<Login
         : Buffer.from(access_token.split('.')[1], 'base64').toString()
     );
 
-    const thirtyMinutesMs = 30 * 60 * 1000;
+    // Use the token's own exp claim so the browser session expires exactly when
+    // the backend token expires. Fall back to 30 minutes if the claim is absent.
+    const expiresAt = payload.exp
+      ? payload.exp * 1000
+      : Date.now() + 30 * 60 * 1000;
+
     const session: MemberSession = {
       customerId: payload.customerId,
       role: 'customer',
       fullName: payload.fullName,
       email: payload.email,
       token: access_token,
-      expiresAt: Date.now() + thirtyMinutesMs,
+      expiresAt,
     };
 
     if (typeof window !== 'undefined') {
@@ -97,6 +102,44 @@ export async function logout(): Promise<void> {
       // Storage unavailable fallback
     }
   }
+}
+
+/**
+ * Sign the member out, purge session storage (including cached API data),
+ * and redirect to the login page with the given message.
+ * Called on HTTP 401 from any member API endpoint.
+ */
+export function handleMemberSessionExpired(
+  message = 'Your session has expired. Please sign in again.'
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    // Remove session
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    document.cookie = 'pv_member_token=; path=/; max-age=0; SameSite=Lax';
+    document.cookie = 'pv_member_session=; path=/; max-age=0; SameSite=Lax';
+
+    // Purge all member API cache entries so stale data is never served after re-login
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const k = sessionStorage.key(i);
+      if (
+        k &&
+        (k.startsWith('pv_cache:/me/') ||
+          k.startsWith('pv_cache:/customers/') ||
+          k.startsWith('pv_cache:/receipts/'))
+      ) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    // ignore
+  }
+
+  window.location.replace(
+    `/society-members/login?message=${encodeURIComponent(message)}`
+  );
 }
 
 /**

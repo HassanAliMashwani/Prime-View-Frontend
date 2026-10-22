@@ -1,5 +1,6 @@
 import { PaymentRecord, PaymentStatus, PaymentType } from '../mock/types';
 import { requireMemberSession } from './auth';
+import { handleMemberSessionExpired } from './auth';
 import { apiGet } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
 import { fetchWith60sCache } from './apiCache';
@@ -46,6 +47,19 @@ export async function getMemberRawPayments(token: string, customerId: string, si
   const cacheKey = `/me/payments:${customerId}`;
   return fetchWith60sCache(cacheKey, async () => {
     const paymentsRes = await apiGet<any[]>('/me/payments', token, signal);
+
+    if (!paymentsRes.ok) {
+      if (paymentsRes.error === 'REQUEST_ABORTED') {
+        throw new Error('REQUEST_ABORTED');
+      }
+      if (paymentsRes.status === 401) {
+        handleMemberSessionExpired();
+        throw new Error('MEMBER_SESSION_EXPIRED');
+      }
+      // Other failure: throw so caller keeps existing data and nothing is cached
+      throw new Error(paymentsRes.error || 'FETCH_FAILED');
+    }
+
     return Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
   });
 }
@@ -159,10 +173,16 @@ export async function getPaymentSchedule(
 
     return { ok: true, data: schedules, heldPlots };
   } catch (err: unknown) {
-    if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+    if (err instanceof Error && (err.message === 'MEMBER_SESSION_EXPIRED' || err.message === 'UNAUTHORIZED')) {
+      if (err.message === 'UNAUTHORIZED') {
+        handleMemberSessionExpired();
+      }
       return { ok: false, data: [], heldPlots: [], error: 'UNAUTHORIZED' };
     }
-    return { ok: false, data: [], heldPlots: [], error: 'UNKNOWN_ERROR' };
+    if (err instanceof Error && err.message === 'REQUEST_ABORTED') {
+      return { ok: false, data: [], heldPlots: [], error: 'REQUEST_ABORTED' };
+    }
+    return { ok: false, data: [], heldPlots: [], error: 'FETCH_FAILED' };
   }
 }
 
@@ -245,10 +265,16 @@ export async function getPaymentHistory(
 
     return { ok: true, data: transactions };
   } catch (err: unknown) {
-    if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+    if (err instanceof Error && (err.message === 'MEMBER_SESSION_EXPIRED' || err.message === 'UNAUTHORIZED')) {
+      if (err.message === 'UNAUTHORIZED') {
+        handleMemberSessionExpired();
+      }
       return { ok: false, data: [], error: 'UNAUTHORIZED' };
     }
-    return { ok: false, data: [], error: 'UNKNOWN_ERROR' };
+    if (err instanceof Error && err.message === 'REQUEST_ABORTED') {
+      return { ok: false, data: [], error: 'REQUEST_ABORTED' };
+    }
+    return { ok: false, data: [], error: 'FETCH_FAILED' };
   }
 }
 

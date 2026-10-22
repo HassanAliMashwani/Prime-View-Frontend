@@ -1,5 +1,6 @@
 import { AdminSession, ReceiptSubmission, ReceiptStatus } from '../mock/types';
 import { apiGet, apiPost, getAdminToken, getMemberToken } from '../api';
+import { handleMemberSessionExpired } from './auth';
 
 export interface SubmitReceiptInput {
   plotId: string;
@@ -146,6 +147,10 @@ export async function getCustomerReceipts(_customerId?: string, signal?: AbortSi
   const token = getMemberToken();
   const res = await apiGet<{ receipts: ReceiptSubmission[] }>('/receipts/me', token || undefined, signal);
   if (!res.ok || !res.data) {
+    // 401 from server: session expired — sign out and redirect
+    if (res.status === 401) {
+      handleMemberSessionExpired();
+    }
     return [];
   }
   const list = Array.isArray(res.data) ? res.data : (res.data as any).receipts || [];
@@ -534,6 +539,13 @@ export async function getUnreadReceiptsCount(since?: string, signal?: AbortSigna
   if (since) params.set('since', since);
   const endpoint = params.toString() ? `/receipts/unread-count?${params.toString()}` : '/receipts/unread-count';
   const res = await apiGet<{ ok: boolean; unreadCount: number }>(endpoint, token, signal);
+  if (!res.ok) {
+    // 401 from server: session expired — sign out and redirect
+    if (res.status === 401) {
+      handleMemberSessionExpired();
+    }
+    return 0;
+  }
   if (res.ok && typeof res.data?.unreadCount === 'number') {
     return res.data.unreadCount;
   }

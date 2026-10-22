@@ -29,7 +29,7 @@ import { runLane1, runLane2 } from '@/lib/requestLanes';
 import { warmMemberCache } from '@/lib/dal/cacheWarmer';
 
 export default function MemberDashboardPage() {
-  const { profile, plots, schedules, fetchDashboardData, isLoading, openTermsModal } = useMemberStore();
+  const { profile, plots, schedules, fetchDashboardData, isLoading, openTermsModal, fetchError } = useMemberStore();
   const [receipts, setReceipts] = useState<ReceiptSubmission[]>([]);
 
   const loadReceipts = useCallback(async (isBackground = false) => {
@@ -560,6 +560,30 @@ export default function MemberDashboardPage() {
                   <div className="h-10 w-full bg-slate-200/80 rounded-xl" />
                 </div>
               ))}
+            </div>
+          ) : fetchError && plots.length === 0 ? (
+            /* Network / server error on first load — show retry, not empty state */
+            <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-12 text-center space-y-3 sm:space-y-4 shadow-xs">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center mx-auto">
+                <XCircle className="w-7 h-7 sm:w-8 sm:h-8" />
+              </div>
+              <div className="max-w-md mx-auto space-y-1 sm:space-y-1.5">
+                <h4 className="font-display font-bold text-base sm:text-lg text-[#151914]">
+                  Could Not Load Properties
+                </h4>
+                <p className="text-xs text-[#6B7462] leading-relaxed">
+                  {fetchError}
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => fetchDashboardData()}
+                  className="min-h-[44px] inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#43612B] hover:bg-[#365222] text-white font-bold text-xs tracking-wide transition-colors"
+                >
+                  Retry
+                </button>
+              </div>
             </div>
           ) : plots.length === 0 ? (
             /* Friendly Empty State for Zero Plots */

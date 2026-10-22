@@ -151,7 +151,7 @@ function PaymentsContent() {
     }
   }, [initialPlotParam]);
 
-  const { schedules, plots, profile, heldPlots = [], fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading } = useMemberStore();
+  const { schedules, plots, profile, heldPlots = [], fetchPayments, fetchPlots, fetchProfile, fetchDashboardData, isLoading, fetchError } = useMemberStore();
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [activeTab, setActiveTab] = useState<'installment' | 'one_time'>('installment');
   const [selectedPlotId, setSelectedPlotId] = useState<string | null>(null);
@@ -916,6 +916,31 @@ function PaymentsContent() {
                   <div key={i} className="h-12 bg-slate-100 rounded-xl w-full" />
                 ))}
               </div>
+            </div>
+          </div>
+        ) : fetchError && schedules.length === 0 && plots.length === 0 ? (
+          /* Network / server error on first load — show retry, not empty state */
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-12 text-center space-y-3 sm:space-y-4 shadow-xs">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center mx-auto">
+              <XCircle className="w-7 h-7 sm:w-8 sm:h-8" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="font-display font-bold text-base sm:text-lg text-[#151914]">
+                Could Not Load Payment Data
+              </h4>
+              <p className="text-xs text-[#6B7462] max-w-md mx-auto leading-relaxed">
+                {fetchError}
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => { fetchPayments(undefined); fetchPlots(); }}
+                className="min-h-[44px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#43612B] text-white text-xs font-bold hover:bg-[#344c22] transition-colors"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry</span>
+              </button>
             </div>
           </div>
         ) : schedules.length === 0 ? (

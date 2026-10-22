@@ -1,5 +1,6 @@
 import { Booking, PaymentType, Plot } from '../mock/types';
 import { requireMemberSession } from './auth';
+import { handleMemberSessionExpired } from './auth';
 import { apiGet } from '../api';
 import { computePlotLedger } from '../ledger/plotLedger';
 import { fetchWith60sCache } from './apiCache';
@@ -27,6 +28,19 @@ export async function getMemberRawPlots(token: string, customerId: string, signa
   const cacheKey = `/me/plots:${customerId}`;
   return fetchWith60sCache(cacheKey, async () => {
     const apiRes = await apiGet<any[]>('/me/plots', token, signal);
+
+    if (!apiRes.ok) {
+      if (apiRes.error === 'REQUEST_ABORTED') {
+        throw new Error('REQUEST_ABORTED');
+      }
+      if (apiRes.status === 401) {
+        handleMemberSessionExpired();
+        throw new Error('MEMBER_SESSION_EXPIRED');
+      }
+      // Other failure (network, 5xx): throw so caller keeps existing data
+      throw new Error(apiRes.error || 'FETCH_FAILED');
+    }
+
     return Array.isArray(apiRes.data) ? apiRes.data : [];
   });
 }
@@ -107,10 +121,17 @@ export async function getMyPlots(signal?: AbortSignal): Promise<{ ok: boolean; d
 
     return { ok: true, data: enrichedPlots };
   } catch (err: unknown) {
-    if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+    if (err instanceof Error && err.message === 'MEMBER_SESSION_EXPIRED') {
       return { ok: false, data: [], error: 'UNAUTHORIZED' };
     }
-    return { ok: false, data: [], error: 'UNKNOWN_ERROR' };
+    if (err instanceof Error && err.message === 'UNAUTHORIZED') {
+      handleMemberSessionExpired();
+      return { ok: false, data: [], error: 'UNAUTHORIZED' };
+    }
+    if (err instanceof Error && err.message === 'REQUEST_ABORTED') {
+      return { ok: false, data: [], error: 'REQUEST_ABORTED' };
+    }
+    return { ok: false, data: [], error: 'FETCH_FAILED' };
   }
 }
 

@@ -5,11 +5,11 @@ import Link from 'next/link';
 import { MemberHeader } from '@/components/member-portal/MemberHeader';
 import { PlotCard } from '@/components/member-portal/PlotCard';
 import { useMemberStore } from '@/lib/store/useMemberStore';
-import { Home, ShieldCheck, MapPin, Building2 } from 'lucide-react';
+import { Home, ShieldCheck, MapPin, Building2, XCircle } from 'lucide-react';
 import { MemberPropertiesSkeleton } from '@/components/ui/skeleton';
 
 export default function PropertiesPage() {
-  const { plots, fetchPlots, isLoading } = useMemberStore();
+  const { plots, fetchPlots, isLoading, fetchError } = useMemberStore();
 
   useEffect(() => {
     fetchPlots();
@@ -75,6 +75,30 @@ export default function PropertiesPage() {
                 <div className="h-10 w-full bg-slate-200 rounded-xl" />
               </div>
             ))}
+          </div>
+        ) : fetchError && plots.length === 0 ? (
+          /* Network / server error on first load — show retry, not empty state */
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-14 text-center space-y-4">
+            <div className="w-16 h-16 rounded-2xl bg-red-50 text-red-400 flex items-center justify-center mx-auto">
+              <XCircle className="w-8 h-8" />
+            </div>
+            <div className="max-w-md mx-auto space-y-1.5">
+              <h4 className="font-display font-bold text-lg text-[#151914]">
+                Could Not Load Properties
+              </h4>
+              <p className="text-xs text-[#6B7462] leading-relaxed">
+                {fetchError}
+              </p>
+            </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => fetchPlots()}
+                className="min-h-[44px] inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#43612B] text-white font-bold text-xs tracking-wide hover:bg-[#365222] transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           </div>
         ) : plots.length === 0 ? (
           <div className="bg-white rounded-2xl sm:rounded-3xl border border-black/[0.08] p-6 sm:p-14 text-center space-y-4">
